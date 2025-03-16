@@ -289,17 +289,15 @@ Resources:
           #  -e NEO4J_AUTH=neo4j/password \
           #  docker.io/library/neo4j:5.26.3-community
 
-          mkdir -p /root/neo4j/data
-          mkdir -p /root/neo4j/import
-          mkdir -p /root/neo4jRAG/data
-          mkdir -p /root/neo4jRAG/import
+          docker volume create neo4j_data
+          docker volume create neo4jRAG_data
 
           docker run -d \
             --name neo4j \
             --network shift-graphRAG-net \
             -p 7474:7474 -p 7687:7687 \
-            -v /root/neo4j/data:/data \            # データ永続化
-            -v /root/neo4j/import:/import \        # インポート永続化
+            -v neo4j_data:/data \
+            -v neo4j_data:/import \
             -e NEO4J_apoc_export_file_enabled=true \
             -e NEO4J_apoc_import_file_enabled=true \
             -e NEO4J_apoc_import_file_use__neo4j__config=true \
@@ -311,8 +309,8 @@ Resources:
             --name neo4jRAG \
             --network shift-graphRAG-net \
             -p 7575:7474 -p 7587:7687 \
-            -v /root/neo4jRAG/data:/data \            # データ永続化
-            -v /root/neo4jRAG/import:/import \        # インポート永続化
+            -v neo4jRAG_data:/data \
+            -v neo4jRAG_data:/import \
             -e NEO4J_apoc_export_file_enabled=true \
             -e NEO4J_apoc_import_file_enabled=true \
             -e NEO4J_apoc_import_file_use__neo4j__config=true \
