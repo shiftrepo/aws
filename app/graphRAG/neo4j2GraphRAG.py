@@ -73,14 +73,17 @@ def store_graph_with_embeddings(uri, user, password, graph_data):
                     print("No node found in record.")
                     continue
 
-                # プロパティを取得
-                node_props = node.get("properties", {})
+                # ノードのデバッグ
+                print(f"Debug node: {node}")
+
+                # プロパティを明確化して取得
+                node_props = node._properties if hasattr(node, '_properties') else {}
                 if not node_props:
                     print(f"No properties found for node: {node}")
                     continue
 
                 # ノードラベルとリレーションシップ
-                node_labels = list(node.get("labels", []))
+                node_labels = list(node.labels) if hasattr(node, 'labels') else []
                 relationships = record.get("relationships", [])
 
                 # エンベディング対象のテキストを生成
@@ -88,29 +91,35 @@ def store_graph_with_embeddings(uri, user, password, graph_data):
                 embedding = None
                 if embedding_text:
                     embedding = create_embedding(embedding_text)
-                    node_props["embedding"] = embedding  # エンベディングをプロパティに追加
+                    node_props["embedding"] = embedding  # 全ノードにエンベディングを追加
 
                 # ノードの作成または更新
-                node_label_str = ":".join(node_labels)
+                node_label_str = ":".join(node_labels) if node_labels else "Entity"
                 create_node_query = f"""
-                MERGE (n:{node_label_str} {{テーブルID: }})
-                SET n += 
+                MERGE (n:{node_label_str} {{id: $id}})
+                SET n += $props
                 """
-                tx.run(create_node_query, table_id=node_props.get('テーブルID', ''), props=node_props)
+                print(f"Debug create_node_query: {create_node_query}")  # デバッグ用出力
+                print(f"Debug props: {node_props}")  # デバッグ用出力
+
+                tx.run(create_node_query, id=node.element_id, props=node_props)
 
                 # リレーションシップの作成
                 for rel in relationships:
-                    start_node_id = rel.get("startNodeId")
-                    end_node_id = rel.get("endNodeId")
-                    rel_type = rel.get("type")
-                    rel_props = rel.get("properties", {})
-                    if start_node_id is not None and end_node_id is not None and rel_type:
+                    start_node_id = rel.start_node.element_id if hasattr(rel, 'start_node') else None
+                    end_node_id = rel.end_node.element_id if hasattr(rel, 'end_node') else None
+                    rel_type = rel.type if hasattr(rel, 'type') else None
+                    rel_props = rel._properties if hasattr(rel, '_properties') else {}
+
+                    if start_node_id and end_node_id and rel_type:
                         create_rel_query = f"""
                         MATCH (start), (end)
-                        WHERE id(start) =  AND id(end) = 
+                        WHERE id(start) = $start_id AND id(end) = $end_id
                         CREATE (start)-[r:{rel_type}]->(end)
-                        SET r = 
+                        SET r = $rel_props
                         """
+                        print(f"Debug create_rel_query: {create_rel_query}")  # デバッグ用出力
+                        print(f"Debug rel_props: {rel_props}")  # デバッグ用出力
                         tx.run(create_rel_query, start_id=start_node_id, end_id=end_node_id, rel_props=rel_props)
         with driver.session() as session:
             session.execute_write(work)
