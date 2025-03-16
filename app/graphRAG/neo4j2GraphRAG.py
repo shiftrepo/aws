@@ -1,69 +1,127 @@
-# graphRAG_creation.py
-
+import os
+from neo4j import GraphDatabase
 import boto3
 import json
-import numpy as np
-from py2neo import Graph
 
-# AWSクライアント設定
-client = boto3.client("bedrock", region_name="us-west-2")  # 必要に応じてリージョンを設定
+# 環境変数から設定情報を取得
+SOURCE_NEO4J_URI = os.environ.get("SOURCE_NEO4J_URI", "bolt://neo4j:7687")
+SOURCE_NEO4J_USER = os.environ.get("SOURCE_NEO4J_USER", "neo4j")
+SOURCE_NEO4J_PASSWORD = os.environ.get("SOURCE_NEO4J_PASSWORD", "password")
 
-# Neo4j接続設定（元のNeo4j）
-source_graph = Graph("bolt://neo4j:7687", auth=("neo4j", "password"))  # 既存のNeo4jデータベース
+TARGET_NEO4J_URI = os.environ.get("TARGET_NEO4J_URI", "bolt://neo4jRAG:7687")
+TARGET_NEO4J_USER = os.environ.get("TARGET_NEO4J_USER", "neo4j")
+TARGET_NEO4J_PASSWORD = os.environ.get("TARGET_NEO4J_PASSWORD", "password")
 
-# Neo4j接続設定（GraphRAG用Neo4j）
-rag_graph = Graph("bolt://neo4jRAG:7687", auth=("neo4j", "password"))  # GraphRAG用のNeo4jデータベース
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")  # 例: 米国東部リージョン
 
-# 埋め込み生成関数（Titan Embedding）
-def generate_embedding(text: str):
-    response = client.invoke_model(
-        ModelId="amazon.titan-embed-text-v2:0",
-        Body=text.encode("utf-8"),
-        ContentType="application/json"
-    )
-    embedding = response["Body"].read()
-    return json.loads(embedding)
+# デバッグログ
+print(f"SOURCE_NEO4J_URI: {SOURCE_NEO4J_URI}")
+print(f"SOURCE_NEO4J_USER: {SOURCE_NEO4J_USER}")
+print(f"SOURCE_NEO4J_PASSWORD: {SOURCE_NEO4J_PASSWORD}")
+print(f"TARGET_NEO4J_URI: {TARGET_NEO4J_URI}")
+print(f"TARGET_NEO4J_USER: {TARGET_NEO4J_USER}")
+print(f"TARGET_NEO4J_PASSWORD: {TARGET_NEO4J_PASSWORD}")
+print(f"AWS_REGION: {AWS_REGION}")
 
-# Neo4jからノードとリレーションを取得し、埋め込みを生成してGraphRAGに保存
-def create_graphRAG():
-    # Neo4jのグラフデータを取得
-    query = """
-    MATCH (n)-[r]->(m)
-    RETURN n.id AS node_id, n.text AS node_text, m.id AS related_node_id, m.text AS related_node_text
-    """
-    result = source_graph.run(query)
+# AWSクライアントの初期化
+bedrock_runtime = boto3.client('bedrock-runtime', region_name=AWS_REGION)
 
-    for record in result:
-        node_id = record['node_id']
-        node_text = record['node_text']
-        related_node_id = record['related_node_id']
-        related_node_text = record['related_node_text']
+def get_all_nodes_and_relationships(uri, user, password):
+    """既存のNeo4jから全てのノードとリレーションシップを取得する"""
+    driver = GraphDatabase.driver(uri, auth=(user, password))
+    try:
+        def work(tx):
+            query = """
+            MATCH (n)
+            OPTIONAL MATCH (n)-[r]->(m)
+            RETURN n, collect(r) as relationships
+            """
+            result = tx.run(query)
+            data = []
+            for record in result:
+                print(f"Debug record: {record}")  # デバッグ用ログ
+                node = record.get("n")
+                relationships = record.get("relationships", [])
+                data.append({"node": node, "relationships": relationships})
+            return data
+        with driver.session() as session:
+            return session.execute_read(work)
+    finally:
+        driver.close()
 
-        # 埋め込みを生成
-        node_embedding = generate_embedding(node_text)
-        related_node_embedding = generate_embedding(related_node_text)
+def create_embedding(text):
+    """Amazon Titan Embeddingsでテキストのベクトル表現を作成する"""
+    body = json.dumps({"inputText": text})
+    modelId = 'amazon.titan-embed-text-v2:0'
+    accept = 'application/json'
+    contentType = 'application/json'
 
-        # GraphRAG用に保存
-        save_embedding_to_rag_graph(node_id, node_embedding, node_text)
-        save_embedding_to_rag_graph(related_node_id, related_node_embedding, related_node_text)
-        save_relationship_to_rag_graph(node_id, related_node_id)
+    response = bedrock_runtime.invoke_model(body=body, modelId=modelId, accept=accept, contentType=contentType)
+    response_body = json.loads(response.get('body').read())
+    embedding = response_body.get('embedding')
+    return embedding
 
-# Neo4j (GraphRAG用) に埋め込みを保存する関数
-def save_embedding_to_rag_graph(node_id, embedding_vector, node_text):
-    query = """
-    MERGE (n:Node {id: $node_id})
-    SET n.embedding = $embedding, n.text = $node_text
-    """
-    rag_graph.run(query, node_id=node_id, embedding=embedding_vector, node_text=node_text)
+def store_graph_with_embeddings(uri, user, password, graph_data):
+    """GraphRAG用のNeo4jにグラフデータとエンベディングを格納する"""
+    driver = GraphDatabase.driver(uri, auth=(user, password))
+    try:
+        def work(tx):
+            for record in graph_data:
+                # ノードを取得
+                node = record.get("node")
+                if not node:
+                    print("No node found in record.")
+                    continue
 
-# ノード間のリレーションを保存する関数
-def save_relationship_to_rag_graph(node_id1, node_id2):
-    query = """
-    MATCH (n1:Node {id: $node_id1}), (n2:Node {id: $node_id2})
-    MERGE (n1)-[:RELATED_TO]->(n2)
-    """
-    rag_graph.run(query, node_id1=node_id1, node_id2=node_id2)
+                # プロパティを取得
+                node_props = node.get("properties", {})
+                if not node_props:
+                    print(f"No properties found for node: {node}")
+                    continue
 
-# 実行
-create_graphRAG()
+                # ノードラベルとリレーションシップ
+                node_labels = list(node.get("labels", []))
+                relationships = record.get("relationships", [])
 
+                # エンベディング対象のテキストを生成
+                embedding_text = " ".join(str(value) for value in node_props.values())
+                embedding = None
+                if embedding_text:
+                    embedding = create_embedding(embedding_text)
+                    node_props["embedding"] = embedding  # エンベディングをプロパティに追加
+
+                # ノードの作成または更新
+                node_label_str = ":".join(node_labels)
+                create_node_query = f"""
+                MERGE (n:{node_label_str} {{テーブルID: }})
+                SET n += 
+                """
+                tx.run(create_node_query, table_id=node_props.get('テーブルID', ''), props=node_props)
+
+                # リレーションシップの作成
+                for rel in relationships:
+                    start_node_id = rel.get("startNodeId")
+                    end_node_id = rel.get("endNodeId")
+                    rel_type = rel.get("type")
+                    rel_props = rel.get("properties", {})
+                    if start_node_id is not None and end_node_id is not None and rel_type:
+                        create_rel_query = f"""
+                        MATCH (start), (end)
+                        WHERE id(start) =  AND id(end) = 
+                        CREATE (start)-[r:{rel_type}]->(end)
+                        SET r = 
+                        """
+                        tx.run(create_rel_query, start_id=start_node_id, end_id=end_node_id, rel_props=rel_props)
+        with driver.session() as session:
+            session.execute_write(work)
+        print("Graph data with embeddings stored successfully in the target Neo4j.")
+    finally:
+        driver.close()
+
+if __name__ == "__main__":
+    print("Fetching graph data from the source Neo4j...")
+    graph_data = get_all_nodes_and_relationships(SOURCE_NEO4J_URI, SOURCE_NEO4J_USER, SOURCE_NEO4J_PASSWORD)
+    print(f"Fetched {len(graph_data)} nodes and their relationships.")
+
+    print("Creating embeddings and storing data in the target Neo4j...")
+    store_graph_with_embeddings(TARGET_NEO4J_URI, TARGET_NEO4J_USER, TARGET_NEO4J_PASSWORD, graph_data)

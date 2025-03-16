@@ -10,3 +10,7 @@ llama-index-readers-wikipedia
 llama-index-graph-stores-neo4j
 wikipedia
 neo4j
+
+py2neo
+scipy
+numpy
