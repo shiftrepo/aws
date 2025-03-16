@@ -55,7 +55,7 @@ Settings.embed_model = embedding
 graph_store = Neo4jPropertyGraphStore(
     username="neo4j",
     password="password",
-    url="bolt://neo4j:7687",
+    url="bolt://neo4jRAG:7687",
 )
 
 # PropertyGraphIndexの作成
