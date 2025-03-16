@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   CloudFormation Template to launch an EC2 instance with Docker and Python 3.12 in a container, with pip libraries installed.
-  Ports 7474 and 7687 are open for external access. Resources are suffixed with SHIFT-graphRAG.
+  Ports 7474 and 7687 and 7575 and 7587 are open for external access. Resources are suffixed with SHIFT-graphRAG.
 
 Parameters:
   KeyName:
@@ -124,7 +124,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: EC2SG-SHIFT-graphRAG
-      GroupDescription: Allow SSH, Neo4j ports (7474, 7687)
+      GroupDescription: Allow SSH, Neo4j ports (7474, 7687, 7575, 7587)
       VpcId: !Ref VPCSHIFTgraphRAG
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -138,6 +138,14 @@ Resources:
         - IpProtocol: tcp
           FromPort: 7687
           ToPort: 7687
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7575
+          ToPort: 7575
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7587
+          ToPort: 7587
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
@@ -270,10 +278,41 @@ Resources:
 
           # Install and run Neo4j container
           docker pull docker.io/library/neo4j:5.26.3-community
+          #docker run -d \
+          #  --name neo4j \
+          #  --network shift-graphRAG-net \
+          #  -p 7474:7474 -p 7687:7687 \
+          #  -e NEO4J_apoc_export_file_enabled=true \
+          #  -e NEO4J_apoc_import_file_enabled=true \
+          #  -e NEO4J_apoc_import_file_use__neo4j__config=true \
+          #  -e NEO4J_PLUGINS='["apoc"]' \
+          #  -e NEO4J_AUTH=neo4j/password \
+          #  docker.io/library/neo4j:5.26.3-community
+
+          mkdir -p /root/neo4j/data
+          mkdir -p /root/neo4j/import
+          mkdir -p /root/neo4jRAG/data
+          mkdir -p /root/neo4jRAG/import
+
           docker run -d \
             --name neo4j \
             --network shift-graphRAG-net \
             -p 7474:7474 -p 7687:7687 \
+            -v /root/neo4j/data:/data \            # データ永続化
+            -v /root/neo4j/import:/import \        # インポート永続化
+            -e NEO4J_apoc_export_file_enabled=true \
+            -e NEO4J_apoc_import_file_enabled=true \
+            -e NEO4J_apoc_import_file_use__neo4j__config=true \
+            -e NEO4J_PLUGINS='["apoc"]' \
+            -e NEO4J_AUTH=neo4j/password \
+            docker.io/library/neo4j:5.26.3-community
+
+          docker run -d \
+            --name neo4jRAG \
+            --network shift-graphRAG-net \
+            -p 7575:7474 -p 7587:7687 \
+            -v /root/neo4jRAG/data:/data \            # データ永続化
+            -v /root/neo4jRAG/import:/import \        # インポート永続化
             -e NEO4J_apoc_export_file_enabled=true \
             -e NEO4J_apoc_import_file_enabled=true \
             -e NEO4J_apoc_import_file_use__neo4j__config=true \
