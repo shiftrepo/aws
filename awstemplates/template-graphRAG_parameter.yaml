@@ -213,9 +213,13 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -x
-          # Install CloudWatch Agent
-          dnf install -y amazon-cloudwatch-agent
-          
+          # 1. AWS CloudWatch AgentのRPMパッケージをダウンロード
+          curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+
+          # 2. RPMパッケージをインストール
+          dnf install -y ./amazon-cloudwatch-agent.rpm
+
+          # 3. ログ追加
           cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
           {
             "logs": {
@@ -238,8 +242,11 @@ Resources:
             }
           }
           EOF
+
+          # 4. CloudWatch Agentの起動と自動起動の有効化
           systemctl enable amazon-cloudwatch-agent
           systemctl start amazon-cloudwatch-agent
+          
 
           # Install Docker etc...
           dnf install -y docker awscli git bash-completion python3-pip
