@@ -213,15 +213,15 @@ Resources:
           #!/bin/bash
           # Install Docker
           set -x
-          dnf install -y docker awscli git bash-completion
-
+          dnf install -y docker awscli git bash-completion python3-pip
           systemctl start docker
           systemctl enable docker
+          pip install podman-compose
 
           # Docker Compose インストール
-          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+          #curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          #chmod +x /usr/local/bin/docker-compose
+          #ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
           #あとでロールに切り替える予定
           mkdir -p /root/.aws
