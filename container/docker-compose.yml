@@ -1,0 +1,54 @@
+version: "3.9"
+
+networks:
+  shift-graphRAG-net:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  neo4jRAG_data:
+
+services:
+  python-aws:
+    image: docker.io/mitlabo/shift4aws:latest
+    container_name: python-aws
+    networks:
+      - shift-graphRAG-net
+    command: tail -F /dev/null
+
+  neo4j:
+    image: docker.io/library/neo4j:5.26.3-community
+    container_name: neo4j
+    networks:
+      - shift-graphRAG-net
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_data:/import
+    environment:
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_AUTH: "neo4j/password"
+
+  neo4jRAG:
+    image: docker.io/library/neo4j:5.26.3-community
+    container_name: neo4jRAG
+    networks:
+      - shift-graphRAG-net
+    ports:
+      - "7575:7474"
+      - "7587:7687"
+    volumes:
+      - neo4jRAG_data:/data
+      - neo4jRAG_data:/import
+    environment:
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_AUTH: "neo4j/password"
+
