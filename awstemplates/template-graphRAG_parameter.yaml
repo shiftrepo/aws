@@ -213,7 +213,8 @@ Resources:
           #!/bin/bash
           # Install Docker
           set -x
-          dnf install -y docker awscli git
+          dnf install -y docker awscli git bash-completion
+
           systemctl start docker
           systemctl enable docker
 
@@ -231,6 +232,11 @@ Resources:
           echo "[default]" > /root/.aws/config
           echo "region='${RegionNameParam}'" >> /root/.aws/config
           chmod 600 /root/.aws/config
+
+          curl -L https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker \
+          -o /etc/bash_completion.d/docker
+          echo ". /usr/share/bash-completion/bash_completion" >> /root/.bashrc
+          echo ". /etc/bash_completion.d/docker" >> /root/.bashrc
 
           echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /root/.bashrc
           echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /root/.bashrc
