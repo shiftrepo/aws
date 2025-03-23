@@ -259,17 +259,12 @@ Resources:
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
 
           # Create Docker network for container communication
-          docker network create shift-graphRAG-net
+          #docker network create shift-graphRAG-net
 
           # Install Docker container with Python 3.12 and pip base amazoncli
-          docker pull docker.io/mitlabo/pythonwithawscli:latest
-          docker run -d \
-            --name python-aws \
-            --network shift-graphRAG-net \
-            docker.io/mitlabo/shift4aws:latest tail -F /dev/null
-
-          #docker run -itd \
-          #  --name python-container \
+          #docker pull docker.io/mitlabo/pythonwithawscli:latest
+          #docker run -d \
+          #  --name python-aws \
           #  --network shift-graphRAG-net \
           #  docker.io/mitlabo/shift4aws:latest tail -F /dev/null
 
@@ -283,7 +278,7 @@ Resources:
           docker cp ~/aws.git/app/. python-aws:/root/app
 
           # Install and run Neo4j container
-          docker pull docker.io/library/neo4j:5.26.3-community
+          #docker pull docker.io/library/neo4j:5.26.3-community
           #docker run -d \
           #  --name neo4j \
           #  --network shift-graphRAG-net \
@@ -295,34 +290,34 @@ Resources:
           #  -e NEO4J_AUTH=neo4j/password \
           #  docker.io/library/neo4j:5.26.3-community
 
-          docker volume create neo4j_data
-          docker volume create neo4jRAG_data
+          #docker volume create neo4j_data
+          #docker volume create neo4jRAG_data
 
-          docker run -d \
-            --name neo4j \
-            --network shift-graphRAG-net \
-            -p 7474:7474 -p 7687:7687 \
-            -v neo4j_data:/data \
-            -v neo4j_data:/import \
-            -e NEO4J_apoc_export_file_enabled=true \
-            -e NEO4J_apoc_import_file_enabled=true \
-            -e NEO4J_apoc_import_file_use__neo4j__config=true \
-            -e NEO4J_PLUGINS='["apoc"]' \
-            -e NEO4J_AUTH=neo4j/password \
-            docker.io/library/neo4j:5.26.3-community
+          #docker run -d \
+          #  --name neo4j \
+          #  --network shift-graphRAG-net \
+          #  -p 7474:7474 -p 7687:7687 \
+          #  -v neo4j_data:/data \
+          #  -v neo4j_data:/import \
+          #  -e NEO4J_apoc_export_file_enabled=true \
+          #  -e NEO4J_apoc_import_file_enabled=true \
+          #  -e NEO4J_apoc_import_file_use__neo4j__config=true \
+          #  -e NEO4J_PLUGINS='["apoc"]' \
+          #  -e NEO4J_AUTH=neo4j/password \
+          #  docker.io/library/neo4j:5.26.3-community
 
-          docker run -d \
-            --name neo4jRAG \
-            --network shift-graphRAG-net \
-            -p 7575:7474 -p 7587:7687 \
-            -v neo4jRAG_data:/data \
-            -v neo4jRAG_data:/import \
-            -e NEO4J_apoc_export_file_enabled=true \
-            -e NEO4J_apoc_import_file_enabled=true \
-            -e NEO4J_apoc_import_file_use__neo4j__config=true \
-            -e NEO4J_PLUGINS='["apoc"]' \
-            -e NEO4J_AUTH=neo4j/password \
-            docker.io/library/neo4j:5.26.3-community
+          #docker run -d \
+          #  --name neo4jRAG \
+          #  --network shift-graphRAG-net \
+          #  -p 7575:7474 -p 7587:7687 \
+          #  -v neo4jRAG_data:/data \
+          #  -v neo4jRAG_data:/import \
+          #  -e NEO4J_apoc_export_file_enabled=true \
+          #  -e NEO4J_apoc_import_file_enabled=true \
+          #  -e NEO4J_apoc_import_file_use__neo4j__config=true \
+          #  -e NEO4J_PLUGINS='["apoc"]' \
+          #  -e NEO4J_AUTH=neo4j/password \
+          #  docker.io/library/neo4j:5.26.3-community
 
 Outputs:
   VPCId:
