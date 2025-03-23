@@ -258,6 +258,8 @@ Resources:
 
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
 
+          podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
+
           # Create Docker network for container communication
           #docker network create shift-graphRAG-net
 
