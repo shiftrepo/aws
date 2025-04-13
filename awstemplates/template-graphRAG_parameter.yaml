@@ -147,6 +147,14 @@ Resources:
           FromPort: 7587
           ToPort: 7587
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -201,7 +209,7 @@ Resources:
       IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG
       KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"]
       BlockDeviceMappings:
-        - DeviceName: /dev/xvda  # ルートデバイス
+        - DeviceName: /dev/sda1  # ルートデバイス
           Ebs:
             VolumeSize: 100      # ✅ ディスクサイズ (GB)
             VolumeType: gp3      # ボリュームタイプ (推奨: gp3)
@@ -287,6 +295,8 @@ Resources:
           EOF
 
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
+          git clone https://github.com/langfuse/langfuse.git -b v2.95.8 /root/langfuse_v2.git
+          git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
 
           podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
 
