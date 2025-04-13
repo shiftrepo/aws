@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: '既存のVPCにPostgreSQLのDBインスタンスを作成し、Fargateでlangfuse/langfuse:latestコンテナを起動して接続します。すべてのリソースにautherタグを追加。'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: '既存のVPC IDを選択してください。'
+
+  VPCCIDR:
+    Type: String
+    Description: '既存のVPCのCIDRブロックを入力してください。（例: 10.0.0.0/16）'
+    Default: '10.0.0.0/16'
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: DBインスタンスとFargateサービスを配置するサブネットIDを選択してください。（少なくとも2つ以上、異なるAZに配置することを推奨します。）
+
+  AvailabilityZone:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: DBインスタンスを配置するアベイラビリティゾーンを選択してください。
+
+  DBMasterUserPassword:
+    Type: String
+    Description: 'PostgreSQLのマスターユーザーパスワードを入力してください。'
+    Default: '!shift2019'
+    NoEcho: true
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for PostgreSQL DB instance
+      SubnetIds: !Ref SubnetIds
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Allows access to PostgreSQL from within the VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref VPCCIDR
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: langfusedb
+      DBInstanceClass: db.t3.medium
+      Engine: postgres
+      EngineVersion: '17.2'
+      MasterUsername: postgres
+      MasterUserPassword: !Ref DBMasterUserPassword
+      AllocatedStorage: '20'
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      AvailabilityZone: !Ref AvailabilityZone
+      MultiAZ: false
+      BackupRetentionPeriod: 0
+      PreferredBackupWindow: ''
+      PreferredMaintenanceWindow: sun:05:00-sun:09:00
+      DBName: langfusedb
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+  DBHostParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt DBInstance.Endpoint.Address
+      Name: /langfuse/db/host
+      Tags:
+        Key: author
+        Value: kentaro.mitsui
+
+  DBPortParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt DBInstance.Endpoint.Port
+      Name: /langfuse/db/port
+      Tags:
+        Key: author
+        Value: kentaro.mitsui
+
+  DBUsernameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt DBInstance.MasterUsername
+      Name: /langfuse/db/username
+      Tags:
+        Key: author
+        Value: kentaro.mitsui
+
+  DBPasswordParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref DBMasterUserPassword
+      Name: /langfuse/db/password
+      Tags:
+        Key: author
+        Value: kentaro.mitsui
+
+  DBNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: langfusedb
+      Name: /langfuse/db/name
+      Tags:
+        Key: author
+        Value: kentaro.mitsui
+
+  LangfuseTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+  LangfuseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/langfuse
+      RetentionInDays: 14
+
+  LangfuseTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: "1024"
+      Memory: "2048"
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !GetAtt LangfuseTaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: langfuse
+          Image: docker.io/langfuse/langfuse:latest
+          PortMappings:
+            - ContainerPort: 8080
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/langfuse
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: langfuse
+          Environment:
+            - Name: DB_HOST
+              Value: !Ref DBHostParameter
+            - Name: DB_PORT
+              Value: !Ref DBPortParameter
+            - Name: DB_USERNAME
+              Value: !Ref DBUsernameParameter
+            - Name: DB_PASSWORD
+              Value: !Ref DBPasswordParameter
+            - Name: DB_NAME
+              Value: !Ref DBNameParameter
+
+  LangfuseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable access to Langfuse Fargate container
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+  LangfuseCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: langfuse-cluster
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+  LangfuseService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - LangfuseLogGroup
+    Properties:
+      Cluster: !Ref LangfuseCluster
+      LaunchType: FARGATE
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: !Ref SubnetIds
+          SecurityGroups:
+            - !Ref LangfuseSecurityGroup
+          AssignPublicIp: ENABLED
+      TaskDefinition: !Ref LangfuseTaskDefinition
+      Tags:
+        - Key: author
+          Value: kentaro.mitsui
+
+Outputs:
+  DBInstanceEndpointAddress:
+    Description: PostgreSQL DBインスタンスのエンドポイントアドレス
+    Value: !GetAtt DBInstance.Endpoint.Address
+  DBInstanceEndpointPort:
+    Description: PostgreSQL DBインスタンスのエンドポイントポート
+    Value: !GetAtt DBInstance.Endpoint.Port
+  DBSecurityGroupId:
+    Description: '作成されたセキュリティグループID'
+    Value: !Ref DBSecurityGroup
+  FargateClusterName:
+    Description: Fargate クラスター名
+    Value: !Ref LangfuseCluster
+  FargateServiceName:
+    Description: Fargate サービス名
+    Value: !Ref LangfuseService

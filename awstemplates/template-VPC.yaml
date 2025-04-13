@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation Template to create VPC and related resources with SHIFT suffix.
+
+Resources:
+  # VPC
+  SHIFTVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: '10.0.0.0/16'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-VPC'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Internet Gateway
+  SHIFTInternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-IGW'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Attach Internet Gateway to VPC
+  SHIFTInternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref SHIFTVPC
+      InternetGatewayId: !Ref SHIFTInternetGateway
+
+  # Public Subnet: us-east-1a
+  SHIFTPubSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SHIFTVPC
+      CidrBlock: '10.0.1.0/24'
+      AvailabilityZone: 'us-east-1a'
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-Public-Subnet-1a'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Public Subnet: us-east-1c
+  SHIFTPubSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SHIFTVPC
+      CidrBlock: '10.0.4.0/24'
+      AvailabilityZone: 'us-east-1c'
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-Public-Subnet-1c'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Private Subnet: us-east-1b
+  SHIFTPrivSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SHIFTVPC
+      CidrBlock: '10.0.2.0/24'
+      AvailabilityZone: 'us-east-1b'
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-Private-Subnet-1b'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Private Subnet: us-east-1c (重複を避けるため、AZを変更)
+  SHIFTPrivSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SHIFTVPC
+      CidrBlock: '10.0.3.0/24'
+      AvailabilityZone: 'us-east-1c'
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-Private-Subnet-1c'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Route Table
+  SHIFTRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref SHIFTVPC
+      Tags:
+        - Key: 'Name'
+          Value: 'SHIFT-Route-Table'
+        - Key: 'author'
+          Value: 'kentaro.mitsui'
+
+  # Public Route: To Internet Gateway
+  SHIFTPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref SHIFTRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref SHIFTInternetGateway
+
+  # Associate Public Subnet 1 with Route Table
+  SHIFTRouteTableAttachment1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SHIFTPubSubnet1
+      RouteTableId: !Ref SHIFTRouteTable
+
+  # Associate Public Subnet 2 with Route Table
+  SHIFTRouteTableAttachment2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SHIFTPubSubnet2
+      RouteTableId: !Ref SHIFTRouteTable
+
+Outputs:
+  VPCId:
+    Description: 'The VPC ID'
+    Value: !Ref SHIFTVPC
+  PublicSubnetId1:
+    Description: 'The Public Subnet ID in us-east-1a'
+    Value: !Ref SHIFTPubSubnet1
+  PublicSubnetId2:
+    Description: 'The Public Subnet ID in us-east-1c'
+    Value: !Ref SHIFTPubSubnet2
+  PrivateSubnetId1:
+    Description: 'The Private Subnet ID in us-east-1b'
+    Value: !Ref SHIFTPrivSubnet1
+  PrivateSubnetId2:
+    Description: 'The Private Subnet ID in us-east-1c'
+    Value: !Ref SHIFTPrivSubnet2
