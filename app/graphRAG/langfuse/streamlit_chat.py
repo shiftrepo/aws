@@ -42,10 +42,9 @@ session_id = st.session_state["session_id"]
 
 if "langfuse_handler" not in st.session_state:
     st.session_state["langfuse_handler"] = CallbackHandler(
-        secret_key="sk-lf-36d7627f-3521-4473-b47f-fc543e335475",
-        public_key="pk-lf-0a064587-f433-4808-92cc-4594fedd765d",
-        #host="http://ec2-3-82-138-97.compute-1.amazonaws.com:3000",
-        host="http://localhost:3000",
+        secret_key = os.environ.get('LANGFUSE_SECRET_KEY')
+        public_key = os.environ.get('LANGFUSE_PUBLIC_KEY')
+        host = os.environ.get('LANGFUSE_HOST')
         session_id=session_id,
     )
 langfuse_handler = st.session_state["langfuse_handler"]
