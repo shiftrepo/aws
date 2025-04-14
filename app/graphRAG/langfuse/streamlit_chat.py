@@ -1,15 +1,15 @@
 import uuid
-
+import os
 import streamlit as st
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_community.chat_models.bedrock import BedrockChat
-from langchain_community.embeddings.bedrock import BedrockEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_aws import BedrockEmbeddings
+from langchain_aws import ChatBedrock
 
 # Initialize Langfuse handler
 from langfuse.callback import CallbackHandler
@@ -27,11 +27,11 @@ if "retriever" not in st.session_state:
 retriever = st.session_state["retriever"]
 
 if "llm" not in st.session_state:
-    st.session_state["llm"] = BedrockChat(
-            #model_id="arn:aws:bedrock:us-east-1:711387140677:inference-profile/us.anthropic.claude-3-5-haiku-20241022-v1:0",
-            model_id="arn:aws:bedrock:us-east-1:711387140677:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-            provider="anthropic",
-            region_name="us-east-1"
+    st.session_state["llm"] = ChatBedrock(
+        model_id="arn:aws:bedrock:us-east-1:711387140677:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        #model_id="arn:aws:bedrock:us-east-1:711387140677:inference-profile/us.anthropic.claude-3-5-haiku-20241022-v1:0",
+        provider="anthropic",
+        region_name="us-east-1"
     )
 
 llm = st.session_state["llm"]
@@ -42,9 +42,9 @@ session_id = st.session_state["session_id"]
 
 if "langfuse_handler" not in st.session_state:
     st.session_state["langfuse_handler"] = CallbackHandler(
-        secret_key = os.environ.get('LANGFUSE_SECRET_KEY')
-        public_key = os.environ.get('LANGFUSE_PUBLIC_KEY')
-        host = os.environ.get('LANGFUSE_HOST')
+        secret_key = os.environ.get('LANGFUSE_SECRET_KEY'),
+        public_key = os.environ.get('LANGFUSE_PUBLIC_KEY'),
+        host = os.environ.get('LANGFUSE_HOST'),
         session_id=session_id,
     )
 langfuse_handler = st.session_state["langfuse_handler"]

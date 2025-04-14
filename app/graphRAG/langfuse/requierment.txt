@@ -18,3 +18,4 @@ numpy
 faiss-cpu
 streamlit
 langfuse
+langchain-aws
