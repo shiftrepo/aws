@@ -11,8 +11,11 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
+# Initialize Langfuse handler
+from langfuse.callback import CallbackHandler
 
-st.title("Bedrock Claude Haiku チャット")
+
+st.title("Bedrock Claude Sonnet 3.7 チャット")
 
 if "retriever" not in st.session_state:
     embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0")
@@ -25,13 +28,27 @@ retriever = st.session_state["retriever"]
 
 if "llm" not in st.session_state:
     st.session_state["llm"] = BedrockChat(
-            model_id="anthropic.claude-3-5-haiku-20241022-v1:0"
+            #model_id="arn:aws:bedrock:us-east-1:711387140677:inference-profile/us.anthropic.claude-3-5-haiku-20241022-v1:0",
+            model_id="arn:aws:bedrock:us-east-1:711387140677:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+            provider="anthropic",
+            region_name="us-east-1"
     )
+
 llm = st.session_state["llm"]
 
 if "session_id" not in st.session_state:
     st.session_state["session_id"] = str(uuid.uuid4())[:8]
 session_id = st.session_state["session_id"]
+
+if "langfuse_handler" not in st.session_state:
+    st.session_state["langfuse_handler"] = CallbackHandler(
+        secret_key="sk-lf-36d7627f-3521-4473-b47f-fc543e335475",
+        public_key="pk-lf-0a064587-f433-4808-92cc-4594fedd765d",
+        #host="http://ec2-3-82-138-97.compute-1.amazonaws.com:3000",
+        host="http://localhost:3000",
+        session_id=session_id,
+    )
+langfuse_handler = st.session_state["langfuse_handler"]
 
 if "history" not in st.session_state:
     st.session_state["history"] = ChatMessageHistory()
@@ -106,6 +123,7 @@ if prompt := st.chat_input("質問を入力"):
             {"input": prompt},
             config={
                 "configurable": {"session_id": session_id},
+                "callbacks": [langfuse_handler],
             },
         )
 
@@ -115,5 +133,4 @@ if prompt := st.chat_input("質問を入力"):
                     yield chunk["answer"]
 
         st.write_stream(s)
-
 
