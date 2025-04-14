@@ -257,7 +257,7 @@ Resources:
           
 
           # Install Docker etc...
-          dnf install -y docker awscli git bash-completion python3-pip
+          dnf install -y docker awscli git bash-completion python3-pip unzip
           systemctl start docker
           systemctl enable docker
           pip install podman-compose
@@ -297,6 +297,10 @@ Resources:
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
           git clone https://github.com/langfuse/langfuse.git -b v2.95.8 /root/langfuse_v2.git
           git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
+
+          rm -f /root/langfuse_latest.git/docker-compose.yml 
+          cp /root/aws.git/container/langfuse/docker-compose.yml /root/langfuse_latest.git/
+          cp /root/aws.git/container/langfuse/env.zip /root/langfuse_latest.git/
 
           podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
 
