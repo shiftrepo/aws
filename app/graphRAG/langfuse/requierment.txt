@@ -19,3 +19,12 @@ faiss-cpu
 streamlit
 langfuse
 langchain-aws
+streamlit
+boto3
+tenacity
+llama-index
+neo4j
+langfuse
+llama-index-callbacks-langfuse
+llama-index-graph-stores-neo4j
+llama-index-llms-bedrock-converse

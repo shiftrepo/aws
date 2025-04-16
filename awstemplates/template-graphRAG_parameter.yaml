@@ -295,7 +295,6 @@ Resources:
           EOF
 
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
-          git clone https://github.com/langfuse/langfuse.git -b v2.95.8 /root/langfuse_v2.git
           git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
 
           rm -f /root/langfuse_latest.git/docker-compose.yml 
@@ -303,6 +302,8 @@ Resources:
           cp /root/aws.git/container/langfuse/env.zip /root/langfuse_latest.git/
 
           podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
+
+          podman exec python-aws pip install -r /root/app/graphRAG/langfuse/requierment.txt
 
           # コンテナ内の .bashrc に環境変数を設定
           docker exec python-aws bash -c "echo 'export AWS_ACCESS_KEY_ID=${AccessKeyIdParam}' >> ~/.bashrc"
