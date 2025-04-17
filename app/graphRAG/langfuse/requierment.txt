@@ -1,7 +1,6 @@
 boto3
 tenacity
 llama_index
-llama-index
 llama-index-llms-bedrock
 langchain-community
 argparse
