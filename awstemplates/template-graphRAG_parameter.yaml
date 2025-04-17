@@ -309,7 +309,6 @@ Resources:
           docker exec python-aws bash -c "echo 'export AWS_ACCESS_KEY_ID=${AccessKeyIdParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export AWS_SECRET_ACCESS_KEY=${SecretAccessKeyParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export AWS_DEFAULT_REGION=${RegionNameParam}' >> ~/.bashrc"
-          docker cp ~/aws.git/app/. python-aws:/root/app
 
 Outputs:
   VPCId:
