@@ -10,7 +10,7 @@ from llama_index.core import PropertyGraphIndex, Settings # ChatPromptTemplate �
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
-from llama_index.llms.bedrock import Bedrock
+from llama_index.llms.bedrock_converse import BedrockConverse
 from llama_index.embeddings.bedrock import BedrockEmbedding
 
 # --- Langfuse関連のインポートを変更 ---
@@ -62,6 +62,9 @@ else:
         )
         logger.info("Setting global callback manager with Langfuse handler...")
         Settings.callback_manager = CallbackManager([langfuse_callback_handler])
+        langfuse_callback_handler.set_trace_params(
+                session_id = session_id
+                )
     except Exception as e:
         logger.error(f"Failed to initialize Langfuse callback handler: {e}")
         # Langfuseの初期化に失敗してもアプリの実行を続ける場合があるため、
@@ -87,7 +90,7 @@ bedrock_client = boto3_session.client('bedrock-runtime')
 
 # LLM
 logger.info("Initializing Bedrock LLM...")
-llm = Bedrock(
+llm = BedrockConverse(
     model="anthropic.claude-3-haiku-20240307-v1:0",
     client=bedrock_client,
     # callbacks=[langfuse_handler] # Settings.callback_manager でグローバルに設定するため不要
