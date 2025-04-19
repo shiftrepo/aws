@@ -47,6 +47,10 @@ Parameters:
       - t3.large
       - t3.xlarge
 
+  AmazonLinuxAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+
 Conditions:
   UseKeyPairParameter: !Not [!Equals [!Ref KeyName, ""]]
 
@@ -175,9 +179,16 @@ Resources:
       VpcId: !Ref VPCSHIFTgraphRAG # 既存のVPCを使用
       SecurityGroupIngress:
         - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: SHIFTDify-SG # 新しいセキュリティグループの名前タグ
@@ -187,19 +198,25 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       # 既存のEC2と同じAMI ID、インスタンスタイプ、KeyName、IAMプロファイルを使用
-      ImageId: ami-0c7af5fe939f2677f # Red Hat Enterprise Linux 8 (us-east-1) - 元のテンプレートからコピー
+      ImageId: !Ref AmazonLinuxAMI
       InstanceType: !Ref InstanceType # パラメータから取得
-      SubnetId: !Ref PublicSubnetSHIFTgraphRAG # 既存のパブリックサブネットに配置
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SHIFTDifySecurityGroup
+          SubnetId: !Ref PublicSubnetSHIFTgraphRAG
+      #SubnetId: !Ref PublicSubnetSHIFTgraphRAG # 既存のパブリックサブネットに配置
       # 新しく作成したSHIFTDifySecurityGroupのみを関連付け
-      SecurityGroupIds:
-        - !Ref SHIFTDifySecurityGroup # 新しいセキュリティグループを参照
+      #SecurityGroupIds:
+      #  - !Ref SHIFTDifySecurityGroup # 新しいセキュリティグループを参照
       IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG # 既存のIAMプロファイルを使用
       KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"] # パラメータから取得、Conditionalも継承
-      BlockDeviceMappings: # 既存のEC2と同じディスク設定
-        - DeviceName: /dev/sda1
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: 100
-            VolumeType: gp3
+            VolumeSize: 20
+            VolumeType: gp2
             DeleteOnTermination: true
       Tags: # 指定された名前とauthorタグを設定
         - Key: Name
@@ -244,43 +261,36 @@ Resources:
           # systemctl start amazon-ssm-agent
           # Install Docker etc...
 
-          dnf install -y docker awscli git bash-completion python3-pip unzip
-          systemctl start docker
-          systemctl enable docker
-          pip install podman-compose
-
-          #あとでロールに切り替える予定 (※ 注: この部分はIAMロールを使用しているため不要になる可能性があります)
-          mkdir -p /root/.aws
-          echo "[default]" > /root/.aws/credentials
-          echo "aws_access_key_id='${AccessKeyIdParam}'" >> /root/.aws/credentials
-          echo "aws_secret_access_key='${SecretAccessKeyParam}'" >> /root/.aws/credentials
-          chmod 600 /root/.aws/credentials
-          echo "[default]" > /root/.aws/config
-          echo "region='${RegionNameParam}'" >> /root/.aws/config
-          chmod 600 /root/.aws/config
-
-          curl -L https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker \
-          -o /etc/bash_completion.d/docker
-          echo ". /usr/share/bash-completion/bash_completion" >> /root/.bashrc
-          echo ". /etc/bash_completion.d/docker" >> /root/.bashrc
-
-          echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /root/.bashrc
-          echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /root/.bashrc
-          echo "export AWS_DEFAULT_REGION='${RegionNameParam}'" >> /root/.bashrc
-
-          mkdir -p /root/.ssh
-          echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
-          chmod 400 /root/.ssh/id_ed25519
-
-          cat <<EOF > /root/.ssh/config
-          Host github.com
-            IdentityFile ~/.ssh/id_ed25519
-            User git
-          Host github.com
-            StrictHostKeyChecking no
-            UserKnownHostsFile=/dev/null
-          EOF
-
+          max_attempts=5
+          attempt_num=1
+          success=false
+          while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
+            sudo dnf install -y git docker
+            if [ $? -eq 0 ]; then
+              echo "dnf install succeeded"
+              success=true
+            else
+              echo "dnf install $attempt_num failed. trying again..."
+              sleep 3
+              ((attempt_num++))
+            fi
+          done
+          sudo systemctl start docker
+          sudo gpasswd -a ec2-user docker
+          sudo gpasswd -a ssm-user docker
+          sudo chgrp docker /var/run/docker.sock
+          sudo service docker restart
+          sudo systemctl enable docker
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+          cd /opt
+          sudo git clone https://github.com/langgenius/dify.git
+          cd /opt/dify
+          sudo git checkout 1.1.3
+          sudo git pull origin 1.1.3
+          cd /opt/dify/docker
+          sudo cp .env.example .env
 
   # ----- End of new resources for SHIFTDify -----
 
@@ -299,6 +309,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore # SSM Managed Instance Coreポリシー
         - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy # CloudWatch Agentポリシー
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
       Policies: # インラインポリシー - Parameter Storeへのアクセス許可 (元のテンプレートからコピー)
         - PolicyName: ParameterStoreAccessPolicy
           PolicyDocument:
