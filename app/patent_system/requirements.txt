@@ -1,0 +1,15 @@
+boto3
+requests
+psycopg2-binary
+sqlalchemy
+python-dotenv
+pydantic
+fastapi
+uvicorn
+langchain
+langchain-community
+langchain-core
+langchain-aws
+aws-secretsmanager-caching
+pymupdf # For PDF processing
+tqdm
