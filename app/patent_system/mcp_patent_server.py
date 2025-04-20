@@ -6,11 +6,15 @@ MCP Patent Analysis Server
 
 This server provides specialized tools for patent examiners to analyze applicant data.
 It exposes functionality from the ApplicantAnalyzer class through MCP tools.
+Also provides PDF report generation capabilities for patent data analysis.
 """
 
 import json
+import os
+import tempfile
 from datetime import datetime
 from .applicant_analyzer import ApplicantAnalyzer
+from .report_generator import PatentReportGenerator
 
 # Schema definitions for MCP tools
 SCHEMAS = {
@@ -70,6 +74,45 @@ SCHEMAS = {
             }
         },
         "required": ["applicant_name"]
+    },
+    "generate_pdf_report": {
+        "type": "object",
+        "properties": {
+            "applicant_name": {
+                "type": "string",
+                "description": "Name of the applicant for focused analysis (optional)",
+                "default": null
+            },
+            "years": {
+                "type": "integer",
+                "description": "Number of years to analyze for trends",
+                "minimum": 1,
+                "maximum": 20,
+                "default": 10
+            },
+            "top_n": {
+                "type": "integer",
+                "description": "Number of top classifications to include",
+                "minimum": 3,
+                "maximum": 10,
+                "default": 5
+            }
+        }
+    },
+    "generate_comparison_report": {
+        "type": "object",
+        "properties": {
+            "applicants": {
+                "type": "array",
+                "description": "List of applicant names to compare",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 5
+            }
+        },
+        "required": ["applicants"]
     }
 }
 
@@ -79,6 +122,7 @@ class PatentApplicantServer:
     def __init__(self):
         """Initialize the server"""
         self.analyzer = ApplicantAnalyzer()
+        self.report_generator = PatentReportGenerator()
     
     def get_tools(self):
         """Return list of available tools"""
@@ -107,6 +151,16 @@ class PatentApplicantServer:
                 "name": "compare_with_competitors",
                 "description": "Compare a patent applicant with their top competitors in terms of assessment statistics and technical distribution.",
                 "schema": SCHEMAS["compare_with_competitors"]
+            },
+            {
+                "name": "generate_pdf_report",
+                "description": "Generate a PDF report with classification trends chart and assessment ratio chart. Returns a base64 encoded PDF file.",
+                "schema": SCHEMAS["generate_pdf_report"]
+            },
+            {
+                "name": "generate_comparison_report",
+                "description": "Generate a PDF report comparing multiple applicants' assessment ratios. Returns a base64 encoded PDF file.",
+                "schema": SCHEMAS["generate_comparison_report"]
             }
         ]
     
@@ -143,6 +197,10 @@ class PatentApplicantServer:
             return self._analyze_technical_fields(arguments)
         elif tool_name == "compare_with_competitors":
             return self._compare_with_competitors(arguments)
+        elif tool_name == "generate_pdf_report":
+            return self._generate_pdf_report(arguments)
+        elif tool_name == "generate_comparison_report":
+            return self._generate_comparison_report(arguments)
         else:
             return {"error": f"Unknown tool: {tool_name}"}
     
@@ -344,6 +402,127 @@ class PatentApplicantServer:
             "assessment_comparison_chart": f"data:image/png;base64,{result['assessment_comparison']}" if "assessment_comparison" in result else None,
             "field_comparison_chart": f"data:image/png;base64,{result['field_comparison']}" if "field_comparison" in result else None
         }
+    
+    def _generate_pdf_report(self, arguments):
+        """
+        Generate a PDF report with classification trends and assessment ratio charts
+        
+        Args:
+            arguments (dict): Arguments containing optional applicant_name, years, and top_n
+            
+        Returns:
+            dict: Dict containing base64 encoded PDF and filename
+        """
+        # Extract arguments with defaults
+        applicant_name = arguments.get("applicant_name")
+        years = arguments.get("years", 10)
+        top_n = arguments.get("top_n", 5)
+        
+        try:
+            # Create temporary file
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                temp_path = tmp.name
+            
+            # Generate PDF report
+            success = self.report_generator.generate_pdf_report(
+                temp_path, 
+                applicant_name=applicant_name,
+                years=years,
+                top_n=top_n
+            )
+            
+            if not success:
+                return {"error": "PDF生成に失敗しました"}
+            
+            # Read the generated PDF
+            with open(temp_path, 'rb') as pdf_file:
+                pdf_data = pdf_file.read()
+            
+            # Convert to base64
+            pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
+            
+            # Clean up temporary file
+            try:
+                os.remove(temp_path)
+            except:
+                pass  # Ignore cleanup errors
+            
+            # Create appropriate filename
+            if applicant_name:
+                filename = f"{applicant_name}_特許分析レポート.pdf"
+            else:
+                filename = f"特許分析レポート_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            return {
+                "pdf_base64": pdf_base64,
+                "filename": filename,
+                "content_type": "application/pdf",
+                "applicant_name": applicant_name,
+                "years_analyzed": years,
+                "classifications_shown": top_n
+            }
+            
+        except Exception as e:
+            return {"error": f"PDFレポート生成エラー: {str(e)}"}
+    
+    def _generate_comparison_report(self, arguments):
+        """
+        Generate a PDF report comparing multiple applicants
+        
+        Args:
+            arguments (dict): Arguments containing applicants list
+            
+        Returns:
+            dict: Dict containing base64 encoded PDF and filename
+        """
+        # Extract arguments
+        applicants = arguments.get("applicants", [])
+        
+        if not applicants:
+            return {"error": "出願人リストが空です"}
+        
+        try:
+            # Create temporary file
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                temp_path = tmp.name
+            
+            # Generate PDF report
+            success = self.report_generator.generate_applicant_comparison_report(
+                applicants,
+                temp_path
+            )
+            
+            if not success:
+                return {"error": "比較レポートの生成に失敗しました"}
+            
+            # Read the generated PDF
+            with open(temp_path, 'rb') as pdf_file:
+                pdf_data = pdf_file.read()
+            
+            # Convert to base64
+            pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
+            
+            # Clean up temporary file
+            try:
+                os.remove(temp_path)
+            except:
+                pass  # Ignore cleanup errors
+            
+            # Create appropriate filename
+            if len(applicants) == 1:
+                filename = f"{applicants[0]}_特許分析レポート.pdf"
+            else:
+                filename = f"出願人比較レポート_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            return {
+                "pdf_base64": pdf_base64,
+                "filename": filename,
+                "content_type": "application/pdf",
+                "applicants": applicants
+            }
+            
+        except Exception as e:
+            return {"error": f"比較レポート生成エラー: {str(e)}"}
     
     def _get_patent_status_descriptions(self):
         """Get descriptions of patent statuses"""
