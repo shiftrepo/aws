@@ -256,10 +256,9 @@ Resources:
           systemctl start amazon-cloudwatch-agent
 
           # SSM Agentのインストール (RHEL/CentOS 8+では標準で入っていることが多いが、念のためインストールコマンドを残しておく)
-          # dnf install -y amazon-ssm-agent
-          # systemctl enable amazon-ssm-agent
-          # systemctl start amazon-ssm-agent
-          # Install Docker etc...
+          #dnf install -y amazon-ssm-agent
+          #systemctl enable amazon-ssm-agent
+          #systemctl start amazon-ssm-agent
 
           max_attempts=5
           attempt_num=1
@@ -390,6 +389,10 @@ Resources:
           systemctl enable amazon-cloudwatch-agent
           systemctl start amazon-cloudwatch-agent
 
+          # SSM Agentのインストール (RHEL/CentOS 8+では標準で入っていることが多いが、念のためインストールコマンドを残しておく)
+          #dnf install -y amazon-ssm-agent
+          #systemctl enable amazon-ssm-agent
+          #systemctl start amazon-ssm-agent
 
           # Install Docker etc...
           dnf install -y docker awscli git bash-completion python3-pip unzip
