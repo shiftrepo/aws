@@ -1,0 +1,14 @@
+{
+  "servers": [
+    {
+      "name": "patent-applicant-analyzer",
+      "version": "1.0.0",
+      "description": "Special tools for patent examiners to analyze applicant data, including assessment stats, technical fields, and competitor analyses.",
+      "module_path": "app.patent_system.mcp_patent_server",
+      "enabled": true,
+      "auth": {
+        "type": "none"
+      }
+    }
+  ]
+}
