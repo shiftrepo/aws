@@ -210,6 +210,65 @@ def print_usage_instructions():
 </use_mcp_tool>
     """)
     
+    # Example 4: Patent analysis - Technology trends
+    example4 = {
+        "server_name": "bedrock-patent-query",
+        "tool_name": "analyze_technology_trends",
+        "arguments": {
+            "years": 10,
+            "top_n": 5
+        }
+    }
+    logger.info("\nExample 4 - Analyze technology trends:")
+    logger.info(f"""
+<use_mcp_tool>
+<server_name>{example4['server_name']}</server_name>
+<tool_name>{example4['tool_name']}</tool_name>
+<arguments>
+{json.dumps(example4['arguments'], indent=2, ensure_ascii=False)}
+</arguments>
+</use_mcp_tool>
+    """)
+    
+    # Example 5: Patent analysis - Applicant competition
+    example5 = {
+        "server_name": "bedrock-patent-query",
+        "tool_name": "analyze_applicant_competition",
+        "arguments": {
+            "top_n": 5
+        }
+    }
+    logger.info("\nExample 5 - Analyze applicant competition:")
+    logger.info(f"""
+<use_mcp_tool>
+<server_name>{example5['server_name']}</server_name>
+<tool_name>{example5['tool_name']}</tool_name>
+<arguments>
+{json.dumps(example5['arguments'], indent=2, ensure_ascii=False)}
+</arguments>
+</use_mcp_tool>
+    """)
+    
+    # Example 6: Patent analysis - Generate comprehensive report
+    example6 = {
+        "server_name": "bedrock-patent-query",
+        "tool_name": "generate_analysis_report",
+        "arguments": {}
+    }
+    logger.info("\nExample 6 - Generate comprehensive patent analysis report:")
+    logger.info(f"""
+<use_mcp_tool>
+<server_name>{example6['server_name']}</server_name>
+<tool_name>{example6['tool_name']}</tool_name>
+<arguments>
+{json.dumps(example6['arguments'], indent=2, ensure_ascii=False)}
+</arguments>
+</use_mcp_tool>
+    """)
+    
+    logger.info("\nRun the demo_analysis.py script to see a demonstration of the patent analysis tools:")
+    logger.info("python -m app.patent_system.demo_analysis")
+    
     logger.info("\n" + "="*80)
 
 def main():

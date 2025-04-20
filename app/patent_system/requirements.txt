@@ -13,3 +13,5 @@ langchain-aws
 aws-secretsmanager-caching
 pymupdf # For PDF processing
 tqdm
+pandas
+numpy
