@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("patent-analyzer-demo")
 
-# Import the patent analyzer
+# Import the mock patent analyzer for demo purposes
 try:
     # Print debug info
     import sys
@@ -33,25 +33,25 @@ try:
     logger.info(f"Current working directory: {os.getcwd()}")
     
     # Try absolute import
-    from app.patent_system.patent_analyzer import PatentAnalyzer
-    logger.info("Successfully imported PatentAnalyzer using absolute import")
+    from app.patent_system.mock_analyzer import MockPatentAnalyzer as PatentAnalyzer
+    logger.info("Successfully imported MockPatentAnalyzer (as PatentAnalyzer) using absolute import")
 except ImportError as e:
     logger.error(f"Absolute import error: {str(e)}")
     
     # Try relative import
     try:
-        from .patent_analyzer import PatentAnalyzer
-        logger.info("Successfully imported PatentAnalyzer using relative import")
+        from .mock_analyzer import MockPatentAnalyzer as PatentAnalyzer
+        logger.info("Successfully imported MockPatentAnalyzer (as PatentAnalyzer) using relative import")
     except ImportError as e:
         logger.error(f"Relative import error: {str(e)}")
         
         # Try local import
         try:
-            from patent_analyzer import PatentAnalyzer
-            logger.info("Successfully imported PatentAnalyzer using local import")
+            from mock_analyzer import MockPatentAnalyzer as PatentAnalyzer
+            logger.info("Successfully imported MockPatentAnalyzer (as PatentAnalyzer) using local import")
         except ImportError as e:
             logger.error(f"Local import error: {str(e)}")
-            logger.error("Failed to import PatentAnalyzer. Make sure you're running the script from the project root.")
+            logger.error("Failed to import MockPatentAnalyzer. Make sure you're running the script from the project root.")
             sys.exit(1)
 
 def print_separator(title=None):
