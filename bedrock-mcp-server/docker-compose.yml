@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-bedrock-server
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=\${AWS_DEFAULT_REGION}
+      - BEDROCK_MODEL_ID=\${BEDROCK_MODEL_ID}
+      - BEDROCK_INFERENCE_PROFILE=\${BEDROCK_INFERENCE_PROFILE}
+    volumes:
+      - ./app:/app
+      - ~/.aws:/root/.aws
+    restart: unless-stopped
