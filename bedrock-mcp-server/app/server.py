@@ -27,7 +27,6 @@ async def root():
 async def generate_inference(request: InferenceRequest):
     try:
         model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-v2')
-        inference_profile = os.environ.get('BEDROCK_INFERENCE_PROFILE')
         
         # リクエストペイロードの構築（モデルによって異なる形式）
         if "claude" in model_id:
@@ -37,8 +36,7 @@ async def generate_inference(request: InferenceRequest):
                 "temperature": request.temperature,
                 "top_p": request.top_p
             })
-        else:
-            # 他のモデル用のフォーマットをここに追加
+        elif "amazon.titan" in model_id:
             body = json.dumps({
                 "inputText": request.prompt,
                 "textGenerationConfig": {
@@ -47,32 +45,56 @@ async def generate_inference(request: InferenceRequest):
                     "topP": request.top_p
                 }
             })
+        elif "meta.llama" in model_id:
+            body = json.dumps({
+                "prompt": request.prompt,
+                "max_gen_len": request.max_tokens,
+                "temperature": request.temperature,
+                "top_p": request.top_p
+            })
+        else:
+            # その他のモデル用の汎用フォーマット
+            body = json.dumps({
+                "prompt": request.prompt,
+                "max_tokens": request.max_tokens,
+                "temperature": request.temperature,
+                "top_p": request.top_p
+            })
 
         # 推論リクエスト送信
-        invoke_params = {
-            'modelId': model_id,
-            'body': body
-        }
-        
-        # 推論プロファイルがある場合は追加
-        if inference_profile:
-            invoke_params['inferenceProfile'] = inference_profile
-            
-        response = bedrock_runtime.invoke_model(**invoke_params)
+        # 注: パフォーマンス設定が必要な場合は performanceConfigLatency パラメータを使用
+        # performanceConfigLatency オプションの例: "low-latency", "balanced", "high"
+        if os.environ.get('BEDROCK_PERFORMANCE_CONFIG'):
+            response = bedrock_runtime.invoke_model(
+                modelId=model_id,
+                body=body,
+                performanceConfigLatency=os.environ.get('BEDROCK_PERFORMANCE_CONFIG')
+            )
+        else:
+            response = bedrock_runtime.invoke_model(
+                modelId=model_id,
+                body=body
+            )
         
         # レスポンスの解析（モデルによって異なる）
         response_body = json.loads(response.get('body').read())
         
         if "claude" in model_id:
             generated_text = response_body.get('completion')
-        else:
-            # 他のモデル用のレスポンス解析をここに追加
+        elif "amazon.titan" in model_id:
             generated_text = response_body.get('results', [{}])[0].get('outputText', '')
+        elif "meta.llama" in model_id:
+            generated_text = response_body.get('generation', '')
+        else:
+            # その他のモデル用の汎用レスポンス解析
+            generated_text = response_body.get('generated_text', 
+                            response_body.get('text', 
+                            response_body.get('output', '')))
             
         return {
             "generated_text": generated_text,
             "model_id": model_id,
-            "inference_profile": inference_profile
+            "performance_config": os.environ.get('BEDROCK_PERFORMANCE_CONFIG', 'default')
         }
         
     except Exception as e:
