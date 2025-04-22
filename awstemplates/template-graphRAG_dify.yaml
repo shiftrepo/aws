@@ -454,7 +454,6 @@ Resources:
           cp /root/aws.git/container/langfuse/.env /root/langfuse_latest.git/
           podman-compose --file /root/langfuse_latest.git/docker-compose.yml up -d
 
-
           chown ec2-user:ec2-user -R aws.git/ langfuse_latest.git/
 
 
