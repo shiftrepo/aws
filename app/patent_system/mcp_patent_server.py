@@ -12,6 +12,7 @@ Also provides PDF report generation capabilities for patent data analysis.
 import json
 import os
 import tempfile
+import base64
 from datetime import datetime
 from .applicant_analyzer import ApplicantAnalyzer
 from .report_generator import PatentReportGenerator
