@@ -82,7 +82,7 @@ SCHEMAS = {
             "applicant_name": {
                 "type": "string",
                 "description": "Name of the applicant for focused analysis (optional)",
-                "default": null
+                "default": None
             },
             "years": {
                 "type": "integer",
