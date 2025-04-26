@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  patent-sqlite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data:Z
+      - ./service-key:/service-key:Z
+      - ./app:/app:Z
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/service-key/tosapi-bd19ecc6f5bb.json
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
