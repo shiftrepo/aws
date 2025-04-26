@@ -170,3 +170,4 @@ cython_debug/
 .pypirc
 
 .DS_Store
+tosapi-*.json
