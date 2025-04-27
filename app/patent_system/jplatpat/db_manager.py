@@ -341,6 +341,25 @@ class DBManager:
             return 0
 
 
+def reset_db():
+    """
+    Reset the database by dropping all tables and recreating them.
+    This will delete all data in the database.
+    """
+    try:
+        logger.warning("Dropping all tables in the database...")
+        Base.metadata.drop_all(bind=engine)
+        logger.info("All tables dropped successfully")
+        
+        logger.info("Recreating database tables...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database reset completed successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error resetting database: {str(e)}")
+        return False
+
+
 def init_db():
     """Initialize SQLite database if not exists"""
     ensure_db_exists()

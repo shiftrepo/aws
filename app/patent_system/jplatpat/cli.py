@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 from app.patent_system.jplatpat.importer import Importer
 from app.patent_system.jplatpat.analyzer import PatentAnalyzer
 from app.patent_system.jplatpat.models import Patent
+from app.patent_system.jplatpat.db_manager import reset_db
 
 
 def import_patent_data(args):
@@ -244,6 +245,29 @@ def check_requirements():
     
     return True
 
+def reset_database(args):
+    """
+    Reset the database by dropping all tables and recreating them
+    
+    Args:
+        args: Parsed command-line arguments
+    """
+    if not args.force:
+        print("警告: このコマンドはデータベース内のすべてのデータを削除して初期化します。")
+        confirm = input("続行しますか？ [y/N]: ")
+        if confirm.lower() != 'y':
+            print("中止しました。")
+            return
+            
+    print("データベースをリセットしています...")
+    success = reset_db()
+    
+    if success:
+        print("データベースが正常にリセットされました。すべてのテーブルが再作成され、データは空の状態です。")
+    else:
+        print("エラー: データベースのリセットに失敗しました。詳細はログを確認してください。")
+
+
 def main():
     """Main entry point for command-line interface"""
     # Check dependencies
@@ -252,6 +276,10 @@ def main():
     # Create the main parser
     parser = argparse.ArgumentParser(description='J-PlatPat 特許分析システム')
     subparsers = parser.add_subparsers(dest='command', help='使用するサブコマンド')
+    
+    # Create the parser for the "reset" command
+    reset_parser = subparsers.add_parser('reset', help='データベースをリセットして初期化する')
+    reset_parser.add_argument('--force', action='store_true', help='確認なしでリセットを実行')
     
     # Create the parser for the "import" command
     import_parser = subparsers.add_parser('import', help='J-PlatPatから特許データをインポート')
@@ -282,6 +310,8 @@ def main():
         import_patent_data(args)
     elif args.command == 'analyze':
         analyze_patents(args)
+    elif args.command == 'reset':
+        reset_database(args)
     else:
         parser.print_help()
 

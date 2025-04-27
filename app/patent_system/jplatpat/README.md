@@ -63,6 +63,20 @@ python -m app.patent_system.jplatpat.cli import --application "2022-100000,2022-
 python -m app.patent_system.jplatpat.cli import --publication "JP2022-100000A,JP2022-100001A"
 ```
 
+### データベースのリセット
+
+データベースのすべてのテーブルとデータを削除し、新しく初期化するには以下のコマンドを使用します：
+
+```bash
+# データベースリセット（確認プロンプトあり）
+python -m app.patent_system.jplatpat.cli reset
+
+# データベースリセット（確認プロンプトなし）
+python -m app.patent_system.jplatpat.cli reset --force
+```
+
+このコマンドはすべてのデータを削除します。バックアップが必要な場合は、事前にデータベースファイルをコピーしてください。
+
 ### データの分析
 
 ```bash
@@ -86,6 +100,10 @@ python -m app.patent_system.jplatpat.cli analyze report --output my_report.md
 ```python
 from app.patent_system.jplatpat.importer import Importer
 from app.patent_system.jplatpat.analyzer import PatentAnalyzer
+from app.patent_system.jplatpat.db_manager import reset_db
+
+# データベースのリセット
+reset_db()
 
 # データのインポート
 importer = Importer()

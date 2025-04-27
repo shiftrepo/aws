@@ -134,24 +134,26 @@ class Scraper:
         
         # For demonstration, we'll implement a simplified version using direct HTTP requests
         # Since we can't actually scrape the real J-PlatPat without browser automation
-        # we'll implement test logic for different search types
+        # we'll use the query parameter to dynamically generate test data
         
         results = []
         
-        # Check if this looks like an applicant search
-        if "株式会社" in query or "トヨタ" in query or "会社" in query:
-            company_name = query
-            results = self._mock_company_search(company_name, limit)
+        # Analyze the query to determine the best mock data generator to use
+        if "株式会社" in query or any(company_keyword in query for company_keyword in ["トヨタ", "パナソニック", "ソニー", "日立", "富士通", "会社"]):
+            logger.info(f"Detected company search: {query}")
+            results = self._mock_company_search(query, limit)
         # Check if this looks like a technology area search
-        elif any(keyword in query for keyword in ["AI", "人工知能", "機械学習", "自動運転", "IoT"]):
+        elif any(tech_keyword in query for tech_keyword in ["AI", "人工知能", "機械学習", "自動運転", "IoT", "センサー", "通信", "半導体"]):
+            logger.info(f"Detected technology search: {query}")
             results = self._mock_tech_search(query, limit)
-        # Default to keyword search
+        # Default to keyword search for anything else
         else:
+            logger.info(f"Using general keyword search: {query}")
             results = self._mock_keyword_search(query, limit)
         
         logger.info(f"Search completed. Found {len(results)} results")
         
-        # Implement proper call to actual scraper here
+        # In a production environment, this would call the actual scraper
         # results = self._scrape_search_results(query, limit)
         
         return results[:limit]
@@ -202,25 +204,35 @@ class Scraper:
     
     def _mock_company_search(self, company_name: str, limit: int) -> List[Dict[str, Any]]:
         """
-        Generate mock data for company search
+        Generate mock data for company search based on the search query
         
         Args:
-            company_name: Company name
+            company_name: Company name from search query
             limit: Maximum number of results
             
         Returns:
-            List of mock patent dictionaries
+            List of mock patent dictionaries with results reflecting the search query
         """
         # Determine which company to generate mock data for
         mock_data = []
         
+        # Extract the actual company name from the query if it contains multiple terms
+        normalized_company_name = company_name
+        
+        # If the company_name contains keywords that aren't part of the actual company name
+        if " AND " in company_name or " OR " in company_name or " NOT " in company_name:
+            # Use the first part as the primary company name for simplicity
+            # In a real implementation, this would be handled more intelligently
+            parts = re.split(r' AND | OR | NOT ', company_name)
+            normalized_company_name = parts[0].strip()
+        
         # Detect company industry by keywords in name
-        is_automotive = any(keyword in company_name for keyword in ["トヨタ", "自動車", "カー", "モーター"])
-        is_electronics = any(keyword in company_name for keyword in ["ソニー", "パナソニック", "電機", "電子"])
-        is_pharmaceutical = any(keyword in company_name for keyword in ["製薬", "ファーマ", "薬品", "医薬"])
-        is_food = any(keyword in company_name for keyword in ["食品", "飲料", "製菓"])
-        is_chemical = any(keyword in company_name for keyword in ["化学", "化成", "素材", "マテリアル"])
-        is_software = any(keyword in company_name for keyword in ["ソフト", "システム", "テクノロジー", "IT"])
+        is_automotive = any(keyword in normalized_company_name for keyword in ["トヨタ", "日産", "ホンダ", "マツダ", "自動車", "カー", "モーター"])
+        is_electronics = any(keyword in normalized_company_name for keyword in ["ソニー", "パナソニック", "シャープ", "電機", "電子"])
+        is_pharmaceutical = any(keyword in normalized_company_name for keyword in ["製薬", "ファーマ", "薬品", "医薬"])
+        is_food = any(keyword in normalized_company_name for keyword in ["食品", "飲料", "製菓"])
+        is_chemical = any(keyword in normalized_company_name for keyword in ["化学", "化成", "素材", "マテリアル"])
+        is_software = any(keyword in normalized_company_name for keyword in ["ソフト", "システム", "テクノロジー", "IT"])
         
         if is_automotive:
             # Automotive company patents
@@ -287,7 +299,7 @@ class Scraper:
                     "tech_areas": ["G06F", "H04L", "H04N", "G06T", "G06Q", "B65D"]
                 }
         
-        # Generate mock patents
+        # Generate mock patents that better reflect the search query
         current_year = datetime.now().year
         
         for i in range(min(limit, 20)):  # Generate up to 20 unique patents
@@ -298,12 +310,19 @@ class Scraper:
             prefix = base_data["prefixes"][i % len(base_data["prefixes"])]
             tech_area = base_data["tech_areas"][i % len(base_data["tech_areas"])]
             
+            # Include the search term in the title to better reflect the search query
+            name_component = normalized_company_name.replace("株式会社", "").strip()
+            if len(name_component) > 0:  # Make sure we have something to use
+                title = f"{name_component}の{prefix}に関する{i+1}の改良"
+            else:
+                title = f"{prefix}に関する{i+1}の改良"
+            
             patent = {
                 "publication_number": patent_id,
                 "application_number": app_number,
                 "application_date": f"{year}-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}",
-                "title": f"{prefix}に関する{i+1}の改良",
-                "applicant_name": base_data["company"],
+                "title": title,
+                "applicant_name": normalized_company_name, # Use the normalized company name from the query
                 "ipc": f"{tech_area} {(i % 99) + 1:02d}/00",
                 "has_abstract": True,
                 "has_claims": True
@@ -315,18 +334,23 @@ class Scraper:
     
     def _mock_tech_search(self, tech_query: str, limit: int) -> List[Dict[str, Any]]:
         """
-        Generate mock data for technology search
+        Generate mock data for technology search based on the search keywords
         
         Args:
             tech_query: Technology keyword or IPC code
             limit: Maximum number of results
             
         Returns:
-            List of mock patent dictionaries
+            List of mock patent dictionaries that reflect the search query
         """
-        # Determine which technology area to generate mock data for
+        # Process the tech_query to extract key terms
         mock_data = []
         
+        # Break down the query to identify key technology terms
+        search_terms = re.split(r' AND | OR | NOT ', tech_query)
+        primary_term = search_terms[0].strip()
+        
+        # List of possible applicant companies
         companies = [
             "トヨタ自動車株式会社",
             "ソニー株式会社",
@@ -338,32 +362,51 @@ class Scraper:
             "三菱電機株式会社"
         ]
         
-        if "AI" in tech_query or "人工知能" in tech_query:
+        # Determine technology category based on search terms
+        if "AI" in tech_query or "人工知能" in tech_query or "機械学習" in tech_query or "ニューラル" in tech_query:
             # AI patents
             base_data = {
                 "prefixes": ["人工知能", "機械学習", "ニューラルネットワーク", "深層学習", "認知システム"],
                 "tech_areas": ["G06N", "G06F", "G10L", "G06T", "H04N"]
             }
-        elif "自動運転" in tech_query:
+        elif "自動運転" in tech_query or "運転支援" in tech_query:
             # Self-driving car patents
             base_data = {
                 "prefixes": ["自動運転", "運転支援", "車両制御", "障害物検知", "経路計画"],
                 "tech_areas": ["B60W", "G05D", "G06K", "G08G", "G06T"]
             }
-        elif "IoT" in tech_query:
+        elif "IoT" in tech_query or "センサーネットワーク" in tech_query or "スマートホーム" in tech_query:
             # IoT patents
             base_data = {
                 "prefixes": ["IoT", "センサーネットワーク", "遠隔監視", "スマートホーム", "接続デバイス"],
                 "tech_areas": ["H04L", "H04W", "G06F", "H04Q", "G08B"]
             }
-        else:
-            # Generic technology
+        elif "画像処理" in tech_query or "画像認識" in tech_query or "コンピュータビジョン" in tech_query:
+            # Image processing patents
             base_data = {
-                "prefixes": ["方法", "システム", "装置", "デバイス", "技術"],
+                "prefixes": ["画像処理", "画像認識", "コンピュータビジョン", "パターン認識", "映像解析"],
+                "tech_areas": ["G06T", "G06K", "H04N", "G01N", "G06F"]
+            }
+        elif "通信" in tech_query or "無線" in tech_query or "ネットワーク" in tech_query:
+            # Communication patents
+            base_data = {
+                "prefixes": ["通信", "無線", "ネットワーク", "データ伝送", "プロトコル"],
+                "tech_areas": ["H04L", "H04W", "H04B", "H04J", "H04Q"]
+            }
+        elif "半導体" in tech_query or "集積回路" in tech_query or "トランジスタ" in tech_query:
+            # Semiconductor patents
+            base_data = {
+                "prefixes": ["半導体", "集積回路", "トランジスタ", "メモリ", "回路設計"],
+                "tech_areas": ["H01L", "G11C", "H03K", "H05K", "G06F"]
+            }
+        else:
+            # Use the primary term as a prefix if none of the categories match
+            base_data = {
+                "prefixes": [primary_term, "方法", "システム", "装置", "技術"],
                 "tech_areas": ["G06F", "H04L", "H04N", "G06T", "G06Q"]
             }
         
-        # Generate mock patents
+        # Generate mock patents that reflect the search keywords
         current_year = datetime.now().year
         
         for i in range(min(limit, 20)):  # Generate up to 20 unique patents
@@ -371,15 +414,22 @@ class Scraper:
             patent_id = f"JP{year}-{200000 + i:06d}A"
             app_number = f"{year}-{200000 + i:06d}"
             
+            # Use the primary search term in the title
             prefix = base_data["prefixes"][i % len(base_data["prefixes"])]
             tech_area = base_data["tech_areas"][i % len(base_data["tech_areas"])]
             company = companies[i % len(companies)]
+            
+            # Create a title that includes the search term
+            if primary_term in base_data["prefixes"]:
+                title = f"{primary_term}を用いた{i+1}の方法及び装置"
+            else:
+                title = f"{primary_term}のための{prefix}を用いた{i+1}の方法及び装置"
             
             patent = {
                 "publication_number": patent_id,
                 "application_number": app_number,
                 "application_date": f"{year}-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}",
-                "title": f"{prefix}を用いた{i+1}の方法及び装置",
+                "title": title,
                 "applicant_name": company,
                 "ipc": f"{tech_area} {(i % 99) + 1:02d}/00",
                 "has_abstract": True,
@@ -392,32 +442,47 @@ class Scraper:
     
     def _mock_keyword_search(self, keyword: str, limit: int) -> List[Dict[str, Any]]:
         """
-        Generate mock data for keyword search
+        Generate mock data for keyword search that reflects the search query
         
         Args:
-            keyword: Search keyword
+            keyword: Search keyword or phrase
             limit: Maximum number of results
             
         Returns:
-            List of mock patent dictionaries
+            List of mock patent dictionaries tailored to the keyword
         """
-        # Generate generic mock patents containing the keyword
+        # Parse the keyword to handle complex search patterns
         mock_data = []
         
+        # Break down AND/OR/NOT operators to extract main search terms
+        search_terms = re.split(r' AND | OR | NOT ', keyword)
+        primary_term = search_terms[0].strip()
+        
+        # Define possible applicant companies - distribute them based on term to ensure variety
         companies = [
             "トヨタ自動車株式会社",
-            "ソニー株式会社",
+            "ソニー株式会社", 
             "パナソニック株式会社",
             "日立製作所株式会社",
             "富士通株式会社",
             "キヤノン株式会社",
             "デンソー株式会社",
-            "三菱電機株式会社"
+            "三菱電機株式会社",
+            "旭化成株式会社",
+            "花王株式会社"
         ]
         
-        tech_areas = ["G06F", "H04L", "H04N", "G06T", "G06Q", "B60W", "H01L", "G05D"]
+        # IPC areas - use a variety based on the first letter of the search term for more variety
+        seed = sum(ord(c) for c in primary_term) if primary_term else 0
+        tech_areas = [
+            "G06F", "H04L", "H04N", "G06T", "G06Q",  # IT/software focus
+            "B60W", "B60K", "F02D", "B62D", "F16H",  # Automotive focus
+            "H01L", "H01J", "H03K", "H05K", "G11C",  # Electronics focus
+            "A61K", "A61P", "C07D", "C12N", "A61B",  # Medical/pharmaceutical focus
+            "C08F", "C08G", "C08K", "C07C", "C09D"   # Chemical focus
+        ]
         
-        # Generate mock patents
+        # Generate patents that reflect the search terms
         current_year = datetime.now().year
         
         for i in range(min(limit, 20)):  # Generate up to 20 unique patents
@@ -425,14 +490,31 @@ class Scraper:
             patent_id = f"JP{year}-{300000 + i:06d}A"
             app_number = f"{year}-{300000 + i:06d}"
             
-            company = companies[i % len(companies)]
-            tech_area = tech_areas[i % len(tech_areas)]
+            # Select company and technology area in a way that looks random but is consistent
+            company_index = (seed + i) % len(companies)
+            tech_area_index = (seed + i * 3) % len(tech_areas)
+            
+            company = companies[company_index]
+            tech_area = tech_areas[tech_area_index]
+            
+            # Create different patent title formats to add variety
+            if i % 3 == 0:
+                title = f"{primary_term}に関する{i+1}の改良"
+            elif i % 3 == 1:
+                title = f"{primary_term}のための新たな{i+1}の方法"
+            else:
+                # For some patents, try to include multiple search terms if available
+                if len(search_terms) > 1 and len(search_terms[1].strip()) > 0:
+                    second_term = search_terms[1].strip()
+                    title = f"{primary_term}及び{second_term}を用いた{i+1}の装置"
+                else:
+                    title = f"{primary_term}を利用した{i+1}の技術"
             
             patent = {
                 "publication_number": patent_id,
                 "application_number": app_number,
                 "application_date": f"{year}-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}",
-                "title": f"{keyword}に関する{i+1}の改良",
+                "title": title,
                 "applicant_name": company,
                 "ipc": f"{tech_area} {(i % 99) + 1:02d}/00",
                 "has_abstract": True,
@@ -445,38 +527,38 @@ class Scraper:
     
     def _mock_patent_details(self, application_number: str) -> Dict[str, Any]:
         """
-        Generate mock detailed data for a patent
+        Generate mock detailed data for a patent based on application number
         
         Args:
             application_number: Patent application number
             
         Returns:
-            Dictionary with detailed patent information
+            Dictionary with detailed patent information that's consistent with the application number
         """
-        # Extract year from application number
+        # Extract information from application number
         year = None
+        number_part = "000000"
+        
         if "-" in application_number:
-            year_str = application_number.split("-")[0]
+            parts = application_number.split("-")
+            year_str = parts[0]
             if year_str.isdigit():
                 year = int(year_str)
+            
+            if len(parts) > 1 and parts[1].isdigit():
+                number_part = parts[1]
         
         if not year:
             year = 2020  # Default year
         
-        month = (hash(application_number) % 12) + 1
-        day = (hash(application_number) % 28) + 1
+        # Generate consistent dates based on application number
+        hash_base = int(number_part) if number_part.isdigit() else hash(application_number)
+        month = 1 + (hash_base % 12)
+        day = 1 + (hash_base % 28)
         application_date = f"{year}-{month:02d}-{day:02d}"
         
-        # Generate publication number
-        pub_number = None
-        if application_number.startswith("20"):
-            # Regular format like 2020-123456
-            year_prefix = application_number[:4]
-            number_part = application_number.split("-")[1] if "-" in application_number else "000000"
-            pub_number = f"JP{year_prefix}-{number_part}A"
-        else:
-            # If no recognizable format, generate one
-            pub_number = f"JP{year}-{hash(application_number) % 900000 + 100000:06d}A"
+        # Generate publication number consistently
+        pub_number = f"JP{year}-{number_part}A"
         
         # Publication date is typically 1.5 years after application
         pub_year = year + 1 if month > 6 else year + 2
@@ -484,27 +566,97 @@ class Scraper:
         pub_day = min(day, 28)
         publication_date = f"{pub_year}-{pub_month:02d}-{pub_day:02d}"
         
-        # Determine company and technology based on application number
-        hash_val = hash(application_number)
+        # Extract patent type info from application number
+        # Use consistent ranges to determine what kind of patent it is
+        number_int = int(number_part) if number_part.isdigit() else hash_base
         
-        companies = [
-            "トヨタ自動車株式会社",
-            "ソニー株式会社",
-            "パナソニック株式会社",
-            "日立製作所株式会社",
-            "富士通株式会社",
-            "キヤノン株式会社"
-        ]
+        # Determine company and technology based on ranges in application number
+        # This ensures consistent results for the same application number
+        if 100000 <= number_int < 200000:
+            # Company patents (these came from company search)
+            company_idx = (number_int % 100) % 8
+            companies = [
+                "トヨタ自動車株式会社",
+                "ソニー株式会社",
+                "パナソニック株式会社",
+                "日立製作所株式会社",
+                "富士通株式会社",
+                "キヤノン株式会社",
+                "デンソー株式会社",
+                "三菱電機株式会社"
+            ]
+            company = companies[company_idx]
+            
+            if company_idx < 2:  # Automotive
+                tech_prefixes = ["自動車", "駆動", "エンジン", "ハイブリッド", "燃料電池", "車両制御"]
+                tech_areas = ["B60W", "F02D", "B60K", "H01M", "G06F"]
+            elif company_idx < 4:  # Electronics
+                tech_prefixes = ["画像処理", "音声認識", "センサー", "ディスプレイ", "通信", "電子回路"]
+                tech_areas = ["G06T", "G10L", "H04N", "G09G", "H04W", "H01L"]
+            else:  # General technology
+                tech_prefixes = ["情報処理", "データ管理", "システム", "制御", "デバイス", "技術"]
+                tech_areas = ["G06F", "G06Q", "H04L", "G06T", "G06N", "H04W"]
+                
+        elif 200000 <= number_int < 300000:
+            # Tech patents (these came from technology search)
+            tech_idx = (number_int % 100) % 6
+            
+            if tech_idx == 0:  # AI
+                tech_prefixes = ["人工知能", "機械学習", "ニューラルネットワーク", "深層学習", "認知システム"]
+                tech_areas = ["G06N", "G06F", "G10L", "G06T", "H04N"]
+            elif tech_idx == 1:  # Self-driving
+                tech_prefixes = ["自動運転", "運転支援", "車両制御", "障害物検知", "経路計画"]
+                tech_areas = ["B60W", "G05D", "G06K", "G08G", "G06T"]
+            elif tech_idx == 2:  # IoT
+                tech_prefixes = ["IoT", "センサーネットワーク", "遠隔監視", "スマートホーム", "接続デバイス"]
+                tech_areas = ["H04L", "H04W", "G06F", "H04Q", "G08B"]
+            elif tech_idx == 3:  # Image processing
+                tech_prefixes = ["画像処理", "画像認識", "コンピュータビジョン", "パターン認識", "映像解析"]
+                tech_areas = ["G06T", "G06K", "H04N", "G01N", "G06F"]
+            elif tech_idx == 4:  # Communication
+                tech_prefixes = ["通信", "無線", "ネットワーク", "データ伝送", "プロトコル"]
+                tech_areas = ["H04L", "H04W", "H04B", "H04J", "H04Q"]
+            else:  # Semiconductor
+                tech_prefixes = ["半導体", "集積回路", "トランジスタ", "メモリ", "回路設計"]
+                tech_areas = ["H01L", "G11C", "H03K", "H05K", "G06F"]
+                
+            # Set company based on patent number
+            companies = [
+                "トヨタ自動車株式会社",
+                "ソニー株式会社", 
+                "パナソニック株式会社",
+                "日立製作所株式会社",
+                "富士通株式会社",
+                "キヤノン株式会社",
+                "デンソー株式会社",
+                "三菱電機株式会社"
+            ]
+            company = companies[number_int % len(companies)]
+            
+        else:
+            # Generic patents (these came from keyword search)
+            tech_prefixes = ["情報処理", "画像処理", "通信方法", "制御システム", "デバイス"]
+            tech_areas = ["G06F", "H04L", "H04N", "G06T", "G06Q", "B60W", "H01L"]
+            
+            companies = [
+                "トヨタ自動車株式会社",
+                "ソニー株式会社",
+                "パナソニック株式会社",
+                "日立製作所株式会社",
+                "富士通株式会社",
+                "キヤノン株式会社"
+            ]
+            company = companies[number_int % len(companies)]
         
-        tech_prefixes = ["情報処理", "画像処理", "通信方法", "制御システム", "デバイス"]
-        tech_areas = ["G06F", "H04L", "H04N", "G06T", "G06Q", "B60W", "H01L"]
+        # Select a specific prefix and tech area consistently based on the application number
+        prefix_idx = number_int % len(tech_prefixes)
+        tech_area_idx = number_int % len(tech_areas)
         
-        company = companies[hash_val % len(companies)]
-        prefix = tech_prefixes[hash_val % len(tech_prefixes)]
-        tech_area = tech_areas[hash_val % len(tech_areas)]
+        prefix = tech_prefixes[prefix_idx]
+        tech_area = tech_areas[tech_area_idx]
         
-        # Generate inventors (1-3)
-        inventor_count = (hash_val % 3) + 1
+        # Generate inventors (1-3) - use hash_base for consistency
+        inventor_count = (hash_base % 3) + 1
         inventors = []
         last_names = ["佐藤", "鈴木", "高橋", "田中", "伊藤", "渡辺", "山本", "中村", "小林", "加藤"]
         first_names = ["太郎", "次郎", "三郎", "四郎", "五郎", "花子", "直樹", "健一", "裕子", "達也"]
@@ -516,7 +668,7 @@ class Scraper:
             inventors.append(f"{last_name} {first_name}")
         
         # Generate IPC classifications (1-3)
-        ipc_count = (hash_val % 3) + 1
+        ipc_count = (hash_base % 3) + 1
         ipcs = []
         
         for i in range(ipc_count):
@@ -530,15 +682,15 @@ class Scraper:
         verb_list = ["提供する", "実現する", "可能にする", "向上させる", "最適化する", "改善する"]
         benefit_list = ["効率", "性能", "精度", "速度", "信頼性", "利便性", "操作性", "拡張性"]
         
-        noun = noun_list[hash_val % len(noun_list)]
-        verb = verb_list[hash_val % len(verb_list)]
-        benefit = benefit_list[hash_val % len(benefit_list)]
+        noun = noun_list[hash_base % len(noun_list)]
+        verb = verb_list[hash_base % len(verb_list)]
+        benefit = benefit_list[hash_base % len(benefit_list)]
         
         abstract = f"本発明は、{prefix}に関する{noun}を{verb}。特に、{benefit}を向上させるための技術を提供する。"
         abstract += f"本発明によれば、従来技術における課題を解決し、より効果的な{prefix}{noun}を実現できる。"
         
         # Generate claims
-        claim_count = (hash_val % 5) + 1
+        claim_count = (hash_base % 5) + 1
         claims = []
         
         for i in range(claim_count):
