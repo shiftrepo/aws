@@ -66,10 +66,23 @@ def import_patent_data(args):
         print(f"JSONファイル「{args.json_file}」から特許をインポートします...")
         count = importer.import_from_json_file(args.json_file)
         print(f"成功: {count}件の特許をインポートしました")
+        
+    elif args.application_numbers:
+        numbers = args.application_numbers.split(',')
+        print(f"出願番号「{args.application_numbers}」の特許をインポートします...")
+        count = importer.import_by_numbers(numbers, is_application_numbers=True)
+        print(f"成功: {count}件の特許をインポートしました")
+    
+    elif args.publication_numbers:
+        numbers = args.publication_numbers.split(',')
+        print(f"公開番号「{args.publication_numbers}」の特許をインポートします...")
+        count = importer.import_by_numbers(numbers, is_application_numbers=False)
+        print(f"成功: {count}件の特許をインポートしました")
     
     else:
         print("エラー: インポートソースが指定されていません")
-        print("企業名(--company)、技術分野(--technology)、検索クエリ(--query)、またはJSONファイル(--json)を指定してください")
+        print("企業名(--company)、技術分野(--technology)、検索クエリ(--query)、JSONファイル(--json)、")
+        print("出願番号(--application)または公開番号(--publication)を指定してください")
         return
     
     # Display updated stats
@@ -206,6 +219,8 @@ def main():
     import_source.add_argument('--technology', help='技術分野でインポート')
     import_source.add_argument('--query', help='検索クエリでインポート')
     import_source.add_argument('--json', dest='json_file', help='JSONファイルからインポート')
+    import_source.add_argument('--application', dest='application_numbers', help='カンマ区切りの出願番号からインポート（例: 2022-100000,2022-100001）')
+    import_source.add_argument('--publication', dest='publication_numbers', help='カンマ区切りの公開番号からインポート（例: JP2022-100000A,JP2022-100001A）')
     import_parser.add_argument('--limit', type=int, default=100, help='インポートする特許の最大数')
     
     # Create the parser for the "analyze" command

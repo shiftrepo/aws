@@ -116,6 +116,48 @@ class JPlatPatImporter:
         # This is a specialized search for technology
         return self.import_from_search(technology, limit)
     
+    def import_by_numbers(self, numbers: List[str], is_application_numbers: bool = True) -> int:
+        """
+        Import patents by application or publication numbers
+        
+        Args:
+            numbers: List of application or publication numbers
+            is_application_numbers: True if numbers are application numbers, 
+                                    False if they are publication numbers
+            
+        Returns:
+            int: Number of patents imported
+        """
+        number_type = "application" if is_application_numbers else "publication"
+        logger.info(f"Importing patents by {number_type} numbers: {numbers}")
+        
+        # Fetch detailed data for each patent
+        full_patent_data = []
+        
+        for number in tqdm(numbers, desc="Fetching patent details"):
+            try:
+                # If publication numbers, we need to convert them to application numbers
+                # for use with get_patent_details
+                lookup_number = number
+                if not is_application_numbers:
+                    # In a real implementation, we would look up the application number
+                    # using the publication number via an API call or database lookup
+                    # For now, we'll just use the publication number as is since our mock
+                    # implementation can work with either
+                    pass
+                
+                details = self.scraper.get_patent_details(lookup_number)
+                if details and "error" not in details:
+                    full_patent_data.append(details)
+            except Exception as e:
+                logger.error(f"Error fetching details for {number}: {str(e)}")
+        
+        # Store patents in database
+        with self.db_manager:
+            count = self.db_manager.store_patents_batch(full_patent_data)
+            logger.info(f"Successfully imported {count} patents to the database")
+            return count
+    
     def import_from_json_file(self, json_file: str) -> int:
         """
         Import patent data from a JSON file
@@ -205,6 +247,22 @@ def import_by_company(company_name: str, limit: int = 100) -> int:
     """
     importer = JPlatPatImporter()
     return importer.import_by_company(company_name, limit)
+
+
+def import_by_numbers(numbers: List[str], is_application_numbers: bool = True) -> int:
+    """
+    Convenience function to import patents by application or publication numbers
+    
+    Args:
+        numbers: List of application or publication numbers
+        is_application_numbers: True if numbers are application numbers (default),
+                               False if they are publication numbers
+        
+    Returns:
+        int: Number of patents imported
+    """
+    importer = JPlatPatImporter()
+    return importer.import_by_numbers(numbers, is_application_numbers)
 
 
 if __name__ == "__main__":

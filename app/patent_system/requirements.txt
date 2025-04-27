@@ -18,3 +18,4 @@ numpy
 flask
 tabulate
 flask_cors
+beautifulsoup4

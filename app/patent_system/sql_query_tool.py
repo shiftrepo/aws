@@ -68,6 +68,19 @@ def execute_query(query, format_output="table", output_file=None, limit=None):
             for col in df.select_dtypes(include=['datetime64']).columns:
                 df[col] = df[col].apply(lambda x: x.isoformat() if pd.notnull(x) else None)
                 
+            # Handle duplicate column names by adding suffixes
+            df_columns = df.columns.tolist()
+            if len(df_columns) != len(set(df_columns)):
+                # Identify duplicate columns and rename them
+                seen = {}
+                for i, col in enumerate(df_columns):
+                    if col in seen:
+                        seen[col] += 1
+                        df_columns[i] = f"{col}_{seen[col]}"
+                    else:
+                        seen[col] = 0
+                df.columns = df_columns
+            
             output = df.to_json(orient="records", date_format="iso")
             if output_file:
                 with open(output_file, 'w', encoding='utf-8') as f:

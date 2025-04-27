@@ -6,6 +6,7 @@
 
 1. **J-PlatPatからのデータ取得**
    - 企業名、技術分野、または一般的なキーワードでの検索
+   - 出願番号と公開番号による特許データの取得
    - 特許の基本情報、出願人、発明者、IPCコードなどの取得
    - 実際のサイトからスクレイピングするロジックを実装（現在はモック実装）
 
@@ -33,18 +34,31 @@
 
 ## 使用方法
 
-### 必要なパッケージ
+### 前提条件
 
-```
+システムを利用する前に、以下のライブラリをインストールする必要があります：
+
+```bash
 pip install sqlalchemy pandas numpy requests bs4 tqdm
 ```
 
 ### データのインポート
 
 ```bash
+# 企業名での検索
 python demo_jplatpat.py import --company "トヨタ自動車" --limit 100
+
+# 技術分野での検索
 python demo_jplatpat.py import --technology "人工知能" --limit 50 
+
+# キーワード検索
 python demo_jplatpat.py import --query "自動運転 AND センサー" --limit 30
+
+# 出願番号での検索（複数指定する場合はカンマ区切り）
+python demo_jplatpat.py import --application "2022-100000,2022-100001"
+
+# 公開番号での検索（複数指定する場合はカンマ区切り）
+python demo_jplatpat.py import --publication "JP2022-100000A,JP2022-100001A"
 ```
 
 ### データの分析
