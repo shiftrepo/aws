@@ -1,0 +1,1 @@
+SELECT * FROM patents JOIN applicants ON patents.id = applicants.patent_id LIMIT 50
