@@ -147,6 +147,14 @@ Resources:
           FromPort: 7587
           ToPort: 7587
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -167,6 +175,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       Policies: # インラインポリシーを追加
         - PolicyName: ParameterStoreAccessPolicy
           PolicyDocument:
@@ -200,7 +209,7 @@ Resources:
       IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG
       KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"]
       BlockDeviceMappings:
-        - DeviceName: /dev/xvda  # ルートデバイス
+        - DeviceName: /dev/sda1  # ルートデバイス
           Ebs:
             VolumeSize: 100      # ✅ ディスクサイズ (GB)
             VolumeType: gp3      # ボリュームタイプ (推奨: gp3)
@@ -211,17 +220,47 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          # Install Docker
           set -x
-          dnf install -y docker awscli git bash-completion python3-pip
+          # 1. AWS CloudWatch AgentのRPMパッケージをダウンロード
+          curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+
+          # 2. RPMパッケージをインストール
+          dnf install -y ./amazon-cloudwatch-agent.rpm
+
+          # 3. ログ追加
+          cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "SHIFT-graphRAG-EC2-Messages",
+                      "log_stream_name": "{instance_id}-messages"
+                    },
+                    {
+                      "file_path": "/var/log/docker.log",
+                      "log_group_name": "SHIFT-graphRAG-EC2-Docker",
+                      "log_stream_name": "{instance_id}-docker"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+
+          # 4. CloudWatch Agentの起動と自動起動の有効化
+          systemctl enable amazon-cloudwatch-agent
+          systemctl start amazon-cloudwatch-agent
+          
+
+          # Install Docker etc...
+          dnf install -y docker awscli git bash-completion python3-pip unzip
           systemctl start docker
           systemctl enable docker
           pip install podman-compose
-
-          # Docker Compose インストール
-          #curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          #chmod +x /usr/local/bin/docker-compose
-          #ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
           #あとでロールに切り替える予定
           mkdir -p /root/.aws
@@ -254,72 +293,24 @@ Resources:
             StrictHostKeyChecking no
             UserKnownHostsFile=/dev/null
           EOF
-          #echo -e "Host github.com\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
 
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
 
           podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
 
-          # Create Docker network for container communication
-          #docker network create shift-graphRAG-net
-
-          # Install Docker container with Python 3.12 and pip base amazoncli
-          #docker pull docker.io/mitlabo/pythonwithawscli:latest
-          #docker run -d \
-          #  --name python-aws \
-          #  --network shift-graphRAG-net \
-          #  docker.io/mitlabo/shift4aws:latest tail -F /dev/null
-
-          # Install Python libraries in the container
-          #docker exec python-aws pip install llama-index-llms-litellm llama-index-embeddings-litellm boto3 llama-index llama-index-llms-openai llama-index-embeddings-openai llama-index-graph-stores-neo4j llama-index-readers-wikipedia wikipedia
+          #podman exec python-aws pip install -r /root/app/graphRAG/langfuse/requierment.txt
 
           # コンテナ内の .bashrc に環境変数を設定
           docker exec python-aws bash -c "echo 'export AWS_ACCESS_KEY_ID=${AccessKeyIdParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export AWS_SECRET_ACCESS_KEY=${SecretAccessKeyParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export AWS_DEFAULT_REGION=${RegionNameParam}' >> ~/.bashrc"
-          docker cp ~/aws.git/app/. python-aws:/root/app
 
-          # Install and run Neo4j container
-          #docker pull docker.io/library/neo4j:5.26.3-community
-          #docker run -d \
-          #  --name neo4j \
-          #  --network shift-graphRAG-net \
-          #  -p 7474:7474 -p 7687:7687 \
-          #  -e NEO4J_apoc_export_file_enabled=true \
-          #  -e NEO4J_apoc_import_file_enabled=true \
-          #  -e NEO4J_apoc_import_file_use__neo4j__config=true \
-          #  -e NEO4J_PLUGINS='["apoc"]' \
-          #  -e NEO4J_AUTH=neo4j/password \
-          #  docker.io/library/neo4j:5.26.3-community
+          git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
 
-          #docker volume create neo4j_data
-          #docker volume create neo4jRAG_data
-
-          #docker run -d \
-          #  --name neo4j \
-          #  --network shift-graphRAG-net \
-          #  -p 7474:7474 -p 7687:7687 \
-          #  -v neo4j_data:/data \
-          #  -v neo4j_data:/import \
-          #  -e NEO4J_apoc_export_file_enabled=true \
-          #  -e NEO4J_apoc_import_file_enabled=true \
-          #  -e NEO4J_apoc_import_file_use__neo4j__config=true \
-          #  -e NEO4J_PLUGINS='["apoc"]' \
-          #  -e NEO4J_AUTH=neo4j/password \
-          #  docker.io/library/neo4j:5.26.3-community
-
-          #docker run -d \
-          #  --name neo4jRAG \
-          #  --network shift-graphRAG-net \
-          #  -p 7575:7474 -p 7587:7687 \
-          #  -v neo4jRAG_data:/data \
-          #  -v neo4jRAG_data:/import \
-          #  -e NEO4J_apoc_export_file_enabled=true \
-          #  -e NEO4J_apoc_import_file_enabled=true \
-          #  -e NEO4J_apoc_import_file_use__neo4j__config=true \
-          #  -e NEO4J_PLUGINS='["apoc"]' \
-          #  -e NEO4J_AUTH=neo4j/password \
-          #  docker.io/library/neo4j:5.26.3-community
+          rm -f /root/langfuse_latest.git/docker-compose.yml 
+          cp /root/aws.git/container/langfuse/docker-compose.yml /root/langfuse_latest.git/
+          cp /root/aws.git/container/langfuse/.env /root/langfuse_latest.git/
+          podman-compose --file /root/langfuse_latest.git/docker-compose.yml up -d
 
 Outputs:
   VPCId:
