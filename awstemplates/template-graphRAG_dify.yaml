@@ -166,6 +166,13 @@ Resources:
           FromPort: 8000
           ToPort: 8000
           CidrIp: 0.0.0.0/0
+<<<<<<< HEAD
+        - IpProtocol: tcp
+          FromPort: 5001
+          ToPort: 5001
+          CidrIp: 0.0.0.0/0
+=======
+>>>>>>> d1abd7b904ad2d46444bb77aa022ed5796b558e3
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -437,6 +444,10 @@ Resources:
           EOF
 
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
+<<<<<<< HEAD
+          git config --global --add safe.directory /root/aws.git
+=======
+>>>>>>> d1abd7b904ad2d46444bb77aa022ed5796b558e3
 
           podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
 
@@ -454,7 +465,16 @@ Resources:
           cp /root/aws.git/container/langfuse/.env /root/langfuse_latest.git/
           #podman-compose --file /root/langfuse_latest.git/docker-compose.yml up -d
 
+<<<<<<< HEAD
+          chown -R ec2-user:ec2-user /root/aws.git/ /root/langfuse_latest.git/
+          chmod 777 /root
+          
+          # BigQueryAPI用のキーファイルをダウンロード
+          #aws s3 cp s3://ndi-3supervision/MIT/GCPServiceKey/tosapi-bd19ecc6f5bb.json tosapi-bd19ecc6f5bb.json
+
+=======
           chown ec2-user:ec2-user -R aws.git/ langfuse_latest.git/
+>>>>>>> d1abd7b904ad2d46444bb77aa022ed5796b558e3
 
 
 Outputs:
