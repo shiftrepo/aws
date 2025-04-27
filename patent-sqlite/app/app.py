@@ -10,6 +10,7 @@ from google.oauth2 import service_account
 import pandas as pd
 import numpy as np
 import urllib.parse
+from jplatpat_client import JPlatPatClient
 
 app = Flask(__name__)
 CORS(app)
@@ -617,6 +618,201 @@ def get_patents():
         
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+def fetch_and_store_patents_from_jplatpat(search_params):
+    """
+    Fetch patents from J-PlatPat API and store them in SQLite
+    
+    Args:
+        search_params: Dict containing search parameters such as:
+            - company: Company name to search for
+            - theme: Classification/theme to search for
+            - keyword: Keyword to search in title/abstract
+            - limit: Maximum number of results to retrieve
+            
+    Returns:
+        Dict containing search results and import status
+    """
+    try:
+        # Initialize J-PlatPat client
+        client = JPlatPatClient()
+        print(f"Initialized J-PlatPat client, searching with params: {search_params}")
+        
+        # Extract search parameters
+        company = search_params.get('company')
+        theme = search_params.get('theme')
+        keyword = search_params.get('keyword')
+        limit = int(search_params.get('limit', 100))
+        
+        all_patents = []
+        
+        # Fetch patents based on provided parameters
+        if company:
+            print(f"Searching patents for company: {company}")
+            company_patents = client.fetch_patents_by_company(company, limit=limit)
+            all_patents.extend(company_patents)
+            print(f"Found {len(company_patents)} patents for company {company}")
+            
+        if theme:
+            print(f"Searching patents for theme/classification: {theme}")
+            theme_patents = client.fetch_patents_by_theme(theme, limit=limit)
+            all_patents.extend(theme_patents)
+            print(f"Found {len(theme_patents)} patents for theme {theme}")
+            
+        if keyword:
+            print(f"Searching patents with keyword: {keyword}")
+            keyword_patents = client.fetch_patents_by_keyword(keyword, limit=limit)
+            all_patents.extend(keyword_patents)
+            print(f"Found {len(keyword_patents)} patents with keyword {keyword}")
+            
+        # Remove duplicates based on patent_id or publication_number
+        unique_patents = {}
+        for patent in all_patents:
+            patent_id = patent.get('applicationNumber') or patent.get('publicationNumber')
+            if patent_id and patent_id not in unique_patents:
+                unique_patents[patent_id] = patent
+                
+        unique_patent_list = list(unique_patents.values())
+        print(f"Found {len(unique_patent_list)} unique patents total")
+        
+        if not unique_patent_list:
+            return {
+                'message': 'No patents found matching the search criteria',
+                'patents_found': 0,
+                'patents_imported': 0
+            }
+            
+        # Format patents for SQLite storage
+        formatted_patents = []
+        for patent in unique_patent_list:
+            formatted_patent = client.format_patent_for_sqlite(patent)
+            formatted_patents.append(formatted_patent)
+            
+        # Store in SQLite
+        conn = sqlite3.connect(SQLITE_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Insert with ON CONFLICT DO UPDATE to handle duplicates
+        insert_count = 0
+        update_count = 0
+        
+        for patent in formatted_patents:
+            try:
+                # Check if patent already exists
+                cursor.execute("SELECT patent_id FROM patents WHERE patent_id = ?", (patent['patent_id'],))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    # Update existing patent
+                    cursor.execute("""
+                    UPDATE patents SET 
+                        publication_number = ?,
+                        applicant = ?,
+                        theme = ?,
+                        title = ?,
+                        abstract = ?,
+                        filing_date = ?,
+                        grant_date = ?,
+                        assignee = ?,
+                        inventor = ?,
+                        additional_data = ?
+                    WHERE patent_id = ?
+                    """, (
+                        patent['publication_number'],
+                        patent['applicant'],
+                        patent['theme'],
+                        patent['title'],
+                        patent['abstract'],
+                        patent['filing_date'],
+                        patent['grant_date'],
+                        patent['assignee'],
+                        patent['inventor'],
+                        patent['additional_data'],
+                        patent['patent_id']
+                    ))
+                    update_count += 1
+                else:
+                    # Insert new patent
+                    cursor.execute("""
+                    INSERT INTO patents (
+                        patent_id, publication_number, applicant, theme, title, abstract,
+                        filing_date, grant_date, assignee, inventor, additional_data
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        patent['patent_id'],
+                        patent['publication_number'],
+                        patent['applicant'],
+                        patent['theme'],
+                        patent['title'],
+                        patent['abstract'],
+                        patent['filing_date'],
+                        patent['grant_date'],
+                        patent['assignee'],
+                        patent['inventor'],
+                        patent['additional_data']
+                    ))
+                    insert_count += 1
+            except Exception as e:
+                print(f"Error processing patent {patent['patent_id']}: {str(e)}")
+                
+        conn.commit()
+        conn.close()
+        
+        print(f"J-PlatPat import complete: {insert_count} patents added, {update_count} patents updated")
+        
+        return {
+            'message': f'Successfully imported {insert_count + update_count} patents from J-PlatPat',
+            'patents_found': len(unique_patent_list),
+            'patents_imported': insert_count,
+            'patents_updated': update_count,
+            'sample_patents': formatted_patents[:5] if formatted_patents else []
+        }
+        
+    except Exception as e:
+        error_message = str(e)
+        print(f"Error in fetch_and_store_patents_from_jplatpat: {error_message}")
+        return {
+            'status': 'error',
+            'message': error_message,
+            'error_type': type(e).__name__
+        }
+
+@app.route('/import-jplatpat', methods=['POST'])
+def import_jplatpat_data():
+    """Import data from J-PlatPat based on provided search parameters"""
+    try:
+        # Get search parameters from request
+        search_params = request.json if request.is_json else {}
+        print(f"J-PlatPat import request received with params: {search_params}")
+        
+        # Fetch and store data
+        import_result = fetch_and_store_patents_from_jplatpat(search_params)
+        
+        if 'status' in import_result and import_result['status'] == 'error':
+            return jsonify(import_result), 500
+            
+        # Use custom JSON encoder for NumPy types if needed
+        response_data = {
+            "status": "success", 
+            "message": import_result.get('message', 'Patent data imported successfully'),
+            "search_params": search_params,
+            "results": import_result
+        }
+        
+        # Use Flask's Response with our custom JSON encoder
+        from flask import Response
+        return Response(
+            json.dumps(response_data, cls=NumpyJSONEncoder),
+            mimetype='application/json'
+        )
+    except Exception as e:
+        error_message = str(e)
+        print(f"Error in import_jplatpat_data: {error_message}")
+        return jsonify({
+            "status": "error", 
+            "message": error_message,
+            "error_type": type(e).__name__
+        }), 500
 
 @app.route('/status', methods=['GET'])
 def status():

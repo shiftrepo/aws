@@ -8,3 +8,8 @@ db-sqlite3==0.0.1
 google-auth==2.3.0
 flask-cors==3.0.10
 pyarrow>=6.0.0
+requests>=2.25.0
+tqdm>=4.61.0
+beautifulsoup4>=4.9.3
+lxml>=4.6.3
+urllib3>=1.26.5

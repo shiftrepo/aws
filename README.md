@@ -6,21 +6,28 @@
 
 ### 1. 特許分析システム (`app/patent_system/`)
 
-J-PlatPatの特許データを軽量RDBに格納し、AWS Bedrockを利用して自然言語による検索を実現するシステムです。
+J-PlatPatの特許データを軽量RDBに格納し、AWS Bedrockを利用して自然言語による検索を実現するシステムです。SQLiteデータベースを使用した実装も提供しています。
 
 - **機能**:
   - 特許出願情報の構造化保存
   - J-PlatPatからのデータスクレイピング
   - PDFからのテキスト抽出
   - 特許分析・レポート生成
+  - 技術トレンド分析、出願者競争分析、特許ランドスケープ分析
+  - マークダウンレポート生成
 
 - **主要ファイル**:
   - `models.py` - データベースモデル
+  - `models_sqlite.py` - SQLiteデータベースのモデル定義とSession管理
   - `db_manager.py` - データベース操作
+  - `db_sqlite.py` - SQLiteデータベース操作
   - `j_platpat_scraper.py` - J-PlatPatスクレイパー
+  - `jplatpat_scraper.py` - J-PlatPat向けスクレイパー実装
   - `patent_analyzer.py` - 特許分析機能
+  - `patent_analyzer_sqlite.py` - SQLite向け特許分析機能
   - `mock_analyzer.py` - 分析機能のモック
   - `demo_analysis.py` - デモ分析機能
+  - `demo_jplatpat.py` - J-PlatPat連携コマンドラインツール
 
 ### 2. GraphRAGシステム (`app/graphRAG/`)
 
