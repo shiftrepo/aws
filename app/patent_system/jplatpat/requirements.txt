@@ -4,3 +4,6 @@ numpy
 requests
 beautifulsoup4
 tqdm
+selenium
+urllib3
+lxml

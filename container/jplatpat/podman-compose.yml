@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  jplatpat:
+    build:
+      context: ../../
+      dockerfile: container/jplatpat/Dockerfile
+    volumes:
+      - jplatpat-data:/data
+    environment:
+      - PATENTS_DB_PATH=/data/patents.db
+    ports:
+      - "8080:8080"  # In case we add a web interface in the future
+    command: ["--help"]  # Default command, can be overridden at runtime
+
+volumes:
+  jplatpat-data:
+    driver: local
