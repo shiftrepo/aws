@@ -15,3 +15,6 @@ pymupdf # For PDF processing
 tqdm
 pandas
 numpy
+flask
+tabulate
+flask_cors

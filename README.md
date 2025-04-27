@@ -28,6 +28,9 @@ J-PlatPatの特許データを軽量RDBに格納し、AWS Bedrockを利用して
   - `mock_analyzer.py` - 分析機能のモック
   - `demo_analysis.py` - デモ分析機能
   - `demo_jplatpat.py` - J-PlatPat連携コマンドラインツール
+  - `sql_query_tool.py` - SQLデータベース検索コマンドラインツール
+  - `sql_web_interface.py` - SQLデータベース検索Webインターフェース
+  - `README_SQL_TOOLS.md` - SQLツールの使用方法ドキュメント
 
 ### 2. GraphRAGシステム (`app/graphRAG/`)
 
