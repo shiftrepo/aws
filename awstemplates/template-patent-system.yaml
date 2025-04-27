@@ -1,0 +1,494 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  CloudFormation Template to launch an EC2 instance with Docker and Python 3.12 in a container, with pip libraries installed.
+  Ports 7474 and 7687 and 7575 and 7587 are open for external access for the original instance.
+  Adds a new SHIFTDify EC2 instance with a separate security group for port 80.
+  Resources are suffixed with SHIFT-graphRAG.
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Select an existing EC2 KeyPair for SSH access (optional)
+    Default: ""
+
+  AccessKeyIdParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Access Key ID from Parameter Store
+    Default: "/adminOpe/accessKey/aws_access_key_id" # Parameter Store のパラメータ名
+
+  SecretAccessKeyParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Secret Access Key from Parameter Store
+    Default: "/adminOpe/accessKey/aws_secret_access_key" # Parameter Store のパラメータ名
+
+  RegionNameParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Secret Access Key from Parameter Store
+    Default: "/adminOpe/accessKey/aws_region_name" # Parameter Store のパラメータ名
+
+  GithubPrivateKey:
+    Type: AWS::SSM::Parameter::Value<String> # 👈  AWS::SSM::Parameter::Value<String> を指定
+    Description: GitHub private key from Parameter Store
+    Default: "/adminOpe/github/privateKey" # 👈 Parameter Store のパラメータ名 (SecureString)
+
+  GithubPublicKey:
+    Type: AWS::SSM::Parameter::Value<String> # 👈  AWS::SSM::Parameter::Value<String> を指定
+    Description: GitHub public key from Parameter Store
+    Default: "/adminOpe/github/publicKey" # 👈 Parameter Store のパラメータ名 (SecureString)
+
+  InstanceType:
+    Type: String
+    Description: Select the instance type (t3 series only)
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+
+  AmazonLinuxAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+
+Conditions:
+  UseKeyPairParameter: !Not [!Equals [!Ref KeyName, ""]]
+
+Resources:
+
+  # VPC
+  VPCSHIFTgraphRAG:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: VPC-SHIFT-graphRAG
+
+  # Internet Gateway
+  InternetGatewaySHIFTgraphRAG:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: IGW-SHIFT-graphRAG
+
+  AttachGatewaySHIFTgraphRAG:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPCSHIFTgraphRAG
+      InternetGatewayId: !Ref InternetGatewaySHIFTgraphRAG
+
+  # Public Subnet
+  PublicSubnetSHIFTgraphRAG:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCSHIFTgraphRAG
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: PublicSubnet-SHIFT-graphRAG
+
+  # Private Subnet
+  PrivateSubnetSHIFTgraphRAG:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCSHIFTgraphRAG
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet-SHIFT-graphRAG
+
+  # Route Table for Public Subnet
+  PublicRouteTableSHIFTgraphRAG:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCSHIFTgraphRAG
+      Tags:
+        - Key: Name
+          Value: PublicRT-SHIFT-graphRAG
+
+  PublicRouteSHIFTgraphRAG:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTableSHIFTgraphRAG
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGatewaySHIFTgraphRAG
+
+  PublicSubnetRouteTableAssociationSHIFTgraphRAG:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetSHIFTgraphRAG
+      RouteTableId: !Ref PublicRouteTableSHIFTgraphRAG
+
+  # Original Security Group
+  EC2SecurityGroupSHIFTgraphRAG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: EC2SG-SHIFT-graphRAG
+      GroupDescription: Allow SSH, Neo4j ports (7474, 7687, 7575, 7587), and other application ports
+      VpcId: !Ref VPCSHIFTgraphRAG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7474
+          ToPort: 7474
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7687
+          ToPort: 7687
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7575
+          ToPort: 7575
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7587
+          ToPort: 7587
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 5001
+          ToPort: 5001
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: EC2SG-SHIFT-graphRAG
+
+  # ----- Start of new resources for SHIFTDify -----
+
+  # New Security Group for SHIFTDify (Port 80 only)
+  SHIFTDifySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for SHIFTDify EC2 instance allowing HTTP (port 80) inbound traffic.
+      VpcId: !Ref VPCSHIFTgraphRAG # 既存のVPCを使用
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SHIFTDify-SG # 新しいセキュリティグループの名前タグ
+
+  # SHIFTDify EC2 Instance
+  SHIFTDifyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      # 既存のEC2と同じAMI ID、インスタンスタイプ、KeyName、IAMプロファイルを使用
+      ImageId: !Ref AmazonLinuxAMI
+      InstanceType: !Ref InstanceType # パラメータから取得
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SHIFTDifySecurityGroup
+          SubnetId: !Ref PublicSubnetSHIFTgraphRAG
+      #SubnetId: !Ref PublicSubnetSHIFTgraphRAG # 既存のパブリックサブネットに配置
+      # 新しく作成したSHIFTDifySecurityGroupのみを関連付け
+      #SecurityGroupIds:
+      #  - !Ref SHIFTDifySecurityGroup # 新しいセキュリティグループを参照
+      IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG # 既存のIAMプロファイルを使用
+      KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"] # パラメータから取得、Conditionalも継承
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp2
+            DeleteOnTermination: true
+      Tags: # 指定された名前とauthorタグを設定
+        - Key: Name
+          Value: SHIFTDify # EC2インスタンスの名前タグ
+        - Key: author
+          Value: kentaro.mitsui # 指定されたauthorタグ
+      UserData: # CloudWatch Agentのインストール部分のみを継承 (アプリケーション固有部分は除外)
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -x
+          # AWS CloudWatch AgentのRPMパッケージをダウンロードしてインストール
+          curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+          dnf install -y ./amazon-cloudwatch-agent.rpm
+
+          # CloudWatch Agentの設定ファイルを配置 (元のテンプレートからログ設定をコピー)
+          cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "SHIFT-graphRAG-EC2-Messages", # 元のテンプレートのロググループ名を使用
+                      "log_stream_name": "{instance_id}-messages"
+                    }
+                    # 元テンプレートのdocker.log設定はここでは含めない
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+
+          # CloudWatch Agentの起動と自動起動の有効化
+          systemctl enable amazon-cloudwatch-agent
+          systemctl start amazon-cloudwatch-agent
+
+          # SSM Agentのインストール (RHEL/CentOS 8+では標準で入っていることが多いが、念のためインストールコマンドを残しておく)
+          #dnf install -y amazon-ssm-agent
+          #systemctl enable amazon-ssm-agent
+          #systemctl start amazon-ssm-agent
+
+          max_attempts=5
+          attempt_num=1
+          success=false
+          while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
+            sudo dnf install -y git docker
+            if [ $? -eq 0 ]; then
+              echo "dnf install succeeded"
+              success=true
+            else
+              echo "dnf install $attempt_num failed. trying again..."
+              sleep 3
+              ((attempt_num++))
+            fi
+          done
+          sudo systemctl start docker
+          sudo gpasswd -a ec2-user docker
+          sudo gpasswd -a ssm-user docker
+          sudo chgrp docker /var/run/docker.sock
+          sudo service docker restart
+          sudo systemctl enable docker
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+          cd /opt
+          sudo git clone https://github.com/langgenius/dify.git
+          cd /opt/dify
+          sudo git checkout 1.1.3
+          sudo git pull origin 1.1.3
+          cd /opt/dify/docker
+          sudo cp .env.example .env
+
+  # ----- End of new resources for SHIFTDify -----
+
+
+  # IAM Role for EC2 (Original - Reused by the new instance)
+  EC2InstanceRoleSHIFTgraphRAG:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore # SSM Managed Instance Coreポリシー
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy # CloudWatch Agentポリシー
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
+      Policies: # インラインポリシー - Parameter Storeへのアクセス許可 (元のテンプレートからコピー)
+        - PolicyName: ParameterStoreAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AccessKeyIdParam}" # Parameter Store パラメータの ARN を参照
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretAccessKeyParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${RegionNameParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubPrivateKey}" # 既存インスタンスはGithubキーを使用するが、新しいインスタンスのUserDataには含めないため、この許可は新しいインスタンスにとっては不要かもしれないが無害
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubPublicKey}"
+
+  # IAM Instance Profile (Original - Reused by the new instance)
+  EC2InstanceProfileSHIFTgraphRAG:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRoleSHIFTgraphRAG
+
+  # Original EC2 Instance (kept as is)
+  EC2InstanceSHIFTgraphRAG:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c7af5fe939f2677f  # Red Hat Enterprise Linux 8 (us-east-1)
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref PublicSubnetSHIFTgraphRAG
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroupSHIFTgraphRAG # 元のセキュリティグループを使用
+      IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG
+      KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"]
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1  # ルートデバイス
+          Ebs:
+            VolumeSize: 100     # ✅ ディスクサイズ (GB)
+            VolumeType: gp3     # ボリュームタイプ (推奨: gp3)
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: EC2Instance-SHIFT-graphRAG
+      UserData: # Original UserData (kept as is)
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -x
+          # 1. AWS CloudWatch AgentのRPMパッケージをダウンロード
+          curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+
+          # 2. RPMパッケージをインストール
+          dnf install -y ./amazon-cloudwatch-agent.rpm
+
+          # 3. ログ追加
+          cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "SHIFT-graphRAG-EC2-Messages",
+                      "log_stream_name": "{instance_id}-messages"
+                    },
+                    {
+                      "file_path": "/var/log/docker.log",
+                      "log_group_name": "SHIFT-graphRAG-EC2-Docker",
+                      "log_stream_name": "{instance_id}-docker"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+
+          # 4. CloudWatch Agentの起動と自動起動の有効化
+          systemctl enable amazon-cloudwatch-agent
+          systemctl start amazon-cloudwatch-agent
+
+          # SSM Agentのインストール (RHEL/CentOS 8+では標準で入っていることが多いが、念のためインストールコマンドを残しておく)
+          #dnf install -y amazon-ssm-agent
+          #systemctl enable amazon-ssm-agent
+          #systemctl start amazon-ssm-agent
+
+          # Install Docker etc...
+          dnf install -y docker awscli git bash-completion python3-pip unzip
+          systemctl start docker
+          systemctl enable docker
+          pip install podman-compose
+
+          #あとでロールに切り替える予定 (※ 注: この部分はIAMロールを使用しているため不要になる可能性があります)
+          mkdir -p /root/.aws
+          echo "[default]" > /root/.aws/credentials
+          echo "aws_access_key_id='${AccessKeyIdParam}'" >> /root/.aws/credentials
+          echo "aws_secret_access_key='${SecretAccessKeyParam}'" >> /root/.aws/credentials
+          chmod 600 /root/.aws/credentials
+          echo "[default]" > /root/.aws/config
+          echo "region='${RegionNameParam}'" >> /root/.aws/config
+          chmod 600 /root/.aws/config
+
+          curl -L https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker \
+          -o /etc/bash_completion.d/docker
+          echo ". /usr/share/bash-completion/bash_completion" >> /root/.bashrc
+          echo ". /etc/bash_completion.d/docker" >> /root/.bashrc
+
+          echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /root/.bashrc
+          echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /root/.bashrc
+          echo "export AWS_DEFAULT_REGION='${RegionNameParam}'" >> /root/.bashrc
+
+          mkdir -p /root/.ssh
+          echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
+          chmod 400 /root/.ssh/id_ed25519
+
+          cat <<EOF > /root/.ssh/config
+          Host github.com
+            IdentityFile ~/.ssh/id_ed25519
+            User git
+          Host github.com
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
+          EOF
+
+          git clone git@github.com:shiftrepo/aws.git /root/aws.git
+          git config --global --add safe.directory /root/aws.git
+
+          podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
+
+          #podman exec python-aws pip install -r /root/app/graphRAG/langfuse/requierment.txt
+
+          # コンテナ内の .bashrc に環境変数を設定
+          docker exec python-aws bash -c "echo 'export AWS_ACCESS_KEY_ID=${AccessKeyIdParam}' >> ~/.bashrc"
+          docker exec python-aws bash -c "echo 'export AWS_SECRET_ACCESS_KEY=${SecretAccessKeyParam}' >> ~/.bashrc"
+          docker exec python-aws bash -c "echo 'export AWS_DEFAULT_REGION=${RegionNameParam}' >> ~/.bashrc"
+
+          git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
+
+          rm -f /root/langfuse_latest.git/docker-compose.yml
+          cp /root/aws.git/container/langfuse/docker-compose.yml /root/langfuse_latest.git/
+          cp /root/aws.git/container/langfuse/.env /root/langfuse_latest.git/
+          #podman-compose --file /root/langfuse_latest.git/docker-compose.yml up -d
+
+          chown -R ec2-user:ec2-user /root/aws.git/ /root/langfuse_latest.git/
+          chmod 777 /root
+          
+          # BigQueryAPI用のキーファイルをダウンロード
+          #aws s3 cp s3://ndi-3supervision/MIT/GCPServiceKey/tosapi-bd19ecc6f5bb.json tosapi-bd19ecc6f5bb.json
+
+Outputs:
+  VPCId:
+    Description: Created VPC ID
+    Value: !Ref VPCSHIFTgraphRAG
+  PublicSubnetId:
+    Description: Created Public Subnet ID
+    Value: !Ref PublicSubnetSHIFTgraphRAG
+  PrivateSubnetId:
+    Description: Created Private Subnet ID
+    Value: !Ref PrivateSubnetSHIFTgraphRAG
+  EC2InstanceId:
+    Description: Launched Original EC2 Instance ID
+    Value: !Ref EC2InstanceSHIFTgraphRAG
+  PublicIP:
+    Description: Public IP of the Original EC2 Instance
+    Value: !GetAtt EC2InstanceSHIFTgraphRAG.PublicIp
+  # ----- Start of new Outputs for SHIFTDify -----
+  SHIFTDifyInstanceId:
+    Description: Launched SHIFTDify EC2 Instance ID
+    Value: !Ref SHIFTDifyInstance # 新しいインスタンスのIDを出力
+  SHIFTDifyInstancePublicIP:
+    Description: Public IP of the SHIFTDify EC2 Instance
+    Value: !GetAtt SHIFTDifyInstance.PublicIp # 新しいインスタンスのPublic IPを出力
+  SHIFTDifySecurityGroupId:
+    Description: ID of the SHIFTDify Security Group
+    Value: !Ref SHIFTDifySecurityGroup # 新しいセキュリティグループのIDを出力
+  # ----- End of new Outputs for SHIFTDify -----
