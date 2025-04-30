@@ -1,0 +1,2463 @@
+{
+  "landscape": [
+    {
+      "category": "G06F",
+      "count": 682
+    },
+    {
+      "category": "G01N",
+      "count": 630
+    },
+    {
+      "category": "A61K",
+      "count": 500
+    },
+    {
+      "category": "A61B",
+      "count": 494
+    },
+    {
+      "category": "B01J",
+      "count": 397
+    },
+    {
+      "category": "H01L",
+      "count": 369
+    },
+    {
+      "category": "C12N",
+      "count": 347
+    },
+    {
+      "category": "H04N",
+      "count": 339
+    },
+    {
+      "category": "G06T",
+      "count": 323
+    },
+    {
+      "category": "A01G",
+      "count": 267
+    },
+    {
+      "category": "G01C",
+      "count": 238
+    },
+    {
+      "category": "B60R",
+      "count": 234
+    },
+    {
+      "category": "G02B",
+      "count": 232
+    },
+    {
+      "category": "C01B",
+      "count": 215
+    },
+    {
+      "category": "H04B",
+      "count": 208
+    },
+    {
+      "category": "A23L",
+      "count": 206
+    },
+    {
+      "category": "B01D",
+      "count": 198
+    },
+    {
+      "category": "G06Q",
+      "count": 194
+    },
+    {
+      "category": "G01B",
+      "count": 164
+    },
+    {
+      "category": "A01K",
+      "count": 163
+    },
+    {
+      "category": "C23C",
+      "count": 145
+    },
+    {
+      "category": "C07K",
+      "count": 144
+    },
+    {
+      "category": "H04L",
+      "count": 142
+    },
+    {
+      "category": "G10L",
+      "count": 132
+    },
+    {
+      "category": "A61H",
+      "count": 129
+    },
+    {
+      "category": "H04H",
+      "count": 127
+    },
+    {
+      "category": "C12M",
+      "count": 123
+    },
+    {
+      "category": "H01M",
+      "count": 117
+    },
+    {
+      "category": "G02F",
+      "count": 106
+    },
+    {
+      "category": "B25J",
+      "count": 105
+    },
+    {
+      "category": "C01G",
+      "count": 102
+    },
+    {
+      "category": "A63B",
+      "count": 99
+    },
+    {
+      "category": "H04W",
+      "count": 93
+    },
+    {
+      "category": "B60K",
+      "count": 90
+    },
+    {
+      "category": "C07D",
+      "count": 90
+    },
+    {
+      "category": "H03M",
+      "count": 86
+    },
+    {
+      "category": "G03B",
+      "count": 84
+    },
+    {
+      "category": "G06N",
+      "count": 83
+    },
+    {
+      "category": "B22F",
+      "count": 82
+    },
+    {
+      "category": "G01J",
+      "count": 81
+    },
+    {
+      "category": "G01R",
+      "count": 79
+    },
+    {
+      "category": "C09K",
+      "count": 77
+    },
+    {
+      "category": "B29C",
+      "count": 76
+    },
+    {
+      "category": "G01S",
+      "count": 75
+    },
+    {
+      "category": "A61L",
+      "count": 74
+    },
+    {
+      "category": "A61F",
+      "count": 72
+    },
+    {
+      "category": "C04B",
+      "count": 72
+    },
+    {
+      "category": "C08G",
+      "count": 71
+    },
+    {
+      "category": "F03D",
+      "count": 70
+    },
+    {
+      "category": "B32B",
+      "count": 70
+    },
+    {
+      "category": "G07C",
+      "count": 67
+    },
+    {
+      "category": "A61G",
+      "count": 66
+    },
+    {
+      "category": "B63B",
+      "count": 66
+    },
+    {
+      "category": "C02F",
+      "count": 66
+    },
+    {
+      "category": "G01T",
+      "count": 66
+    },
+    {
+      "category": "C07B",
+      "count": 64
+    },
+    {
+      "category": "H04J",
+      "count": 63
+    },
+    {
+      "category": "B60L",
+      "count": 63
+    },
+    {
+      "category": "A01H",
+      "count": 63
+    },
+    {
+      "category": "C30B",
+      "count": 62
+    },
+    {
+      "category": "C12Q",
+      "count": 62
+    },
+    {
+      "category": "C08J",
+      "count": 62
+    },
+    {
+      "category": "C08F",
+      "count": 62
+    },
+    {
+      "category": "G01M",
+      "count": 60
+    },
+    {
+      "category": "C07C",
+      "count": 60
+    },
+    {
+      "category": "B23K",
+      "count": 59
+    },
+    {
+      "category": "B82Y",
+      "count": 59
+    },
+    {
+      "category": "H01Q",
+      "count": 58
+    },
+    {
+      "category": "A01B",
+      "count": 57
+    },
+    {
+      "category": "A01M",
+      "count": 56
+    },
+    {
+      "category": "A01N",
+      "count": 56
+    },
+    {
+      "category": "C22C",
+      "count": 55
+    },
+    {
+      "category": "B65D",
+      "count": 54
+    },
+    {
+      "category": "B09B",
+      "count": 49
+    },
+    {
+      "category": "B64C",
+      "count": 47
+    },
+    {
+      "category": "G01L",
+      "count": 46
+    },
+    {
+      "category": "H01B",
+      "count": 44
+    },
+    {
+      "category": "H01F",
+      "count": 43
+    },
+    {
+      "category": "H02K",
+      "count": 42
+    },
+    {
+      "category": "E01B",
+      "count": 42
+    },
+    {
+      "category": "E04B",
+      "count": 41
+    },
+    {
+      "category": "C07F",
+      "count": 41
+    },
+    {
+      "category": "G06K",
+      "count": 41
+    },
+    {
+      "category": "H04R",
+      "count": 39
+    },
+    {
+      "category": "A41D",
+      "count": 39
+    },
+    {
+      "category": "E02D",
+      "count": 39
+    },
+    {
+      "category": "A61M",
+      "count": 39
+    },
+    {
+      "category": "G09B",
+      "count": 38
+    },
+    {
+      "category": "A61N",
+      "count": 37
+    },
+    {
+      "category": "E01D",
+      "count": 37
+    },
+    {
+      "category": "B24B",
+      "count": 37
+    },
+    {
+      "category": "B61L",
+      "count": 36
+    },
+    {
+      "category": "G11B",
+      "count": 36
+    },
+    {
+      "category": "A01D",
+      "count": 36
+    },
+    {
+      "category": "G01V",
+      "count": 34
+    },
+    {
+      "category": "G01F",
+      "count": 34
+    },
+    {
+      "category": "B23Q",
+      "count": 34
+    },
+    {
+      "category": "G03H",
+      "count": 33
+    },
+    {
+      "category": "B01F",
+      "count": 33
+    },
+    {
+      "category": "G01H",
+      "count": 32
+    },
+    {
+      "category": "E02B",
+      "count": 32
+    },
+    {
+      "category": "H02J",
+      "count": 31
+    },
+    {
+      "category": "B82B",
+      "count": 31
+    },
+    {
+      "category": "H04S",
+      "count": 30
+    },
+    {
+      "category": "H01S",
+      "count": 30
+    },
+    {
+      "category": "C25D",
+      "count": 30
+    },
+    {
+      "category": "B65G",
+      "count": 30
+    },
+    {
+      "category": "H02M",
+      "count": 29
+    },
+    {
+      "category": "A01C",
+      "count": 29
+    },
+    {
+      "category": "H02N",
+      "count": 27
+    },
+    {
+      "category": "G08G",
+      "count": 27
+    },
+    {
+      "category": "A63H",
+      "count": 27
+    },
+    {
+      "category": "H01P",
+      "count": 27
+    },
+    {
+      "category": "C08K",
+      "count": 27
+    },
+    {
+      "category": "G05B",
+      "count": 26
+    },
+    {
+      "category": "A23K",
+      "count": 26
+    },
+    {
+      "category": "G01W",
+      "count": 25
+    },
+    {
+      "category": "G01K",
+      "count": 25
+    },
+    {
+      "category": "A63F",
+      "count": 25
+    },
+    {
+      "category": "C08B",
+      "count": 24
+    },
+    {
+      "category": "B21D",
+      "count": 24
+    },
+    {
+      "category": "H01J",
+      "count": 24
+    },
+    {
+      "category": "H01G",
+      "count": 24
+    },
+    {
+      "category": "C12P",
+      "count": 24
+    },
+    {
+      "category": "F04B",
+      "count": 23
+    },
+    {
+      "category": "G08B",
+      "count": 23
+    },
+    {
+      "category": "F25B",
+      "count": 23
+    },
+    {
+      "category": "F03B",
+      "count": 23
+    },
+    {
+      "category": "B62D",
+      "count": 23
+    },
+    {
+      "category": "A61C",
+      "count": 23
+    },
+    {
+      "category": "C07H",
+      "count": 23
+    },
+    {
+      "category": "B81B",
+      "count": 23
+    },
+    {
+      "category": "H03F",
+      "count": 22
+    },
+    {
+      "category": "G09G",
+      "count": 22
+    },
+    {
+      "category": "B22D",
+      "count": 21
+    },
+    {
+      "category": "B05D",
+      "count": 21
+    },
+    {
+      "category": "E04H",
+      "count": 20
+    },
+    {
+      "category": "F24F",
+      "count": 20
+    },
+    {
+      "category": "F02D",
+      "count": 20
+    },
+    {
+      "category": "G05D",
+      "count": 19
+    },
+    {
+      "category": "C25B",
+      "count": 19
+    },
+    {
+      "category": "H05B",
+      "count": 18
+    },
+    {
+      "category": "H04M",
+      "count": 18
+    },
+    {
+      "category": "B25B",
+      "count": 18
+    },
+    {
+      "category": "B23B",
+      "count": 18
+    },
+    {
+      "category": "G09F",
+      "count": 18
+    },
+    {
+      "category": "G01P",
+      "count": 18
+    },
+    {
+      "category": "F16L",
+      "count": 18
+    },
+    {
+      "category": "A47J",
+      "count": 18
+    },
+    {
+      "category": "G11C",
+      "count": 18
+    },
+    {
+      "category": "F16C",
+      "count": 18
+    },
+    {
+      "category": "C03C",
+      "count": 18
+    },
+    {
+      "category": "G07D",
+      "count": 17
+    },
+    {
+      "category": "G09C",
+      "count": 17
+    },
+    {
+      "category": "G10K",
+      "count": 17
+    },
+    {
+      "category": "F24H",
+      "count": 17
+    },
+    {
+      "category": "F02B",
+      "count": 17
+    },
+    {
+      "category": "C22B",
+      "count": 17
+    },
+    {
+      "category": "B63H",
+      "count": 17
+    },
+    {
+      "category": "A23B",
+      "count": 17
+    },
+    {
+      "category": "G01Q",
+      "count": 16
+    },
+    {
+      "category": "C01F",
+      "count": 16
+    },
+    {
+      "category": "E03B",
+      "count": 16
+    },
+    {
+      "category": "B65H",
+      "count": 16
+    },
+    {
+      "category": "B21B",
+      "count": 16
+    },
+    {
+      "category": "A47C",
+      "count": 16
+    },
+    {
+      "category": "F15B",
+      "count": 15
+    },
+    {
+      "category": "B05C",
+      "count": 15
+    },
+    {
+      "category": "F16H",
+      "count": 15
+    },
+    {
+      "category": "B41J",
+      "count": 15
+    },
+    {
+      "category": "E04G",
+      "count": 14
+    },
+    {
+      "category": "B60B",
+      "count": 14
+    },
+    {
+      "category": "F23D",
+      "count": 14
+    },
+    {
+      "category": "E04D",
+      "count": 14
+    },
+    {
+      "category": "C12G",
+      "count": 14
+    },
+    {
+      "category": "A47G",
+      "count": 14
+    },
+    {
+      "category": "C09D",
+      "count": 14
+    },
+    {
+      "category": "B64G",
+      "count": 14
+    },
+    {
+      "category": "B05B",
+      "count": 14
+    },
+    {
+      "category": "A47B",
+      "count": 14
+    },
+    {
+      "category": "A21D",
+      "count": 14
+    },
+    {
+      "category": "E21B",
+      "count": 13
+    },
+    {
+      "category": "G01D",
+      "count": 13
+    },
+    {
+      "category": "G04G",
+      "count": 13
+    },
+    {
+      "category": "E01C",
+      "count": 13
+    },
+    {
+      "category": "F16F",
+      "count": 13
+    },
+    {
+      "category": "F16B",
+      "count": 13
+    },
+    {
+      "category": "E05B",
+      "count": 13
+    },
+    {
+      "category": "A47K",
+      "count": 13
+    },
+    {
+      "category": "B63C",
+      "count": 12
+    },
+    {
+      "category": "B62J",
+      "count": 12
+    },
+    {
+      "category": "C21D",
+      "count": 12
+    },
+    {
+      "category": "C08L",
+      "count": 12
+    },
+    {
+      "category": "B61D",
+      "count": 12
+    },
+    {
+      "category": "B28B",
+      "count": 12
+    },
+    {
+      "category": "B08B",
+      "count": 12
+    },
+    {
+      "category": "A23F",
+      "count": 12
+    },
+    {
+      "category": "E21D",
+      "count": 11
+    },
+    {
+      "category": "B42D",
+      "count": 11
+    },
+    {
+      "category": "H05H",
+      "count": 11
+    },
+    {
+      "category": "B61K",
+      "count": 11
+    },
+    {
+      "category": "B60M",
+      "count": 11
+    },
+    {
+      "category": "B60C",
+      "count": 11
+    },
+    {
+      "category": "B27K",
+      "count": 11
+    },
+    {
+      "category": "B23P",
+      "count": 11
+    },
+    {
+      "category": "F26B",
+      "count": 11
+    },
+    {
+      "category": "G05F",
+      "count": 10
+    },
+    {
+      "category": "F24D",
+      "count": 10
+    },
+    {
+      "category": "B60J",
+      "count": 10
+    },
+    {
+      "category": "D01F",
+      "count": 10
+    },
+    {
+      "category": "C09B",
+      "count": 10
+    },
+    {
+      "category": "C03B",
+      "count": 10
+    },
+    {
+      "category": "B23H",
+      "count": 10
+    },
+    {
+      "category": "B21C",
+      "count": 10
+    },
+    {
+      "category": "A23C",
+      "count": 10
+    },
+    {
+      "category": "B62B",
+      "count": 9
+    },
+    {
+      "category": "E04F",
+      "count": 9
+    },
+    {
+      "category": "A47L",
+      "count": 9
+    },
+    {
+      "category": "A23G",
+      "count": 9
+    },
+    {
+      "category": "G21F",
+      "count": 9
+    },
+    {
+      "category": "G16H",
+      "count": 9
+    },
+    {
+      "category": "F24C",
+      "count": 9
+    },
+    {
+      "category": "F21S",
+      "count": 9
+    },
+    {
+      "category": "B64D",
+      "count": 9
+    },
+    {
+      "category": "B44F",
+      "count": 8
+    },
+    {
+      "category": "A45B",
+      "count": 8
+    },
+    {
+      "category": "H05K",
+      "count": 8
+    },
+    {
+      "category": "F03G",
+      "count": 8
+    },
+    {
+      "category": "A61J",
+      "count": 8
+    },
+    {
+      "category": "A01F",
+      "count": 8
+    },
+    {
+      "category": "H01R",
+      "count": 8
+    },
+    {
+      "category": "H01H",
+      "count": 8
+    },
+    {
+      "category": "G03F",
+      "count": 8
+    },
+    {
+      "category": "F23C",
+      "count": 8
+    },
+    {
+      "category": "F22B",
+      "count": 8
+    },
+    {
+      "category": "D01D",
+      "count": 8
+    },
+    {
+      "category": "C23F",
+      "count": 8
+    },
+    {
+      "category": "B61B",
+      "count": 8
+    },
+    {
+      "category": "A62D",
+      "count": 8
+    },
+    {
+      "category": "H03K",
+      "count": 7
+    },
+    {
+      "category": "A23N",
+      "count": 7
+    },
+    {
+      "category": "H03H",
+      "count": 7
+    },
+    {
+      "category": "H02S",
+      "count": 7
+    },
+    {
+      "category": "G08C",
+      "count": 7
+    },
+    {
+      "category": "F28D",
+      "count": 7
+    },
+    {
+      "category": "F16K",
+      "count": 7
+    },
+    {
+      "category": "F04D",
+      "count": 7
+    },
+    {
+      "category": "F01N",
+      "count": 7
+    },
+    {
+      "category": "F01D",
+      "count": 7
+    },
+    {
+      "category": "E01F",
+      "count": 7
+    },
+    {
+      "category": "D06M",
+      "count": 7
+    },
+    {
+      "category": "B65B",
+      "count": 7
+    },
+    {
+      "category": "B61F",
+      "count": 7
+    },
+    {
+      "category": "B60W",
+      "count": 7
+    },
+    {
+      "category": "B03B",
+      "count": 7
+    },
+    {
+      "category": "A23D",
+      "count": 7
+    },
+    {
+      "category": "A62B",
+      "count": 6
+    },
+    {
+      "category": "G07B",
+      "count": 6
+    },
+    {
+      "category": "D06F",
+      "count": 6
+    },
+    {
+      "category": "B21J",
+      "count": 6
+    },
+    {
+      "category": "G21C",
+      "count": 6
+    },
+    {
+      "category": "F17C",
+      "count": 6
+    },
+    {
+      "category": "F02G",
+      "count": 6
+    },
+    {
+      "category": "E06B",
+      "count": 6
+    },
+    {
+      "category": "E02F",
+      "count": 6
+    },
+    {
+      "category": "D02G",
+      "count": 6
+    },
+    {
+      "category": "C10M",
+      "count": 6
+    },
+    {
+      "category": "B29B",
+      "count": 6
+    },
+    {
+      "category": "B06B",
+      "count": 6
+    },
+    {
+      "category": "A44C",
+      "count": 6
+    },
+    {
+      "category": "H02P",
+      "count": 5
+    },
+    {
+      "category": "G10G",
+      "count": 5
+    },
+    {
+      "category": "G07G",
+      "count": 5
+    },
+    {
+      "category": "B26B",
+      "count": 5
+    },
+    {
+      "category": "F27B",
+      "count": 5
+    },
+    {
+      "category": "F16D",
+      "count": 5
+    },
+    {
+      "category": "B66C",
+      "count": 5
+    },
+    {
+      "category": "B60T",
+      "count": 5
+    },
+    {
+      "category": "B60P",
+      "count": 5
+    },
+    {
+      "category": "B24C",
+      "count": 5
+    },
+    {
+      "category": "B07B",
+      "count": 5
+    },
+    {
+      "category": "A45C",
+      "count": 5
+    },
+    {
+      "category": "F25C",
+      "count": 4
+    },
+    {
+      "category": "H10N",
+      "count": 4
+    },
+    {
+      "category": "H02G",
+      "count": 4
+    },
+    {
+      "category": "F23N",
+      "count": 4
+    },
+    {
+      "category": "F02K",
+      "count": 4
+    },
+    {
+      "category": "F02C",
+      "count": 4
+    },
+    {
+      "category": "F01K",
+      "count": 4
+    },
+    {
+      "category": "D21H",
+      "count": 4
+    },
+    {
+      "category": "D04H",
+      "count": 4
+    },
+    {
+      "category": "C11D",
+      "count": 4
+    },
+    {
+      "category": "C09J",
+      "count": 4
+    },
+    {
+      "category": "C09C",
+      "count": 4
+    },
+    {
+      "category": "C05F",
+      "count": 4
+    },
+    {
+      "category": "B81C",
+      "count": 4
+    },
+    {
+      "category": "B60G",
+      "count": 4
+    },
+    {
+      "category": "B27M",
+      "count": 4
+    },
+    {
+      "category": "B22C",
+      "count": 4
+    },
+    {
+      "category": "B09C",
+      "count": 4
+    },
+    {
+      "category": "B02C",
+      "count": 4
+    },
+    {
+      "category": "B01L",
+      "count": 4
+    },
+    {
+      "category": "A42B",
+      "count": 4
+    },
+    {
+      "category": "A41H",
+      "count": 4
+    },
+    {
+      "category": "G16Z",
+      "count": 3
+    },
+    {
+      "category": "H04Q",
+      "count": 3
+    },
+    {
+      "category": "G10H",
+      "count": 3
+    },
+    {
+      "category": "G05G",
+      "count": 3
+    },
+    {
+      "category": "F23L",
+      "count": 3
+    },
+    {
+      "category": "F15D",
+      "count": 3
+    },
+    {
+      "category": "F02M",
+      "count": 3
+    },
+    {
+      "category": "F02F",
+      "count": 3
+    },
+    {
+      "category": "F01M",
+      "count": 3
+    },
+    {
+      "category": "D01B",
+      "count": 3
+    },
+    {
+      "category": "B26F",
+      "count": 3
+    },
+    {
+      "category": "G21K",
+      "count": 3
+    },
+    {
+      "category": "G10D",
+      "count": 3
+    },
+    {
+      "category": "G06G",
+      "count": 3
+    },
+    {
+      "category": "G04C",
+      "count": 3
+    },
+    {
+      "category": "G02C",
+      "count": 3
+    },
+    {
+      "category": "F25D",
+      "count": 3
+    },
+    {
+      "category": "F21V",
+      "count": 3
+    },
+    {
+      "category": "F16J",
+      "count": 3
+    },
+    {
+      "category": "F04F",
+      "count": 3
+    },
+    {
+      "category": "F01P",
+      "count": 3
+    },
+    {
+      "category": "E05C",
+      "count": 3
+    },
+    {
+      "category": "E04C",
+      "count": 3
+    },
+    {
+      "category": "E03D",
+      "count": 3
+    },
+    {
+      "category": "E03C",
+      "count": 3
+    },
+    {
+      "category": "C22F",
+      "count": 3
+    },
+    {
+      "category": "C10G",
+      "count": 3
+    },
+    {
+      "category": "C10B",
+      "count": 3
+    },
+    {
+      "category": "C01C",
+      "count": 3
+    },
+    {
+      "category": "B66B",
+      "count": 3
+    },
+    {
+      "category": "B64B",
+      "count": 3
+    },
+    {
+      "category": "B60S",
+      "count": 3
+    },
+    {
+      "category": "B60Q",
+      "count": 3
+    },
+    {
+      "category": "B60H",
+      "count": 3
+    },
+    {
+      "category": "B43K",
+      "count": 3
+    },
+    {
+      "category": "B28C",
+      "count": 3
+    },
+    {
+      "category": "B27N",
+      "count": 3
+    },
+    {
+      "category": "B25H",
+      "count": 3
+    },
+    {
+      "category": "B24D",
+      "count": 3
+    },
+    {
+      "category": "B23D",
+      "count": 3
+    },
+    {
+      "category": "B07C",
+      "count": 3
+    },
+    {
+      "category": "B03C",
+      "count": 3
+    },
+    {
+      "category": "A47H",
+      "count": 3
+    },
+    {
+      "category": "A45D",
+      "count": 3
+    },
+    {
+      "category": "A41C",
+      "count": 3
+    },
+    {
+      "category": "A41B",
+      "count": 3
+    },
+    {
+      "category": "A22C",
+      "count": 3
+    },
+    {
+      "category": "H03L",
+      "count": 2
+    },
+    {
+      "category": "H03B",
+      "count": 2
+    },
+    {
+      "category": "H02H",
+      "count": 2
+    },
+    {
+      "category": "H01C",
+      "count": 2
+    },
+    {
+      "category": "G21G",
+      "count": 2
+    },
+    {
+      "category": "G03G",
+      "count": 2
+    },
+    {
+      "category": "G01G",
+      "count": 2
+    },
+    {
+      "category": "F28F",
+      "count": 2
+    },
+    {
+      "category": "F24J",
+      "count": 2
+    },
+    {
+      "category": "F23K",
+      "count": 2
+    },
+    {
+      "category": "F23J",
+      "count": 2
+    },
+    {
+      "category": "F23G",
+      "count": 2
+    },
+    {
+      "category": "F17D",
+      "count": 2
+    },
+    {
+      "category": "F16G",
+      "count": 2
+    },
+    {
+      "category": "F02N",
+      "count": 2
+    },
+    {
+      "category": "F01L",
+      "count": 2
+    },
+    {
+      "category": "E06C",
+      "count": 2
+    },
+    {
+      "category": "E03F",
+      "count": 2
+    },
+    {
+      "category": "D21J",
+      "count": 2
+    },
+    {
+      "category": "D04B",
+      "count": 2
+    },
+    {
+      "category": "C25C",
+      "count": 2
+    },
+    {
+      "category": "C10L",
+      "count": 2
+    },
+    {
+      "category": "C10J",
+      "count": 2
+    },
+    {
+      "category": "C07G",
+      "count": 2
+    },
+    {
+      "category": "B66F",
+      "count": 2
+    },
+    {
+      "category": "B60N",
+      "count": 2
+    },
+    {
+      "category": "B44C",
+      "count": 2
+    },
+    {
+      "category": "B42F",
+      "count": 2
+    },
+    {
+      "category": "B41M",
+      "count": 2
+    },
+    {
+      "category": "B41C",
+      "count": 2
+    },
+    {
+      "category": "B33Y",
+      "count": 2
+    },
+    {
+      "category": "B26D",
+      "count": 2
+    },
+    {
+      "category": "B23C",
+      "count": 2
+    },
+    {
+      "category": "A61P",
+      "count": 2
+    },
+    {
+      "category": "A61D",
+      "count": 2
+    },
+    {
+      "category": "A47F",
+      "count": 2
+    },
+    {
+      "category": "A45F",
+      "count": 2
+    },
+    {
+      "category": "A43B",
+      "count": 2
+    },
+    {
+      "category": "A41G",
+      "count": 2
+    },
+    {
+      "category": "A23J",
+      "count": 2
+    },
+    {
+      "category": "A21B",
+      "count": 2
+    },
+    {
+      "category": "H10K",
+      "count": 1
+    },
+    {
+      "category": "H04K",
+      "count": 1
+    },
+    {
+      "category": "H03G",
+      "count": 1
+    },
+    {
+      "category": "H01T",
+      "count": 1
+    },
+    {
+      "category": "G21H",
+      "count": 1
+    },
+    {
+      "category": "G21D",
+      "count": 1
+    },
+    {
+      "category": "G10C",
+      "count": 1
+    },
+    {
+      "category": "G06E",
+      "count": 1
+    },
+    {
+      "category": "G04F",
+      "count": 1
+    },
+    {
+      "category": "G04B",
+      "count": 1
+    },
+    {
+      "category": "F41H",
+      "count": 1
+    },
+    {
+      "category": "F24V",
+      "count": 1
+    },
+    {
+      "category": "F24T",
+      "count": 1
+    },
+    {
+      "category": "F24S",
+      "count": 1
+    },
+    {
+      "category": "F23B",
+      "count": 1
+    },
+    {
+      "category": "F21L",
+      "count": 1
+    },
+    {
+      "category": "F21K",
+      "count": 1
+    },
+    {
+      "category": "F03H",
+      "count": 1
+    },
+    {
+      "category": "F02P",
+      "count": 1
+    },
+    {
+      "category": "F01C",
+      "count": 1
+    },
+    {
+      "category": "F01B",
+      "count": 1
+    },
+    {
+      "category": "E21C",
+      "count": 1
+    },
+    {
+      "category": "E05F",
+      "count": 1
+    },
+    {
+      "category": "E05D",
+      "count": 1
+    },
+    {
+      "category": "E01H",
+      "count": 1
+    },
+    {
+      "category": "D21F",
+      "count": 1
+    },
+    {
+      "category": "D06B",
+      "count": 1
+    },
+    {
+      "category": "D03C",
+      "count": 1
+    },
+    {
+      "category": "C23G",
+      "count": 1
+    },
+    {
+      "category": "C12H",
+      "count": 1
+    },
+    {
+      "category": "C12C",
+      "count": 1
+    },
+    {
+      "category": "C11B",
+      "count": 1
+    },
+    {
+      "category": "C08H",
+      "count": 1
+    },
+    {
+      "category": "C08C",
+      "count": 1
+    },
+    {
+      "category": "C07J",
+      "count": 1
+    },
+    {
+      "category": "C06B",
+      "count": 1
+    },
+    {
+      "category": "C05G",
+      "count": 1
+    },
+    {
+      "category": "C05D",
+      "count": 1
+    },
+    {
+      "category": "B67D",
+      "count": 1
+    },
+    {
+      "category": "B67C",
+      "count": 1
+    },
+    {
+      "category": "B65F",
+      "count": 1
+    },
+    {
+      "category": "B64U",
+      "count": 1
+    },
+    {
+      "category": "B62M",
+      "count": 1
+    },
+    {
+      "category": "B62K",
+      "count": 1
+    },
+    {
+      "category": "B61C",
+      "count": 1
+    },
+    {
+      "category": "B60F",
+      "count": 1
+    },
+    {
+      "category": "B43L",
+      "count": 1
+    },
+    {
+      "category": "B41F",
+      "count": 1
+    },
+    {
+      "category": "B31D",
+      "count": 1
+    },
+    {
+      "category": "B29D",
+      "count": 1
+    },
+    {
+      "category": "B27H",
+      "count": 1
+    },
+    {
+      "category": "B27F",
+      "count": 1
+    },
+    {
+      "category": "B27D",
+      "count": 1
+    },
+    {
+      "category": "B27C",
+      "count": 1
+    },
+    {
+      "category": "B25F",
+      "count": 1
+    },
+    {
+      "category": "B25D",
+      "count": 1
+    },
+    {
+      "category": "B21K",
+      "count": 1
+    },
+    {
+      "category": "B21F",
+      "count": 1
+    },
+    {
+      "category": "B04C",
+      "count": 1
+    },
+    {
+      "category": "B03D",
+      "count": 1
+    },
+    {
+      "category": "A63J",
+      "count": 1
+    },
+    {
+      "category": "A63G",
+      "count": 1
+    },
+    {
+      "category": "A62C",
+      "count": 1
+    },
+    {
+      "category": "A46B",
+      "count": 1
+    },
+    {
+      "category": "A44B",
+      "count": 1
+    },
+    {
+      "category": "A41F",
+      "count": 1
+    },
+    {
+      "category": "A24F",
+      "count": 1
+    },
+    {
+      "category": "A01J",
+      "count": 1
+    }
+  ],
+  "ipc_descriptions": {
+    "G06F": "電気的デジタルデータ処理",
+    "G01N": "物理学",
+    "A61K": "医薬用、歯科用または化粧用製剤",
+    "A61B": "医学または獣医学；衛生学",
+    "B01J": "処理操作、運輸",
+    "H01L": "半導体装置",
+    "C12N": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "H04N": "画像通信",
+    "G06T": "計算、計数",
+    "A01G": "人間の必需品",
+    "G01C": "物理学",
+    "B60R": "車両一般",
+    "G02B": "物理学",
+    "C01B": "化学、冶金",
+    "H04B": "電気通信技術",
+    "A23L": "人間の必需品",
+    "B01D": "処理操作、運輸",
+    "G06Q": "管理目的、商業目的、金融目的、経営目的、監督目的または予測目的に特に適合したデータ処理システム／方法",
+    "G01B": "物理学",
+    "A01K": "人間の必需品",
+    "C23C": "化学、冶金",
+    "C07K": "有機化学",
+    "H04L": "デジタル情報の伝送",
+    "G10L": "物理学",
+    "A61H": "医学または獣医学；衛生学",
+    "H04H": "電気通信技術",
+    "C12M": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "H01M": "基本的電気素子",
+    "G02F": "物理学",
+    "B25J": "処理操作、運輸",
+    "C01G": "化学、冶金",
+    "A63B": "人間の必需品",
+    "H04W": "電気通信技術",
+    "B60K": "車両一般",
+    "C07D": "有機化学",
+    "H03M": "電気",
+    "G03B": "物理学",
+    "G06N": "コンピュータ・システムであって、特定の計算モデルに基づくもの",
+    "B22F": "処理操作、運輸",
+    "G01J": "物理学",
+    "G01R": "物理学",
+    "C09K": "化学、冶金",
+    "B29C": "処理操作、運輸",
+    "G01S": "物理学",
+    "A61L": "医学または獣医学；衛生学",
+    "A61F": "医学または獣医学；衛生学",
+    "C04B": "化学、冶金",
+    "C08G": "化学、冶金",
+    "F03D": "機械工学、照明、加熱、武器、爆破",
+    "B32B": "処理操作、運輸",
+    "G07C": "物理学",
+    "A61G": "医学または獣医学；衛生学",
+    "B63B": "処理操作、運輸",
+    "C02F": "化学、冶金",
+    "G01T": "物理学",
+    "C07B": "有機化学",
+    "H04J": "電気通信技術",
+    "B60L": "車両一般",
+    "A01H": "人間の必需品",
+    "C30B": "化学、冶金",
+    "C12Q": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "C08J": "化学、冶金",
+    "C08F": "化学、冶金",
+    "G01M": "物理学",
+    "C07C": "有機化学",
+    "B23K": "処理操作、運輸",
+    "B82Y": "処理操作、運輸",
+    "H01Q": "基本的電気素子",
+    "A01B": "人間の必需品",
+    "A01M": "人間の必需品",
+    "A01N": "人間の必需品",
+    "C22C": "化学、冶金",
+    "B65D": "処理操作、運輸",
+    "B09B": "処理操作、運輸",
+    "B64C": "処理操作、運輸",
+    "G01L": "物理学",
+    "H01B": "基本的電気素子",
+    "H01F": "基本的電気素子",
+    "H02K": "電気",
+    "E01B": "固定構造物",
+    "E04B": "固定構造物",
+    "C07F": "有機化学",
+    "G06K": "計算、計数",
+    "H04R": "電気通信技術",
+    "A41D": "人間の必需品",
+    "E02D": "固定構造物",
+    "A61M": "医学または獣医学；衛生学",
+    "G09B": "物理学",
+    "A61N": "医学または獣医学；衛生学",
+    "E01D": "固定構造物",
+    "B24B": "処理操作、運輸",
+    "B61L": "処理操作、運輸",
+    "G11B": "物理学",
+    "A01D": "人間の必需品",
+    "G01V": "物理学",
+    "G01F": "物理学",
+    "B23Q": "処理操作、運輸",
+    "G03H": "物理学",
+    "B01F": "処理操作、運輸",
+    "G01H": "物理学",
+    "E02B": "固定構造物",
+    "H02J": "電気",
+    "B82B": "処理操作、運輸",
+    "H04S": "電気通信技術",
+    "H01S": "基本的電気素子",
+    "C25D": "化学、冶金",
+    "B65G": "処理操作、運輸",
+    "H02M": "電気",
+    "A01C": "人間の必需品",
+    "H02N": "電気",
+    "G08G": "物理学",
+    "A63H": "人間の必需品",
+    "H01P": "基本的電気素子",
+    "C08K": "化学、冶金",
+    "G05B": "物理学",
+    "A23K": "人間の必需品",
+    "G01W": "物理学",
+    "G01K": "物理学",
+    "A63F": "人間の必需品",
+    "C08B": "化学、冶金",
+    "B21D": "処理操作、運輸",
+    "H01J": "基本的電気素子",
+    "H01G": "基本的電気素子",
+    "C12P": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "F04B": "機械工学、照明、加熱、武器、爆破",
+    "G08B": "物理学",
+    "F25B": "機械工学、照明、加熱、武器、爆破",
+    "F03B": "機械工学、照明、加熱、武器、爆破",
+    "B62D": "処理操作、運輸",
+    "A61C": "医学または獣医学；衛生学",
+    "C07H": "有機化学",
+    "B81B": "処理操作、運輸",
+    "H03F": "電気",
+    "G09G": "物理学",
+    "B22D": "処理操作、運輸",
+    "B05D": "処理操作、運輸",
+    "E04H": "固定構造物",
+    "F24F": "機械工学、照明、加熱、武器、爆破",
+    "F02D": "機械工学、照明、加熱、武器、爆破",
+    "G05D": "物理学",
+    "C25B": "化学、冶金",
+    "H05B": "電気",
+    "H04M": "電気通信技術",
+    "B25B": "処理操作、運輸",
+    "B23B": "処理操作、運輸",
+    "G09F": "物理学",
+    "G01P": "物理学",
+    "F16L": "機械工学、照明、加熱、武器、爆破",
+    "A47J": "人間の必需品",
+    "G11C": "物理学",
+    "F16C": "機械工学、照明、加熱、武器、爆破",
+    "C03C": "化学、冶金",
+    "G07D": "物理学",
+    "G09C": "物理学",
+    "G10K": "物理学",
+    "F24H": "機械工学、照明、加熱、武器、爆破",
+    "F02B": "機械工学、照明、加熱、武器、爆破",
+    "C22B": "化学、冶金",
+    "B63H": "処理操作、運輸",
+    "A23B": "人間の必需品",
+    "G01Q": "物理学",
+    "C01F": "化学、冶金",
+    "E03B": "固定構造物",
+    "B65H": "処理操作、運輸",
+    "B21B": "処理操作、運輸",
+    "A47C": "人間の必需品",
+    "F15B": "機械工学、照明、加熱、武器、爆破",
+    "B05C": "処理操作、運輸",
+    "F16H": "機械工学、照明、加熱、武器、爆破",
+    "B41J": "処理操作、運輸",
+    "E04G": "固定構造物",
+    "B60B": "車両一般",
+    "F23D": "機械工学、照明、加熱、武器、爆破",
+    "E04D": "固定構造物",
+    "C12G": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "A47G": "人間の必需品",
+    "C09D": "化学、冶金",
+    "B64G": "処理操作、運輸",
+    "B05B": "処理操作、運輸",
+    "A47B": "人間の必需品",
+    "A21D": "人間の必需品",
+    "E21B": "固定構造物",
+    "G01D": "物理学",
+    "G04G": "物理学",
+    "E01C": "固定構造物",
+    "F16F": "機械工学、照明、加熱、武器、爆破",
+    "F16B": "機械工学、照明、加熱、武器、爆破",
+    "E05B": "固定構造物",
+    "A47K": "人間の必需品",
+    "B63C": "処理操作、運輸",
+    "B62J": "処理操作、運輸",
+    "C21D": "化学、冶金",
+    "C08L": "化学、冶金",
+    "B61D": "処理操作、運輸",
+    "B28B": "処理操作、運輸",
+    "B08B": "処理操作、運輸",
+    "A23F": "人間の必需品",
+    "E21D": "固定構造物",
+    "B42D": "処理操作、運輸",
+    "H05H": "電気",
+    "B61K": "処理操作、運輸",
+    "B60M": "車両一般",
+    "B60C": "車両一般",
+    "B27K": "処理操作、運輸",
+    "B23P": "処理操作、運輸",
+    "F26B": "機械工学、照明、加熱、武器、爆破",
+    "G05F": "物理学",
+    "F24D": "機械工学、照明、加熱、武器、爆破",
+    "B60J": "車両一般",
+    "D01F": "繊維、紙",
+    "C09B": "化学、冶金",
+    "C03B": "化学、冶金",
+    "B23H": "処理操作、運輸",
+    "B21C": "処理操作、運輸",
+    "A23C": "人間の必需品",
+    "B62B": "処理操作、運輸",
+    "E04F": "固定構造物",
+    "A47L": "人間の必需品",
+    "A23G": "人間の必需品",
+    "G21F": "物理学",
+    "G16H": "物理学",
+    "F24C": "機械工学、照明、加熱、武器、爆破",
+    "F21S": "機械工学、照明、加熱、武器、爆破",
+    "B64D": "処理操作、運輸",
+    "B44F": "処理操作、運輸",
+    "A45B": "人間の必需品",
+    "H05K": "電気",
+    "F03G": "機械工学、照明、加熱、武器、爆破",
+    "A61J": "医学または獣医学；衛生学",
+    "A01F": "人間の必需品",
+    "H01R": "基本的電気素子",
+    "H01H": "基本的電気素子",
+    "G03F": "物理学",
+    "F23C": "機械工学、照明、加熱、武器、爆破",
+    "F22B": "機械工学、照明、加熱、武器、爆破",
+    "D01D": "繊維、紙",
+    "C23F": "化学、冶金",
+    "B61B": "処理操作、運輸",
+    "A62D": "人間の必需品",
+    "H03K": "電気",
+    "A23N": "人間の必需品",
+    "H03H": "電気",
+    "H02S": "電気",
+    "G08C": "物理学",
+    "F28D": "機械工学、照明、加熱、武器、爆破",
+    "F16K": "機械工学、照明、加熱、武器、爆破",
+    "F04D": "機械工学、照明、加熱、武器、爆破",
+    "F01N": "機械工学、照明、加熱、武器、爆破",
+    "F01D": "機械工学、照明、加熱、武器、爆破",
+    "E01F": "固定構造物",
+    "D06M": "繊維、紙",
+    "B65B": "処理操作、運輸",
+    "B61F": "処理操作、運輸",
+    "B60W": "車両一般",
+    "B03B": "処理操作、運輸",
+    "A23D": "人間の必需品",
+    "A62B": "人間の必需品",
+    "G07B": "物理学",
+    "D06F": "繊維、紙",
+    "B21J": "処理操作、運輸",
+    "G21C": "物理学",
+    "F17C": "機械工学、照明、加熱、武器、爆破",
+    "F02G": "機械工学、照明、加熱、武器、爆破",
+    "E06B": "固定構造物",
+    "E02F": "固定構造物",
+    "D02G": "繊維、紙",
+    "C10M": "化学、冶金",
+    "B29B": "処理操作、運輸",
+    "B06B": "処理操作、運輸",
+    "A44C": "人間の必需品",
+    "H02P": "電気",
+    "G10G": "物理学",
+    "G07G": "物理学",
+    "B26B": "処理操作、運輸",
+    "F27B": "機械工学、照明、加熱、武器、爆破",
+    "F16D": "機械工学、照明、加熱、武器、爆破",
+    "B66C": "処理操作、運輸",
+    "B60T": "車両一般",
+    "B60P": "車両一般",
+    "B24C": "処理操作、運輸",
+    "B07B": "処理操作、運輸",
+    "A45C": "人間の必需品",
+    "F25C": "機械工学、照明、加熱、武器、爆破",
+    "H10N": "電気",
+    "H02G": "電気",
+    "F23N": "機械工学、照明、加熱、武器、爆破",
+    "F02K": "機械工学、照明、加熱、武器、爆破",
+    "F02C": "機械工学、照明、加熱、武器、爆破",
+    "F01K": "機械工学、照明、加熱、武器、爆破",
+    "D21H": "繊維、紙",
+    "D04H": "繊維、紙",
+    "C11D": "化学、冶金",
+    "C09J": "化学、冶金",
+    "C09C": "化学、冶金",
+    "C05F": "化学、冶金",
+    "B81C": "処理操作、運輸",
+    "B60G": "車両一般",
+    "B27M": "処理操作、運輸",
+    "B22C": "処理操作、運輸",
+    "B09C": "処理操作、運輸",
+    "B02C": "処理操作、運輸",
+    "B01L": "処理操作、運輸",
+    "A42B": "人間の必需品",
+    "A41H": "人間の必需品",
+    "G16Z": "物理学",
+    "H04Q": "電気通信技術",
+    "G10H": "物理学",
+    "G05G": "物理学",
+    "F23L": "機械工学、照明、加熱、武器、爆破",
+    "F15D": "機械工学、照明、加熱、武器、爆破",
+    "F02M": "機械工学、照明、加熱、武器、爆破",
+    "F02F": "機械工学、照明、加熱、武器、爆破",
+    "F01M": "機械工学、照明、加熱、武器、爆破",
+    "D01B": "繊維、紙",
+    "B26F": "処理操作、運輸",
+    "G21K": "物理学",
+    "G10D": "物理学",
+    "G06G": "計算、計数",
+    "G04C": "物理学",
+    "G02C": "物理学",
+    "F25D": "機械工学、照明、加熱、武器、爆破",
+    "F21V": "機械工学、照明、加熱、武器、爆破",
+    "F16J": "機械工学、照明、加熱、武器、爆破",
+    "F04F": "機械工学、照明、加熱、武器、爆破",
+    "F01P": "機械工学、照明、加熱、武器、爆破",
+    "E05C": "固定構造物",
+    "E04C": "固定構造物",
+    "E03D": "固定構造物",
+    "E03C": "固定構造物",
+    "C22F": "化学、冶金",
+    "C10G": "化学、冶金",
+    "C10B": "化学、冶金",
+    "C01C": "化学、冶金",
+    "B66B": "処理操作、運輸",
+    "B64B": "処理操作、運輸",
+    "B60S": "車両一般",
+    "B60Q": "車両一般",
+    "B60H": "車両一般",
+    "B43K": "処理操作、運輸",
+    "B28C": "処理操作、運輸",
+    "B27N": "処理操作、運輸",
+    "B25H": "処理操作、運輸",
+    "B24D": "処理操作、運輸",
+    "B23D": "処理操作、運輸",
+    "B07C": "処理操作、運輸",
+    "B03C": "処理操作、運輸",
+    "A47H": "人間の必需品",
+    "A45D": "人間の必需品",
+    "A41C": "人間の必需品",
+    "A41B": "人間の必需品",
+    "A22C": "人間の必需品",
+    "H03L": "電気",
+    "H03B": "電気",
+    "H02H": "電気",
+    "H01C": "基本的電気素子",
+    "G21G": "物理学",
+    "G03G": "物理学",
+    "G01G": "物理学",
+    "F28F": "機械工学、照明、加熱、武器、爆破",
+    "F24J": "機械工学、照明、加熱、武器、爆破",
+    "F23K": "機械工学、照明、加熱、武器、爆破",
+    "F23J": "機械工学、照明、加熱、武器、爆破",
+    "F23G": "機械工学、照明、加熱、武器、爆破",
+    "F17D": "機械工学、照明、加熱、武器、爆破",
+    "F16G": "機械工学、照明、加熱、武器、爆破",
+    "F02N": "機械工学、照明、加熱、武器、爆破",
+    "F01L": "機械工学、照明、加熱、武器、爆破",
+    "E06C": "固定構造物",
+    "E03F": "固定構造物",
+    "D21J": "繊維、紙",
+    "D04B": "繊維、紙",
+    "C25C": "化学、冶金",
+    "C10L": "化学、冶金",
+    "C10J": "化学、冶金",
+    "C07G": "有機化学",
+    "B66F": "処理操作、運輸",
+    "B60N": "車両一般",
+    "B44C": "処理操作、運輸",
+    "B42F": "処理操作、運輸",
+    "B41M": "処理操作、運輸",
+    "B41C": "処理操作、運輸",
+    "B33Y": "処理操作、運輸",
+    "B26D": "処理操作、運輸",
+    "B23C": "処理操作、運輸",
+    "A61P": "医学または獣医学；衛生学",
+    "A61D": "医学または獣医学；衛生学",
+    "A47F": "人間の必需品",
+    "A45F": "人間の必需品",
+    "A43B": "人間の必需品",
+    "A41G": "人間の必需品",
+    "A23J": "人間の必需品",
+    "A21B": "人間の必需品",
+    "H10K": "電気",
+    "H04K": "電気通信技術",
+    "H03G": "電気",
+    "H01T": "基本的電気素子",
+    "G21H": "物理学",
+    "G21D": "物理学",
+    "G10C": "物理学",
+    "G06E": "計算、計数",
+    "G04F": "物理学",
+    "G04B": "物理学",
+    "F41H": "機械工学、照明、加熱、武器、爆破",
+    "F24V": "機械工学、照明、加熱、武器、爆破",
+    "F24T": "機械工学、照明、加熱、武器、爆破",
+    "F24S": "機械工学、照明、加熱、武器、爆破",
+    "F23B": "機械工学、照明、加熱、武器、爆破",
+    "F21L": "機械工学、照明、加熱、武器、爆破",
+    "F21K": "機械工学、照明、加熱、武器、爆破",
+    "F03H": "機械工学、照明、加熱、武器、爆破",
+    "F02P": "機械工学、照明、加熱、武器、爆破",
+    "F01C": "機械工学、照明、加熱、武器、爆破",
+    "F01B": "機械工学、照明、加熱、武器、爆破",
+    "E21C": "固定構造物",
+    "E05F": "固定構造物",
+    "E05D": "固定構造物",
+    "E01H": "固定構造物",
+    "D21F": "繊維、紙",
+    "D06B": "繊維、紙",
+    "D03C": "繊維、紙",
+    "C23G": "化学、冶金",
+    "C12H": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "C12C": "生化学；ビール；酒精；ぶどう酒；酢；微生物学；酵素学；突然変異または遺伝子工学",
+    "C11B": "化学、冶金",
+    "C08H": "化学、冶金",
+    "C08C": "化学、冶金",
+    "C07J": "有機化学",
+    "C06B": "化学、冶金",
+    "C05G": "化学、冶金",
+    "C05D": "化学、冶金",
+    "B67D": "処理操作、運輸",
+    "B67C": "処理操作、運輸",
+    "B65F": "処理操作、運輸",
+    "B64U": "処理操作、運輸",
+    "B62M": "処理操作、運輸",
+    "B62K": "処理操作、運輸",
+    "B61C": "処理操作、運輸",
+    "B60F": "車両一般",
+    "B43L": "処理操作、運輸",
+    "B41F": "処理操作、運輸",
+    "B31D": "処理操作、運輸",
+    "B29D": "処理操作、運輸",
+    "B27H": "処理操作、運輸",
+    "B27F": "処理操作、運輸",
+    "B27D": "処理操作、運輸",
+    "B27C": "処理操作、運輸",
+    "B25F": "処理操作、運輸",
+    "B25D": "処理操作、運輸",
+    "B21K": "処理操作、運輸",
+    "B21F": "処理操作、運輸",
+    "B04C": "処理操作、運輸",
+    "B03D": "処理操作、運輸",
+    "A63J": "人間の必需品",
+    "A63G": "人間の必需品",
+    "A62C": "人間の必需品",
+    "A46B": "人間の必需品",
+    "A44B": "人間の必需品",
+    "A41F": "人間の必需品",
+    "A24F": "人間の必需品",
+    "A01J": "人間の必需品"
+  },
+  "clusters": [
+    {
+      "name": "Section G",
+      "description": "物理学",
+      "items": [
+        {
+          "category": "G06F",
+          "count": 682
+        },
+        {
+          "category": "G01N",
+          "count": 630
+        },
+        {
+          "category": "G06T",
+          "count": 323
+        },
+        {
+          "category": "G01C",
+          "count": 238
+        },
+        {
+          "category": "G02B",
+          "count": 232
+        },
+        {
+          "category": "G06Q",
+          "count": 194
+        },
+        {
+          "category": "G01B",
+          "count": 164
+        },
+        {
+          "category": "G10L",
+          "count": 132
+        },
+        {
+          "category": "G02F",
+          "count": 106
+        }
+      ],
+      "total_patents": 2701
+    },
+    {
+      "name": "Section A",
+      "description": "人間の必需品",
+      "items": [
+        {
+          "category": "A61K",
+          "count": 500
+        },
+        {
+          "category": "A61B",
+          "count": 494
+        },
+        {
+          "category": "A01G",
+          "count": 267
+        },
+        {
+          "category": "A23L",
+          "count": 206
+        },
+        {
+          "category": "A01K",
+          "count": 163
+        },
+        {
+          "category": "A61H",
+          "count": 129
+        }
+      ],
+      "total_patents": 1759
+    },
+    {
+      "name": "Section H",
+      "description": "電気",
+      "items": [
+        {
+          "category": "H01L",
+          "count": 369
+        },
+        {
+          "category": "H04N",
+          "count": 339
+        },
+        {
+          "category": "H04B",
+          "count": 208
+        },
+        {
+          "category": "H04L",
+          "count": 142
+        },
+        {
+          "category": "H04H",
+          "count": 127
+        },
+        {
+          "category": "H01M",
+          "count": 117
+        }
+      ],
+      "total_patents": 1302
+    },
+    {
+      "name": "Section C",
+      "description": "化学、冶金",
+      "items": [
+        {
+          "category": "C12N",
+          "count": 347
+        },
+        {
+          "category": "C01B",
+          "count": 215
+        },
+        {
+          "category": "C23C",
+          "count": 145
+        },
+        {
+          "category": "C07K",
+          "count": 144
+        },
+        {
+          "category": "C12M",
+          "count": 123
+        }
+      ],
+      "total_patents": 974
+    },
+    {
+      "name": "Section B",
+      "description": "処理操作、運輸",
+      "items": [
+        {
+          "category": "B01J",
+          "count": 397
+        },
+        {
+          "category": "B60R",
+          "count": 234
+        },
+        {
+          "category": "B01D",
+          "count": 198
+        },
+        {
+          "category": "B25J",
+          "count": 105
+        }
+      ],
+      "total_patents": 934
+    }
+  ]
+}

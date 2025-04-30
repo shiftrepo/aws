@@ -10,7 +10,7 @@
         "type": "none"
       },
       "config": {
-        "api_url": "http://localhost:5001"
+        "api_url": "http://localhost:8001"
       }
     }
   ]
