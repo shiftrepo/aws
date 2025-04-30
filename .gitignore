@@ -171,3 +171,5 @@ cython_debug/
 
 .DS_Store
 tosapi-*.json
+
+data/
