@@ -1,0 +1,9 @@
+{
+	"folders": [
+		{
+			"uri": "vscode-remote://ssh-remote+ec2-graphrag/root/aws.git"
+		}
+	],
+	"remoteAuthority": "ssh-remote+ec2-graphrag",
+	"settings": {}
+}
