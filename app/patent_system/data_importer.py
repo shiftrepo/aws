@@ -1,13 +1,15 @@
-import os
-import argparse
-import json
-import logging
-from typing import Dict, List, Any, Union
-from tqdm import tqdm
-import fitz  # PyMuPDF
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-from app.patent_system.j_platpat_scraper import JPlatPatClient, fetch_patents_by_company
-from app.patent_system.db_manager import PatentDBManager, init_db_if_needed
+"""
+This module provides the InpitDataAccess class for direct interaction
+with the Inpit SQLite API, without importing data to a local database.
+"""
+
+import logging
+from typing import Dict, List, Any, Optional
+
+from app.patent_system.inpit_sqlite_connector import get_connector
 
 # Configure logging
 logging.basicConfig(
@@ -16,266 +18,165 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+class InpitDataAccess:
+    """Class for accessing patent data directly from Inpit SQLite API"""
 
-class PatentDataImporter:
-    """Class to import patent data from J-PlatPat to PostgreSQL"""
-    
-    def __init__(self):
-        """Initialize the importer"""
-        self.jplatpat_client = JPlatPatClient()
-        self.db_manager = PatentDBManager()
-        
-    def import_from_search(self, query: str, max_results: int = 100) -> int:
+    def __init__(self, api_url: str = "http://localhost:5001"):
         """
-        Import patent data from J-PlatPat search results
-        
+        Initialize the data access object
+
         Args:
-            query: Search query string for J-PlatPat
-            max_results: Maximum number of patents to import
-            
-        Returns:
-            int: Number of patents imported
+            api_url: URL for the Inpit SQLite API
         """
-        # Initialize DB tables if needed
-        init_db_if_needed()
-        
-        logger.info(f"Searching for patents with query: {query}")
-        search_results = self.jplatpat_client.search_patents(
-            query=query,
-            page=1,
-            results_per_page=max_results
-        )
-        
-        if "error" in search_results:
-            logger.error(f"Search error: {search_results['error']}")
-            return 0
-        
-        patents = search_results.get("results", [])
-        logger.info(f"Found {len(patents)} patents in search results")
-        
-        if not patents:
-            return 0
-        
-        # Extract application numbers
-        application_numbers = [p.get("applicationNumber") for p in patents if p.get("applicationNumber")]
-        logger.info(f"Fetching full data for {len(application_numbers)} patent applications")
-        
-        # Fetch complete data for all patents
-        full_data = self.jplatpat_client.fetch_full_patent_data(application_numbers)
-        
-        # Store in database
-        with self.db_manager:
-            count = self.db_manager.store_patents_batch(full_data)
-            logger.info(f"Successfully imported {count} patents to the database")
-            return count
-    
-    def import_by_company(self, company_name: str, limit: int = 100) -> int:
+        self.connector = get_connector(api_url)
+        logger.info(f"Initialized Inpit SQLite data access with URL: {api_url}")
+
+    def get_patent_by_application_number(self, application_number: str) -> Dict[str, Any]:
         """
-        Import patents by company name
-        
+        Get patent data by application number
+
         Args:
-            company_name: Name of the company
-            limit: Maximum number of patents to import
-            
+            application_number: The application number to retrieve
+
         Returns:
-            int: Number of patents imported
+            Dictionary with patent data in standardized format
         """
-        # Initialize DB tables if needed
-        init_db_if_needed()
-        
-        logger.info(f"Searching for patents from company: {company_name}")
-        patents = fetch_patents_by_company(self.jplatpat_client, company_name, limit)
-        
-        if not patents:
-            logger.info(f"No patents found for company: {company_name}")
-            return 0
-        
-        logger.info(f"Found {len(patents)} patents for company: {company_name}")
-        
-        # Extract application numbers
-        application_numbers = [p.get("applicationNumber") for p in patents if p.get("applicationNumber")]
-        
-        # Fetch complete data for all patents
-        full_data = self.jplatpat_client.fetch_full_patent_data(application_numbers)
-        
-        # Store in database
-        with self.db_manager:
-            count = self.db_manager.store_patents_batch(full_data)
-            logger.info(f"Successfully imported {count} patents to the database for company {company_name}")
-            return count
-    
-    def import_from_pdf(self, pdf_path: str) -> Union[Dict[str, Any], None]:
-        """
-        Import patent data from a PDF file
-        
-        Args:
-            pdf_path: Path to the PDF file containing patent information
-            
-        Returns:
-            Dict containing extracted patent data, or None if failed
-        """
+        logger.info(f"Retrieving patent by application number: {application_number}")
+
         try:
-            # Initialize DB tables if needed
-            init_db_if_needed()
-            
-            logger.info(f"Extracting patent data from PDF: {pdf_path}")
-            
-            # Extract text from PDF
-            doc = fitz.open(pdf_path)
-            text = ""
-            for page in doc:
-                text += page.get_text()
-            
-            # Here we would implement PDF parsing logic to extract structured data
-            # This is a complex task requiring specific parsing logic for J-PlatPat PDFs
-            
-            # Placeholder implementation - in a real system this would implement full PDF parsing
-            # Extract application number from filename or PDF content
-            application_number = None
-            
-            filename = os.path.basename(pdf_path)
-            # Try to extract from filename (assuming a format like "JPA2025027833-000000.pdf")
-            if filename.startswith("JPA"):
-                try:
-                    application_number = filename.split("-")[0][3:]
-                except:
-                    pass
-            
-            # If not found in filename, try to find in content
-            if not application_number:
-                # Very simple regex - would need refinement for actual implementation
-                import re
-                match = re.search(r'出願番号[：:]\s*(\d{4}-\d+)', text)
-                if match:
-                    application_number = match.group(1)
-                else:
-                    # Try another pattern
-                    match = re.search(r'特願\s*(\d{4}-\d+)', text)
-                    if match:
-                        application_number = match.group(1)
-            
-            if not application_number:
-                logger.error("Could not extract application number from PDF")
-                return None
-            
-            logger.info(f"Extracted application number: {application_number}")
-            
-            # Use the application number to fetch complete data from J-PlatPat
-            patent_data = self.jplatpat_client.get_patent_details(application_number)
-            
-            if "error" in patent_data:
-                logger.error(f"Error fetching patent details: {patent_data['error']}")
-                
-                # Fallback to basic data extracted from PDF
-                # This would require more sophisticated PDF parsing
-                patent_data = {
-                    "applicationNumber": application_number,
-                    "title": "Unknown",  # Would be extracted from PDF in real implementation
-                    "abstract": text[:500],  # Use first part of text as abstract
-                    "claims": [],
-                    "descriptions": [{"text": text}]
-                }
-            
-            # Store in database
-            with self.db_manager:
-                patent = self.db_manager.store_patent(patent_data)
-                if patent:
-                    logger.info(f"Successfully imported patent {application_number} from PDF")
-                    return patent.to_dict()
-                else:
-                    logger.error(f"Failed to import patent {application_number} from PDF")
-                    return None
-                
+            # Get data from Inpit SQLite
+            result = self.connector.get_patent_by_application_number(application_number)
+
+            if "error" in result:
+                logger.error(f"Error retrieving patent: {result['error']}")
+                return {"error": result['error'], "patents": []}
+
+            # Map to patent model format
+            patents = self.connector.map_to_patent_model(result)
+
+            if not patents:
+                logger.info(f"No patent found with application number: {application_number}")
+                return {"patents": []}
+
+            logger.info(f"Successfully retrieved {len(patents)} patent(s)")
+            return {"patents": patents}
+
         except Exception as e:
-            logger.error(f"Error importing patent from PDF: {str(e)}")
-            return None
-    
-    def import_from_json_file(self, json_file: str) -> int:
+            logger.error(f"Error retrieving patent by application number: {str(e)}")
+            return {"error": str(e), "patents": []}
+
+    def get_patents_by_applicant(self, applicant_name: str, limit: int = 100) -> Dict[str, Any]:
         """
-        Import patent data from a JSON file
-        
+        Get patents by applicant name
+
         Args:
-            json_file: Path to JSON file containing patent data
-            
+            applicant_name: Name of the applicant
+            limit: Maximum number of patents to retrieve
+
         Returns:
-            int: Number of patents imported
+            Dictionary with patent data in standardized format
         """
+        logger.info(f"Retrieving patents by applicant name: {applicant_name}")
+
         try:
-            # Initialize DB tables if needed
-            init_db_if_needed()
-            
-            logger.info(f"Importing patent data from JSON file: {json_file}")
-            
-            with open(json_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # Handle different possible JSON structures
-            patents_data = []
-            
-            if isinstance(data, list):
-                # List of patent records
-                patents_data = data
-            elif isinstance(data, dict):
-                # Single patent record or container with results field
-                if "results" in data and isinstance(data["results"], list):
-                    patents_data = data["results"]
-                else:
-                    # Assume it's a single patent record
-                    patents_data = [data]
-            
-            logger.info(f"Found {len(patents_data)} patent records in JSON file")
-            
-            # Store in database
-            with self.db_manager:
-                count = self.db_manager.store_patents_batch(patents_data)
-                logger.info(f"Successfully imported {count} patents from JSON file")
-                return count
-                
+            # Get data from Inpit SQLite
+            result = self.connector.get_patents_by_applicant(applicant_name)
+
+            if "error" in result:
+                logger.error(f"Error retrieving patents: {result['error']}")
+                return {"error": result['error'], "patents": []}
+
+            # Map to patent model format
+            patents = self.connector.map_to_patent_model(result)
+
+            if not patents:
+                logger.info(f"No patents found for applicant: {applicant_name}")
+                return {"patents": []}
+
+            # Limit the number of patents to return
+            patents_to_return = patents[:limit]
+
+            logger.info(f"Successfully retrieved {len(patents_to_return)} patents for applicant: {applicant_name}")
+            return {"patents": patents_to_return}
+
         except Exception as e:
-            logger.error(f"Error importing patents from JSON file: {str(e)}")
-            return 0
+            logger.error(f"Error retrieving patents by applicant: {str(e)}")
+            return {"error": str(e), "patents": []}
+
+    def execute_sql_query(self, query: str, limit: int = 100) -> Dict[str, Any]:
+        """
+        Execute a custom SQL query against Inpit SQLite
+
+        Args:
+            query: SQL query to execute
+            limit: Maximum number of results to map to patent format
+
+        Returns:
+            Dictionary with query results or mapped patents
+        """
+        logger.info(f"Executing SQL query")
+        logger.debug(f"Query: {query}")
+
+        try:
+            # Execute SQL query via Inpit SQLite API
+            result = self.connector.execute_sql_query(query)
+
+            if "error" in result:
+                logger.error(f"Error executing SQL query: {result['error']}")
+                return {"error": result['error'], "results": []}
+
+            # Return raw results if not mapping to patent models
+            if not query.lower().strip().startswith("select * from"):
+                logger.info(f"Returning raw SQL query results")
+                return result
+
+            # Try mapping to patent model format for more comprehensive queries
+            try:
+                patents = self.connector.map_to_patent_model(result)
+                if patents:
+                    logger.info(f"Query results mapped to {len(patents)} patent models")
+                    return {"patents": patents[:limit], "raw_results": result}
+            except Exception as mapping_error:
+                logger.warning(f"Could not map query results to patent models: {str(mapping_error)}")
+
+            # Return raw results if mapping fails
+            logger.info(f"Returning raw SQL query results")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error executing SQL query: {str(e)}")
+            return {"error": str(e), "results": []}
+
+    def get_api_status(self) -> Dict[str, Any]:
+        """
+        Get Inpit SQLite API status and database information
+        
+        Returns:
+            Dictionary with API status information
+        """
+        return self.connector.get_api_status()
 
 
-def main():
-    """Main entry point when running as a script"""
-    parser = argparse.ArgumentParser(description='Import patent data from J-PlatPat')
-    
-    subparsers = parser.add_subparsers(dest='command', help='Command to execute')
-    
-    # Search import
-    search_parser = subparsers.add_parser('search', help='Import from search results')
-    search_parser.add_argument('query', help='Search query')
-    search_parser.add_argument('--max-results', type=int, default=100, help='Maximum results to import')
-    
-    # Company import
-    company_parser = subparsers.add_parser('company', help='Import by company name')
-    company_parser.add_argument('name', help='Company name')
-    company_parser.add_argument('--limit', type=int, default=100, help='Maximum patents to import')
-    
-    # PDF import
-    pdf_parser = subparsers.add_parser('pdf', help='Import from PDF file')
-    pdf_parser.add_argument('file', help='Path to PDF file')
-    
-    # JSON import
-    json_parser = subparsers.add_parser('json', help='Import from JSON file')
-    json_parser.add_argument('file', help='Path to JSON file')
-    
-    # Parse arguments
-    args = parser.parse_args()
-    
-    importer = PatentDataImporter()
-    
-    if args.command == 'search':
-        importer.import_from_search(args.query, args.max_results)
-    elif args.command == 'company':
-        importer.import_by_company(args.name, args.limit)
-    elif args.command == 'pdf':
-        importer.import_from_pdf(args.file)
-    elif args.command == 'json':
-        importer.import_from_json_file(args.file)
-    else:
-        parser.print_help()
+# Create a singleton instance for easy import
+data_access = InpitDataAccess()
+
+def get_data_access(api_url=None):
+    """Get the data access instance, optionally with a new API URL"""
+    global data_access
+    if api_url:
+        data_access = InpitDataAccess(api_url)
+    return data_access
 
 
 if __name__ == "__main__":
-    main()
+    # Get API status when run directly
+    access = InpitDataAccess()
+    status = access.get_api_status()
+    
+    if "error" in status:
+        print(f"Error connecting to Inpit SQLite API: {status['error']}")
+    else:
+        record_count = status.get("record_count", 0) if "record_count" in status else "unknown"
+        print(f"Successfully connected to Inpit SQLite API")
+        print(f"Database contains {record_count} records")
+        print(f"API URL: {access.connector.api_url}")

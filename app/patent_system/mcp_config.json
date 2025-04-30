@@ -1,13 +1,16 @@
 {
-  "servers": [
+"servers": [
     {
-      "name": "patent-applicant-analyzer",
+      "name": "inpit-patent-analytics",
       "version": "1.0.0",
-      "description": "Special tools for patent examiners to analyze applicant data, including assessment stats, technical fields, and competitor analyses.",
+      "description": "Tools for patent analytics using Inpit SQLite data, including technology trends, applicant competition, and patent landscape analyses.",
       "module_path": "app.patent_system.mcp_patent_server",
       "enabled": true,
       "auth": {
         "type": "none"
+      },
+      "config": {
+        "api_url": "http://localhost:5001"
       }
     }
   ]

@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-MCP Patent Analysis Server 
+MCP Patent Analysis Server
 
 This server provides specialized tools for patent examiners to analyze applicant data.
-It exposes functionality from the ApplicantAnalyzer class through MCP tools.
-Also provides PDF report generation capabilities for patent data analysis.
+It uses the Inpit SQLite database as its data source.
 """
 
 import json
@@ -14,559 +13,440 @@ import os
 import tempfile
 import base64
 from datetime import datetime
-from .applicant_analyzer import ApplicantAnalyzer
-from .report_generator import PatentReportGenerator
+from typing import Dict, List, Any, Optional
+
+from app.patent_system.patent_analyzer_inpit import PatentAnalyzerInpit
+from app.patent_system.inpit_sqlite_connector import get_connector
 
 # Schema definitions for MCP tools
 SCHEMAS = {
-    "get_applicant_summary": {
+    "query_patents": {
         "type": "object",
         "properties": {
-            "applicant_name": {
+            "application_number": {
                 "type": "string",
-                "description": "Name of the applicant to analyze"
-            }
-        },
-        "required": ["applicant_name"]
-    },
-    "generate_visual_report": {
-        "type": "object",
-        "properties": {
-            "applicant_name": {
-                "type": "string",
-                "description": "Name of the applicant to generate a visual report for"
-            }
-        },
-        "required": ["applicant_name"]
-    },
-    "analyze_assessment_ratios": {
-        "type": "object",
-        "properties": {
-            "applicant_name": {
-                "type": "string",
-                "description": "Name of the applicant to analyze assessment ratios for"
-            }
-        },
-        "required": ["applicant_name"]
-    },
-    "analyze_technical_fields": {
-        "type": "object",
-        "properties": {
-            "applicant_name": {
-                "type": "string",
-                "description": "Name of the applicant to analyze technical fields for"
-            }
-        },
-        "required": ["applicant_name"]
-    },
-    "compare_with_competitors": {
-        "type": "object",
-        "properties": {
-            "applicant_name": {
-                "type": "string",
-                "description": "Name of the applicant to compare"
+                "description": "Patent application number"
             },
-            "num_competitors": {
+            "limit": {
                 "type": "integer",
-                "description": "Number of competitors to compare with",
+                "description": "Maximum number of results to return",
+                "default": 10,
                 "minimum": 1,
-                "maximum": 5,
-                "default": 3
-            }
-        },
-        "required": ["applicant_name"]
-    },
-    "generate_pdf_report": {
-        "type": "object",
-        "properties": {
-            "applicant_name": {
-                "type": "string",
-                "description": "Name of the applicant for focused analysis (optional)",
-                "default": None
-            },
-            "years": {
-                "type": "integer",
-                "description": "Number of years to analyze for trends",
-                "minimum": 1,
-                "maximum": 20,
-                "default": 10
-            },
-            "top_n": {
-                "type": "integer",
-                "description": "Number of top classifications to include",
-                "minimum": 3,
-                "maximum": 10,
-                "default": 5
+                "maximum": 50
             }
         }
     },
-    "generate_comparison_report": {
+    "search_patents_by_applicant": {
         "type": "object",
         "properties": {
-            "applicants": {
-                "type": "array",
-                "description": "List of applicant names to compare",
-                "items": {
-                    "type": "string"
-                },
-                "minItems": 1,
-                "maxItems": 5
+            "applicant_name": {
+                "type": "string",
+                "description": "Name of patent applicant"
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Maximum number of results to return",
+                "default": 10,
+                "minimum": 1,
+                "maximum": 50
             }
         },
-        "required": ["applicants"]
+        "required": ["applicant_name"]
+    },
+    "execute_sql_query": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "SQL query to execute (must be a SELECT query)"
+            }
+        },
+        "required": ["query"]
+    },
+    "analyze_technology_trends": {
+        "type": "object",
+        "properties": {
+            "years": {
+                "type": "integer",
+                "description": "Number of years to analyze",
+                "default": 10,
+                "minimum": 1,
+                "maximum": 20
+            },
+            "top_n": {
+                "type": "integer",
+                "description": "Number of top technologies to include",
+                "default": 5,
+                "minimum": 1,
+                "maximum": 20
+            }
+        }
+    },
+    "analyze_applicant_competition": {
+        "type": "object",
+        "properties": {
+            "top_n": {
+                "type": "integer",
+                "description": "Number of top applicants to analyze",
+                "default": 10,
+                "minimum": 1,
+                "maximum": 20
+            }
+        }
+    },
+    "analyze_patent_landscape": {
+        "type": "object",
+        "properties": {
+            "ipc_level": {
+                "type": "integer",
+                "description": "Level of IPC hierarchy for grouping (1=section, 2=class, 3=subclass)",
+                "default": 3,
+                "minimum": 1,
+                "maximum": 3
+            }
+        }
+    },
+    "generate_analysis_report": {
+        "type": "object",
+        "properties": {}
+    },
+    "get_patent_stats": {
+        "type": "object",
+        "properties": {}
     }
 }
 
-class PatentApplicantServer:
-    """MCP Server for patent applicant analysis"""
-    
+class PatentInpitServer:
+    """MCP Server for patent analysis"""
+
     def __init__(self):
         """Initialize the server"""
-        self.analyzer = ApplicantAnalyzer()
-        self.report_generator = PatentReportGenerator()
-    
+        # Get API URL from environment or use default
+        api_url = os.environ.get("INPIT_API_URL", "http://localhost:5001")
+        self.connector = get_connector(api_url)
+        self.analyzer = PatentAnalyzerInpit(api_url)
+
     def get_tools(self):
         """Return list of available tools"""
         return [
             {
-                "name": "get_applicant_summary",
-                "description": "Get a comprehensive summary of a patent applicant including assessment statistics, application history, technical distribution, and examiner insights.",
-                "schema": SCHEMAS["get_applicant_summary"]
+                "name": "query_patents",
+                "description": "Query patents by application number",
+                "schema": SCHEMAS["query_patents"]
             },
             {
-                "name": "generate_visual_report",
-                "description": "Generate a visual report for a specified applicant with charts and markdown format.",
-                "schema": SCHEMAS["generate_visual_report"]
+                "name": "search_patents_by_applicant",
+                "description": "Search patents by applicant name",
+                "schema": SCHEMAS["search_patents_by_applicant"]
             },
             {
-                "name": "analyze_assessment_ratios",
-                "description": "Analyze the assessment ratios (granted, rejected, etc.) for a specific applicant, including visual representation.",
-                "schema": SCHEMAS["analyze_assessment_ratios"]
+                "name": "execute_sql_query",
+                "description": "Execute a SQL query against the patent database",
+                "schema": SCHEMAS["execute_sql_query"]
             },
             {
-                "name": "analyze_technical_fields",
-                "description": "Analyze the technical fields distribution for a specific applicant, including visualization and domain analysis.",
-                "schema": SCHEMAS["analyze_technical_fields"]
+                "name": "analyze_technology_trends",
+                "description": "Analyze technology trends based on IPC classifications",
+                "schema": SCHEMAS["analyze_technology_trends"]
             },
             {
-                "name": "compare_with_competitors",
-                "description": "Compare a patent applicant with their top competitors in terms of assessment statistics and technical distribution.",
-                "schema": SCHEMAS["compare_with_competitors"]
+                "name": "analyze_applicant_competition",
+                "description": "Analyze competition between patent applicants",
+                "schema": SCHEMAS["analyze_applicant_competition"]
             },
             {
-                "name": "generate_pdf_report",
-                "description": "Generate a PDF report with classification trends chart and assessment ratio chart. Returns a base64 encoded PDF file.",
-                "schema": SCHEMAS["generate_pdf_report"]
+                "name": "analyze_patent_landscape",
+                "description": "Analyze patent landscape by IPC classification hierarchy",
+                "schema": SCHEMAS["analyze_patent_landscape"]
             },
             {
-                "name": "generate_comparison_report",
-                "description": "Generate a PDF report comparing multiple applicants' assessment ratios. Returns a base64 encoded PDF file.",
-                "schema": SCHEMAS["generate_comparison_report"]
+                "name": "generate_analysis_report",
+                "description": "Generate a comprehensive patent analysis report",
+                "schema": SCHEMAS["generate_analysis_report"]
+            },
+            {
+                "name": "get_patent_stats",
+                "description": "Get basic statistics about patents in the database",
+                "schema": SCHEMAS["get_patent_stats"]
             }
         ]
-    
+
     def get_resources(self):
         """Return list of available resources"""
         return [
             {
-                "uri": "current_date",
-                "description": "Current date for reference in patent analysis"
+                "uri": "inpit-status",
+                "description": "Status information from Inpit SQLite database"
             },
             {
-                "uri": "patent_status_descriptions",
-                "description": "Descriptions of patent statuses (granted, rejected, etc.)"
-            },
-            {
-                "uri": "ipc_code_reference",
-                "description": "Reference for International Patent Classification (IPC) codes"
-            },
-            {
-                "uri": "top_applicants",
-                "description": "List of top patent applicants in the database"
+                "uri": "ipc-descriptions",
+                "description": "Descriptions of IPC classification codes"
             }
-        ]
-    
-    def execute_tool(self, tool_name, arguments):
-        """Execute a specific tool with the given arguments"""
-        if tool_name == "get_applicant_summary":
-            return self._get_applicant_summary(arguments)
-        elif tool_name == "generate_visual_report":
-            return self._generate_visual_report(arguments)
-        elif tool_name == "analyze_assessment_ratios":
-            return self._analyze_assessment_ratios(arguments)
-        elif tool_name == "analyze_technical_fields":
-            return self._analyze_technical_fields(arguments)
-        elif tool_name == "compare_with_competitors":
-            return self._compare_with_competitors(arguments)
-        elif tool_name == "generate_pdf_report":
-            return self._generate_pdf_report(arguments)
-        elif tool_name == "generate_comparison_report":
-            return self._generate_comparison_report(arguments)
-        else:
-            return {"error": f"Unknown tool: {tool_name}"}
-    
-    def access_resource(self, uri):
-        """Access a specific resource by URI"""
-        if uri == "current_date":
-            return {"date": datetime.now().strftime("%Y-%m-%d")}
-        elif uri == "patent_status_descriptions":
-            return self._get_patent_status_descriptions()
-        elif uri == "ipc_code_reference":
-            return self._get_ipc_code_reference()
-        elif uri == "top_applicants":
-            return self._get_top_applicants()
-        else:
-            return {"error": f"Unknown resource URI: {uri}"}
-    
-    def _get_applicant_summary(self, arguments):
-        """
-        Get a comprehensive summary of a patent applicant
-        
-        Args:
-            arguments (dict): Arguments containing applicant_name
-            
-        Returns:
-            dict: Comprehensive summary data
-        """
-        applicant_name = arguments["applicant_name"]
-        
-        # Get summary data
-        result = self.analyzer.get_applicant_summary(applicant_name)
-        
-        # Format the response to be more readable in LLM output
-        return {
-            "applicant_name": applicant_name,
-            "total_patents": result["applicant"]["total_patents"],
-            "assessment_statistics": {
-                "grant_rate": f"{result['assessment_statistics']['grant_rate']:.1%}",
-                "rejection_rate": f"{result['assessment_statistics']['rejection_rate']:.1%}",
-                "pending_rate": f"{result['assessment_statistics']['status_distribution']['pending'] / result['assessment_statistics']['total_patents']:.1%}",
-                "average_processing_time": f"{result['assessment_statistics']['average_processing_time_days'] / 30:.1f} months",
-                "average_office_actions": f"{result['assessment_statistics']['average_office_actions']:.1f}"
-            },
-            "technical_distribution": [
-                {
-                    "field": item["ipc_code"],
-                    "description": item["description"],
-                    "percentage": f"{item['percentage']:.1f}%",
-                    "count": item["count"]
-                } 
-                for item in result["technical_distribution"][:5]  # Top 5 fields
-            ],
-            "examiner_insights": [
-                {
-                    "type": insight["type"],
-                    "level": insight["level"],
-                    "description": insight["description"],
-                    "recommendation": insight["recommendation"]
-                }
-                for insight in result["examiner_insights"]
-            ],
-            "application_trend": [
-                {
-                    "year": item["year"],
-                    "count": item["count"]
-                }
-                for item in result["application_history"]["yearly_data"][-5:]  # Last 5 years
-            ]
-        }
-    
-    def _generate_visual_report(self, arguments):
-        """
-        Generate a visual report for an applicant
-        
-        Args:
-            arguments (dict): Arguments containing applicant_name
-            
-        Returns:
-            dict: Report data with markdown report
-        """
-        applicant_name = arguments["applicant_name"]
-        
-        # Generate report
-        result = self.analyzer.generate_visual_report(applicant_name)
-        
-        # Return the markdown report
-        return {
-            "applicant_name": applicant_name,
-            "markdown_report": result["markdown_report"]
-        }
-    
-    def _analyze_assessment_ratios(self, arguments):
-        """
-        Analyze assessment ratios for an applicant
-        
-        Args:
-            arguments (dict): Arguments containing applicant_name
-            
-        Returns:
-            dict: Assessment ratio data
-        """
-        applicant_name = arguments["applicant_name"]
-        
-        # Analyze assessment ratios
-        result = self.analyzer.analyze_assessment_ratios(applicant_name)
-        
-        # Format the response
-        return {
-            "applicant_name": applicant_name,
-            "total_patents": result["total_patents"],
-            "assessment_data": {
-                "grant_rate": f"{result['assessment_data']['grant_rate']:.1%}",
-                "rejection_rate": f"{result['assessment_data']['rejection_rate']:.1%}",
-                "status_distribution": {
-                    status: count
-                    for status, count in result["assessment_data"]["status_distribution"].items()
-                },
-                "average_processing_time": f"{result['assessment_data']['average_processing_time_days'] / 30:.1f} months",
-                "average_office_actions": f"{result['assessment_data']['average_office_actions']:.1f}"
-            },
-            "chart": f"data:image/png;base64,{result['visualization']}" if "visualization" in result else None
-        }
-    
-    def _analyze_technical_fields(self, arguments):
-        """
-        Analyze technical fields for an applicant
-        
-        Args:
-            arguments (dict): Arguments containing applicant_name
-            
-        Returns:
-            dict: Technical field data
-        """
-        applicant_name = arguments["applicant_name"]
-        
-        # Analyze technical fields
-        result = self.analyzer.analyze_technical_fields(applicant_name)
-        
-        # Format the response
-        return {
-            "applicant_name": applicant_name,
-            "total_patents": result["total_patents"],
-            "technical_fields": [
-                {
-                    "field": item["ipc_code"],
-                    "description": item["description"],
-                    "percentage": f"{item['percentage']:.1f}%",
-                    "count": item["count"]
-                } 
-                for item in result["technical_fields"]
-            ],
-            "domain_analysis": {
-                "domains": [
-                    {
-                        "name": domain["name"],
-                        "percentage": f"{domain['percentage']:.1f}%",
-                        "count": domain["count"]
-                    }
-                    for domain in result["domain_analysis"]["domains"] if "domains" in result["domain_analysis"]
-                ]
-            },
-            "chart": f"data:image/png;base64,{result['visualization']}" if "visualization" in result else None
-        }
-    
-    def _compare_with_competitors(self, arguments):
-        """
-        Compare applicant with competitors
-        
-        Args:
-            arguments (dict): Arguments containing applicant_name and optionally num_competitors
-            
-        Returns:
-            dict: Comparison data
-        """
-        applicant_name = arguments["applicant_name"]
-        num_competitors = arguments.get("num_competitors", 3)
-        
-        # Compare with competitors
-        result = self.analyzer.compare_with_competitors(applicant_name, num_competitors)
-        
-        # Format the response
-        return {
-            "applicant_name": applicant_name,
-            "total_patents": result["applicant"]["total_patents"],
-            "competitors": [
-                {
-                    "name": comp["name"],
-                    "total_patents": comp["total_patents"],
-                    "grant_rate": f"{comp['assessment_stats']['grant_rate']:.1%}",
-                    "top_fields": [
-                        {
-                            "field": item["ipc_code"],
-                            "percentage": f"{item['percentage']:.1f}%"
-                        }
-                        for item in comp["tech_distribution"][:3]  # Top 3 fields
-                    ]
-                }
-                for comp in result["competitors"]
-            ],
-            "assessment_comparison_chart": f"data:image/png;base64,{result['assessment_comparison']}" if "assessment_comparison" in result else None,
-            "field_comparison_chart": f"data:image/png;base64,{result['field_comparison']}" if "field_comparison" in result else None
-        }
-    
-    def _generate_pdf_report(self, arguments):
-        """
-        Generate a PDF report with classification trends and assessment ratio charts
-        
-        Args:
-            arguments (dict): Arguments containing optional applicant_name, years, and top_n
-            
-        Returns:
-            dict: Dict containing base64 encoded PDF and filename
-        """
-        # Extract arguments with defaults
-        applicant_name = arguments.get("applicant_name")
-        years = arguments.get("years", 10)
-        top_n = arguments.get("top_n", 5)
-        
-        try:
-            # Create temporary file
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-                temp_path = tmp.name
-            
-            # Generate PDF report
-            success = self.report_generator.generate_pdf_report(
-                temp_path, 
-                applicant_name=applicant_name,
-                years=years,
-                top_n=top_n
-            )
-            
-            if not success:
-                return {"error": "PDF生成に失敗しました"}
-            
-            # Read the generated PDF
-            with open(temp_path, 'rb') as pdf_file:
-                pdf_data = pdf_file.read()
-            
-            # Convert to base64
-            pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
-            
-            # Clean up temporary file
-            try:
-                os.remove(temp_path)
-            except:
-                pass  # Ignore cleanup errors
-            
-            # Create appropriate filename
-            if applicant_name:
-                filename = f"{applicant_name}_特許分析レポート.pdf"
-            else:
-                filename = f"特許分析レポート_{datetime.now().strftime('%Y%m%d')}.pdf"
-            
-            return {
-                "pdf_base64": pdf_base64,
-                "filename": filename,
-                "content_type": "application/pdf",
-                "applicant_name": applicant_name,
-                "years_analyzed": years,
-                "classifications_shown": top_n
-            }
-            
-        except Exception as e:
-            return {"error": f"PDFレポート生成エラー: {str(e)}"}
-    
-    def _generate_comparison_report(self, arguments):
-        """
-        Generate a PDF report comparing multiple applicants
-        
-        Args:
-            arguments (dict): Arguments containing applicants list
-            
-        Returns:
-            dict: Dict containing base64 encoded PDF and filename
-        """
-        # Extract arguments
-        applicants = arguments.get("applicants", [])
-        
-        if not applicants:
-            return {"error": "出願人リストが空です"}
-        
-        try:
-            # Create temporary file
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-                temp_path = tmp.name
-            
-            # Generate PDF report
-            success = self.report_generator.generate_applicant_comparison_report(
-                applicants,
-                temp_path
-            )
-            
-            if not success:
-                return {"error": "比較レポートの生成に失敗しました"}
-            
-            # Read the generated PDF
-            with open(temp_path, 'rb') as pdf_file:
-                pdf_data = pdf_file.read()
-            
-            # Convert to base64
-            pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
-            
-            # Clean up temporary file
-            try:
-                os.remove(temp_path)
-            except:
-                pass  # Ignore cleanup errors
-            
-            # Create appropriate filename
-            if len(applicants) == 1:
-                filename = f"{applicants[0]}_特許分析レポート.pdf"
-            else:
-                filename = f"出願人比較レポート_{datetime.now().strftime('%Y%m%d')}.pdf"
-            
-            return {
-                "pdf_base64": pdf_base64,
-                "filename": filename,
-                "content_type": "application/pdf",
-                "applicants": applicants
-            }
-            
-        except Exception as e:
-            return {"error": f"比較レポート生成エラー: {str(e)}"}
-    
-    def _get_patent_status_descriptions(self):
-        """Get descriptions of patent statuses"""
-        return {
-            "granted": "特許が付与され、法的保護が与えられた出願",
-            "rejected": "審査の結果、特許として認められなかった出願",
-            "pending": "現在審査中の出願",
-            "withdrawn": "出願人によって取り下げられた出願",
-            "appealed": "拒絶査定に対して審判請求されている出願"
-        }
-    
-    def _get_ipc_code_reference(self):
-        """Get reference for IPC codes"""
-        return self.analyzer.base_analyzer.ipc_descriptions
-    
-    def _get_top_applicants(self):
-        """Get list of top applicants"""
-        return [
-            {
-                "name": applicant["name"],
-                "total_patents": applicant["total_patents"]
-            }
-            for applicant in self.analyzer.base_analyzer.applicants
         ]
 
+    def execute_tool(self, tool_name, arguments):
+        """Execute a specific tool with the given arguments"""
+        try:
+            arguments_dict = json.loads(arguments) if isinstance(arguments, str) else arguments
+
+            if tool_name == "query_patents":
+                return self._query_patents(arguments_dict)
+            elif tool_name == "search_patents_by_applicant":
+                return self._search_patents_by_applicant(arguments_dict)
+            elif tool_name == "execute_sql_query":
+                return self._execute_sql_query(arguments_dict)
+            elif tool_name == "analyze_technology_trends":
+                return self._analyze_technology_trends(arguments_dict)
+            elif tool_name == "analyze_applicant_competition":
+                return self._analyze_applicant_competition(arguments_dict)
+            elif tool_name == "analyze_patent_landscape":
+                return self._analyze_patent_landscape(arguments_dict)
+            elif tool_name == "generate_analysis_report":
+                return self._generate_analysis_report(arguments_dict)
+            elif tool_name == "get_patent_stats":
+                return self._get_patent_stats(arguments_dict)
+            else:
+                return {"error": f"Unknown tool: {tool_name}"}
+
+        except Exception as e:
+            return {"error": f"Error executing tool {tool_name}: {str(e)}"}
+
+    def access_resource(self, uri):
+        """Access a specific resource by URI"""
+        try:
+            if uri == "inpit-status":
+                return self._get_inpit_status()
+            elif uri == "ipc-descriptions":
+                return self._get_ipc_descriptions()
+            else:
+                return {"error": f"Unknown resource URI: {uri}"}
+        except Exception as e:
+            return {"error": f"Error accessing resource {uri}: {str(e)}"}
+
+    def _query_patents(self, arguments):
+        """Query patents by application number"""
+        application_number = arguments.get("application_number", "")
+        limit = arguments.get("limit", 10)
+
+        if application_number:
+            result = self.connector.get_patent_by_application_number(application_number)
+
+            if "error" in result:
+                return {"error": result["error"]}
+
+            # Map to patent model format
+            patents = self.connector.map_to_patent_model(result)
+
+            if not patents:
+                return {
+                    "message": f"No patents found with application number: {application_number}",
+                    "patents": []
+                }
+
+            # Limit the number of patents
+            patents = patents[:limit]
+
+            return {
+                "message": f"Found {len(patents)} patents matching application number: {application_number}",
+                "patents": patents
+            }
+        else:
+            # Get random patents if no application number provided
+            query = f"SELECT * FROM inpit_data ORDER BY RANDOM() LIMIT {limit}"
+            result = self.connector.execute_sql_query(query)
+
+            if "error" in result:
+                return {"error": result["error"]}
+
+            # Map to patent model format
+            patents = self.connector.map_to_patent_model(result)
+
+            return {
+                "message": f"Retrieved {len(patents)} random patents",
+                "patents": patents
+            }
+
+    def _search_patents_by_applicant(self, arguments):
+        """Search patents by applicant name"""
+        applicant_name = arguments.get("applicant_name", "")
+        limit = arguments.get("limit", 10)
+
+        if not applicant_name:
+            return {"error": "applicant_name is required"}
+
+        result = self.connector.get_patents_by_applicant(applicant_name)
+
+        if "error" in result:
+            return {"error": result["error"]}
+
+        # Map to patent model format
+        patents = self.connector.map_to_patent_model(result)
+
+        if not patents:
+            return {
+                "message": f"No patents found for applicant: {applicant_name}",
+                "patents": []
+            }
+
+        # Limit the number of patents
+        patents = patents[:limit]
+
+        return {
+            "message": f"Found {len(patents)} patents for applicant: {applicant_name}",
+            "patents": patents
+        }
+
+    def _execute_sql_query(self, arguments):
+        """Execute a SQL query against the database"""
+        query = arguments.get("query", "")
+
+        if not query:
+            return {"error": "query is required"}
+
+        if not query.strip().lower().startswith("select"):
+            return {"error": "Only SELECT queries are allowed"}
+
+        result = self.connector.execute_sql_query(query)
+
+        return result
+
+    def _analyze_technology_trends(self, arguments):
+        """Analyze technology trends"""
+        years = arguments.get("years", 10)
+        top_n = arguments.get("top_n", 5)
+
+        result = self.analyzer.analyze_technology_trends(years=years, top_n=top_n)
+
+        return result
+
+    def _analyze_applicant_competition(self, arguments):
+        """Analyze competition between patent applicants"""
+        top_n = arguments.get("top_n", 10)
+
+        result = self.analyzer.analyze_applicant_competition(top_n=top_n)
+
+        return result
+
+    def _analyze_patent_landscape(self, arguments):
+        """Analyze patent landscape"""
+        ipc_level = arguments.get("ipc_level", 3)
+
+        result = self.analyzer.analyze_patent_landscape(ipc_level=ipc_level)
+
+        return result
+
+    def _generate_analysis_report(self, arguments):
+        """Generate a comprehensive analysis report"""
+        report = self.analyzer.generate_analysis_report()
+
+        return {
+            "report": report,
+            "format": "markdown"
+        }
+
+    def _get_patent_stats(self, arguments):
+        """Get basic statistics about patents in the database"""
+        # Get stats from Inpit SQLite
+        status = self.connector.get_api_status()
+
+        if "error" in status:
+            return {"error": status["error"]}
+
+        # Get record count
+        record_count = status.get("record_count", 0) if "record_count" in status else 0
+
+        # Get distinct applicant count
+        applicant_query = """
+            SELECT COUNT(DISTINCT 出願人) FROM inpit_data
+            WHERE 出願人 IS NOT NULL
+        """
+        applicant_result = self.connector.execute_sql_query(applicant_query)
+        applicant_count = 0
+
+        if applicant_result.get("success") and applicant_result.get("results"):
+            try:
+                applicant_count = applicant_result["results"][0][0]
+            except (IndexError, ValueError):
+                pass
+
+        # Get distinct IPC count
+        ipc_query = """
+            SELECT COUNT(DISTINCT 国際特許分類) FROM inpit_data
+            WHERE 国際特許分類 IS NOT NULL
+        """
+        ipc_result = self.connector.execute_sql_query(ipc_query)
+        ipc_count = 0
+
+        if ipc_result.get("success") and ipc_result.get("results"):
+            try:
+                ipc_count = ipc_result["results"][0][0]
+            except (IndexError, ValueError):
+                pass
+
+        # Get date range
+        date_query = """
+            SELECT
+                MIN(出願日) as earliest_date,
+                MAX(出願日) as latest_date
+            FROM inpit_data
+            WHERE 出願日 IS NOT NULL
+        """
+        date_result = self.connector.execute_sql_query(date_query)
+        earliest_date = None
+        latest_date = None
+
+        if date_result.get("success") and date_result.get("results"):
+            try:
+                row = date_result["results"][0]
+                earliest_date = row[0]
+                latest_date = row[1]
+            except (IndexError, ValueError):
+                pass
+
+        return {
+            "total_patents": record_count,
+            "unique_applicants": applicant_count,
+            "unique_ipc_classifications": ipc_count,
+            "date_range": {
+                "earliest": earliest_date,
+                "latest": latest_date
+            },
+            "data_source": "Inpit SQLite",
+            "api_url": self.connector.api_url
+        }
+
+    def _get_inpit_status(self):
+        """Get status information from Inpit SQLite database"""
+        return self.connector.get_api_status()
+
+    def _get_ipc_descriptions(self):
+        """Get descriptions of IPC classification codes"""
+        # Use helper method from analyzer
+        ipc_codes = [
+            "A", "B", "C", "D", "E", "F", "G", "H",
+            "G06", "G06F", "G06N", "G06Q", "H04", "H04L", "H04N",
+            "H01", "H01L", "A61", "A61K", "B60", "C07", "C12"
+        ]
+
+        return self.analyzer._get_ipc_class_descriptions(ipc_codes)
+
 # Create singleton instance for use with the MCP server
-patent_applicant_server = PatentApplicantServer()
+patent_inpit_server = PatentInpitServer()
 
 # MCP server functions that will be called by the MCP framework
 
 def get_tools():
     """Return the tools provided by this server"""
-    return patent_applicant_server.get_tools()
+    return patent_inpit_server.get_tools()
 
 def get_resources():
     """Return the resources provided by this server"""
-    return patent_applicant_server.get_resources()
+    return patent_inpit_server.get_resources()
 
 def execute_tool(tool_name, arguments):
     """Execute a tool with the given arguments"""
-    arguments_dict = json.loads(arguments) if isinstance(arguments, str) else arguments
-    return patent_applicant_server.execute_tool(tool_name, arguments_dict)
+    return patent_inpit_server.execute_tool(tool_name, arguments)
 
 def access_resource(uri):
     """Access a resource by URI"""
-    return patent_applicant_server.access_resource(uri)
+    return patent_inpit_server.access_resource(uri)

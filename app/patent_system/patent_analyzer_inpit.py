@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Patent Analyzer for Inpit SQLite
+
+This module provides patent data analysis using the Inpit SQLite connector.
+"""
+
 import json
 import logging
 import re
@@ -8,14 +14,9 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from collections import Counter, defaultdict
 import numpy as np
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+import pandas as pd
 
-from app.patent_system.jplatpat.models import (
-    Patent, Applicant, Inventor, IPCClassification,
-    Claim, Description, SessionLocal
-)
-from app.patent_system.jplatpat.db_manager import DBManager, init_db
+from app.patent_system.inpit_sqlite_connector import get_connector
 
 # Configure logging
 logging.basicConfig(
@@ -25,29 +26,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class PatentAnalyzer:
-    """Patent data analysis utilities for SQLite database"""
+class PatentAnalyzerInpit:
+    """Patent data analysis utilities using Inpit SQLite"""
     
-    def __init__(self, db_session=None):
-        """Initialize with optional database session"""
-        if db_session:
-            self.db = db_session
-        else:
-            # Initialize database if needed
-            init_db()
-            self.db = SessionLocal()  # Call the sessionmaker to create a session
-    
-    def __enter__(self):
-        """Context manager entry"""
-        # Use existing DB session if provided, otherwise create a new one
-        if self.db is None:
-            self.db = SessionLocal()
-        return self
+    def __init__(self, api_url: str = "http://localhost:5001"):
+        """
+        Initialize with Inpit SQLite connector
         
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit"""
-        if self.db is not None:
-            self.db.close()
+        Args:
+            api_url: URL for the Inpit SQLite API
+        """
+        self.connector = get_connector(api_url)
     
     def analyze_technology_trends(self, years: int = 10, top_n: int = 10) -> Dict[str, Any]:
         """
@@ -65,42 +54,57 @@ class PatentAnalyzer:
             current_year = datetime.now().year
             start_year = current_year - years
             
-            # SQL to get IPC trends over time - adapted for SQLite
-            sql = text("""
+            # Build SQL query for Inpit SQLite - needs to be adjusted based on actual schema
+            # We'll assume there are columns for IPC classification and application date
+            query = f"""
                 SELECT 
-                    strftime('%Y', p.application_date) AS year,
-                    ipc.code AS ipc_code,
-                    COUNT(DISTINCT p.id) AS patent_count
-                FROM patents p
-                JOIN ipc_classifications ipc ON ipc.patent_id = p.id
+                    SUBSTR(出願日, 1, 4) AS year,
+                    国際特許分類 AS ipc_code,
+                    COUNT(*) AS patent_count
+                FROM inpit_data
                 WHERE 
-                    p.application_date IS NOT NULL AND
-                    strftime('%Y', p.application_date) >= :start_year
+                    出願日 IS NOT NULL AND
+                    CAST(SUBSTR(出願日, 1, 4) AS INTEGER) >= {start_year}
                 GROUP BY year, ipc_code
                 ORDER BY year DESC, patent_count DESC
-            """)
+            """
             
             # Execute query
-            result = self.db.execute(sql, {"start_year": str(start_year)})
-            rows = result.fetchall()
+            result = self.connector.execute_sql_query(query)
+            
+            if not result.get("success"):
+                logger.error(f"Error executing technology trends query: {result.get('error')}")
+                return {"error": result.get("error", "Unknown error")}
             
             # Process data
+            columns = result.get("columns", [])
+            rows = result.get("results", [])
+            
+            # Find column indexes
+            year_idx = columns.index("year") if "year" in columns else 0
+            ipc_idx = columns.index("ipc_code") if "ipc_code" in columns else 1
+            count_idx = columns.index("patent_count") if "patent_count" in columns else 2
+            
             trends_by_year = defaultdict(list)
+            
             for row in rows:
-                year = int(row[0])
-                ipc_code = row[1]
-                count = row[2]
-                
-                # Parse main IPC section and class
-                # Format is typically like "G06F 16/00" - we extract "G06F"
-                ipc_parts = ipc_code.split()
-                ipc_section_class = ipc_parts[0] if len(ipc_parts) > 0 else ipc_code
-                
-                trends_by_year[year].append({
-                    "ipc_code": ipc_code,
-                    "ipc_section_class": ipc_section_class,
-                    "count": count
-                })
+                try:
+                    year = int(row[year_idx])
+                    ipc_code = str(row[ipc_idx])
+                    count = int(row[count_idx])
+                    
+                    # Parse main IPC section and class
+                    ipc_parts = ipc_code.split()
+                    ipc_section_class = ipc_parts[0] if len(ipc_parts) > 0 else ipc_code
+                    
+                    trends_by_year[year].append({
+                        "ipc_code": ipc_code,
+                        "ipc_section_class": ipc_section_class,
+                        "count": count
+                    })
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Error processing trend data row: {e}")
+                    continue
             
             # Get top technologies (IPC section+class) across all years
             all_ipc_counts = Counter()
@@ -152,61 +156,113 @@ class PatentAnalyzer:
             Dictionary with competitive analysis results
         """
         try:
-            # Get top applicants by patent count using SQL (SQLite compatible)
-            sql_top_applicants = text("""
+            # Get top applicants by patent count
+            query_top_applicants = """
                 SELECT 
-                    a.name AS applicant_name,
-                    COUNT(DISTINCT a.patent_id) AS patent_count
-                FROM applicants a
-                GROUP BY a.name
+                    出願人 AS applicant_name,
+                    COUNT(*) AS patent_count
+                FROM inpit_data
+                WHERE 出願人 IS NOT NULL
+                GROUP BY 出願人
                 ORDER BY patent_count DESC
-                LIMIT :limit
-            """)
+                LIMIT {limit}
+            """.format(limit=top_n)
             
             # Execute query
-            result = self.db.execute(sql_top_applicants, {"limit": top_n})
-            top_applicants = [{"name": row[0], "patent_count": row[1]} for row in result]
+            result = self.connector.execute_sql_query(query_top_applicants)
+            
+            if not result.get("success"):
+                logger.error(f"Error executing top applicants query: {result.get('error')}")
+                return {"error": result.get("error", "Unknown error")}
+            
+            # Process data
+            columns = result.get("columns", [])
+            rows = result.get("results", [])
+            
+            # Find column indexes
+            name_idx = columns.index("applicant_name") if "applicant_name" in columns else 0
+            count_idx = columns.index("patent_count") if "patent_count" in columns else 1
+            
+            top_applicants = []
+            for row in rows:
+                try:
+                    name = str(row[name_idx])
+                    count = int(row[count_idx])
+                    top_applicants.append({"name": name, "patent_count": count})
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Error processing applicant row: {e}")
+                    continue
             
             # Get technology focus for each top applicant
             applicant_data = []
             for applicant in top_applicants:
+                applicant_name = applicant["name"]
+                
                 # Get IPC classes for this applicant
-                sql_tech_focus = text("""
+                query_tech_focus = """
                     SELECT 
-                        ipc.code AS ipc_code,
-                        COUNT(DISTINCT p.id) AS patent_count
-                    FROM patents p
-                    JOIN applicants a ON a.patent_id = p.id
-                    JOIN ipc_classifications ipc ON ipc.patent_id = p.id
-                    WHERE a.name = :applicant_name
-                    GROUP BY ipc_code
+                        国際特許分類 AS ipc_code,
+                        COUNT(*) AS patent_count
+                    FROM inpit_data
+                    WHERE 出願人 = '{applicant_name}'
+                    GROUP BY 国際特許分類
                     ORDER BY patent_count DESC
                     LIMIT 5
-                """)
+                """.format(applicant_name=applicant_name.replace("'", "''"))  # Escape single quotes
                 
-                result = self.db.execute(sql_tech_focus, {"applicant_name": applicant["name"]})
-                tech_focus = [{"ipc_code": row[0], "count": row[1]} for row in result]
+                tech_result = self.connector.execute_sql_query(query_tech_focus)
+                tech_focus = []
                 
-                # Get patent activity by year - adapted for SQLite
-                sql_yearly = text("""
+                if tech_result.get("success"):
+                    tech_columns = tech_result.get("columns", [])
+                    tech_rows = tech_result.get("results", [])
+                    
+                    ipc_idx = tech_columns.index("ipc_code") if "ipc_code" in tech_columns else 0
+                    count_idx = tech_columns.index("patent_count") if "patent_count" in tech_columns else 1
+                    
+                    for row in tech_rows:
+                        try:
+                            code = str(row[ipc_idx])
+                            count = int(row[count_idx])
+                            if code:
+                                tech_focus.append({"ipc_code": code, "count": count})
+                        except (ValueError, IndexError):
+                            continue
+                
+                # Get patent activity by year
+                query_yearly = """
                     SELECT 
-                        strftime('%Y', p.application_date) AS year,
-                        COUNT(DISTINCT p.id) AS patent_count
-                    FROM patents p
-                    JOIN applicants a ON a.patent_id = p.id
+                        SUBSTR(出願日, 1, 4) AS year,
+                        COUNT(*) AS patent_count
+                    FROM inpit_data
                     WHERE 
-                        a.name = :applicant_name AND
-                        p.application_date IS NOT NULL
+                        出願人 = '{applicant_name}' AND
+                        出願日 IS NOT NULL
                     GROUP BY year
                     ORDER BY year
-                """)
+                """.format(applicant_name=applicant_name.replace("'", "''"))  # Escape single quotes
                 
-                result = self.db.execute(sql_yearly, {"applicant_name": applicant["name"]})
-                yearly_activity = [{"year": int(row[0]), "count": row[1]} for row in result]
+                yearly_result = self.connector.execute_sql_query(query_yearly)
+                yearly_activity = []
+                
+                if yearly_result.get("success"):
+                    yearly_columns = yearly_result.get("columns", [])
+                    yearly_rows = yearly_result.get("results", [])
+                    
+                    year_idx = yearly_columns.index("year") if "year" in yearly_columns else 0
+                    count_idx = yearly_columns.index("patent_count") if "patent_count" in yearly_columns else 1
+                    
+                    for row in yearly_rows:
+                        try:
+                            year = int(row[year_idx])
+                            count = int(row[count_idx])
+                            yearly_activity.append({"year": year, "count": count})
+                        except (ValueError, IndexError):
+                            continue
                 
                 # Add to applicant data
                 applicant_data.append({
-                    "name": applicant["name"],
+                    "name": applicant_name,
                     "total_patents": applicant["patent_count"],
                     "technology_focus": tech_focus,
                     "yearly_activity": yearly_activity
@@ -250,17 +306,39 @@ class PatentAnalyzer:
         """
         try:
             # Get IPC classifications with counts
-            result = self.db.execute(text("""
+            query = """
                 SELECT 
-                    ipc.code AS ipc_code,
-                    COUNT(DISTINCT p.id) AS patent_count
-                FROM patents p
-                JOIN ipc_classifications ipc ON ipc.patent_id = p.id
-                GROUP BY ipc_code
+                    国際特許分類 AS ipc_code,
+                    COUNT(*) AS patent_count
+                FROM inpit_data
+                WHERE 国際特許分類 IS NOT NULL
+                GROUP BY 国際特許分類
                 ORDER BY patent_count DESC
-            """))
+            """
             
-            all_ipc = [{"code": row[0], "count": row[1]} for row in result]
+            result = self.connector.execute_sql_query(query)
+            
+            if not result.get("success"):
+                logger.error(f"Error executing patent landscape query: {result.get('error')}")
+                return {"error": result.get("error", "Unknown error")}
+            
+            # Process data
+            columns = result.get("columns", [])
+            rows = result.get("results", [])
+            
+            # Find column indexes
+            code_idx = columns.index("ipc_code") if "ipc_code" in columns else 0
+            count_idx = columns.index("patent_count") if "patent_count" in columns else 1
+            
+            all_ipc = []
+            for row in rows:
+                try:
+                    code = str(row[code_idx])
+                    count = int(row[count_idx])
+                    all_ipc.append({"code": code, "count": count})
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Error processing IPC row: {e}")
+                    continue
             
             # Parse IPC codes and group by hierarchy level
             ipc_hierarchy = defaultdict(int)
@@ -303,39 +381,74 @@ class PatentAnalyzer:
         """
         try:
             # Get basic statistics
-            patent_count = self.db.query(Patent).count()
+            status_query = self.connector.get_api_status()
+            patent_count = status_query.get("record_count", 0) if "record_count" in status_query else 0
             
             # Count distinct applicants
-            applicant_count_result = self.db.execute(text("""
-                SELECT COUNT(DISTINCT name) FROM applicants
-            """))
-            applicant_count = applicant_count_result.fetchone()[0]
+            applicant_query = """
+                SELECT COUNT(DISTINCT 出願人) FROM inpit_data 
+                WHERE 出願人 IS NOT NULL
+            """
+            applicant_result = self.connector.execute_sql_query(applicant_query)
+            applicant_count = 0
+            if applicant_result.get("success") and applicant_result.get("results"):
+                try:
+                    applicant_count = applicant_result["results"][0][0]
+                except (IndexError, ValueError):
+                    applicant_count = 0
             
             # Count distinct inventors
-            inventor_count_result = self.db.execute(text("""
-                SELECT COUNT(DISTINCT name) FROM inventors
-            """))
-            inventor_count = inventor_count_result.fetchone()[0]
+            inventor_query = """
+                SELECT COUNT(DISTINCT 発明者) FROM inpit_data
+                WHERE 発明者 IS NOT NULL
+            """
+            inventor_result = self.connector.execute_sql_query(inventor_query)
+            inventor_count = 0
+            if inventor_result.get("success") and inventor_result.get("results"):
+                try:
+                    inventor_count = inventor_result["results"][0][0]
+                except (IndexError, ValueError):
+                    inventor_count = 0
             
-            # Get date range of patents - adapted for SQLite
-            earliest_date_query = self.db.execute(text("""
-                SELECT application_date FROM patents
-                WHERE application_date IS NOT NULL
-                ORDER BY application_date ASC
-                LIMIT 1
-            """))
-            earliest_date_row = earliest_date_query.fetchone()
+            # Get date range of patents
+            earliest_date_query = """
+                SELECT MIN(出願日) FROM inpit_data
+                WHERE 出願日 IS NOT NULL
+            """
+            earliest_result = self.connector.execute_sql_query(earliest_date_query)
+            earliest_date_str = None
+            if earliest_result.get("success") and earliest_result.get("results"):
+                try:
+                    earliest_date_str = earliest_result["results"][0][0]
+                except (IndexError, ValueError):
+                    earliest_date_str = None
             
-            latest_date_query = self.db.execute(text("""
-                SELECT application_date FROM patents
-                WHERE application_date IS NOT NULL
-                ORDER BY application_date DESC
-                LIMIT 1
-            """))
-            latest_date_row = latest_date_query.fetchone()
+            latest_date_query = """
+                SELECT MAX(出願日) FROM inpit_data
+                WHERE 出願日 IS NOT NULL
+            """
+            latest_result = self.connector.execute_sql_query(latest_date_query)
+            latest_date_str = None
+            if latest_result.get("success") and latest_result.get("results"):
+                try:
+                    latest_date_str = latest_result["results"][0][0]
+                except (IndexError, ValueError):
+                    latest_date_str = None
             
-            earliest_date = datetime.fromisoformat(earliest_date_row[0]) if earliest_date_row else None
-            latest_date = datetime.fromisoformat(latest_date_row[0]) if latest_date_row else None
+            # Parse dates if available
+            earliest_date = None
+            latest_date = None
+            if earliest_date_str:
+                try:
+                    earliest_date = datetime.strptime(earliest_date_str, "%Y-%m-%d")
+                except ValueError:
+                    pass
+                    
+            if latest_date_str:
+                try:
+                    latest_date = datetime.strptime(latest_date_str, "%Y-%m-%d")
+                except ValueError:
+                    pass
             
             # Get technology trends
             tech_trends = self.analyze_technology_trends(years=5, top_n=5)
@@ -373,7 +486,7 @@ class PatentAnalyzer:
                 for year_data in sorted(tech_trends["yearly_trends"], key=lambda x: x["year"]):
                     report += f"| {year_data['year']} |"
                     for tech in tech_trends["top_technologies"][:5]:
-                        report += f" {year_data.get(tech, 0):8d} |"
+                        report += f" {year_data.get(tech, 0)} |"
                     report += "\n"
             
             report += "\n## 主要出願者分析\n\n"
@@ -416,20 +529,54 @@ class PatentAnalyzer:
     def _calculate_applicant_overlap(self, applicant1: str, applicant2: str) -> int:
         """Calculate technology overlap percentage between two applicants"""
         try:
-            # Get IPC classes for each applicant
-            sql = text("""
-                SELECT DISTINCT ipc.code
-                FROM patents p
-                JOIN applicants a ON a.patent_id = p.id
-                JOIN ipc_classifications ipc ON ipc.patent_id = p.id
-                WHERE a.name = :applicant_name
-            """)
+            # Get IPC classes for first applicant
+            query1 = """
+                SELECT DISTINCT 国際特許分類 AS ipc_code
+                FROM inpit_data
+                WHERE 出願人 = '{applicant_name}'
+                  AND 国際特許分類 IS NOT NULL
+            """.format(applicant_name=applicant1.replace("'", "''"))
             
-            result1 = self.db.execute(sql, {"applicant_name": applicant1})
-            result2 = self.db.execute(sql, {"applicant_name": applicant2})
+            result1 = self.connector.execute_sql_query(query1)
             
-            ipc_set1 = {row[0] for row in result1}
-            ipc_set2 = {row[0] for row in result2}
+            # Get IPC classes for second applicant
+            query2 = """
+                SELECT DISTINCT 国際特許分類 AS ipc_code
+                FROM inpit_data
+                WHERE 出願人 = '{applicant_name}'
+                  AND 国際特許分類 IS NOT NULL
+            """.format(applicant_name=applicant2.replace("'", "''"))
+            
+            result2 = self.connector.execute_sql_query(query2)
+            
+            ipc_set1 = set()
+            ipc_set2 = set()
+            
+            # Process first result
+            if result1.get("success") and result1.get("results"):
+                columns = result1.get("columns", [])
+                ipc_idx = columns.index("ipc_code") if "ipc_code" in columns else 0
+                
+                for row in result1["results"]:
+                    try:
+                        ipc_code = str(row[ipc_idx])
+                        if ipc_code:
+                            ipc_set1.add(ipc_code)
+                    except (IndexError, ValueError):
+                        continue
+            
+            # Process second result
+            if result2.get("success") and result2.get("results"):
+                columns = result2.get("columns", [])
+                ipc_idx = columns.index("ipc_code") if "ipc_code" in columns else 0
+                
+                for row in result2["results"]:
+                    try:
+                        ipc_code = str(row[ipc_idx])
+                        if ipc_code:
+                            ipc_set2.add(ipc_code)
+                    except (IndexError, ValueError):
+                        continue
             
             # Calculate overlap
             if not ipc_set1 or not ipc_set2:
@@ -521,9 +668,6 @@ class PatentAnalyzer:
     
     def _cluster_ipc_categories(self, categories: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Create clusters of related IPC categories"""
-        # This is a simplified version. In a real implementation, you would
-        # use more sophisticated clustering algorithms or predefined IPC relationships
-        
         # Simple clustering based on IPC section
         clusters = defaultdict(list)
         
@@ -556,22 +700,16 @@ class PatentAnalyzer:
 
 
 # Convenience function to create analyzer
-def get_analyzer(db_session=None):
+def get_analyzer(api_url=None):
     """Create a patent analyzer instance"""
-    return PatentAnalyzer(db_session)
+    return PatentAnalyzerInpit(api_url)
 
 
 if __name__ == "__main__":
     # Run some basic analysis
     analyzer = get_analyzer()
     
-    # Get basic statistics
-    with analyzer:
-        patent_count = analyzer.db.query(Patent).count()
-        print(f"Patent count: {patent_count}")
-        
-        # Generate a report if we have data
-        if patent_count > 0:
-            report = analyzer.generate_analysis_report()
-            print("\nAnalysis Report Preview:\n")
-            print(report[:500] + "...\n")
+    # Generate a report
+    report = analyzer.generate_analysis_report()
+    print("\nAnalysis Report Preview:\n")
+    print(report[:500] + "...\n")
