@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  inpit-sqlite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inpit-sqlite
+    ports:
+      - "5001:5001"
+    # Mount the data directory from the host
+    volumes:
+      - ./data:/app/data:Z
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=ap-northeast-1
+    restart: unless-stopped
