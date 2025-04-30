@@ -60,7 +60,7 @@ podman-compose run --rm jplatpat import --query "自動運転 AND センサー" 
 ##### 出願番号による検索
 
 ```bash
-podman-compose run --rm jplatpat import --application "2022-100000,2022-100001"
+podman-compose run --rm jplatpat import --application "2003-101546,2022-100001"
 ```
 
 ##### 公開番号による検索
