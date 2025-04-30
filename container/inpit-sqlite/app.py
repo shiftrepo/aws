@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 """
-Flask application for SQLite web interface.
+Flask application for SQLite web interface with API endpoints.
 """
 
 import os
 import sqlite3
 import json
+import logging
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from flask_restful import Api, Resource
+from flask_cors import CORS
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Database file path
 DB_PATH = "/app/data/inpit.db"
@@ -269,10 +276,180 @@ def health():
     except Exception as e:
         return jsonify({"status": "unhealthy", "message": str(e)}), 500
 
+# Initialize Flask-RESTful API and CORS
+api = Api(app)
+CORS(app)
+
+# Helper function to get schema information
+def get_schema_info():
+    """Get database schema information for API documentation."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get table names
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row[0] for row in cursor.fetchall()]
+        
+        schema_info = {}
+        
+        # Get column info for each table
+        for table in tables:
+            cursor.execute(f"PRAGMA table_info({table});")
+            columns = [{'name': row[1], 'type': row[2]} for row in cursor.fetchall()]
+            schema_info[table] = columns
+        
+        conn.close()
+        return schema_info
+    except Exception as e:
+        logger.error(f"Error getting schema info: {e}")
+        return {}
+
+
+# API Resource for application number queries
+class ApplicationNumberAPI(Resource):
+    def get(self, app_number):
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Try to find column containing application number
+            app_number_col = None
+            for col, original in column_mapping.items():
+                if "出願番号" in original or "application" in original.lower() and "number" in original.lower():
+                    app_number_col = col
+                    break
+            
+            if not app_number_col:
+                app_number_col = "application_number"  # Fallback
+            
+            query = f"SELECT * FROM inpit_data WHERE {app_number_col} LIKE ? LIMIT 100"
+            cursor.execute(query, (f'%{app_number}%',))
+            
+            columns = [description[0] for description in cursor.description]
+            results = cursor.fetchall()
+            conn.close()
+            
+            return {
+                "success": True,
+                "columns": columns,
+                "results": results,
+                "record_count": len(results)
+            }
+        except Exception as e:
+            logger.error(f"Error in application number query: {e}")
+            return {"error": str(e)}, 500
+
+# API Resource for applicant name queries
+class ApplicantAPI(Resource):
+    def get(self, applicant_name):
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Try to find column containing applicant
+            applicant_col = None
+            for col, original in column_mapping.items():
+                if "出願人" in original or "applicant" in original.lower():
+                    applicant_col = col
+                    break
+            
+            if not applicant_col:
+                applicant_col = "applicant_name"  # Fallback
+            
+            query = f"SELECT * FROM inpit_data WHERE {applicant_col} LIKE ? LIMIT 100"
+            cursor.execute(query, (f'%{applicant_name}%',))
+            
+            columns = [description[0] for description in cursor.description]
+            results = cursor.fetchall()
+            conn.close()
+            
+            return {
+                "success": True,
+                "columns": columns,
+                "results": results,
+                "record_count": len(results)
+            }
+        except Exception as e:
+            logger.error(f"Error in applicant query: {e}")
+            return {"error": str(e)}, 500
+
+# API Resource for direct SQL queries
+class SQLQueryAPI(Resource):
+    def post(self):
+        try:
+            data = request.get_json()
+            if not data or 'query' not in data:
+                return {"error": "Missing 'query' field in JSON body"}, 400
+            
+            sql_query = data['query']
+            logger.info(f"Direct SQL query: {sql_query}")
+            
+            # Basic security check - only allow SELECT queries
+            if not sql_query.strip().lower().startswith('select'):
+                return {"error": "Only SELECT queries are allowed"}, 403
+            
+            # Execute the query
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute(sql_query)
+            
+            columns = [description[0] for description in cursor.description]
+            results = cursor.fetchall()
+            conn.close()
+            
+            return {
+                "success": True,
+                "columns": columns,
+                "results": results,
+                "record_count": len(results)
+            }
+        except Exception as e:
+            logger.error(f"Error in SQL query: {e}")
+            return {"error": str(e)}, 500
+
+# Register API resources
+api.add_resource(ApplicationNumberAPI, '/api/application/<string:app_number>')
+api.add_resource(ApplicantAPI, '/api/applicant/<string:applicant_name>')
+api.add_resource(SQLQueryAPI, '/api/sql-query')
+
+# API status and documentation endpoint
+@app.route('/api/status')
+def api_status():
+    """Return API status and documentation."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM inpit_data")
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        # Get schema info for documentation
+        schema = get_schema_info()
+        
+        return jsonify({
+            "status": "active",
+            "database": "connected",
+            "record_count": count,
+            "endpoints": {
+                "GET /api/application/{app_number}": "Query by application number",
+                "GET /api/applicant/{applicant_name}": "Query by applicant name",
+                "POST /api/sql-query": "Direct SQL query (JSON body with 'query' field)",
+                "GET /api/status": "This API status endpoint"
+            },
+            "schema": schema
+        })
+    except Exception as e:
+        logger.error(f"Error in API status: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 # Add context for the SQLAlchemy session
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     db.session.remove()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    app.run(host='0.0.0.0', port=5001, debug=True)

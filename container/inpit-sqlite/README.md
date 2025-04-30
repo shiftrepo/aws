@@ -1,6 +1,6 @@
 # Inpit SQLite データベースシステム
 
-このシステムはS3からの特許データをダウンロードし、データの閲覧と検索のためのSQLiteデータベースを作成します。
+このシステムはS3からの特許データをダウンロードし、データの閲覧と検索のためのSQLiteデータベースを作成します。HTTP APIも提供しています。
 
 ## 機能
 
@@ -8,6 +8,7 @@
 - CSVヘッダーに基づく動的なスキーマ作成
 - データの閲覧と検索のためのWebベースUI
 - 高度なデータ分析のためのSQLクエリインターフェース
+- RESTful API（出願番号検索、出願人検索、SQLクエリ）
 
 ## 要件
 
@@ -24,7 +25,7 @@
 
 2. システムを起動します：
    ```
-   podman-compose up -d
+   podman-compose -f docker-compose.yml up -d
    ```
 
 3. Webインターフェースには http://localhost:5001 でアクセスできます
@@ -78,33 +79,33 @@
 SELECT * FROM inpit_data LIMIT 100;
 
 -- 特定の出願人のデータを表示（50件まで）
-SELECT * FROM inpit_data WHERE applicant_name LIKE '%株式会社%' LIMIT 50;
+SELECT * FROM inpit_data WHERE 出願人 LIKE '%株式会社%' LIMIT 50;
 
--- 特定の発明者のデータを表示（20件まで）
-SELECT * FROM inpit_data WHERE inventor_name LIKE '%田中%' LIMIT 20;
+-- 特定の登録者のデータを表示（20件まで）
+SELECT * FROM inpit_data WHERE 登録者名称 LIKE '%田中%' LIMIT 20;
 ```
 
 ### 集計・分析クエリ
 
 ```sql
 -- 出願人別の出願数（上位30件）
-SELECT applicant_name, COUNT(*) as application_count 
+SELECT 出願人, COUNT(*) as application_count 
 FROM inpit_data 
-GROUP BY applicant_name 
+GROUP BY 出願人 
 ORDER BY application_count DESC 
 LIMIT 30;
 
 -- 出願日別の出願数（最大100件）
-SELECT application_date, COUNT(*) as count 
+SELECT 出願日, COUNT(*) as count 
 FROM inpit_data 
-GROUP BY application_date 
-ORDER BY application_date DESC 
+GROUP BY 出願日 
+ORDER BY 出願日 DESC 
 LIMIT 100;
 
 -- IPC分類別の出願数（上位20件）
-SELECT ipc_classification, COUNT(*) as count 
+SELECT 国際特許分類_IPC_, COUNT(*) as count 
 FROM inpit_data 
-GROUP BY ipc_classification 
+GROUP BY 国際特許分類_IPC_ 
 ORDER BY count DESC 
 LIMIT 20;
 ```
@@ -112,16 +113,112 @@ LIMIT 20;
 ### 複合検索クエリ
 
 ```sql
--- タイトルと要約で複合検索（最大30件）
+-- タイトルと技術概要で複合検索（最大30件）
 SELECT * FROM inpit_data 
-WHERE title LIKE '%AI%' OR abstract LIKE '%人工知能%' 
+WHERE タイトル LIKE '%AI%' OR 技術概要 LIKE '%人工知能%' 
 LIMIT 30;
 
 -- 特定の期間と出願人による検索（最大25件）
 SELECT * FROM inpit_data 
-WHERE application_date BETWEEN '2022-01-01' AND '2022-12-31' 
-AND applicant_name LIKE '%テック%' 
+WHERE 出願日 BETWEEN '2022-01-01' AND '2022-12-31' 
+AND 出願人 LIKE '%テック%' 
 LIMIT 25;
 ```
 
 上記のクエリは、Webインターフェースの「SQL Query」タブで実行できます。実際のデータベース構造に合わせてクエリを調整してください。
+
+## API
+
+問い合わせに対応するためのHTTP APIを提供しています。すべてのAPIエンドポイントはJSONレスポンスを返します。
+
+### API エンドポイント
+
+#### API ステータスと情報
+
+```
+GET /api/status
+```
+
+システムの状態、データベース接続状況、レコード数、利用可能なエンドポイント、およびデータベーススキーマ情報を返します。
+
+#### 出願番号による検索
+
+```
+GET /api/application/{出願番号}
+```
+
+指定された出願番号に一致するレコードを検索します。部分一致も可能です。
+
+例:
+```
+GET /api/application/2022-123456
+```
+
+#### 出願人による検索
+
+```
+GET /api/applicant/{出願人名}
+```
+
+指定された出願人に関するレコードを検索します。部分一致も可能です。
+
+例:
+```
+GET /api/applicant/テック株式会社
+```
+
+#### SQL直接クエリ
+
+```
+POST /api/sql-query
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM inpit_data WHERE 出願日 BETWEEN '2022-01-01' AND '2022-12-31' LIMIT 10"
+}
+```
+
+SQLクエリを直接実行します。セキュリティ上の理由から、SELECT文のみが許可されています。
+
+### API レスポンス形式
+
+成功時のレスポンス例:
+
+```json
+{
+  "success": true,
+  "columns": ["id", "application_number", "applicant_name", "title", ...],
+  "results": [
+    [1, "2022-123456", "テック株式会社", "AIを用いた特許検索システム", ...],
+    ...
+  ],
+  "record_count": 10
+}
+```
+
+エラー時のレスポンス例:
+
+```json
+{
+  "error": "クエリの実行中にエラーが発生しました"
+}
+```
+
+### 使用例（curl）
+
+出願番号での検索例:
+```bash
+curl http://localhost:5001/api/application/2022-123456
+```
+
+出願人での検索例:
+```bash
+curl http://localhost:5001/api/applicant/%E3%83%86%E3%83%83%E3%82%AF%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE
+```
+
+SQLクエリの例:
+```bash
+curl -X POST http://localhost:5001/api/sql-query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT 出願人, COUNT(*) as count FROM inpit_data GROUP BY 出願人 ORDER BY count DESC LIMIT 10"}'
+```
