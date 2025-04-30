@@ -44,6 +44,16 @@ curl http://localhost:8000
 }
 ```
 
+また、日本語を含むAPIエンドポイントのテストをする場合、URL エンコードが必要です:
+
+```bash
+# 正しい形式（URL エンコードあり）- テック株式会社の例
+curl "http://localhost:8000/applicant/%E3%83%86%E3%83%83%E3%82%AF%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE"
+
+# 誤った形式（URL エンコードなし）- エラーが発生します
+curl http://localhost:8000/applicant/テック株式会社
+```
+
 ### 2. Difyの設定
 
 #### 2.1 新しいアプリケーションの作成
@@ -152,6 +162,25 @@ Claude/Difyからのレスポンスに「MCPサーバーに接続できません
    INPIT_API_URL=http://localhost:5001  # 必要に応じて変更
    ```
 
+### URLエンコーディングの問題
+
+日本語などの非ASCII文字を含むURLを使用する場合、エラーが発生することがあります:
+
+```bash
+curl: (3) URL using bad/illegal format or missing URL
+```
+
+解決策: 日本語文字をURL エンコードして使用してください:
+- 「テック株式会社」→ `%E3%83%86%E3%83%83%E3%82%AF%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE`
+- 「テック」→ `%E3%83%86%E3%83%83%E3%82%AF`
+
+次のようなPythonコードでURL エンコードを行えます:
+```python
+import urllib.parse
+encoded = urllib.parse.quote('テック株式会社')
+print(encoded)  # %E3%83%86%E3%83%83%E3%82%AF%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE
+```
+
 ### その他の問題
 
 その他の問題については、ログファイルを確認してください:
@@ -225,6 +254,7 @@ Python での利用例:
 
 ```python
 import requests
+import urllib.parse
 
 def query_patent_assistant(question):
     url = "https://your-dify-instance/api/chat-messages"
@@ -247,8 +277,29 @@ def query_patent_assistant(question):
         print(f"Error querying patent assistant: {e}")
         return None
 
+# 直接APIエンドポイントにアクセスする例（日本語を含む場合）
+def get_applicant_patents(applicant_name):
+    base_url = "http://localhost:8000/applicant/"
+    # 日本語をURLエンコード
+    encoded_name = urllib.parse.quote(applicant_name)
+    url = base_url + encoded_name
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting patents: {e}")
+        return None
+
 # 使用例
 if __name__ == "__main__":
+    # Dify APIを使用
     result = query_patent_assistant("AI関連特許の出願数上位10社を分析してください")
     if result and "answer" in result:
         print(result["answer"])
+    
+    # 直接MCPサーバーにアクセス
+    patents = get_applicant_patents("テック株式会社")
+    if patents:
+        print(f"テック株式会社の特許数: {len(patents.get('patents', []))}")

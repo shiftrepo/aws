@@ -169,8 +169,10 @@ GET http://localhost:8000/application/2022-123456
 
 **例：**
 ```
-GET http://localhost:8000/applicant/テック株式会社
+GET http://localhost:8000/applicant/%E3%83%86%E3%83%83%E3%82%AF%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE
 ```
+
+**注意：** 日本語などの非ASCII文字を含むURLを使用する場合は、必ずURL エンコーディングを行う必要があります。上記の例では「テック株式会社」がURL エンコードされています。
 
 ### 3. execute_sql_query
 
@@ -202,5 +204,6 @@ URI: `inpit-sqlite://status`
 - **権限エラー**：サーバーが実行に必要な権限を持っていることを確認してください
 - **MCP設定**：ClaudeクライアントがこのMCPサーバーを使用するよう適切に設定されていることを確認してください
 - **Dify統合の問題**：DifyがClaudeに適切なMCP設定を渡していることを確認してください
+- **URLエンコーディングエラー**：日本語などの非ASCII文字を含むURLを使用する場合は、必ずURL エンコードを行ってください。例えば「テック」は「%E3%83%86%E3%83%83%E3%82%AF」としてエンコードします
 
 問題や質問がある場合は、`/tmp/inpit-sqlite-mcp.log`にあるログファイルを確認してください。
