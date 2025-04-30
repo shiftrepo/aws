@@ -37,7 +37,8 @@ chmod 666 "$DB_PATH" || true
 
 # Start SQLite Web UI
 echo "Starting SQLite Web UI on port 5001..."
-cd /app && gunicorn --bind 0.0.0.0:5001 app:app
+cd /app && python app.py
 
+# This line will not be reached when running Flask directly
 # Keep container running
 exec "$@"
