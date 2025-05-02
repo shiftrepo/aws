@@ -398,9 +398,9 @@ Resources:
           systemctl start amazon-cloudwatch-agent
 
           # SSM Agentのインストール (RHEL/CentOS 8+では標準で入っていることが多いが、念のためインストールコマンドを残しておく)
-          #dnf install -y amazon-ssm-agent
-          #systemctl enable amazon-ssm-agent
-          #systemctl start amazon-ssm-agent
+          dnf install -y amazon-ssm-agent
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
 
           # Install Docker etc...
           dnf install -y docker awscli git bash-completion python3-pip unzip
@@ -411,12 +411,16 @@ Resources:
           #あとでロールに切り替える予定 (※ 注: この部分はIAMロールを使用しているため不要になる可能性があります)
           mkdir -p /root/.aws
           echo "[default]" > /root/.aws/credentials
-          echo "aws_access_key_id='${AccessKeyIdParam}'" >> /root/.aws/credentials
-          echo "aws_secret_access_key='${SecretAccessKeyParam}'" >> /root/.aws/credentials
+          echo "aws_access_key_id=${AccessKeyIdParam}" >> /root/.aws/credentials
+          echo "aws_secret_access_key=${SecretAccessKeyParam}" >> /root/.aws/credentials
           chmod 600 /root/.aws/credentials
           echo "[default]" > /root/.aws/config
-          echo "region='${RegionNameParam}'" >> /root/.aws/config
+          echo "region=${RegionNameParam}" >> /root/.aws/config
           chmod 600 /root/.aws/config
+
+          # ec2-userでもVSCodeで接続してClineを使うためSSHの設定
+          cp -pR /root/.aws/ /home/ec2-user/.
+          chown -R ec2-user:ec2-user /home/ec2-user/.aws/
 
           curl -L https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker \
           -o /etc/bash_completion.d/docker
@@ -439,6 +443,10 @@ Resources:
             StrictHostKeyChecking no
             UserKnownHostsFile=/dev/null
           EOF
+
+          cp -pR /root/.ssh/config /home/ec2-user/.ssh/.
+          cp -pR /root/.ssh/id_ed25519 /home/ec2-user/.ssh/.
+          chown -R ec2-user:ec2-user /home/ec2-user/.ssh/
 
           git clone git@github.com:shiftrepo/aws.git /root/aws.git
           git config --global --add safe.directory /root/aws.git
