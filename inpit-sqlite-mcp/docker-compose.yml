@@ -14,7 +14,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data:Z
     restart: unless-stopped
 
   inpit-sqlite-mcp:

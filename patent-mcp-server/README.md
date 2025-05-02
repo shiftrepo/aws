@@ -1,97 +1,97 @@
 # Patent MCP Server
 
-A specialized MCP (Model Context Protocol) server that provides tools and resources for patent analysis, focusing on Japanese applicant data.
+特許分析のための専門MCP（Model Context Protocol）サーバー。日本の出願人データに特化しています。
 
-## Overview
+## 概要
 
-This server provides tools for patent examiners and researchers to analyze applicant data, generate reports, and compare applicants. It integrates with the MCP protocol to make these capabilities available to compatible clients.
+このサーバーは、特許審査官や研究者向けに、出願人データの分析、レポート生成、出願人の比較などの機能を提供します。MCPプロトコルと統合することで、これらの機能を互換性のあるクライアントで利用できるようにしています。
 
-## Features
+## 特徴
 
-- Comprehensive applicant summaries
-- Visual reports with charts and statistics
-- Assessment ratio analysis
-- Technical field distribution analysis
-- Competitor comparison
-- PDF report generation
+- 包括的な出願人サマリー
+- チャートや統計を含む視覚的レポート
+- 審査比率分析
+- 技術分野分布分析
+- 競合他社との比較
+- PDFレポート生成
 
-## Installation & Setup
+## インストールと設定
 
-### Prerequisites
+### 前提条件
 
-- Docker and Docker Compose
-- Python 3.9+
+- DockerとDocker Compose
+- Python 3.9以上
 
-### Running with Docker
+### Dockerでの実行方法
 
 ```bash
 cd patent-mcp-server
 docker-compose up -d
 ```
 
-The server will be available at `http://localhost:8000`.
+サーバーは `http://localhost:8000` で利用可能になります。
 
-## API Usage
+## API使用方法
 
-The server provides several REST API endpoints for patent analysis:
+サーバーは特許分析のための複数のREST APIエンドポイントを提供しています：
 
-- `/applicant/{applicant_name}` - Get a comprehensive summary for an applicant
-- `/report/{applicant_name}` - Generate a visual report for an applicant
-- `/assessment/{applicant_name}` - Analyze assessment ratios for an applicant
-- `/technical/{applicant_name}` - Analyze technical fields for an applicant
-- `/compare/{applicant_name}` - Compare an applicant with competitors
+- `/applicant/{applicant_name}` - 出願人の包括的なサマリーを取得
+- `/report/{applicant_name}` - 出願人の視覚的レポートを生成
+- `/assessment/{applicant_name}` - 出願人の審査比率を分析
+- `/technical/{applicant_name}` - 出願人の技術分野を分析
+- `/compare/{applicant_name}` - 出願人を競合他社と比較
 
-### Important: URL Encoding for Japanese Characters
+### 重要：日本語文字のURLエンコーディング
 
-When using the API with non-ASCII characters (like Japanese company names), you must properly URL-encode the parameters. For example, to query data for "テック株式会社":
+非ASCII文字（日本語の企業名など）でAPIを使用する場合、パラメータを適切にURLエンコードする必要があります。例えば、「テック株式会社」のデータを照会するには：
 
 ```bash
-# INCORRECT - Will fail with "Invalid HTTP request received"
+# 誤った例 - "Invalid HTTP request received"エラーが発生します
 curl "http://localhost:8000/applicant/テック株式会社"
 
-# CORRECT - Properly URL encoded
+# 正しい例 - 適切にURLエンコードされています
 curl "http://localhost:8000/applicant/%E3%83%86%E3%83%83%E3%82%AF%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE"
 ```
 
-We provide helper tools to assist with URL encoding:
+URLエンコーディングを支援するツールが用意されています：
 
-1. `curl_examples.sh` - Shell script that demonstrates proper curl commands with encoding
+1. `curl_examples.sh` - エンコーディングを使用した適切なcurlコマンドを示すシェルスクリプト
    ```bash
-   ./curl_examples.sh "テック株式会社"  # Generate encoded curl command for a specific applicant
+   ./curl_examples.sh "テック株式会社"  # 特定の出願人用のエンコードされたcurlコマンドを生成
    ```
 
-2. `url_encode_demo.py` - Python script that demonstrates URL encoding in code
+2. `url_encode_demo.py` - コード内でURLエンコーディングを示すPythonスクリプト
    ```bash
    python url_encode_demo.py
    ```
 
-3. `test_url_encoding.py` - Test script to validate URL encoding works correctly
+3. `test_url_encoding.py` - URLエンコーディングが正しく機能することを検証するテストスクリプト
    ```bash
    python test_url_encoding.py "テック株式会社"
    ```
 
-For more details, see [handling_non_ascii_characters.md](./docs/handling_non_ascii_characters.md).
+詳細については、[handling_non_ascii_characters.md](./docs/handling_non_ascii_characters.md)を参照してください。
 
-## MCP Integration
+## MCP統合
 
-This server implements the Model Context Protocol, providing tools and resources that can be consumed by MCP clients. Key MCP endpoints:
+このサーバーはModel Context Protocolを実装し、MCPクライアントで利用できるツールとリソースを提供しています。主要なMCPエンドポイント：
 
-- `/tools` - List available tools
-- `/tools/execute` - Execute a tool
-- `/resources` - List available resources
-- `/resources/access` - Access a resource
+- `/tools` - 利用可能なツールを一覧表示
+- `/tools/execute` - ツールを実行
+- `/resources` - 利用可能なリソースを一覧表示
+- `/resources/access` - リソースにアクセス
 
-## Development
+## 開発
 
-To modify or extend the server:
+サーバーを変更または拡張するには：
 
-1. Update tool and resource implementations in `app/patent_system/mcp_patent_server.py`
-2. Run the server in development mode for auto-reloading
+1. `app/patent_system/mcp_patent_server.py`でツールとリソースの実装を更新
+2. 自動再読み込みのために開発モードでサーバーを実行
    ```bash
    cd app
    python server.py
    ```
 
-## License
+## ライセンス
 
 Copyright © 2025
