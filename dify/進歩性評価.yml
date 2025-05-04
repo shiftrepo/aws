@@ -1,0 +1,396 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 進歩性評価
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/bedrock:0.0.13@b8a91de5c23504d9d3e838f73ef84aca936617c3005a9d2792757c90ba9445ed
+kind: app
+version: 0.2.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1746309533136--1746309709692-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746309709692'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1746309533136--1746309943303-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746309943303'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1746309943303--1746309957536-target
+      source: '1746309943303'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1746309709692-source-1746309957536-target
+      source: '1746309709692'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1746309957536--1746310376843-target
+      source: '1746309957536'
+      sourceHandle: source
+      target: '1746310376843'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1746309533136--1746311066099-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746311066099'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1746311066099-source-1746309957536-target
+      source: '1746311066099'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: knowledge-retrieval
+      id: 1746309533136--1746314754512-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746314754512'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: 1746314754512-source-1746309957536-target
+      selected: false
+      source: '1746314754512'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 開始
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: tec_a
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: tec_a
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: tec_b
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: tec_b
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: tec_c
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: tec_c
+        - label: 視点
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: point
+      height: 168
+      id: '1746309533136'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: false
+        selected: false
+        title: テキスト抽出
+        type: document-extractor
+        variable_selector:
+        - '1746309533136'
+        - tec_a
+      height: 92
+      id: '1746309709692'
+      position:
+        x: 384
+        y: 282
+      positionAbsolute:
+        x: 384
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: false
+        selected: false
+        title: テキスト抽出 2
+        type: document-extractor
+        variable_selector:
+        - '1746309533136'
+        - tec_b
+      height: 92
+      id: '1746309943303'
+      position:
+        x: 384
+        y: 413
+      positionAbsolute:
+        x: 384
+        y: 413
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1746314754512'
+          - result
+        desc: ''
+        model:
+          completion_params:
+            reasoning_type: false
+            temperature: 0.2
+          mode: chat
+          name: us.anthropic.claude-3-7-sonnet-20250219-v1:0
+          provider: langgenius/bedrock/bedrock
+        prompt_template:
+        - id: af2e0882-e6fb-44a9-811d-26fa25e8c581
+          role: system
+          text: "技術資料A: {{#1746309709692.text#}}\n\n技術資料B: {{#1746309943303.text#}}\n\
+            \n技術資料C:{{#1746309943303.text#}}\n\n審査視点:{{#context#}}\n\n評価の詳細度: 詳細\n\
+             \n評価方法:\n 1. 技術資料Aと技術資料Bの技術要素を抽出（各5点以上）\n 2. 両技術を組み合わせて技術資料Cが構築できるか仮説を作成\n\
+             3. 仮説と技術資料Cを審査視点から詳細レベルで比較評価\n 4. 比較評価より技術資料Cは技術資料Aと技術資料Bから容易に作成できるか評価結果と理由を明示"
+        - id: 155ff4fd-13b5-4010-8b61-1c30d1b0e3e4
+          role: user
+          text: 技術資料AとBを分析し、評価方法に従ってレポートを作ってください。
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1746309957536'
+      position:
+        x: 675
+        y: 282
+      positionAbsolute:
+        x: 675
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1746309957536'
+          - text
+          variable: text
+        selected: false
+        title: 終了
+        type: end
+      height: 90
+      id: '1746310376843'
+      position:
+        x: 979
+        y: 282
+      positionAbsolute:
+        x: 979
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: false
+        selected: false
+        title: テキスト抽出 3
+        type: document-extractor
+        variable_selector:
+        - '1746309533136'
+        - tec_c
+      height: 92
+      id: '1746311066099'
+      position:
+        x: 384
+        y: 544
+      positionAbsolute:
+        x: 384
+        y: 544
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - v498ckHBy75hWgPhASeIi/bk9/PouefCBWiQYnfoUdQyxY6NRt78rQKpTFJ+cPtr
+        desc: ''
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: reranking_model
+          reranking_model:
+            model: amazon.rerank-v1:0
+            provider: langgenius/bedrock/bedrock
+          top_k: 4
+        query_variable_selector:
+        - '1746309533136'
+        - point
+        retrieval_mode: multiple
+        selected: false
+        title: 知識検索
+        type: knowledge-retrieval
+      height: 92
+      id: '1746314754512'
+      position:
+        x: 384
+        y: 675
+      positionAbsolute:
+        x: 384
+        y: 675
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -40.5
+      y: -74
+      zoom: 1

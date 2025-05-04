@@ -1,0 +1,317 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: input_mcp_server
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/bedrock:0.0.13@b8a91de5c23504d9d3e838f73ef84aca936617c3005a9d2792757c90ba9445ed
+kind: app
+version: 0.2.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: parameter-extractor
+      id: 1746347514691-source-1746354469209-target
+      source: '1746347514691'
+      sourceHandle: source
+      target: '1746354469209'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: answer
+      id: 1746354579845-source-answer-target
+      source: '1746354579845'
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: agent
+      id: 1746354469209-source-1746354579845-target
+      source: '1746354469209'
+      sourceHandle: source
+      target: '1746354579845'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 開始
+        type: start
+        variables: []
+      height: 54
+      id: '1746347514691'
+      position:
+        x: 30
+        y: 299
+      positionAbsolute:
+        x: 30
+        y: 299
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1746354579845.text#}}'
+        desc: ''
+        selected: false
+        title: 回答
+        type: answer
+        variables: []
+      height: 105
+      id: answer
+      position:
+        x: 942
+        y: 299
+      positionAbsolute:
+        x: 942
+        y: 299
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        instruction: '出願人名は、applicant_name
+
+          抽出レコード数、制限数、上限数などは、limit'
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: us.anthropic.claude-3-7-sonnet-20250219-v1:0
+          provider: langgenius/bedrock/bedrock
+        parameters:
+        - description: 出願人名
+          name: applicant_name
+          required: true
+          type: string
+        - description: '抽出レコード数
+
+            制限数
+
+            上限数'
+          name: limit
+          required: true
+          type: string
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: パラメータ抽出
+        type: parameter-extractor
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1746354469209'
+      position:
+        x: 334
+        y: 299
+      positionAbsolute:
+        x: 334
+        y: 299
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: "あなたは特許情報アシスタントです。inpit-sqlite MCPサーバーを介して特許データベースにアクセスし、ユーザーの質問に答えます。\n\
+              \n\n【使用可能なツール】\n1. get_patent_by_application_number - 出願番号で特許を検索\n2.\
+              \ get_patents_by_applicant - 出願人名で特許を検索\n3. execute_sql_query - SQLクエリで詳細な分析を実行\n\
+              \n\n【データベース構造】\n特許データは主に以下のフィールドを含みます：\n- 出願番号: 特許の一意識別子\n- 出願日: 特許が出願された日付\n\
+              - 出願人: 特許を出願した企業/個人\n- 発明の名称: 特許のタイトル\n- 要約: 発明の簡潔な説明\n- IPC分類: 国際特許分類コード\n\
+              - 審査状況: 審査中、特許成立、拒絶など\n\n\n【応答の指針】\n1. 出願番号による検索の場合: \n   - 出願番号が特定できる質問では、get_patent_by_application_number\
+              \ を使用\n   - 例: \"2022-123456の特許について教えて\"\n\n\n2. 出願人による検索の場合:\n   -\
+              \ 企業名や発明者名が含まれる質問では、get_patents_by_applicant を使用\n   - 日本語の出願人名は正しく処理される\n\
+              \   - 例: \"テック株式会社の特許を検索して\"\n\n\n3. 分析クエリの場合:\n   - 統計や傾向分析の質問では、execute_sql_query\
+              \ を使用\n   - SQLを明示的に表示して何を検索しているか説明する\n   - 例: \"出願数の多い企業トップ10を教えて\"\
+              \n\n\n【応答形式】\n- 簡潔かつ正確な情報提供を心がける\n- 技術的な用語は必要に応じて平易に説明する\n- 検索結果が多い場合は要約と代表例を提示\n\
+              - 表形式のデータは読みやすく整形する\n- 日本語での応答を基本とする\n\n\nユーザーの質問を理解し、適切なツールを選択して特許情報を検索・分析してください。///"
+          mcp_server:
+            type: constant
+            value: ''
+          model:
+            type: constant
+            value:
+              completion_params: {}
+              mode: chat
+              model: us.anthropic.claude-3-7-sonnet-20250219-v1:0
+              model_type: llm
+              provider: langgenius/bedrock/bedrock
+              type: model-selector
+          query:
+            type: constant
+            value: '対象の出願人は、{{#1746354469209.applicant_name#}}です。
+
+              制限は、{{#1746354469209.limit#}}です。'
+          tools:
+            type: constant
+            value:
+            - enabled: true
+              extra:
+                description: 出願人名で特許を検索
+              parameters:
+                applicant_name:
+                  auto: 1
+                  value: null
+                limit:
+                  auto: 1
+                  value: null
+              provider_name: fec52c1c-8506-412c-9864-4d9aa6df1701
+              schemas:
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: 検索する出願人名
+                  ja_JP: 検索する出願人名
+                  pt_BR: 検索する出願人名
+                  zh_Hans: 検索する出願人名
+                label:
+                  en_US: applicant_name
+                  ja_JP: applicant_name
+                  pt_BR: applicant_name
+                  zh_Hans: applicant_name
+                llm_description: 検索する出願人名
+                max: null
+                min: null
+                name: applicant_name
+                options: []
+                placeholder:
+                  en_US: 検索する出願人名
+                  ja_JP: 検索する出願人名
+                  pt_BR: 検索する出願人名
+                  zh_Hans: 検索する出願人名
+                precision: null
+                required: true
+                scope: null
+                template: null
+                type: string
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: 返却する特許の最大数（最大100）
+                  ja_JP: 返却する特許の最大数（最大100）
+                  pt_BR: 返却する特許の最大数（最大100）
+                  zh_Hans: 返却する特許の最大数（最大100）
+                label:
+                  en_US: limit
+                  ja_JP: limit
+                  pt_BR: limit
+                  zh_Hans: limit
+                llm_description: 返却する特許の最大数（最大100）
+                max: null
+                min: null
+                name: limit
+                options: []
+                placeholder:
+                  en_US: 返却する特許の最大数（最大100）
+                  ja_JP: 返却する特許の最大数（最大100）
+                  pt_BR: 返却する特許の最大数（最大100）
+                  zh_Hans: 返却する特許の最大数（最大100）
+                precision: null
+                required: false
+                scope: null
+                template: null
+                type: number
+              settings: {}
+              tool_description: 出願人名で特許を検索
+              tool_label: get_patents_by_applicant
+              tool_name: get_patents_by_applicant
+              type: api
+        agent_strategy_label: MCP FunctionCalling
+        agent_strategy_name: function_calling
+        agent_strategy_provider_name: hjlarry/agent/mcp_agent
+        desc: ''
+        output_schema: null
+        plugin_unique_identifier: hjlarry/agent:0.0.1@f42a5a80b1c77fd0655c755b70ad08da47ceb1acc3638cf13a0eb9ed42b3a128
+        selected: false
+        title: エージェント
+        type: agent
+      height: 198
+      id: '1746354579845'
+      position:
+        x: 638
+        y: 299
+      positionAbsolute:
+        x: 638
+        y: 299
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -628.0120000000002
+      y: -25.812000000000012
+      zoom: 1.008
