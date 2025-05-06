@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  inpit-sqlite:
+    image: inpit-sqlite:latest
+    container_name: inpit-sqlite
+    build:
+      context: ../container/inpit-sqlite
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
+    volumes:
+      - ./data:/app/data:Z
+    restart: unless-stopped
+
+  inpit-sqlite-mcp:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: inpit-sqlite-mcp
+    environment:
+      - INPIT_API_URL=http://inpit-sqlite:5001
+    ports:
+      - "8000:8000"
+    depends_on:
+      - inpit-sqlite
+    restart: unless-stopped
