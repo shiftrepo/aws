@@ -47,15 +47,74 @@ Parameters:
       - t3.large
       - t3.xlarge
 
+  InstanceType4Localllm:
+    Type: String
+    Description: Select the instance type (g4dn for local llm)
+    Default: g4dn.xlarge
+    AllowedValues:
+      - t3.small
+      - g4dn.xlarge
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+
   AmazonLinuxAMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
 
+  CreateMCPServer:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "true"
+    Description: "MCPサーバ用EC2を作成しますか？"
+
+  CreateDifyServer:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+    Description: "Difyサーバ用EC2を作成しますか？"
+
+  CreateGemmaServer:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+    Description: "Gemmaサーバ用EC2を作成しますか？"
+
+#  EnableOriginalInstance:
+#    Type: String
+#    AllowedValues: ["true", "false"]
+#    Default: "true"
+#    Description: Whether to create the original EC2 instance
+
+#  EnableSHIFTDifyInstance:
+#    Type: String
+#    AllowedValues: ["true", "false"]
+#    Default: "false"
+#    Description: Whether to create the SHIFTDify EC2 instance
+
+#  EnableSHIFTGemmaInstance:
+#    Type: String
+#    AllowedValues: ["true", "false"]
+#    Default: "false"
+#    Description: Whether to create the SHIFTGemma EC2 instance
+
 Conditions:
   UseKeyPairParameter: !Not [!Equals [!Ref KeyName, ""]]
+  CreateMCPServerCondition: !Equals [!Ref CreateMCPServer, "true"]
+  CreateDifyServerCondition: !Equals [!Ref CreateDifyServer, "true"]
+  CreateGemmaServerCondition: !Equals [!Ref CreateGemmaServer, "true"]
+  CreateOriginalInstance: !Equals [ !Ref CreateMCPServer, "true" ]
+#  CreateOriginalInstance: !Equals [ !Ref EnableOriginalInstance, "true" ]
+  CreateSHIFTDifyInstance: !Equals [ !Ref CreateDifyServer, "true" ]
+  CreateSHIFTGemmaInstance: !Equals [ !Ref CreateGemmaServer, "true" ]
 
 Resources:
-
   # VPC
   VPCSHIFTgraphRAG:
     Type: AWS::EC2::VPC
@@ -178,10 +237,37 @@ Resources:
           Value: EC2SG-SHIFT-graphRAG
 
   # ----- Start of new resources for SHIFTDify -----
+  # New Security Group for SHIFTDify (Port 80 only)
+  SHIFTGemmaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateGemmaServerCondition
+    Properties:
+      GroupDescription: Security group for SHIFTDify EC2 instance allowing HTTP (port 80) inbound traffic.
+      VpcId: !Ref VPCSHIFTgraphRAG # 既存のVPCを使用
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SHIFTGemma-SG # 新しいセキュリティグループの名前タグ
 
   # New Security Group for SHIFTDify (Port 80 only)
   SHIFTDifySecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: CreateDifyServerCondition
     Properties:
       GroupDescription: Security group for SHIFTDify EC2 instance allowing HTTP (port 80) inbound traffic.
       VpcId: !Ref VPCSHIFTgraphRAG # 既存のVPCを使用
@@ -204,6 +290,7 @@ Resources:
   # SHIFTDify EC2 Instance
   SHIFTDifyInstance:
     Type: AWS::EC2::Instance
+    Condition: CreateDifyServerCondition
     Properties:
       # 既存のEC2と同じAMI ID、インスタンスタイプ、KeyName、IAMプロファイルを使用
       ImageId: !Ref AmazonLinuxAMI
@@ -301,6 +388,116 @@ Resources:
 
   # ----- End of new resources for SHIFTDify -----
 
+  # SHIFTGemma EC2 Instance
+  SHIFTGemmaInstance:
+    Type: AWS::EC2::Instance
+    Condition: CreateGemmaServerCondition
+    Properties:
+      # Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04)
+      ImageId: ami-01924b6996b062ee3
+      InstanceType: !Ref InstanceType4Localllm
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SHIFTGemmaSecurityGroup
+          SubnetId: !Ref PublicSubnetSHIFTgraphRAG
+      IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG # 既存のIAMプロファイルを使用
+      KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"] # パラメータから取得、Conditionalも継承
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 120 # ディスクサイズ (GB)
+            VolumeType: gp3 # ボリュームタイプ (推奨: gp3)
+            DeleteOnTermination: true
+      Tags: # 指定された名前とauthorタグを設定
+        - Key: Name
+          Value: SHIFTGemma # EC2インスタンスの名前タグ
+        - Key: author
+          Value: kentaro.mitsui # 指定されたauthorタグ
+      UserData: # CloudWatch Agentのインストール部分のみを継承 (アプリケーション固有部分は除外)
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -x
+          # AWS CloudWatch AgentのRPMパッケージをダウンロードしてインストール
+          curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+          dnf install -y ./amazon-cloudwatch-agent.rpm
+
+          # CloudWatch Agentの設定ファイルを配置 (元のテンプレートからログ設定をコピー)
+          cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "SHIFT-graphRAG-EC2-Messages", # 元のテンプレートのロググループ名を使用
+                      "log_stream_name": "{instance_id}-messages"
+                    }
+                    # 元テンプレートのdocker.log設定はここでは含めない
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+
+          # CloudWatch Agentの起動と自動起動の有効化
+          systemctl enable amazon-cloudwatch-agent
+          systemctl start amazon-cloudwatch-agent
+
+          # SSM Agentのインストール (RHEL/CentOS 8+では標準で入っていることが多いが、念のためインストールコマンドを残しておく)
+          dnf install -y amazon-ssm-agent
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+
+          max_attempts=5
+          attempt_num=1
+          success=false
+          while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
+            sudo dnf install -y git docker
+            if [ $? -eq 0 ]; then
+              echo "dnf install succeeded"
+              success=true
+            else
+              echo "dnf install $attempt_num failed. trying again..."
+              sleep 3
+              ((attempt_num++))
+            fi
+          done
+          sudo systemctl start docker
+          sudo gpasswd -a ec2-user docker
+          sudo gpasswd -a ssm-user docker
+          sudo chgrp docker /var/run/docker.sock
+          sudo service docker restart
+          sudo systemctl enable docker
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+          mkdir -p /root/.ssh
+          echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
+          chmod 400 /root/.ssh/id_ed25519
+
+          cat <<EOF > /root/.ssh/config
+          Host github.com
+            IdentityFile ~/.ssh/id_ed25519
+            User git
+          Host github.com
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
+          EOF
+
+          cp -pR /root/.ssh/config /home/ec2-user/.ssh/.
+          cp -pR /root/.ssh/id_ed25519 /home/ec2-user/.ssh/.
+          chown -R ec2-user:ec2-user /home/ec2-user/.ssh/
+
+          git clone git@github.com:shiftrepo/aws.git /root/aws.git
+          git config --global --add safe.directory /root/aws.git
+
+
+  # ----- End of new resources for SHIFTDify -----
 
   # IAM Role for EC2 (Original - Reused by the new instance)
   EC2InstanceRoleSHIFTgraphRAG:
@@ -342,6 +539,7 @@ Resources:
   # Original EC2 Instance (kept as is)
   EC2InstanceSHIFTgraphRAG:
     Type: AWS::EC2::Instance
+    Condition: CreateMCPServerCondition
     Properties:
       ImageId: ami-0c7af5fe939f2677f  # Red Hat Enterprise Linux 8 (us-east-1)
       InstanceType: !Ref InstanceType
@@ -483,20 +681,63 @@ Outputs:
   PrivateSubnetId:
     Description: Created Private Subnet ID
     Value: !Ref PrivateSubnetSHIFTgraphRAG
-  EC2InstanceId:
-    Description: Launched Original EC2 Instance ID
-    Value: !Ref EC2InstanceSHIFTgraphRAG
+
   PublicIP:
     Description: Public IP of the Original EC2 Instance
-    Value: !GetAtt EC2InstanceSHIFTgraphRAG.PublicIp
+    Value: !If
+      - CreateOriginalInstance
+      - !GetAtt EC2InstanceSHIFTgraphRAG.PublicIp
+      - "N/A"
+
+  EC2InstanceId:
+    Description: Launched Original EC2 Instance ID
+    Value: !If
+      - CreateOriginalInstance
+      - !Ref EC2InstanceSHIFTgraphRAG
+      - "N/A"
+
   # ----- Start of new Outputs for SHIFTDify -----
   SHIFTDifyInstanceId:
     Description: Launched SHIFTDify EC2 Instance ID
-    Value: !Ref SHIFTDifyInstance # 新しいインスタンスのIDを出力
+    Value: !If
+      - CreateSHIFTDifyInstance
+      - !Ref SHIFTDifyInstance
+      - "N/A"
+
   SHIFTDifyInstancePublicIP:
     Description: Public IP of the SHIFTDify EC2 Instance
-    Value: !GetAtt SHIFTDifyInstance.PublicIp # 新しいインスタンスのPublic IPを出力
+    Value: !If
+      - CreateSHIFTDifyInstance
+      - !GetAtt SHIFTDifyInstance.PublicIp
+      - "N/A"
+
   SHIFTDifySecurityGroupId:
     Description: ID of the SHIFTDify Security Group
-    Value: !Ref SHIFTDifySecurityGroup # 新しいセキュリティグループのIDを出力
+    Value: !If
+      - CreateSHIFTDifyInstance
+      - !Ref SHIFTDifySecurityGroup
+      - "N/A"
   # ----- End of new Outputs for SHIFTDify -----
+
+  # ----- Start of new Outputs for SHIFTGemma -----
+  SHIFTGemmaInstanceId:
+    Description: Launched SHIFTGemma EC2 Instance ID
+    Value: !If
+      - CreateSHIFTGemmaInstance
+      - !Ref SHIFTGemmaInstance
+      - "N/A"
+
+  SHIFTGemmaInstancePublicIP:
+    Description: Public IP of the SHIFTGemma EC2 Instance
+    Value: !If
+      - CreateSHIFTGemmaInstance
+      - !GetAtt SHIFTGemmaInstance.PublicIp
+      - "N/A"
+
+  SHIFTGemmaSecurityGroupId:
+    Description: ID of the SHIFTGemma Security Group
+    Value: !If
+      - CreateSHIFTGemmaInstance
+      - !Ref SHIFTGemmaSecurityGroup
+      - "N/A"
+  # ----- End of new Outputs for SHIFTGemma -----
