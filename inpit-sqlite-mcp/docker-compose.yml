@@ -31,6 +31,9 @@ services:
       - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
     ports:
       - "8000:8000"
+    volumes:
+      - ./data:/app/data:Z
+    user: "1000:1000"  # Run as ec2-user (UID:GID = 1000:1000)
     depends_on:
       - inpit-sqlite
     restart: unless-stopped
