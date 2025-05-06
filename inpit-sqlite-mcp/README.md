@@ -8,6 +8,9 @@
 - 出願人の特許分析（サマリー、視覚的レポート、審査状況分析など）
 - SQLクエリによる柔軟なデータ検索
 - 日本語を含むURLの直接サポート（URLエンコーディング不要）
+- Google Patents Public Dataからの日本国特許データの取得
+- ファミリー出願（関連出願）の検索と関係性分析
+- 自然言語による特許検索クエリ
 
 ## URL エンコーディング機能について
 
@@ -66,6 +69,41 @@ INPIT_API_URL=http://your-api-url docker-compose up -d
 ```
 
 サーバーが起動すると、`http://localhost:8000` でアクセス可能になります。
+
+## Google Patents Public Data 機能
+
+このバージョンでは、Google Patents Public Data のデータを利用する機能が追加されました。Google Cloud Platform の資格情報が必要になる場合があります。
+
+### 日本国特許データの取得
+
+```bash
+# 日本国特許データ（約10,000件）を取得
+curl -X POST -H "Content-Type: application/json" -d '{"limit": 10000}' http://localhost:8000/patents/import
+```
+
+### 自然言語クエリによる特許検索
+
+```bash
+# 自然言語による特許検索（GET）
+curl "http://localhost:8000/patents/query/Show%20me%20patents%20about%20electric%20vehicles%20from%20Toyota"
+
+# 自然言語による特許検索（POST）
+curl -X POST -H "Content-Type: application/json" -d '{"query": "Show me patents about electric vehicles from Toyota"}' http://localhost:8000/patents/query
+```
+
+### 特許ファミリーの検索
+
+```bash
+# 指定した出願番号のファミリーメンバー（関連出願）を取得
+curl http://localhost:8000/patents/family/JP2020123456
+```
+
+### データベースのステータス確認
+
+```bash
+# Google Patentsデータベースの状態を確認
+curl http://localhost:8000/patents/status
+```
 
 ## API エンドポイント
 

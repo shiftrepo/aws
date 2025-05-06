@@ -22,6 +22,14 @@ from typing import Dict, List, Any, Optional
 from urllib.parse import quote, unquote
 from collections import Counter, defaultdict
 
+# Import Google Patents extension
+from google_patents_mcp import (
+    get_extension_tools,
+    get_extension_resources,
+    execute_extension_tool,
+    access_extension_resource
+)
+
 # Import new libraries for visualization and PDF generation
 import numpy as np
 import pandas as pd
@@ -159,7 +167,7 @@ class InpitSQLiteMCPServer:
     
     def get_tools(self) -> List[Dict[str, Any]]:
         """Return list of available tools"""
-        return [
+        inpit_tools = [
             {
                 "name": "get_patent_by_application_number",
                 "description": "出願番号で特許情報を検索します（部分一致も可）",
@@ -206,10 +214,18 @@ class InpitSQLiteMCPServer:
                 "schema": SCHEMAS["generate_pdf_report"]
             }
         ]
+        
+        # Add Google Patents tools
+        try:
+            patents_tools = get_extension_tools()
+            return inpit_tools + patents_tools
+        except Exception as e:
+            logger.error(f"Error loading Google Patents tools: {e}")
+            return inpit_tools
     
     def get_resources(self) -> List[Dict[str, str]]:
         """Return list of available resources"""
-        return [
+        inpit_resources = [
             {
                 "uri": "inpit-sqlite://status",
                 "description": "Inpit SQLiteサービスのステータス情報とデータベーススキーマ"
@@ -219,6 +235,14 @@ class InpitSQLiteMCPServer:
                 "description": "IPCコード（国際特許分類）の説明"
             }
         ]
+        
+        # Add Google Patents resources
+        try:
+            patents_resources = get_extension_resources()
+            return inpit_resources + patents_resources
+        except Exception as e:
+            logger.error(f"Error loading Google Patents resources: {e}")
+            return inpit_resources
     
     def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -252,6 +276,9 @@ class InpitSQLiteMCPServer:
                 return self._compare_with_competitors(arguments)
             elif tool_name == "generate_pdf_report":
                 return self._generate_pdf_report(arguments)
+            # Handle Google Patents tools
+            elif tool_name in ["import_japanese_patents", "query_patents_natural_language", "get_patent_family_members"]:
+                return execute_extension_tool(tool_name, arguments)
             else:
                 error_msg = f"Unknown tool: {tool_name}"
                 logger.error(error_msg)
@@ -278,6 +305,9 @@ class InpitSQLiteMCPServer:
                 return self._get_status()
             elif uri == "inpit-sqlite://ipc-classifications":
                 return self._get_ipc_classifications()
+            # Handle Google Patents resources
+            elif uri.startswith("google-patents://"):
+                return access_extension_resource(uri)
             else:
                 error_msg = f"Unknown resource URI: {uri}"
                 logger.error(error_msg)

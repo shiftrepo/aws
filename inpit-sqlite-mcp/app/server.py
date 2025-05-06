@@ -13,13 +13,17 @@ import sys
 import json
 import uvicorn
 import fastapi
-from fastapi import FastAPI, HTTPException, Form, Body
+from fastapi import FastAPI, HTTPException, Form, Body, Depends
 from urllib.parse import unquote
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
+import ssl
 
 # Import our custom middleware for URL encoding
 from encoding_middleware import URLEncodingMiddleware
+
+# Import the patents API router
+from patents_api import router as patents_router
 
 # Import the MCP module
 try:
@@ -38,6 +42,9 @@ app = FastAPI(title="Inpit SQLite MCP Server")
 
 # Add middleware for handling URL encoding of non-ASCII characters
 app.add_middleware(URLEncodingMiddleware)
+
+# Include the patents API router
+app.include_router(patents_router)
 
 class ToolRequest(BaseModel):
     tool_name: str
