@@ -38,28 +38,37 @@
 
 ### Google Cloud認証情報の設定
 
-BigQueryにアクセスするには、Google Cloud認証情報が必要です。以下の2つの方法のいずれかで設定できます：
+BigQueryにアクセスするには、Google Cloud認証情報が必要です。このプロジェクトでは以下の方法でコンテナ内からBigQueryにアクセスします：
 
-#### 方法1: 環境変数を使用する
+#### コンテナ使用時: S3バケットから認証情報を自動取得
 
-1. Google Cloud Consoleでサービスアカウントキーを作成し、JSONファイルとしてダウンロードします
-2. 認証情報ファイルのパスを環境変数に設定します：
-
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json
-```
-
-#### 方法2: AWSのS3バケットから認証情報を取得する
-
-S3から認証情報ファイルを取得するには、AWS認証情報を設定します：
+コンテナベースの実行では、Google Cloud認証情報ファイルを指定のAWS S3バケットから自動的に取得します。この方法を使用するには以下のAWS認証情報を設定する必要があります：
 
 ```bash
+# AWS認証情報を設定
 export AWS_ACCESS_KEY_ID=your_access_key_id
 export AWS_SECRET_ACCESS_KEY=your_secret_access_key
 export AWS_DEFAULT_REGION=ap-northeast-1  # または適切なリージョン
 ```
 
-注意: S3からの認証情報取得を使用する場合、バケットとキーのパスは必要に応じてスクリプト内で修正してください。
+デフォルトでは、以下のS3パスから認証情報を取得します：
+- バケット: `ndi-3supervision`
+- キー: `MIT/GCPServiceKey/tosapi-bf0ac4918370.json`
+
+環境変数を使って異なるS3パスを指定することもできます：
+
+```bash
+export GCP_CREDENTIALS_S3_BUCKET=your_bucket_name
+export GCP_CREDENTIALS_S3_KEY=path/to/your/credentials.json
+```
+
+#### 直接実行時: ローカルの認証情報ファイルを使用
+
+コンテナを使わずにスクリプトを直接実行する場合は、従来通り環境変数でローカルの認証情報ファイルを指定できます：
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json
+```
 
 ### 依存関係のインストール
 
