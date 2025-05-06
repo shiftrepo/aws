@@ -72,7 +72,91 @@ INPIT_API_URL=http://your-api-url docker-compose up -d
 
 ## Google Patents Public Data 機能
 
-このバージョンでは、Google Patents Public Data のデータを利用する機能が追加されました。Google Cloud Platform の資格情報が必要になる場合があります。
+このバージョンでは、Google Patents Public Data のデータを利用する機能が追加されました。認証はコンテナ内からS3バケット上のGoogle Cloud Platformの資格情報ファイルを使用して行われます。
+
+### AWS認証情報とGoogle Cloud認証の設定
+
+Google Patents Public DataにアクセスするためのGoogle Cloud Platform認証情報は、指定したS3バケットから自動的に取得されます。そのため、以下のAWS認証情報環境変数が必要です：
+
+```bash
+# AWS認証情報を設定
+export AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID"
+export AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー"
+export AWS_DEFAULT_REGION="ap-northeast-1"  # または必要なリージョン
+```
+
+デフォルトでは、次のS3パスから認証情報が取得されます：
+- バケット: `ndi-3supervision`
+- キー: `MIT/GCPServiceKey/tosapi-bf0ac4918370.json`
+
+必要に応じて別のS3パスを指定することもできます：
+
+```bash
+# 環境変数で別のS3パスを指定する場合
+export GCP_CREDENTIALS_S3_BUCKET="あなたのバケット名"
+export GCP_CREDENTIALS_S3_KEY="認証情報JSONファイルのパス"
+```
+
+### Podmanでの起動方法
+
+AWS認証情報を設定してPodmanでサーバーを起動する例：
+
+```bash
+# AWS認証情報をエクスポート
+export AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID"
+export AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー"
+export AWS_DEFAULT_REGION="ap-northeast-1"
+
+# カレントディレクトリに移動
+cd /root/aws.git/inpit-sqlite-mcp/
+
+# Podmanを使用して起動
+podman-compose -f podman-compose.yml up -d
+```
+
+または、コマンド実行時に環境変数を指定することもできます：
+
+```bash
+AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID" AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー" AWS_DEFAULT_REGION="ap-northeast-1" podman-compose -f podman-compose.yml up -d
+```
+
+### Docker Composeでの起動方法
+
+同様に、Docker Composeを使用する場合：
+
+```bash
+# AWS認証情報をエクスポート
+export AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID"
+export AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー"
+export AWS_DEFAULT_REGION="ap-northeast-1"
+
+# Docker Composeを実行
+docker-compose up -d
+```
+
+または、コマンド実行時に環境変数を指定することもできます：
+
+```bash
+AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID" AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー" AWS_DEFAULT_REGION="ap-northeast-1" docker-compose up -d
+```
+
+### BigQuery接続の確認方法
+
+提供されているテストスクリプトを使用して、環境変数から認証情報を取得し、BigQueryに正しく接続できるか確認できます。
+
+```bash
+# テストスクリプトを実行
+cd /root/aws.git/inpit-sqlite-mcp/app
+./test_run_bigquery.sh
+```
+
+テスト結果に基づいて、設定方法や問題解決のヒントが表示されます。接続が成功した場合は、同じ環境変数を使用してDocker Composeを起動できます。
+
+```bash
+# 成功した環境変数設定を使用してDockerコンテナを起動
+cd /root/aws.git/inpit-sqlite-mcp
+docker-compose up -d
+```
 
 ### 日本国特許データの取得
 

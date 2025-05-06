@@ -16,6 +16,8 @@ import pandas as pd
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import time
+import tempfile
+import boto3
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 
@@ -37,31 +39,65 @@ class GooglePatentsFetcher:
             credentials_path: Path to Google Cloud service account credentials JSON file
             db_path: Path to the SQLite database file
         """
-        self.credentials_path = credentials_path
         self.db_path = db_path
         self.client = None
         
         # Ensure the data directory exists
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         
-        # Initialize BigQuery client if credentials are provided
-        if credentials_path and os.path.exists(credentials_path):
-            try:
-                credentials = service_account.Credentials.from_service_account_file(
-                    credentials_path,
-                    scopes=["https://www.googleapis.com/auth/bigquery"]
-                )
-                self.client = bigquery.Client(credentials=credentials, project=credentials.project_id)
-                logger.info("BigQuery client initialized with credentials")
-            except Exception as e:
-                logger.error(f"Error initializing BigQuery client: {e}")
-        else:
-            try:
-                # Try to use application default credentials
-                self.client = bigquery.Client()
-                logger.info("BigQuery client initialized with application default credentials")
-            except Exception as e:
-                logger.error(f"Error initializing BigQuery client: {e}")
+        # S3 bucket and key for GCP credentials from environment variables or defaults
+        s3_bucket = os.environ.get('GCP_CREDENTIALS_S3_BUCKET', 'ndi-3supervision')
+        s3_key = os.environ.get('GCP_CREDENTIALS_S3_KEY', 'MIT/GCPServiceKey/tosapi-bf0ac4918370.json')
+        
+        # Try to initialize BigQuery client with service account credentials from S3
+        try:
+            # Download credentials from S3
+            logger.info(f"Downloading GCP credentials from S3 bucket: {s3_bucket}, key: {s3_key}")
+            s3_client = boto3.client('s3')
+            
+            # Create a temporary file to store the credentials
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as temp_file:
+                temp_credentials_path = temp_file.name
+                
+            # Download the credentials file from S3
+            s3_client.download_file(s3_bucket, s3_key, temp_credentials_path)
+            logger.info(f"GCP credentials downloaded to temporary file: {temp_credentials_path}")
+            
+            # Initialize BigQuery client with downloaded credentials
+            credentials = service_account.Credentials.from_service_account_file(
+                temp_credentials_path,
+                scopes=["https://www.googleapis.com/auth/bigquery"]
+            )
+            self.client = bigquery.Client(credentials=credentials, project=credentials.project_id)
+            logger.info(f"BigQuery client initialized with credentials from S3")
+            
+            # Clean up the temporary file
+            os.unlink(temp_credentials_path)
+            logger.info("Temporary credentials file removed")
+            
+        except Exception as e:
+            logger.error(f"Error initializing BigQuery client from S3 credentials: {e}")
+            
+            # Fallback to credentials path if provided or environment variable
+            if not credentials_path:
+                credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+            
+            logger.warning(f"Falling back to credentials path: {credentials_path}")
+            
+            # Initialize BigQuery client with local credentials if available
+            if credentials_path and os.path.exists(credentials_path):
+                try:
+                    credentials = service_account.Credentials.from_service_account_file(
+                        credentials_path,
+                        scopes=["https://www.googleapis.com/auth/bigquery"]
+                    )
+                    self.client = bigquery.Client(credentials=credentials, project=credentials.project_id)
+                    logger.info(f"BigQuery client initialized with fallback credentials from file: {credentials_path}")
+                except Exception as e:
+                    logger.error(f"Error initializing BigQuery client from file: {e}")
+                    logger.error("Please provide a valid service account credentials file.")
+            else:
+                logger.error(f"Credentials file not found at path: {credentials_path}")
     
     def _create_database_schema(self):
         """

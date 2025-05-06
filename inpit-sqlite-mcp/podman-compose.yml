@@ -24,6 +24,11 @@ services:
     container_name: inpit-sqlite-mcp
     environment:
       - INPIT_API_URL=http://inpit-sqlite:5001
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
+      - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
+      - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
     ports:
       - "8000:8000"
     depends_on:

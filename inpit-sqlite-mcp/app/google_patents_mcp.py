@@ -180,12 +180,15 @@ class GooglePatentsMCPExtension:
             limit = arguments.get("limit", 10000)
             credentials_path = arguments.get("credentials_path", None)
             
-            # Set environment variable for credentials if provided
-            if credentials_path:
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
-            
             # Ensure limit is within reasonable bounds
             limit = max(1000, min(limit, 50000))
+            
+            # Re-initialize the patent fetcher to use S3 credentials 
+            # The GooglePatentsFetcher will automatically handle S3 credentials fetching
+            self.patent_fetcher = GooglePatentsFetcher(
+                credentials_path=credentials_path,  # This is now optional and used as a fallback
+                db_path=GOOGLE_PATENTS_DB_PATH
+            )
             
             # Import the patents
             count = self.patent_fetcher.fetch_japanese_patents(limit=limit)
