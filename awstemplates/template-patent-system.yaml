@@ -9,7 +9,7 @@ Parameters:
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Select an existing EC2 KeyPair for SSH access (optional)
-    Default: ""
+    Default: "SHIFT-main"
 
   AccessKeyIdParam:
     Type: AWS::SSM::Parameter::Value<String>
@@ -39,7 +39,8 @@ Parameters:
   InstanceType:
     Type: String
     Description: Select the instance type (t3 series only)
-    Default: t3.micro
+    Default: t3.medium
+    # 2023/10/02 追記: t3シリーズのインスタンスタイプを選択肢として追加
     AllowedValues:
       - t3.micro
       - t3.small
