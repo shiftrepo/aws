@@ -417,46 +417,127 @@ class InpitSQLiteMCPServer:
         if not query.strip().lower().startswith("select"):
             return {"error": "Only SELECT queries are allowed for security reasons"}
         
+        # Since we don't have a real mapping for "審査状況", we'll skip the column mapping part 
+        # and instead improve error handling to show available columns when this column is used
+
+        original_query = query
+        
+                # Check for Japanese column names that don't exist in the schema
+        if "審査状況" in query:
+            logger.info(f"Query contains non-existent column name '審査状況': {query}")
+            
+            # Get available columns to suggest alternatives
+            try:
+                logger.info("Retrieving available columns to provide in error message")
+                col_query = "SELECT name FROM pragma_table_info('inpit_data')"
+                col_payload = {"query": col_query}
+                col_url = f"{self.api_url}/api/sql-query"
+                col_response = requests.post(col_url, json=col_payload)
+                
+                if col_response.status_code == 200:
+                    col_data = col_response.json()
+                    if col_data.get("success") and col_data.get("results"):
+                        columns = [row["name"] for row in col_data.get("results", []) if row.get("name")]
+                        return {
+                            "error": f"カラム '審査状況' はデータベースに存在しません。",
+                            "message": "利用可能なカラム名は下記です：",
+                            "available_columns": columns[:20],  # First 20 columns to avoid too much data
+                            "note": "クエリで使用する場合は正しいカラム名を指定してください。"
+                        }
+            except Exception as e:
+                logger.error(f"Error retrieving column list: {e}")
+                
+            # If we couldn't get columns, continue with the query but it will likely fail
+            logger.warning("Column '審査状況' was requested but doesn't exist in the schema")
+        
         url = f"{self.api_url}/api/sql-query"
         payload = {"query": query}
         
         logger.info(f"Executing SQL query: {query}")
         logger.info(f"Request URL: {url}")
         
-        response = requests.post(url, json=payload)
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Process the results to make them more readable for LLM
-            if data.get("success") and data.get("results"):
-                results = data.get("results", [])
-                columns = data.get("columns", [])
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                data = response.json()
                 
-                processed_results = []
-                for result in results:
-                    row_data = {}
-                    for i, col in enumerate(columns):
-                        if i < len(result):
-                            row_data[col] = result[i]
-                    processed_results.append(row_data)
+                # Process the results to make them more readable for LLM
+                if data.get("success") and data.get("results"):
+                    results = data.get("results", [])
+                    columns = data.get("columns", [])
                 
-                return {
-                    "success": True,
-                    "query": query,
-                    "columns": columns,
-                    "results": processed_results,
-                    "count": len(processed_results)
-                }
+                    processed_results = []
+                    for result in results:
+                        row_data = {}
+                        for i, col in enumerate(columns):
+                            if i < len(result):
+                                row_data[col] = result[i]
+                        processed_results.append(row_data)
+                    
+                    response_data = {
+                        "success": True,
+                        "query": query,
+                        "columns": columns,
+                        "results": processed_results,
+                        "count": len(processed_results)
+                    }
+                    
+                    # If we substituted columns, add a note
+                    if query != original_query:
+                        response_data["note"] = f"Column names were substituted in your query for compatibility."
+                    
+                    return response_data
+                else:
+                    return {
+                        "success": False,
+                        "message": "Query executed but returned no results",
+                        "query": query
+                    }
             else:
+                error_text = response.text
+                # Check for specific SQLite errors related to column names
+                if "no such column:" in error_text:
+                    # Extract the column name from error message
+                    import re
+                    match = re.search(r'no such column: ([\w\s\u3000-\u9fff]+)', error_text)
+                    if match:
+                        bad_column = match.group(1).strip()
+                        
+                        # Instead of just returning an error, let's get the actual column list
+                        try:
+                            col_query = "SELECT name FROM pragma_table_info('inpit_data')"
+                            col_payload = {"query": col_query}
+                            col_response = requests.post(url, json=col_payload)
+                            
+                            if col_response.status_code == 200:
+                                col_data = col_response.json()
+                                if col_data.get("success") and col_data.get("results"):
+                                    columns = [row.get("name") for row in col_data.get("results", [])]
+                                    
+                                    return {
+                                        "error": f"カラム '{bad_column}' はデータベースに存在しません。",
+                                        "message": "利用可能なカラム名は下記です：",
+                                        "available_columns": columns
+                                    }
+                            
+                        except Exception as col_err:
+                            logger.error(f"Error getting column list: {col_err}")
+                        
+                        # Fallback if we can't get columns
+                        return {
+                            "error": f"カラム '{bad_column}' はデータベースに存在しません。",
+                            "message": "利用可能なカラム一覧は次のクエリで確認できます: SELECT name FROM pragma_table_info('inpit_data')",
+                            "details": "正確なカラム名を確認してからクエリを再実行してください。"
+                        }
+                
                 return {
-                    "success": False,
-                    "message": "Query executed but returned no results",
-                    "query": query
+                    "error": f"API request failed with status code: {response.status_code}",
+                    "details": error_text
                 }
-        else:
+        except Exception as e:
             return {
-                "error": f"API request failed with status code: {response.status_code}",
-                "details": response.text
+                "error": f"Error executing SQL query: {str(e)}",
+                "query": query
             }
     
     def _get_status(self) -> Dict[str, Any]:
