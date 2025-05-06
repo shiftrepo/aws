@@ -39,10 +39,12 @@ def test_patent_import():
     
     # 少数の特許データを取得（速度のため少なめに設定）
     try:
-        logger.info("BigQueryから日本の特許データを10件取得します...")
-        count = fetcher.fetch_japanese_patents(limit=10)
+        # 件数を少なめに設定して高速に処理
+        limit = 10
+        logger.info(f"BigQueryから日本の特許データを{limit}件取得します...")
+        count = fetcher.fetch_japanese_patents(limit=limit)
         
-        if count > 0:
+        if count and count > 0:
             logger.info(f"成功: {count}件の特許データをSQLiteデータベースに格納しました")
             
             # 結果の確認

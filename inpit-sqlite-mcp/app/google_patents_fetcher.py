@@ -182,36 +182,32 @@ class GooglePatentsFetcher:
             # Use publication_date to get approximately the requested number
             query = f"""
             SELECT
-                p.publication_number,
-                p.filing_date,
-                p.publication_date,
-                p.application_number,
-                ARRAY_TO_STRING(p.assignee_harmonized, '; ') as assignee_harmonized,
-                ARRAY_TO_STRING(p.assignee, '; ') as assignee_original,
-                ARRAY_TO_STRING(p.title_localized.ja, ' ') as title_ja,
-                ARRAY_TO_STRING(p.title_localized.en, ' ') as title_en,
-                ARRAY_TO_STRING(p.abstract_localized.ja, ' ') as abstract_ja,
-                ARRAY_TO_STRING(p.abstract_localized.en, ' ') as abstract_en,
-                ARRAY_TO_STRING(p.claims_localized.ja, ' ') as claims,
-                ARRAY_TO_STRING(p.ipc, '; ') as ipc_code,
-                p.family_id,
-                p.country_code,
-                p.kind_code,
-                p.priority_date,
-                p.grant_date,
-                ARRAY_TO_STRING(p.priority_claim, '; ') as priority_claim,
-                p.legal_status,
-                f.status
+                publication_number,
+                filing_date,
+                publication_date,
+                application_number,
+                (SELECT STRING_AGG(name, '; ') FROM UNNEST(assignee_harmonized)) as assignee_harmonized,
+                ARRAY_TO_STRING(assignee, '; ') as assignee_original,
+                (SELECT STRING_AGG(text, ' ') FROM UNNEST(title_localized) WHERE language = 'ja') as title_ja,
+                (SELECT STRING_AGG(text, ' ') FROM UNNEST(title_localized) WHERE language = 'en') as title_en,
+                (SELECT STRING_AGG(text, ' ') FROM UNNEST(abstract_localized) WHERE language = 'ja') as abstract_ja,
+                (SELECT STRING_AGG(text, ' ') FROM UNNEST(abstract_localized) WHERE language = 'en') as abstract_en,
+                (SELECT STRING_AGG(text, ' ') FROM UNNEST(claims_localized) WHERE language = 'ja') as claims,
+                (SELECT STRING_AGG(code, '; ') FROM UNNEST(ipc)) as ipc_code,
+                family_id,
+                country_code,
+                kind_code,
+                priority_date,
+                grant_date,
+                '' as priority_claim,
+                '' as legal_status,
+                '' as status
             FROM
-                `patents-public-data.patents.publications` p
-            LEFT JOIN
-                `patents-public-data.patents.families` f
-            ON
-                p.family_id = f.family_id
+                `patents-public-data.patents.publications`
             WHERE
-                p.country_code = 'JP'
+                country_code = 'JP'
             ORDER BY
-                p.publication_date DESC
+                publication_date DESC
             LIMIT
                 {limit}
             """
@@ -309,7 +305,7 @@ class GooglePatentsFetcher:
     
     def _get_family_size(self, family_id: str) -> int:
         """
-        Get the size of a patent family
+        Get the size of a patent family by counting the number of patents with the same family_id
         
         Args:
             family_id: The family ID to query
@@ -318,6 +314,9 @@ class GooglePatentsFetcher:
             Size of the patent family
         """
         try:
+            if not family_id:
+                return 0
+                
             query = f"""
             SELECT
                 COUNT(*) as family_size
@@ -340,46 +339,61 @@ class GooglePatentsFetcher:
     def _build_family_relationships(self):
         """
         Build patent family relationships datamart from the publications table
+        Using recursive relationship based on family_id
         """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Get all family_ids and their related application numbers
+            # Get all unique family_ids
             cursor.execute('''
-            SELECT
-                family_id,
-                application_number,
-                publication_number,
-                country_code
-            FROM
-                publications
-            WHERE
-                family_id != ''
+            SELECT DISTINCT family_id
+            FROM publications
+            WHERE family_id != ''
             ''')
             
-            rows = cursor.fetchall()
+            family_ids = [row[0] for row in cursor.fetchall()]
+            logger.info(f"Found {len(family_ids)} unique family IDs")
             
-            # Group by family_id and insert into the relationships table
-            insert_data = []
-            for row in rows:
-                family_id, application_number, publication_number, country_code = row
-                if family_id and application_number:
+            # For each family_id, get all related patents and create relationship entries
+            total_relationships = 0
+            for family_id in family_ids:
+                # Get all patents in this family
+                cursor.execute('''
+                SELECT
+                    family_id,
+                    application_number,
+                    publication_number,
+                    country_code
+                FROM
+                    publications
+                WHERE
+                    family_id = ? AND application_number != ''
+                ''', (family_id,))
+                
+                family_members = cursor.fetchall()
+                
+                # Create relationship entries for all members of this family
+                insert_data = []
+                for member in family_members:
+                    family_id, application_number, publication_number, country_code = member
                     insert_data.append((family_id, application_number, publication_number, country_code))
-            
-            # Insert family relationships in batches
-            cursor.executemany(
-                '''
-                INSERT OR IGNORE INTO patent_families
-                (family_id, application_number, publication_number, country_code)
-                VALUES (?, ?, ?, ?)
-                ''',
-                insert_data
-            )
+                
+                # Insert family relationships in batches if there are any
+                if insert_data:
+                    cursor.executemany(
+                        '''
+                        INSERT OR IGNORE INTO patent_families
+                        (family_id, application_number, publication_number, country_code)
+                        VALUES (?, ?, ?, ?)
+                        ''',
+                        insert_data
+                    )
+                    total_relationships += len(insert_data)
             
             conn.commit()
             conn.close()
-            logger.info(f"Built family relationships for {len(insert_data)} patents")
+            logger.info(f"Built family relationships for {total_relationships} patents across {len(family_ids)} families")
         except Exception as e:
             logger.error(f"Error building family relationships: {e}")
             raise
