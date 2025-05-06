@@ -16,4 +16,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=ap-northeast-1
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    # Run as the same user as the host to avoid permission issues
+    user: "1000:1000"  # Run as ec2-user (UID:GID = 1000:1000)
     restart: unless-stopped

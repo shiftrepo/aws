@@ -21,8 +21,11 @@ from flask_cors import CORS
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Database file path
-DB_PATH = "/app/data/inpit.db"
+# Database file paths
+INPIT_DB_PATH = "/app/data/inpit.db"
+GOOGLE_PATENTS_DB_PATH = "/app/data/google_patents.db"
+# Default database path
+DB_PATH = INPIT_DB_PATH
 DB_URI = f"sqlite:///{DB_PATH}"
 
 app = Flask(__name__)
@@ -58,6 +61,32 @@ def initialize_db():
     global InpitData, metadata
     
     try:
+        # Log current user
+        print(f"Running as user {os.getuid()}:{os.getgid()}")
+        
+        # Check database file existence and permissions
+        db_exists = os.path.exists(DB_PATH)
+        if db_exists:
+            try:
+                import stat
+                file_stat = os.stat(DB_PATH)
+                print(f"Database file permissions: {oct(stat.S_IMODE(file_stat.st_mode))}")
+                print(f"Database file owner: {file_stat.st_uid}:{file_stat.st_gid}")
+                
+                # Make sure file is readable
+                if not os.access(DB_PATH, os.R_OK):
+                    print(f"Warning: Database file exists but is not readable")
+                    try:
+                        # Try to fix permissions if needed
+                        os.chmod(DB_PATH, 0o666)
+                        print("Attempted to fix database file permissions")
+                    except Exception as perm_err:
+                        print(f"Could not fix permissions: {perm_err}")
+            except Exception as e:
+                print(f"Could not check database permissions: {e}")
+        else:
+            print(f"Database file does not exist at {DB_PATH}")
+        
         # Reflect database structure
         metadata.reflect(bind=engine)
         
@@ -128,6 +157,13 @@ with open('templates/admin/sql_query.html', 'w') as f:
         <div class="box">
             <div class="box-body">
                 <div class="form-group">
+                    <label for="dbSelector">データベース選択 (Database Selection):</label>
+                    <select id="dbSelector" class="form-control">
+                        <option value="inpit">inpit.db</option>
+                        <option value="google_patents">google_patents.db</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="queryInput">SQL Query:</label>
                     <textarea id="queryInput" class="form-control" rows="5" placeholder="Enter your SQL query..."></textarea>
                 </div>
@@ -153,6 +189,8 @@ with open('templates/admin/sql_query.html', 'w') as f:
 <script>
 document.getElementById('executeBtn').addEventListener('click', function() {
     const query = document.getElementById('queryInput').value;
+    const dbType = document.getElementById('dbSelector').value;
+    
     if (!query) {
         alert('Please enter a query');
         return;
@@ -163,7 +201,7 @@ document.getElementById('executeBtn').addEventListener('click', function() {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: 'query=' + encodeURIComponent(query)
+        body: 'query=' + encodeURIComponent(query) + '&db_type=' + encodeURIComponent(dbType)
     })
     .then(response => response.json())
     .then(data => {
@@ -520,12 +558,16 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
             
             // Execute the query
+            // Get the selected database from the SQL Query page
+            const dbSelector = document.getElementById('dbSelector');
+            const dbType = dbSelector ? dbSelector.value : 'inpit';
+            
             fetch('/query', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'query=' + encodeURIComponent(query)
+                body: 'query=' + encodeURIComponent(query) + '&db_type=' + encodeURIComponent(dbType)
             })
             .then(response => response.json())
             .then(data => {
@@ -598,8 +640,15 @@ def query():
     Execute a SQL query and return results.
     """
     sql_query = request.form.get('query', '')
+    db_type = request.form.get('db_type', 'inpit')
+    
+    # Select database based on type
+    db_path = INPIT_DB_PATH
+    if db_type == 'google_patents':
+        db_path = GOOGLE_PATENTS_DB_PATH
+    
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute(sql_query)
         

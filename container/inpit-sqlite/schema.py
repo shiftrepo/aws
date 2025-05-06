@@ -22,10 +22,25 @@ def create_schema_and_import():
     Create database schema and import data from CSV.
     """
     try:
+        # Print current user information
+        logger.info(f"Running schema import as user {os.getuid()}:{os.getgid()}")
+
         # Check if CSV file exists
         if not os.path.exists(CSV_FILE_PATH):
             logger.error(f"CSV file not found: {CSV_FILE_PATH}")
             return False
+        
+        # Log file permissions
+        import stat
+        try:
+            file_stat = os.stat(CSV_FILE_PATH)
+            logger.info(f"CSV file permissions: {oct(stat.S_IMODE(file_stat.st_mode))}")
+            logger.info(f"CSV file owner: {file_stat.st_uid}:{file_stat.st_gid}")
+        except Exception as e:
+            logger.warning(f"Could not get CSV file permissions: {e}")
+            
+        # Create SQLite database directory if it doesn't exist
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
             
         # Create SQLite database engine
         engine = create_engine(f"sqlite:///{DB_PATH}")

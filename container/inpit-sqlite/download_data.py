@@ -26,14 +26,37 @@ def download_from_s3():
     logger.info(f"Attempting to download file from s3://{S3_BUCKET}/{S3_PATH} to {LOCAL_FILE_PATH}")
     
     try:
+        # Print current user information
+        logger.info(f"Running download as user {os.getuid()}:{os.getgid()}")
+        
         # Create S3 client
         s3_client = boto3.client('s3')
         
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(LOCAL_FILE_PATH), exist_ok=True)
+        # Ensure directory exists with proper permissions
+        data_dir = os.path.dirname(LOCAL_FILE_PATH)
+        os.makedirs(data_dir, exist_ok=True)
         
-        # Download file
-        s3_client.download_file(S3_BUCKET, S3_PATH, LOCAL_FILE_PATH)
+        # Use a temporary file first to avoid permission issues
+        tmp_file = f"{LOCAL_FILE_PATH}.download"
+        
+        # Download file to temporary location
+        s3_client.download_file(S3_BUCKET, S3_PATH, tmp_file)
+        
+        # Make the file readable and writable by everyone
+        try:
+            os.chmod(tmp_file, 0o666)
+        except Exception as e:
+            logger.warning(f"Could not set permissions on downloaded file: {e}")
+        
+        # Move to final location
+        import shutil
+        shutil.move(tmp_file, LOCAL_FILE_PATH)
+        
+        # Final permission check
+        try:
+            os.chmod(LOCAL_FILE_PATH, 0o666)
+        except Exception as e:
+            logger.warning(f"Could not set final permissions: {e}")
         
         logger.info("File downloaded successfully from S3")
         return True
