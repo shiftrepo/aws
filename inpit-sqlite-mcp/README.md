@@ -58,17 +58,138 @@ curl -X POST -F "name=テック 株式会社" http://localhost:8000/applicant
 - `GET /pdf-report/{applicant_name}`
 - `POST /applicant` (フォームデータの"name"パラメータで出願人を指定)
 
-## セットアップと実行
+## コンテナを使った実行方法
+
+このプロジェクトはコンテナ（Docker/Podman）を使って簡単に実行できます。コンテナベースの実行では、環境構築の手間を省き、異なるプラットフォーム間での一貫した動作を保証します。
+
+### 前提条件
+
+コンテナを使用する場合は、以下のソフトウェアがインストールされている必要があります：
+
+- Docker または Podman
+- Docker Compose または Podman Compose
+
+### 環境変数の設定
+
+コンテナを起動する前に、必要な環境変数を設定する必要があります：
 
 ```bash
-# サーバーの起動
-docker-compose up -d
+# AWS認証情報（S3からのGoogle Cloud認証情報取得に必要）
+export AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID"
+export AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー"
+export AWS_DEFAULT_REGION="ap-northeast-1"  # または必要なリージョン
 
-# または独自の環境変数を設定して起動
-INPIT_API_URL=http://your-api-url docker-compose up -d
+# オプション：S3上のGoogle Cloud認証情報のカスタムパス（デフォルトから変更する場合のみ）
+export GCP_CREDENTIALS_S3_BUCKET="あなたのバケット名"  # デフォルト: ndi-3supervision
+export GCP_CREDENTIALS_S3_KEY="認証情報JSONファイルのパス"  # デフォルト: MIT/GCPServiceKey/tosapi-bf0ac4918370.json
 ```
 
-サーバーが起動すると、`http://localhost:8000` でアクセス可能になります。
+### Podmanでの起動手順
+
+Podmanを使用してコンテナを起動する詳細な手順：
+
+```bash
+# 1. プロジェクトディレクトリに移動
+cd /root/aws.git/inpit-sqlite-mcp/
+
+# 2. AWS認証情報が設定されていることを確認
+echo $AWS_ACCESS_KEY_ID
+echo $AWS_SECRET_ACCESS_KEY
+echo $AWS_DEFAULT_REGION
+
+# 3. Podmanでコンテナをビルドして起動（バックグラウンド実行）
+podman-compose -f podman-compose.yml up -d
+
+# 4. コンテナの状態確認
+podman ps
+
+# 5. コンテナのログを確認（問題が発生した場合）
+podman logs inpit-sqlite-mcp
+```
+
+コマンド一行で環境変数を設定して起動する場合：
+
+```bash
+AWS_ACCESS_KEY_ID="あなたのアクセスキーID" \
+AWS_SECRET_ACCESS_KEY="あなたのシークレットキー" \
+AWS_DEFAULT_REGION="ap-northeast-1" \
+podman-compose -f podman-compose.yml up -d
+```
+
+### Dockerでの起動手順
+
+Docker Composeを使用してコンテナを起動する詳細な手順：
+
+```bash
+# 1. プロジェクトディレクトリに移動
+cd /root/aws.git/inpit-sqlite-mcp/
+
+# 2. AWS認証情報が設定されていることを確認
+echo $AWS_ACCESS_KEY_ID
+echo $AWS_SECRET_ACCESS_KEY
+echo $AWS_DEFAULT_REGION
+
+# 3. Docker Composeでコンテナをビルドして起動（バックグラウンド実行）
+docker-compose up -d
+
+# 4. コンテナの状態確認
+docker ps
+
+# 5. コンテナのログを確認（問題が発生した場合）
+docker logs inpit-sqlite-mcp
+```
+
+コマンド一行で環境変数を設定して起動する場合：
+
+```bash
+AWS_ACCESS_KEY_ID="あなたのアクセスキーID" \
+AWS_SECRET_ACCESS_KEY="あなたのシークレットキー" \
+AWS_DEFAULT_REGION="ap-northeast-1" \
+docker-compose up -d
+```
+
+### コンテナの管理
+
+構築したコンテナの管理コマンド：
+
+```bash
+# Podmanの場合：
+# コンテナの停止
+podman-compose -f podman-compose.yml stop
+
+# コンテナの再起動
+podman-compose -f podman-compose.yml restart
+
+# コンテナの停止と削除
+podman-compose -f podman-compose.yml down
+
+# コンテナのログを表示（リアルタイムで追跡）
+podman logs -f inpit-sqlite-mcp
+
+# Dockerの場合：
+# コンテナの停止
+docker-compose stop
+
+# コンテナの再起動
+docker-compose restart
+
+# コンテナの停止と削除
+docker-compose down
+
+# コンテナのログを表示（リアルタイムで追跡）
+docker logs -f inpit-sqlite-mcp
+```
+
+### Google Cloud認証情報の流れ
+
+コンテナ内でのGoogle Cloud認証情報の取得フローは以下の通りです：
+
+1. コンテナの起動時に設定されたAWS認証情報を使用
+2. 指定されたS3バケット（デフォルト: ndi-3supervision）から認証情報JSONファイルを取得
+3. 取得したJSONファイルを使用してGoogle Cloud BigQueryクライアントを初期化
+4. 一時ファイルとして保存された認証情報は使用後に自動削除
+
+このフローにより、コンテナ内で安全にBigQueryへの接続を確立します。S3からの取得に失敗した場合は、環境変数 `GOOGLE_APPLICATION_CREDENTIALS` を使用したフォールバックメカニズムも実装されています。
 
 ## Google Patents Public Data 機能
 
@@ -95,49 +216,6 @@ export AWS_DEFAULT_REGION="ap-northeast-1"  # または必要なリージョン
 # 環境変数で別のS3パスを指定する場合
 export GCP_CREDENTIALS_S3_BUCKET="あなたのバケット名"
 export GCP_CREDENTIALS_S3_KEY="認証情報JSONファイルのパス"
-```
-
-### Podmanでの起動方法
-
-AWS認証情報を設定してPodmanでサーバーを起動する例：
-
-```bash
-# AWS認証情報をエクスポート
-export AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID"
-export AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー"
-export AWS_DEFAULT_REGION="ap-northeast-1"
-
-# カレントディレクトリに移動
-cd /root/aws.git/inpit-sqlite-mcp/
-
-# Podmanを使用して起動
-podman-compose -f podman-compose.yml up -d
-```
-
-または、コマンド実行時に環境変数を指定することもできます：
-
-```bash
-AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID" AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー" AWS_DEFAULT_REGION="ap-northeast-1" podman-compose -f podman-compose.yml up -d
-```
-
-### Docker Composeでの起動方法
-
-同様に、Docker Composeを使用する場合：
-
-```bash
-# AWS認証情報をエクスポート
-export AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID"
-export AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー"
-export AWS_DEFAULT_REGION="ap-northeast-1"
-
-# Docker Composeを実行
-docker-compose up -d
-```
-
-または、コマンド実行時に環境変数を指定することもできます：
-
-```bash
-AWS_ACCESS_KEY_ID="あなたのAWSアクセスキーID" AWS_SECRET_ACCESS_KEY="あなたのAWSシークレットアクセスキー" AWS_DEFAULT_REGION="ap-northeast-1" docker-compose up -d
 ```
 
 ### BigQuery接続の確認方法
@@ -332,6 +410,9 @@ curl http://localhost:8000/patents/status
 - FastAPI - 高速なWebフレームワーク
 - Model Context Protocol (MCP) - AI モデルとの連携インターフェース
 - SQLite - 軽量データベース
+- Google BigQuery - 特許データのソース
+- AWS S3 - 認証情報の保存
+- Docker/Podman - コンテナ化
 
 ## ライセンス
 
