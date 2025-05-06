@@ -180,6 +180,7 @@ class GooglePatentsFetcher:
             self._create_database_schema()
             
             # Use publication_date to get approximately the requested number
+            # Note: Updated to use the latest BigQuery schema
             query = f"""
             SELECT
                 publication_number,
@@ -316,7 +317,28 @@ class GooglePatentsFetcher:
         try:
             if not family_id:
                 return 0
+            
+            # Use a local estimate instead of potentially expensive BigQuery count query
+            # In a production environment, we might cache this calculation
+            try:
+                # Try local calculation first if we already have some data
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT COUNT(*) FROM publications WHERE family_id = ?", 
+                    (family_id,)
+                )
+                local_count = cursor.fetchone()[0]
+                conn.close()
                 
+                if local_count > 0:
+                    # We already have some family members in the database
+                    return local_count
+            except Exception as local_err:
+                # If local calculation fails, log and continue with BigQuery
+                logger.warning(f"Local family size calculation failed: {local_err}")
+                
+            # Fall back to BigQuery query
             query = f"""
             SELECT
                 COUNT(*) as family_size
@@ -334,66 +356,64 @@ class GooglePatentsFetcher:
             return 0
         except Exception as e:
             logger.error(f"Error getting family size: {e}")
-            return 0
+            # Return a default value if we can't determine the family size
+            return 1  # Assume at least this patent is in the family
     
     def _build_family_relationships(self):
         """
         Build patent family relationships datamart from the publications table
-        Using recursive relationship based on family_id
+        Using family_id as the grouping key
         """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Get all unique family_ids
+            # First, truncate the patent_families table to avoid duplicates
+            cursor.execute("DELETE FROM patent_families")
+            conn.commit()
+            logger.info("Cleared existing family relationships")
+            
+            # Get all patents with family_ids and application_numbers for building relationships
             cursor.execute('''
-            SELECT DISTINCT family_id
-            FROM publications
-            WHERE family_id != ''
+            SELECT
+                family_id,
+                application_number,
+                publication_number,
+                country_code
+            FROM
+                publications
+            WHERE
+                family_id != '' AND application_number != ''
             ''')
             
-            family_ids = [row[0] for row in cursor.fetchall()]
-            logger.info(f"Found {len(family_ids)} unique family IDs")
+            # Insert all family relationships at once
+            family_data = cursor.fetchall()
             
-            # For each family_id, get all related patents and create relationship entries
-            total_relationships = 0
-            for family_id in family_ids:
-                # Get all patents in this family
-                cursor.execute('''
-                SELECT
-                    family_id,
-                    application_number,
-                    publication_number,
-                    country_code
-                FROM
-                    publications
-                WHERE
-                    family_id = ? AND application_number != ''
-                ''', (family_id,))
+            if family_data:
+                # Insert all relationship records
+                cursor.executemany(
+                    '''
+                    INSERT OR IGNORE INTO patent_families
+                    (family_id, application_number, publication_number, country_code)
+                    VALUES (?, ?, ?, ?)
+                    ''',
+                    family_data
+                )
+                conn.commit()
                 
-                family_members = cursor.fetchall()
+                # Get unique family count
+                cursor.execute("SELECT COUNT(DISTINCT family_id) FROM patent_families")
+                family_count = cursor.fetchone()[0]
                 
-                # Create relationship entries for all members of this family
-                insert_data = []
-                for member in family_members:
-                    family_id, application_number, publication_number, country_code = member
-                    insert_data.append((family_id, application_number, publication_number, country_code))
+                # Get total relationship count
+                cursor.execute("SELECT COUNT(*) FROM patent_families")
+                relationship_count = cursor.fetchone()[0]
                 
-                # Insert family relationships in batches if there are any
-                if insert_data:
-                    cursor.executemany(
-                        '''
-                        INSERT OR IGNORE INTO patent_families
-                        (family_id, application_number, publication_number, country_code)
-                        VALUES (?, ?, ?, ?)
-                        ''',
-                        insert_data
-                    )
-                    total_relationships += len(insert_data)
+                logger.info(f"Built family relationships for {relationship_count} patents across {family_count} families")
+            else:
+                logger.warning("No family relationships found to build")
             
-            conn.commit()
             conn.close()
-            logger.info(f"Built family relationships for {total_relationships} patents across {len(family_ids)} families")
         except Exception as e:
             logger.error(f"Error building family relationships: {e}")
             raise
