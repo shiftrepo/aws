@@ -32,6 +32,11 @@ COPY . .
 # Make sure scripts are executable
 RUN chmod +x server.py start_server.sh entrypoint.sh
 
+# Create needed directories with proper permissions
+RUN mkdir -p /app/templates /app/data/db
+RUN chown -R ec2-user:ec2-user /app/templates /app/data /app/data/db && \
+    chmod -R 755 /app/templates /app/data /app/data/db
+
 # Expose the port the app runs on
 EXPOSE 8000
 

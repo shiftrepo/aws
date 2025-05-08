@@ -26,8 +26,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths to Google Patents databases
-GOOGLE_PATENTS_DB_PATH = "/app/data/google_patents_gcp.db"  # GCP data
-S3_LOCAL_DB_PATH = "/app/data/google_patents_s3.db"        # S3 downloaded data
+GOOGLE_PATENTS_DB_PATH = "/app/data/db/google_patents_gcp.db"  # GCP data
+S3_LOCAL_DB_PATH = "/app/data/db/google_patents_s3.db"        # S3 downloaded data
 
 # Schema definitions for MCP tools
 SCHEMAS = {
@@ -78,21 +78,65 @@ class GooglePatentsMCPExtension:
         Initialize the Google Patents functionality
         """
         try:
-            # First try to use the GCP database
-            if os.path.exists(GOOGLE_PATENTS_DB_PATH) and os.path.getsize(GOOGLE_PATENTS_DB_PATH) > 10485760:
+            logger.info("Initializing Google Patents MCP Extension")
+            logger.info(f"Checking for GCP database at: {GOOGLE_PATENTS_DB_PATH}")
+            
+            # Check GCP database
+            gcp_exists = os.path.exists(GOOGLE_PATENTS_DB_PATH)
+            logger.info(f"GCP database exists: {gcp_exists}")
+            
+            if gcp_exists:
+                gcp_size = os.path.getsize(GOOGLE_PATENTS_DB_PATH)
+                logger.info(f"GCP database size: {gcp_size} bytes")
+                gcp_valid = gcp_size > 10485760  # 10MB
+            else:
+                gcp_valid = False
+                logger.warning(f"GCP database not found at {GOOGLE_PATENTS_DB_PATH}")
+            
+            # Check S3 database
+            logger.info(f"Checking for S3 database at: {S3_LOCAL_DB_PATH}")
+            s3_exists = os.path.exists(S3_LOCAL_DB_PATH)
+            logger.info(f"S3 database exists: {s3_exists}")
+            
+            if s3_exists:
+                s3_size = os.path.getsize(S3_LOCAL_DB_PATH)
+                logger.info(f"S3 database size: {s3_size} bytes")
+                s3_valid = s3_size > 10485760  # 10MB
+            else:
+                s3_valid = False
+                logger.warning(f"S3 database not found at {S3_LOCAL_DB_PATH}")
+            
+            # Check parent directories to verify they exist and have proper permissions
+            for db_path in [GOOGLE_PATENTS_DB_PATH, S3_LOCAL_DB_PATH]:
+                parent_dir = os.path.dirname(db_path)
+                if os.path.exists(parent_dir):
+                    logger.info(f"Parent directory exists for {db_path}: {parent_dir}")
+                    # Check if directory is writable
+                    if os.access(parent_dir, os.W_OK):
+                        logger.info(f"Directory {parent_dir} is writable")
+                    else:
+                        logger.error(f"Directory {parent_dir} is not writable!")
+                else:
+                    logger.error(f"Parent directory does not exist for {db_path}: {parent_dir}")
+            
+            # Determine which database to use
+            if gcp_valid:
                 self.active_db_path = GOOGLE_PATENTS_DB_PATH
                 logger.info(f"Using GCP database: {GOOGLE_PATENTS_DB_PATH}")
-            # Fall back to S3 database if GCP database doesn't exist or is too small
-            elif os.path.exists(S3_LOCAL_DB_PATH) and os.path.getsize(S3_LOCAL_DB_PATH) > 10485760:
+            elif s3_valid:
                 self.active_db_path = S3_LOCAL_DB_PATH
                 logger.info(f"Using S3 database: {S3_LOCAL_DB_PATH}")
-            # Default to GCP database path even if it doesn't exist yet
             else:
                 self.active_db_path = GOOGLE_PATENTS_DB_PATH
                 logger.warning(f"No valid database found, defaulting to GCP database path: {GOOGLE_PATENTS_DB_PATH}")
+                logger.error("Both GCP and S3 databases are missing or invalid - this will cause problems!")
             
+            logger.info(f"Initializing patent fetcher with database path: {self.active_db_path}")
             self.patent_fetcher = GooglePatentsFetcher(db_path=self.active_db_path)
+            
+            logger.info(f"Initializing NL query processor with database path: {self.active_db_path}")
             self.nl_processor = PatentNLQueryProcessor(db_path=self.active_db_path)
+            
             logger.info(f"Google Patents functionality initialized with database: {self.active_db_path}")
         except Exception as e:
             logger.error(f"Error initializing Google Patents functionality: {e}")
@@ -309,10 +353,71 @@ class GooglePatentsMCPExtension:
             gcp_db_exists = os.path.exists(GOOGLE_PATENTS_DB_PATH)
             s3_db_exists = os.path.exists(S3_LOCAL_DB_PATH)
             
+            logger.info(f"Checking database status - GCP DB exists: {gcp_db_exists}, S3 DB exists: {s3_db_exists}")
+            
+            # Check if we need to create an empty database on the fly
+            if not (gcp_db_exists or s3_db_exists):
+                logger.warning("No database files found. Attempting to create an empty fallback database.")
+                try:
+                    # Create directory if it doesn't exist
+                    os.makedirs(os.path.dirname(S3_LOCAL_DB_PATH), exist_ok=True)
+                    
+                    # Create an empty SQLite database with required schema
+                    conn = sqlite3.connect(S3_LOCAL_DB_PATH)
+                    cursor = conn.cursor()
+                    
+                    # Create publications table
+                    cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS publications (
+                        publication_number TEXT PRIMARY KEY,
+                        filing_date TEXT,
+                        publication_date TEXT,
+                        application_number TEXT,
+                        assignee_harmonized TEXT,
+                        assignee_original TEXT,
+                        title_ja TEXT,
+                        title_en TEXT,
+                        abstract_ja TEXT,
+                        abstract_en TEXT,
+                        claims TEXT,
+                        ipc_code TEXT,
+                        family_id TEXT,
+                        country_code TEXT,
+                        kind_code TEXT,
+                        priority_date TEXT,
+                        grant_date TEXT,
+                        priority_claim TEXT,
+                        status TEXT,
+                        legal_status TEXT,
+                        examined TEXT,
+                        family_size INTEGER
+                    )
+                    ''')
+                    
+                    # Create patent_families table
+                    cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS patent_families (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        family_id TEXT,
+                        application_number TEXT,
+                        publication_number TEXT,
+                        country_code TEXT,
+                        UNIQUE(family_id, application_number)
+                    )
+                    ''')
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    logger.info(f"Successfully created empty fallback database at {S3_LOCAL_DB_PATH}")
+                    s3_db_exists = True  # We've just created it
+                except Exception as e:
+                    logger.error(f"Failed to create empty fallback database: {str(e)}")
+            
             if not (gcp_db_exists or s3_db_exists):
                 return {
                     "status": "not_found",
-                    "message": "No Google Patents database files found",
+                    "message": "No Google Patents database files found and could not create a fallback database",
                     "gcp_path": GOOGLE_PATENTS_DB_PATH,
                     "s3_path": S3_LOCAL_DB_PATH
                 }

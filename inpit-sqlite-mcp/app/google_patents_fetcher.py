@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class GooglePatentsFetcher:
     """Class to fetch and process Google Patents Public Data"""
     
-    def __init__(self, credentials_path: str = None, db_path: str = "/app/data/google_patents.db"):
+    def __init__(self, credentials_path: str = None, db_path: str = "/app/data/db/google_patents_gcp.db"):
         """
         Initialize the Google Patents fetcher
         

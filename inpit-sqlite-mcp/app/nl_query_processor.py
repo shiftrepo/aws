@@ -25,7 +25,7 @@ class PatentNLQueryProcessor:
     Process natural language queries for patent data and convert them to SQL queries
     """
     
-    def __init__(self, db_path: str = "/app/data/google_patents_gcp.db"):
+    def __init__(self, db_path: str = "/app/data/db/google_patents_gcp.db"):
         """
         Initialize the natural language query processor
         
