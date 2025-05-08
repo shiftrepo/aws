@@ -28,7 +28,7 @@ ls -la $DB_SUBDIR || echo "DB subdirectory not found"
 GOOGLE_PATENTS_DB_PATH="$DB_SUBDIR/google_patents_gcp.db"
 S3_LOCAL_DB_PATH="$DB_SUBDIR/google_patents_s3.db"
 S3_BUCKET="ndi-3supervision"
-S3_KEY="MIT/demo/GCP/google_patents.db"
+S3_KEY="MIT/demo/GCP/bak/google_patents.db"
 S3_SQLITE_DB_PATH="s3://$S3_BUCKET/$S3_KEY"
 
 echo "Database paths:"

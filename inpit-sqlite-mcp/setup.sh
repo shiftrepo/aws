@@ -19,12 +19,15 @@ echo "AWS credentials found in environment variables."
 
 # Create necessary directories before running podman-compose
 echo "Creating required directories..."
-mkdir -p ./data/db
+mkdir -p ./data-inpit-sqlite/db
+mkdir -p ./data-inpit-sqlite-mcp/db
 
-# Set correct ownership and permissions for container user (UID 1000, GID 1000)
+# Set correct ownership and permissions for container user (ec2-user)
 echo "Setting proper permissions on data directories..."
-chown -R 1000:1000 ./data
-chmod -R 775 ./data
+chown -R ec2-user:ec2-user ./data-inpit-sqlite
+chown -R ec2-user:ec2-user ./data-inpit-sqlite-mcp
+chmod -R 775 ./data-inpit-sqlite
+chmod -R 775 ./data-inpit-sqlite-mcp
 
 # Run podman-compose to build and start the containers
 echo "Starting services with podman-compose..."
