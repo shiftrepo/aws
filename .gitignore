@@ -173,3 +173,4 @@ cython_debug/
 tosapi-*.json
 
 data/
+data-*/
