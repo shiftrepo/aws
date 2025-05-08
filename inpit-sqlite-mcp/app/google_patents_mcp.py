@@ -25,8 +25,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Path to Google Patents database
-GOOGLE_PATENTS_DB_PATH = "/app/data/google_patents.db"
+# Paths to Google Patents databases
+GOOGLE_PATENTS_DB_PATH = "/app/data/google_patents_gcp.db"  # GCP data
+S3_LOCAL_DB_PATH = "/app/data/google_patents_s3.db"        # S3 downloaded data
 
 # Schema definitions for MCP tools
 SCHEMAS = {
@@ -77,11 +78,25 @@ class GooglePatentsMCPExtension:
         Initialize the Google Patents functionality
         """
         try:
-            self.patent_fetcher = GooglePatentsFetcher(db_path=GOOGLE_PATENTS_DB_PATH)
-            self.nl_processor = PatentNLQueryProcessor(db_path=GOOGLE_PATENTS_DB_PATH)
-            logger.info("Google Patents functionality initialized")
+            # First try to use the GCP database
+            if os.path.exists(GOOGLE_PATENTS_DB_PATH) and os.path.getsize(GOOGLE_PATENTS_DB_PATH) > 10485760:
+                self.active_db_path = GOOGLE_PATENTS_DB_PATH
+                logger.info(f"Using GCP database: {GOOGLE_PATENTS_DB_PATH}")
+            # Fall back to S3 database if GCP database doesn't exist or is too small
+            elif os.path.exists(S3_LOCAL_DB_PATH) and os.path.getsize(S3_LOCAL_DB_PATH) > 10485760:
+                self.active_db_path = S3_LOCAL_DB_PATH
+                logger.info(f"Using S3 database: {S3_LOCAL_DB_PATH}")
+            # Default to GCP database path even if it doesn't exist yet
+            else:
+                self.active_db_path = GOOGLE_PATENTS_DB_PATH
+                logger.warning(f"No valid database found, defaulting to GCP database path: {GOOGLE_PATENTS_DB_PATH}")
+            
+            self.patent_fetcher = GooglePatentsFetcher(db_path=self.active_db_path)
+            self.nl_processor = PatentNLQueryProcessor(db_path=self.active_db_path)
+            logger.info(f"Google Patents functionality initialized with database: {self.active_db_path}")
         except Exception as e:
             logger.error(f"Error initializing Google Patents functionality: {e}")
+            self.active_db_path = GOOGLE_PATENTS_DB_PATH  # Default to GCP path if initialization fails
             # We'll continue even if this fails
     
     def get_tools(self) -> List[Dict[str, Any]]:
@@ -177,7 +192,7 @@ class GooglePatentsMCPExtension:
             Import results
         """
         try:
-            limit = arguments.get("limit", 10000)
+            limit = arguments.get("limit", 5000)  # Default reduced to 5000
             credentials_path = arguments.get("credentials_path", None)
             
             # Ensure limit is within reasonable bounds
@@ -187,7 +202,7 @@ class GooglePatentsMCPExtension:
             # The GooglePatentsFetcher will automatically handle S3 credentials fetching
             self.patent_fetcher = GooglePatentsFetcher(
                 credentials_path=credentials_path,  # This is now optional and used as a fallback
-                db_path=GOOGLE_PATENTS_DB_PATH
+                db_path=GOOGLE_PATENTS_DB_PATH  # Always import to the GCP database
             )
             
             # Import the patents
@@ -290,16 +305,20 @@ class GooglePatentsMCPExtension:
         try:
             import sqlite3
             
-            # Check if database exists
-            if not os.path.exists(GOOGLE_PATENTS_DB_PATH):
+            # Check both databases and provide status for both
+            gcp_db_exists = os.path.exists(GOOGLE_PATENTS_DB_PATH)
+            s3_db_exists = os.path.exists(S3_LOCAL_DB_PATH)
+            
+            if not (gcp_db_exists or s3_db_exists):
                 return {
                     "status": "not_found",
-                    "message": "Google Patents database file not found",
-                    "path": GOOGLE_PATENTS_DB_PATH
+                    "message": "No Google Patents database files found",
+                    "gcp_path": GOOGLE_PATENTS_DB_PATH,
+                    "s3_path": S3_LOCAL_DB_PATH
                 }
             
-            # Connect to the database
-            conn = sqlite3.connect(GOOGLE_PATENTS_DB_PATH)
+            # Use the active database for schema information
+            conn = sqlite3.connect(self.active_db_path)
             cursor = conn.cursor()
             
             # Check if publications table exists
@@ -332,9 +351,30 @@ class GooglePatentsMCPExtension:
                 
                 conn.close()
                 
+                # Gather status for both databases
+                gcp_status = "not_found"
+                s3_status = "not_found"
+                
+                if gcp_db_exists:
+                    gcp_status = "available" if os.path.getsize(GOOGLE_PATENTS_DB_PATH) > 10485760 else "empty"
+                
+                if s3_db_exists:
+                    s3_status = "available" if os.path.getsize(S3_LOCAL_DB_PATH) > 10485760 else "empty"
+                
                 return {
                     "status": "available",
                     "message": "Google Patents database is available",
+                    "active_db": self.active_db_path,
+                    "databases": {
+                        "gcp": {
+                            "path": GOOGLE_PATENTS_DB_PATH,
+                            "status": gcp_status
+                        },
+                        "s3": {
+                            "path": S3_LOCAL_DB_PATH,
+                            "status": s3_status
+                        }
+                    },
                     "statistics": {
                         "publication_count": publication_count,
                         "family_count": family_count,
