@@ -5,31 +5,39 @@
 
 echo "Setting up Inpit SQLite MCP Server..."
 
-# Create virtual environment
-echo "Creating Python virtual environment..."
-python3 -m venv venv || python -m venv venv
+# Check for required AWS environment variables
+if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo "ERROR: AWS credentials not found in environment variables."
+    echo "Please set the following environment variables:"
+    echo "  export AWS_ACCESS_KEY_ID=your_access_key"
+    echo "  export AWS_SECRET_ACCESS_KEY=your_secret_key"
+    echo "Setup aborted."
+    exit 1
+fi
 
-# Activate virtual environment
-echo "Activating virtual environment..."
-source venv/bin/activate
+echo "AWS credentials found in environment variables."
 
-# Install requirements
-echo "Installing dependencies..."
-pip install -r app/requirements.txt
+# Create necessary directories before running podman-compose
+echo "Creating required directories..."
+mkdir -p ./data/db
 
-# Make server.py executable
-chmod +x app/server.py
+# Set correct ownership and permissions for container user (UID 1000, GID 1000)
+echo "Setting proper permissions on data directories..."
+chown -R 1000:1000 ./data
+chmod -R 775 ./data
+
+# Run podman-compose to build and start the containers
+echo "Starting services with podman-compose..."
+podman-compose -f podman-compose.yml up -d
 
 echo "Setup complete!"
 echo ""
-echo "To run the server:"
-echo "1. Ensure the Inpit SQLite service is running (default: http://localhost:5001)"
-echo "2. Configure environment variables (optional):"
-echo "   export INPIT_API_URL=http://localhost:5001  # Change if your Inpit SQLite service is at a different URL"
-echo "   export PORT=8000                          # Change if you want to run the MCP server on a different port"
-echo "3. Start the server:"
-echo "   source venv/bin/activate"
-echo "   cd app && python server.py"
+echo "The MCP server is now running in containers:"
+echo "- inpit-sqlite: http://localhost:5001"
+echo "- inpit-sqlite-mcp: http://localhost:8000"
+echo ""
+echo "All library installations and application executions are performed inside the containers."
+echo "No additional setup is required on the host system."
 echo ""
 echo "For Claude integration:"
 echo "Update your Claude configuration to include this MCP server."

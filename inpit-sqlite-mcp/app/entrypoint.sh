@@ -18,14 +18,10 @@ echo "Verifying directory permissions:"
 ls -la $DATA_DIR
 ls -la $DB_SUBDIR
 
-# Ensure the db directory exists and has correct permissions
-mkdir -p "$DB_SUBDIR"
-echo "Setting correct permissions on data directories..."
-chown -R $(id -u):$(id -g) "$DATA_DIR" "$DB_SUBDIR" || echo "Warning: Could not change directory ownership"
-chmod -R 755 "$DATA_DIR" "$DB_SUBDIR" || echo "Warning: Could not change directory permissions"
-echo "After permission changes:"
+# Check data directories (these should be created by setup.sh before container starts)
+echo "Checking mounted data directories..."
 ls -la $DATA_DIR
-ls -la $DB_SUBDIR
+ls -la $DB_SUBDIR || echo "DB subdirectory not found"
 
 # Define database paths - separate paths for GCP and S3 data
 # Put them in the subdirectory we created and know we have write access to
