@@ -20,18 +20,22 @@ S3_BUCKET="ndi-3supervision"
 S3_KEY="MIT/demo/GCP/bak/google_patents.db"
 S3_SQLITE_DB_PATH="s3://$S3_BUCKET/$S3_KEY"
 
+# Set GCP credentials environment variables for GooglePatentsFetcher class
+export GCP_CREDENTIALS_S3_KEY="MIT/GCPServiceKey/mytest-202601-6d547916bf46.json"
+export GCP_CREDENTIALS_S3_BUCKET="ndi-3supervision"
+
 echo "Database paths:"
 echo "- Inpit Database: $DB_PATH"
 echo "- GCP Database: $GOOGLE_PATENTS_GCP_DB_PATH"
 echo "- S3 Local Database: $GOOGLE_PATENTS_S3_DB_PATH"
 echo "- S3 Source Path: $S3_SQLITE_DB_PATH"
 
-# Download all necessary data from S3
-echo "Downloading data from S3..."
+# Download all necessary data from S3 and create from BigQuery
+echo "Downloading data from S3 and creating database from BigQuery..."
 python /app/download_data.py
 
 # Check if the INPIT CSV file was downloaded successfully
-if [ ! -f "/app/data/plidb_bulkdata_202503.csv" ]; then
+if [ ! -f "$CSV_PATH" ]; then
     echo "Failed to download INPIT data from S3."
     # Continue anyway as we might still have the Google Patents databases
 fi
@@ -67,6 +71,13 @@ for db_file in "$GOOGLE_PATENTS_GCP_DB_PATH" "$GOOGLE_PATENTS_S3_DB_PATH"; do
     fi
 done
 
+# Create symlinks for legacy path compatibility if necessary
+LEGACY_PATENTS_DB_PATH="/app/data/google_patents.db"
+if [ ! -f "$LEGACY_PATENTS_DB_PATH" ] && [ -f "$GOOGLE_PATENTS_S3_DB_PATH" ]; then
+    echo "Creating symlink for legacy path compatibility"
+    ln -sf "$GOOGLE_PATENTS_S3_DB_PATH" "$LEGACY_PATENTS_DB_PATH"
+fi
+
 # Create schema and import data
 echo "Creating schema and importing data..."
 python /app/schema.py
@@ -75,7 +86,7 @@ python /app/schema.py
 if [ -f "$DB_PATH" ]; then
     echo "Setting permissions on database file"
     # Try to make the database file readable and writable by all
-    touch "$DB_PATH" 2>/dev/null || echo "Cannot touch DB file - continuing anyway"
+    chmod 666 "$DB_PATH" 2>/dev/null || echo "Cannot set permissions on DB file - continuing anyway"
 fi
 
 # Start SQLite Web UI

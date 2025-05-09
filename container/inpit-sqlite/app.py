@@ -145,6 +145,49 @@ class InpitSQLExamplesView(BaseView):
                           db_title='INPIT SQLite',
                           db_file='inpit.db')
 
+    @expose('/query', methods=['POST'])
+    def query(self):
+        """Execute a SQL query on inpit database and return results."""
+        sql_query = request.form.get('query', '')
+        db_path = INPIT_DB_PATH
+        
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute(sql_query)
+            
+            # Check if query returns data
+            if sql_query.strip().lower().startswith(('select', 'pragma', 'explain')):
+                columns = [description[0] for description in cursor.description]
+                
+                # Map DB column names to original CSV headers if possible
+                display_columns = []
+                for col in columns:
+                    display_columns.append(column_mapping.get(col, col))
+                    
+                results = cursor.fetchall()
+                conn.close()
+                return jsonify({
+                    "success": True,
+                    "columns": display_columns,
+                    "results": results
+                })
+            else:
+                # For non-SELECT queries
+                conn.commit()
+                affected_rows = cursor.rowcount
+                conn.close()
+                return jsonify({
+                    "success": True,
+                    "message": f"Query executed successfully. {affected_rows} rows affected."
+                })
+                
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            })
+
 class GooglePatentsGCPExamplesView(BaseView):
     @expose('/')
     def index(self):
@@ -152,6 +195,49 @@ class GooglePatentsGCPExamplesView(BaseView):
         return self.render('admin/sql_examples.html', db_type='google_patents_gcp', 
                           db_title='Google Patents GCP',
                           db_file='google_patents_gcp.db')
+    
+    @expose('/query', methods=['POST'])
+    def query(self):
+        """Execute a SQL query on Google Patents GCP database and return results."""
+        sql_query = request.form.get('query', '')
+        db_path = GOOGLE_PATENTS_GCP_DB_PATH
+        
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute(sql_query)
+            
+            # Check if query returns data
+            if sql_query.strip().lower().startswith(('select', 'pragma', 'explain')):
+                columns = [description[0] for description in cursor.description]
+                
+                # Map DB column names to original CSV headers if possible
+                display_columns = []
+                for col in columns:
+                    display_columns.append(column_mapping.get(col, col))
+                    
+                results = cursor.fetchall()
+                conn.close()
+                return jsonify({
+                    "success": True,
+                    "columns": display_columns,
+                    "results": results
+                })
+            else:
+                # For non-SELECT queries
+                conn.commit()
+                affected_rows = cursor.rowcount
+                conn.close()
+                return jsonify({
+                    "success": True,
+                    "message": f"Query executed successfully. {affected_rows} rows affected."
+                })
+                
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            })
         
 class GooglePatentsS3ExamplesView(BaseView):
     @expose('/')
@@ -160,6 +246,49 @@ class GooglePatentsS3ExamplesView(BaseView):
         return self.render('admin/sql_examples.html', db_type='google_patents_s3', 
                           db_title='Google Patents S3',
                           db_file='google_patents_s3.db')
+    
+    @expose('/query', methods=['POST'])
+    def query(self):
+        """Execute a SQL query on Google Patents S3 database and return results."""
+        sql_query = request.form.get('query', '')
+        db_path = GOOGLE_PATENTS_S3_DB_PATH
+        
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute(sql_query)
+            
+            # Check if query returns data
+            if sql_query.strip().lower().startswith(('select', 'pragma', 'explain')):
+                columns = [description[0] for description in cursor.description]
+                
+                # Map DB column names to original CSV headers if possible
+                display_columns = []
+                for col in columns:
+                    display_columns.append(column_mapping.get(col, col))
+                    
+                results = cursor.fetchall()
+                conn.close()
+                return jsonify({
+                    "success": True,
+                    "columns": display_columns,
+                    "results": results
+                })
+            else:
+                # For non-SELECT queries
+                conn.commit()
+                affected_rows = cursor.rowcount
+                conn.close()
+                return jsonify({
+                    "success": True,
+                    "message": f"Query executed successfully. {affected_rows} rows affected."
+                })
+                
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            })
 
 # Setup Flask-Admin
 admin = Admin(app, name='Inpit SQLite Database', template_mode='bootstrap3')
@@ -276,524 +405,6 @@ document.getElementById('executeBtn').addEventListener('click', function() {
     })
     .catch(error => {
         document.getElementById('resultContent').innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
-    });
-});
-</script>
-{% endblock %}
-    ''')
-
-# Create SQL examples template
-with open('templates/admin/sql_examples.html', 'w') as f:
-    f.write('''
-{% extends 'admin/master.html' %}
-
-{% block body %}
-<h1>SQLite 基本クエリ例</h1>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-body">
-                <div class="form-group">
-                    <label for="dbSelector">データベース選択 (Database Selection):</label>
-                    <select id="dbSelector" class="form-control">
-                        <option value="inpit">inpit.db</option>
-                        <option value="google_patents">google_patents.db</option>
-                        <option value="google_patents_gcp">google_patents_gcp.db</option>
-                        <option value="google_patents_s3">google_patents_s3.db</option>
-                    </select>
-                </div>
-                <div class="alert alert-info">
-                    <strong>注意 (Note):</strong> データベースを切り替えた後、クエリを実行すると選択したデータベースに対してクエリが実行されます。
-                    <br>After switching databases, queries will be executed against the selected database.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">テーブル情報の取得 (Table Information)</h3>
-            </div>
-            <div class="box-body">
-                <div class="panel-group" id="accordion-table-info">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-list">
-                                    データベース内のテーブル一覧 (List all tables)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-table-list" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT name FROM sqlite_master WHERE type='table';</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-schema">
-                                    テーブルのスキーマ情報 (Table schema information)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-table-schema" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>PRAGMA table_info(inpit_data);</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(inpit_data);">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="PRAGMA table_info(inpit_data);">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">基本的なSELECT文 (Basic SELECT statements)</h3>
-            </div>
-            <div class="box-body">
-                <div class="panel-group" id="accordion-basic-select">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-all">
-                                    すべてのデータを取得 (Select all data)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-select-all" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT * FROM inpit_data LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT * FROM inpit_data LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT * FROM inpit_data LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-columns">
-                                    特定のカラムを選択 (Select specific columns)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-select-columns" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT id, application_number, title FROM inpit_data LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT id, application_number, title FROM inpit_data LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT id, application_number, title FROM inpit_data LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-where">
-                                    WHERE句による条件抽出 (Filter with WHERE clause)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-select-where" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT * FROM inpit_data WHERE application_date > '2020-01-01' LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT * FROM inpit_data WHERE application_date > '2020-01-01' LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT * FROM inpit_data WHERE application_date > '2020-01-01' LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-orderby">
-                                    ORDER BY句によるソート (Sort with ORDER BY)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-select-orderby" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT * FROM inpit_data ORDER BY application_date DESC LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT * FROM inpit_data ORDER BY application_date DESC LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT * FROM inpit_data ORDER BY application_date DESC LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">集計関数 (Aggregate Functions)</h3>
-            </div>
-            <div class="box-body">
-                <div class="panel-group" id="accordion-aggregates">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-aggregates" href="#collapse-count">
-                                    レコード数のカウント (Count records)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-count" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT COUNT(*) AS record_count FROM inpit_data;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT COUNT(*) AS record_count FROM inpit_data;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT COUNT(*) AS record_count FROM inpit_data;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-aggregates" href="#collapse-group-by">
-                                    GROUP BY句を使用した集計 (Aggregate with GROUP BY)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-group-by" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT applicant_name, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant_name ORDER BY patent_count DESC LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT applicant_name, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant_name ORDER BY patent_count DESC LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT applicant_name, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant_name ORDER BY patent_count DESC LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-aggregates" href="#collapse-having">
-                                    HAVING句を使った集計結果のフィルタリング (Filter aggregates with HAVING)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-having" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT applicant_name, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant_name HAVING patent_count > 5 ORDER BY patent_count DESC;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT applicant_name, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant_name HAVING patent_count > 5 ORDER BY patent_count DESC;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT applicant_name, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant_name HAVING patent_count > 5 ORDER BY patent_count DESC;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">テキスト検索 (Text Search)</h3>
-            </div>
-            <div class="box-body">
-                <div class="panel-group" id="accordion-text-search">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-text-search" href="#collapse-like">
-                                    LIKE演算子を使用したワイルドカード検索 (Wildcard search with LIKE)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-like" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT * FROM inpit_data WHERE title LIKE '%ロボット%' LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT * FROM inpit_data WHERE title LIKE '%ロボット%' LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT * FROM inpit_data WHERE title LIKE '%ロボット%' LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">日付関数 (Date Functions)</h3>
-            </div>
-            <div class="box-body">
-                <div class="panel-group" id="accordion-dates">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-dates" href="#collapse-date-year">
-                                    年別の出願数 (Applications by year)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-date-year" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT SUBSTR(application_date, 1, 4) as year, COUNT(*) as count FROM inpit_data GROUP BY year ORDER BY year DESC;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT SUBSTR(application_date, 1, 4) as year, COUNT(*) as count FROM inpit_data GROUP BY year ORDER BY year DESC;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT SUBSTR(application_date, 1, 4) as year, COUNT(*) as count FROM inpit_data GROUP BY year ORDER BY year DESC;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">Google Patents データベースのクエリ例 (Google Patents Database Query Examples)</h3>
-            </div>
-            <div class="box-body">
-                <div class="panel-group" id="accordion-google-patents">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-tables">
-                                    テーブル一覧 (List of tables in Google Patents DB)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-patents-tables" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT name FROM sqlite_master WHERE type='table';</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-schema">
-                                    publicationsテーブルのスキーマ (Schema of publications table)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-patents-schema" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>PRAGMA table_info(publications);</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(publications);">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="PRAGMA table_info(publications);">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-basic">
-                                    特許データの基本検索 (Basic patent search)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-patents-basic" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT publication_number, title_ja, title_en, publication_date 
-FROM publications 
-LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-assignee">
-                                    出願人による検索 (Search by assignee)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-patents-assignee" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT publication_number, title_ja, assignee_harmonized, publication_date 
-FROM publications 
-WHERE assignee_harmonized LIKE '%Sony%' 
-ORDER BY publication_date DESC
-LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, assignee_harmonized, publication_date FROM publications WHERE assignee_harmonized LIKE '%Sony%' ORDER BY publication_date DESC LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, assignee_harmonized, publication_date FROM publications WHERE assignee_harmonized LIKE '%Sony%' ORDER BY publication_date DESC LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-keyword">
-                                    キーワード検索 (Keyword search)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-patents-keyword" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT publication_number, title_ja, abstract_ja, publication_date 
-FROM publications 
-WHERE title_ja LIKE '%人工知能%' OR abstract_ja LIKE '%人工知能%'
-LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, abstract_ja, publication_date FROM publications WHERE title_ja LIKE '%人工知能%' OR abstract_ja LIKE '%人工知能%' LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, abstract_ja, publication_date FROM publications WHERE title_ja LIKE '%人工知能%' OR abstract_ja LIKE '%人工知能%' LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h4 class="panel-title">
-                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-family">
-                                    特許ファミリー検索 (Patent family search)
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="collapse-patents-family" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <pre>SELECT p.publication_number, p.title_ja, p.country_code, p.family_id
-FROM publications p
-JOIN patent_families f ON p.family_id = f.family_id
-WHERE f.family_id IN (
-    SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1
-)
-LIMIT 10;</pre>
-                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT p.publication_number, p.title_ja, p.country_code, p.family_id FROM publications p JOIN patent_families f ON p.family_id = f.family_id WHERE f.family_id IN (SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1) LIMIT 10;">コピー (Copy)</button>
-                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT p.publication_number, p.title_ja, p.country_code, p.family_id FROM publications p JOIN patent_families f ON p.family_id = f.family_id WHERE f.family_id IN (SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1) LIMIT 10;">実行 (Run)</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div id="results" class="box">
-            <div class="box-header">
-                <h3 class="box-title">実行結果 (Results)</h3>
-            </div>
-            <div class="box-body">
-                <div id="resultContent"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle copy buttons
-    document.querySelectorAll('.copy-btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const query = this.getAttribute('data-query');
-            
-            // Create a temporary textarea to copy text
-            const textarea = document.createElement('textarea');
-            textarea.value = query;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            
-            // Show feedback
-            const originalText = this.textContent;
-            this.textContent = 'コピーしました (Copied)!';
-            setTimeout(() => {
-                this.textContent = originalText;
-            }, 1500);
-        });
-    });
-    
-    // Handle run buttons
-    document.querySelectorAll('.run-btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const query = this.getAttribute('data-query');
-            
-            // Show a loading indicator
-            const resultDiv = document.getElementById('resultContent');
-            resultDiv.innerHTML = `<div class="text-center"><i class="fa fa-spinner fa-spin fa-2x"></i><p>実行中 (Executing query)...</p></div>`;
-            
-            // Scroll to results
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-            
-            // Execute the query
-            const dbSelector = document.getElementById('dbSelector');
-            const dbType = dbSelector.value;
-            
-            fetch('/query', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'query=' + encodeURIComponent(query) + '&db_type=' + encodeURIComponent(dbType)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                    return;
-                }
-                
-                if (data.message) {
-                    resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-                    return;
-                }
-                
-                // Display results in a table
-                let tableHtml = '<div class="table-responsive"><table class="table table-striped table-bordered">';
-                tableHtml += '<thead><tr>';
-                data.columns.forEach(column => {
-                    tableHtml += `<th>${column}</th>`;
-                });
-                tableHtml += '</tr></thead><tbody>';
-                
-                data.results.forEach(row => {
-                    tableHtml += '<tr>';
-                    row.forEach(cell => {
-                        tableHtml += `<td>${cell === null ? '<em>NULL</em>' : cell}</td>`;
-                    });
-                    tableHtml += '</tr>';
-                });
-                
-                tableHtml += '</tbody></table></div>';
-                
-                resultDiv.innerHTML = `
-                    <div class="alert alert-success">クエリが実行されました (Query executed successfully). ${data.results.length} 行のデータが返されました (rows returned).</div>
-                    <div class="well well-sm"><pre>${query}</pre></div>
-                    ${tableHtml}
-                `;
-            })
-            .catch(error => {
-                resultDiv.innerHTML = `<div class="alert alert-danger">エラー (Error): ${error}</div>`;
-            });
-        });
     });
 });
 </script>
