@@ -28,7 +28,7 @@ INPIT_DB_PATH = "/app/data/inpit.db"
 # Google Patents database paths
 S3_BUCKET_PATENTS = "ndi-3supervision"
 S3_KEY_PATENTS_GCP = "MIT/demo/GCP/google_patents_gcp.db"
-S3_KEY_PATENTS_S3 = "MIT/demo/S3/google_patents_s3.db"
+S3_KEY_PATENTS_S3 = "MIT/demo/GCP/google_patents_s3.db"
 GOOGLE_PATENTS_GCP_DB_PATH = "/app/data/google_patents_gcp.db"
 GOOGLE_PATENTS_S3_DB_PATH = "/app/data/google_patents_s3.db"
 

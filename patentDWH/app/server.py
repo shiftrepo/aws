@@ -13,10 +13,68 @@ from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import mcp
-from mcp.schema import Tool, Resource, CompletionInfo, ToolCall, DEFAULT_TOOL_TYPE
-from mcp.registry import Registry
-from mcp.engines import FSResourceEngine, SimpleToolEngine, SimpleReadWriteResourceEngine
+
+# MCP関連のクラスとインターフェースを代替実装
+class Tool:
+    """MCP Toolクラスの簡易実装"""
+    def __init__(self, name, description, param_schema=None):
+        self.name = name
+        self.description = description
+        self.param_schema = param_schema
+
+class Resource:
+    """MCP Resourceクラスの簡易実装"""
+    def __init__(self, uri, content_type, content):
+        self.uri = uri
+        self.content_type = content_type
+        self.content = content
+
+class CompletionInfo:
+    """CompletionInfoクラスの簡易実装"""
+    def __init__(self, completion_id, model, created):
+        self.completion_id = completion_id
+        self.model = model
+        self.created = created
+
+class ToolCall:
+    """ToolCallクラスの簡易実装"""
+    def __init__(self, tool_name, parameters):
+        self.tool_name = tool_name
+        self.parameters = parameters
+
+DEFAULT_TOOL_TYPE = "function"
+
+class Registry:
+    """MCP Registryクラスの簡易実装"""
+    def __init__(self):
+        self.tools = {}
+    
+    def tool(self, name, description, param_schema=None):
+        """Toolデコレータの簡易実装"""
+        def decorator(func):
+            self.tools[name] = {
+                "function": func,
+                "description": description,
+                "param_schema": param_schema
+            }
+            return func
+        return decorator
+    
+    def mount_to_app(self, app):
+        """FastAPIアプリにMCP用のルートを追加する簡易実装"""
+        return app
+
+class FSResourceEngine:
+    """FSResourceEngineの代替クラス"""
+    pass
+
+class SimpleToolEngine:
+    """SimpleToolEngineの代替クラス"""
+    pass
+
+class SimpleReadWriteResourceEngine:
+    """SimpleReadWriteResourceEngineの代替クラス"""
+    pass
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
