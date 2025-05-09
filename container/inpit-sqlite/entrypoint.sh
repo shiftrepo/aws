@@ -30,9 +30,14 @@ echo "- GCP Database: $GOOGLE_PATENTS_GCP_DB_PATH"
 echo "- S3 Local Database: $GOOGLE_PATENTS_S3_DB_PATH"
 echo "- S3 Source Path: $S3_SQLITE_DB_PATH"
 
-# Download all necessary data from S3 and create from BigQuery
-echo "Downloading data from S3 and creating database from BigQuery..."
-python /app/download_data.py
+# Check if we should skip data download
+if [ "${SKIP_DATA_DOWNLOAD}" = "true" ]; then
+    echo "SKIP_DATA_DOWNLOAD=true, skipping data download and using existing databases..."
+else
+    # Download all necessary data from S3 and create from BigQuery
+    echo "Downloading data from S3 and creating database from BigQuery..."
+    python /app/download_data.py
+fi
 
 # Check if the INPIT CSV file was downloaded successfully
 if [ ! -f "$CSV_PATH" ]; then

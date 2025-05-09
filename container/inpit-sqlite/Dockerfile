@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy scripts and files
 COPY *.py /app/
 COPY *.sh /app/
+COPY templates /app/templates
 
 # Make scripts executable
 RUN chmod +x /app/*.sh

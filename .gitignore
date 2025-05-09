@@ -174,3 +174,4 @@ tosapi-*.json
 
 data/
 data-*/
+*.db

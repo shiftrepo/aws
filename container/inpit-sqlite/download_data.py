@@ -652,13 +652,28 @@ def create_google_patents_gcp_db():
         return False
 
 if __name__ == "__main__":
-    # Download INPIT data
+    # Check if we should skip data download
+    skip_download = os.environ.get("SKIP_DATA_DOWNLOAD", "").lower() == "true"
+    
+    if skip_download:
+        logger.info("SKIP_DATA_DOWNLOAD=true, skipping data download and creating empty databases if needed")
+        
+        # Create empty databases if they don't exist
+        if not os.path.exists(GOOGLE_PATENTS_S3_DB_PATH):
+            logger.info("Creating empty Google Patents S3 database")
+            create_empty_db(GOOGLE_PATENTS_S3_DB_PATH)
+            
+        if not os.path.exists(GOOGLE_PATENTS_GCP_DB_PATH):
+            logger.info("Creating empty Google Patents GCP database")
+            create_empty_db(GOOGLE_PATENTS_GCP_DB_PATH)
+            
+        # All done - skip actual downloads
+        logger.info("Empty databases created successfully. Ready for importing.")
+        sys.exit(0)
+    
+    # Regular download flow - only executed when SKIP_DATA_DOWNLOAD is not true
     inpit_success = download_inpit_data()
-    
-    # Download Google Patents S3 database
     s3_patents_success = download_google_patents_db()
-    
-    # Create Google Patents GCP database from BigQuery
     gcp_patents_success = create_google_patents_gcp_db()
     
     if not inpit_success:

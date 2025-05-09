@@ -25,11 +25,63 @@ def create_schema_and_import():
         # Print current user information
         logger.info(f"Running schema import as user {os.getuid()}:{os.getgid()}")
 
+        # Create SQLite database directory if it doesn't exist
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            
+        # Create SQLite database engine
+        engine = create_engine(f"sqlite:///{DB_PATH}")
+        metadata = MetaData()
+        
         # Check if CSV file exists
         if not os.path.exists(CSV_FILE_PATH):
-            logger.error(f"CSV file not found: {CSV_FILE_PATH}")
-            return False
-        
+            logger.warning(f"CSV file not found: {CSV_FILE_PATH}")
+            logger.info("Creating basic schema without CSV data")
+            
+            # Create a basic schema with default columns
+            table_name = 'inpit_data'
+            columns = []
+            columns.append(Column('id', Integer, primary_key=True))
+            
+            # Add some standard columns for patent data
+            default_columns = [
+                'application_number', 'publication_number', 'applicant_name', 
+                'inventor_name', 'title', 'abstract', 'filing_date', 'publication_date',
+                'legal_status', 'ipc_code', 'family_id'
+            ]
+            
+            # Create column mapping for reference
+            column_mapping = {}
+            for col in default_columns:
+                clean_col_name = col
+                column_mapping[clean_col_name] = col
+                columns.append(Column(clean_col_name, Text))
+            
+            # Save column mapping to file for reference by app.py
+            import json
+            with open('/app/data/column_mapping.json', 'w') as f:
+                json.dump(column_mapping, f)
+            
+            # Create table
+            table = Table(table_name, metadata, *columns)
+            metadata.create_all(engine)
+            
+            # Create indexes for better query performance
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Add indexes for important columns
+            for col in default_columns[:5]:  # Create indexes for first 5 columns
+                try:
+                    cursor.execute(f"CREATE INDEX idx_{col} ON {table_name} ({col})")
+                except Exception as e:
+                    logger.warning(f"Could not create index for {col}: {e}")
+                    
+            conn.commit()
+            conn.close()
+            
+            logger.info("Basic schema created successfully")
+            return True
+            
         # Log file permissions
         import stat
         try:
@@ -38,17 +90,15 @@ def create_schema_and_import():
             logger.info(f"CSV file owner: {file_stat.st_uid}:{file_stat.st_gid}")
         except Exception as e:
             logger.warning(f"Could not get CSV file permissions: {e}")
-            
-        # Create SQLite database directory if it doesn't exist
-        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-            
-        # Create SQLite database engine
-        engine = create_engine(f"sqlite:///{DB_PATH}")
-        metadata = MetaData()
         
         # Read first few rows to automatically determine columns
         logger.info(f"Reading CSV file header: {CSV_FILE_PATH}")
-        df_sample = pd.read_csv(CSV_FILE_PATH, nrows=5, encoding='utf-8')
+        try:
+            df_sample = pd.read_csv(CSV_FILE_PATH, nrows=5, encoding='utf-8')
+        except Exception as e:
+            logger.error(f"Failed to read CSV file: {e}")
+            logger.info("Falling back to basic schema creation")
+            return create_schema_and_import()  # Recursive call that will hit the "file not found" branch
         
         # Create table dynamically based on CSV columns
         logger.info("Creating database schema")
