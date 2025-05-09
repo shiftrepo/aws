@@ -21,6 +21,6 @@ services:
       # S3 bucket and path for Google Patents database
       - S3_BUCKET=ndi-3supervision
       - S3_KEY_PATENTS=MIT/demo/GCP/bak/google_patents.db
-    # Run as the same user as the host to avoid permission issues
-    user: "1000:1000"  # Run as ec2-user (UID:GID = 1000:1000)
+    # Run as root user
+    user: "root:root"  # Run as root (UID:GID = 0:0)
     restart: unless-stopped

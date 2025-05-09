@@ -27,10 +27,8 @@ RUN chmod +x /app/*.sh
 # Create data directory with proper permissions
 RUN mkdir -p /app/data && chmod 777 /app/data
 
-# Create the ec2-user user with UID/GID 1000
-RUN groupadd -g 1000 ec2-user && \
-    useradd -u 1000 -g 1000 -d /home/ec2-user -m ec2-user && \
-    chown -R ec2-user:ec2-user /app
+# Set ownership to root
+RUN chown -R root:root /app
 
 # Expose port for SQLite Web UI
 EXPOSE 5001

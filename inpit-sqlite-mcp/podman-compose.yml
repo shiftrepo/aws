@@ -13,9 +13,10 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=ap-northeast-1
+      - SKIP_DATA_DOWNLOAD=true
     volumes:
       - ./data-inpit-sqlite:/app/data:z
-    user: "ec2-user:ec2-user"  # Run as ec2-user to match file ownership
+    user: "root:root"  # Run as root
     restart: unless-stopped
 
   inpit-sqlite-mcp:
@@ -30,11 +31,13 @@ services:
       - AWS_DEFAULT_REGION=ap-northeast-1
       - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
       - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
+      - SKIP_DATA_DOWNLOAD=true
     ports:
       - "8000:8000"
     volumes:
       - ./data-inpit-sqlite-mcp:/app/data:z
-    user: "ec2-user:ec2-user"  # Run as ec2-user
+      - ./data-inpit-sqlite-mcp/db:/app/data/db:z
+    user: "root:root"  # Run as root
     depends_on:
       - inpit-sqlite
     restart: unless-stopped

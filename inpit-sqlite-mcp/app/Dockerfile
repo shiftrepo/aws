@@ -17,10 +17,7 @@ RUN apt-get update && \
     && ./aws/install \
     && rm -rf aws awscliv2.zip
 
-# Add ec2-user (UID 1000) to match EC2 instance standard user
-RUN groupadd -g 1000 ec2-user && \
-    useradd -u 1000 -g 1000 -ms /bin/bash ec2-user && \
-    echo "ec2-user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# No need to create additional users as we'll run as root
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -34,8 +31,7 @@ RUN chmod +x server.py start_server.sh entrypoint.sh
 
 # Create non-mounted directories with proper permissions
 RUN mkdir -p /app/templates
-RUN chown -R ec2-user:ec2-user /app/templates && \
-    chmod -R 755 /app/templates
+RUN chmod -R 755 /app/templates
 
 # Expose the port the app runs on
 EXPOSE 8000

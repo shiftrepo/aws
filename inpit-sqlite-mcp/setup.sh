@@ -22,10 +22,10 @@ echo "Creating required directories..."
 mkdir -p ./data-inpit-sqlite/db
 mkdir -p ./data-inpit-sqlite-mcp/db
 
-# Set correct ownership and permissions for container user (ec2-user)
+# Set correct ownership and permissions for container user (root)
 echo "Setting proper permissions on data directories..."
-chown -R ec2-user:ec2-user ./data-inpit-sqlite
-chown -R ec2-user:ec2-user ./data-inpit-sqlite-mcp
+chown -R root:root ./data-inpit-sqlite
+chown -R root:root ./data-inpit-sqlite-mcp
 chmod -R 775 ./data-inpit-sqlite
 chmod -R 775 ./data-inpit-sqlite-mcp
 
