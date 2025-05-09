@@ -1,0 +1,468 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<h1>Google Patents S3 SQLite データベースクエリ例</h1>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-body">
+                <div class="alert alert-info">
+                    <strong>注意 (Note):</strong> このページのクエリ例はGoogle Patents S3 SQLiteデータベース (google_patents_s3.db) 用です。
+                    <br>All query examples on this page are specific to the Google Patents S3 SQLite database (google_patents_s3.db).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">テーブル情報の取得 (Table Information)</h3>
+            </div>
+            <div class="box-body">
+                <div class="panel-group" id="accordion-table-info">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-list">
+                                    データベース内のテーブル一覧 (List all tables)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-table-list" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT name FROM sqlite_master WHERE type='table';</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT name FROM sqlite_master WHERE type='table';">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-schema">
+                                    publicationsテーブルのスキーマ情報 (Schema of publications table)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-table-schema" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>PRAGMA table_info(publications);</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(publications);">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="PRAGMA table_info(publications);">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-family-schema">
+                                    patent_familiesテーブルのスキーマ情報 (Schema of patent_families table)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-family-schema" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>PRAGMA table_info(patent_families);</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(patent_families);">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="PRAGMA table_info(patent_families);">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">基本的なSELECT文 (Basic SELECT statements)</h3>
+            </div>
+            <div class="box-body">
+                <div class="panel-group" id="accordion-basic-select">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-all">
+                                    特許データの基本取得 (Basic patent data retrieval)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-select-all" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-where-date">
+                                    日付によるフィルタリング (Filter by date)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-select-where-date" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, publication_date 
+FROM publications 
+WHERE publication_date > '2020-01-01' 
+ORDER BY publication_date ASC 
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, publication_date FROM publications WHERE publication_date > '2020-01-01' ORDER BY publication_date ASC LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, publication_date FROM publications WHERE publication_date > '2020-01-01' ORDER BY publication_date ASC LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-country">
+                                    国コードによるフィルタリング (Filter by country code)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-select-country" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, country_code, publication_date 
+FROM publications 
+WHERE country_code = 'JP'
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, country_code, publication_date FROM publications WHERE country_code = 'JP' LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, country_code, publication_date FROM publications WHERE country_code = 'JP' LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">出願人検索 (Assignee Search)</h3>
+            </div>
+            <div class="box-body">
+                <div class="panel-group" id="accordion-assignee">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-assignee" href="#collapse-assignee-search">
+                                    出願人による検索 (Search by assignee)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-assignee-search" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, assignee_harmonized, publication_date 
+FROM publications 
+WHERE assignee_harmonized LIKE '%Toyota%' 
+ORDER BY publication_date DESC
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, assignee_harmonized, publication_date FROM publications WHERE assignee_harmonized LIKE '%Toyota%' ORDER BY publication_date DESC LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, assignee_harmonized, publication_date FROM publications WHERE assignee_harmonized LIKE '%Toyota%' ORDER BY publication_date DESC LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-assignee" href="#collapse-top-assignees">
+                                    出願人ランキング (Top assignees)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-top-assignees" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT assignee_harmonized, COUNT(*) AS patent_count 
+FROM publications 
+WHERE assignee_harmonized IS NOT NULL AND assignee_harmonized != ''
+GROUP BY assignee_harmonized 
+ORDER BY patent_count DESC 
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT assignee_harmonized, COUNT(*) AS patent_count FROM publications WHERE assignee_harmonized IS NOT NULL AND assignee_harmonized != '' GROUP BY assignee_harmonized ORDER BY patent_count DESC LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT assignee_harmonized, COUNT(*) AS patent_count FROM publications WHERE assignee_harmonized IS NOT NULL AND assignee_harmonized != '' GROUP BY assignee_harmonized ORDER BY patent_count DESC LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">テキスト検索 (Text Search)</h3>
+            </div>
+            <div class="box-body">
+                <div class="panel-group" id="accordion-text-search">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-text-search" href="#collapse-title-search">
+                                    タイトルによる検索 (Search by title)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-title-search" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, title_en, publication_date 
+FROM publications 
+WHERE title_ja LIKE '%ロボット%' OR title_en LIKE '%robot%'
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications WHERE title_ja LIKE '%ロボット%' OR title_en LIKE '%robot%' LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications WHERE title_ja LIKE '%ロボット%' OR title_en LIKE '%robot%' LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-text-search" href="#collapse-abstract-search">
+                                    アブストラクトによる検索 (Search by abstract)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-abstract-search" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, abstract_ja, publication_date 
+FROM publications 
+WHERE abstract_ja LIKE '%電気自動車%' OR abstract_en LIKE '%electric vehicle%'
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, abstract_ja, publication_date FROM publications WHERE abstract_ja LIKE '%電気自動車%' OR abstract_en LIKE '%electric vehicle%' LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, abstract_ja, publication_date FROM publications WHERE abstract_ja LIKE '%電気自動車%' OR abstract_en LIKE '%electric vehicle%' LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-text-search" href="#collapse-ipc-search">
+                                    IPCコードによる検索 (Search by IPC code)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-ipc-search" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, ipc_code, publication_date 
+FROM publications 
+WHERE ipc_code LIKE '%G06F%' 
+ORDER BY publication_date DESC
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, ipc_code, publication_date FROM publications WHERE ipc_code LIKE '%G06F%' ORDER BY publication_date DESC LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT publication_number, title_ja, ipc_code, publication_date FROM publications WHERE ipc_code LIKE '%G06F%' ORDER BY publication_date DESC LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">特許ファミリー検索 (Patent Family Search)</h3>
+            </div>
+            <div class="box-body">
+                <div class="panel-group" id="accordion-family">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-family" href="#collapse-family">
+                                    特許ファミリー検索 (Patent family search)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-family" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT p.publication_number, p.title_ja, p.country_code, p.family_id
+FROM publications p
+JOIN patent_families f ON p.family_id = f.family_id
+WHERE f.family_id IN (
+    SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1
+)
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT p.publication_number, p.title_ja, p.country_code, p.family_id FROM publications p JOIN patent_families f ON p.family_id = f.family_id WHERE f.family_id IN (SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1) LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT p.publication_number, p.title_ja, p.country_code, p.family_id FROM publications p JOIN patent_families f ON p.family_id = f.family_id WHERE f.family_id IN (SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1) LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-family" href="#collapse-family-app-count">
+                                    国別出願数比較 (Application count by country)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-family-app-count" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT country_code, COUNT(DISTINCT application_number) as application_count
+FROM publications
+WHERE country_code IN ('JP', 'US', 'EP', 'CN', 'KR')
+GROUP BY country_code
+ORDER BY application_count DESC;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT country_code, COUNT(DISTINCT application_number) as application_count FROM publications WHERE country_code IN ('JP', 'US', 'EP', 'CN', 'KR') GROUP BY country_code ORDER BY application_count DESC;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT country_code, COUNT(DISTINCT application_number) as application_count FROM publications WHERE country_code IN ('JP', 'US', 'EP', 'CN', 'KR') GROUP BY country_code ORDER BY application_count DESC;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-family" href="#collapse-family-date-analysis">
+                                    年度別出願トレンド (Application trends by year)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-family-date-analysis" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT 
+    SUBSTR(filing_date, 1, 4) as year,
+    country_code,
+    COUNT(*) as patent_count
+FROM publications
+WHERE 
+    filing_date >= '2010-01-01' 
+    AND country_code IN ('JP', 'US', 'CN')
+GROUP BY year, country_code
+ORDER BY year DESC, country_code ASC;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT SUBSTR(filing_date, 1, 4) as year, country_code, COUNT(*) as patent_count FROM publications WHERE filing_date >= '2010-01-01' AND country_code IN ('JP', 'US', 'CN') GROUP BY year, country_code ORDER BY year DESC, country_code ASC;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-db="google_patents_s3" data-query="SELECT SUBSTR(filing_date, 1, 4) as year, country_code, COUNT(*) as patent_count FROM publications WHERE filing_date >= '2010-01-01' AND country_code IN ('JP', 'US', 'CN') GROUP BY year, country_code ORDER BY year DESC, country_code ASC;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="results" class="box">
+            <div class="box-header">
+                <h3 class="box-title">実行結果 (Results)</h3>
+            </div>
+            <div class="box-body">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle copy buttons
+    document.querySelectorAll('.copy-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const query = this.getAttribute('data-query');
+            
+            // Create a temporary textarea to copy text
+            const textarea = document.createElement('textarea');
+            textarea.value = query;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            // Show feedback
+            const originalText = this.textContent;
+            this.textContent = 'コピーしました (Copied)!';
+            setTimeout(() => {
+                this.textContent = originalText;
+            }, 1500);
+        });
+    });
+    
+    // Handle run buttons
+    document.querySelectorAll('.run-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const query = this.getAttribute('data-query');
+            const dbType = this.getAttribute('data-db');
+            
+            // Show a loading indicator
+            const resultDiv = document.getElementById('resultContent');
+            resultDiv.innerHTML = `<div class="text-center"><i class="fa fa-spinner fa-spin fa-2x"></i><p>実行中 (Executing query)...</p></div>`;
+            
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            
+            // Execute the query
+            fetch('/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'query=' + encodeURIComponent(query) + '&db_type=' + encodeURIComponent(dbType)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                
+                if (data.message) {
+                    resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    return;
+                }
+                
+                // Display results in a table
+                let tableHtml = '<div class="table-responsive"><table class="table table-striped table-bordered">';
+                tableHtml += '<thead><tr>';
+                data.columns.forEach(column => {
+                    tableHtml += `<th>${column}</th>`;
+                });
+                tableHtml += '</tr></thead><tbody>';
+                
+                data.results.forEach(row => {
+                    tableHtml += '<tr>';
+                    row.forEach(cell => {
+                        tableHtml += `<td>${cell === null ? '<em>NULL</em>' : cell}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                });
+                
+                tableHtml += '</tbody></table></div>';
+                
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">クエリが実行されました (Query executed successfully). ${data.results.length} 行のデータが返されました (rows returned).</div>
+                    <div class="well well-sm"><pre>${query}</pre></div>
+                    ${tableHtml}
+                `;
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="alert alert-danger">エラー (Error): ${error}</div>`;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

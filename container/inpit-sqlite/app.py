@@ -23,12 +23,20 @@ logger = logging.getLogger(__name__)
 
 # Database file paths
 INPIT_DB_PATH = "/app/data/inpit.db"
-GOOGLE_PATENTS_DB_PATH = "/app/data/google_patents.db"
+GOOGLE_PATENTS_DB_PATH = "/app/data/google_patents.db"  # Legacy path for compatibility
 GOOGLE_PATENTS_GCP_DB_PATH = "/app/data/google_patents_gcp.db"
 GOOGLE_PATENTS_S3_DB_PATH = "/app/data/google_patents_s3.db"
 # Default database path
 DB_PATH = INPIT_DB_PATH
 DB_URI = f"sqlite:///{DB_PATH}"
+
+# Check for existence of database files
+for db_path in [INPIT_DB_PATH, GOOGLE_PATENTS_GCP_DB_PATH, GOOGLE_PATENTS_S3_DB_PATH]:
+    db_exists = os.path.exists(db_path)
+    if db_exists:
+        logger.info(f"Database exists: {db_path}")
+    else:
+        logger.warning(f"Database does not exist: {db_path}")
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
@@ -128,11 +136,30 @@ class SQLQueryView(BaseView):
     def index(self):
         return self.render('admin/sql_query.html')
         
-# Custom view for SQL examples
-class SQLExamplesView(BaseView):
+# Custom views for SQL examples - one for each database
+class InpitSQLExamplesView(BaseView):
     @expose('/')
     def index(self):
-        return self.render('admin/sql_examples.html')
+        # Create the template with hardcoded db_type for the INPIT database
+        return self.render('admin/sql_examples.html', db_type='inpit', 
+                          db_title='INPIT SQLite',
+                          db_file='inpit.db')
+
+class GooglePatentsGCPExamplesView(BaseView):
+    @expose('/')
+    def index(self):
+        # Create the template with hardcoded db_type for the GCP database
+        return self.render('admin/sql_examples.html', db_type='google_patents_gcp', 
+                          db_title='Google Patents GCP',
+                          db_file='google_patents_gcp.db')
+        
+class GooglePatentsS3ExamplesView(BaseView):
+    @expose('/')
+    def index(self):
+        # Create the template with hardcoded db_type for the S3 database
+        return self.render('admin/sql_examples.html', db_type='google_patents_s3', 
+                          db_title='Google Patents S3',
+                          db_file='google_patents_s3.db')
 
 # Setup Flask-Admin
 admin = Admin(app, name='Inpit SQLite Database', template_mode='bootstrap3')
@@ -143,8 +170,11 @@ if InpitData:
 
 # Always add SQL query view
 admin.add_view(SQLQueryView(name='SQL Query', endpoint='sql'))
-# Add SQL Examples view
-admin.add_view(SQLExamplesView(name='SQL Examples', endpoint='examples'))
+
+# Add separate SQL Examples views for each database
+admin.add_view(InpitSQLExamplesView(name='INPIT SQL Examples', endpoint='inpit_examples'))
+admin.add_view(GooglePatentsGCPExamplesView(name='GCP Patents Examples', endpoint='gcp_examples'))
+admin.add_view(GooglePatentsS3ExamplesView(name='S3 Patents Examples', endpoint='s3_examples'))
 
 # Create templates directory and SQL query template
 os.makedirs('templates/admin', exist_ok=True)
@@ -259,6 +289,28 @@ with open('templates/admin/sql_examples.html', 'w') as f:
 
 {% block body %}
 <h1>SQLite 基本クエリ例</h1>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-body">
+                <div class="form-group">
+                    <label for="dbSelector">データベース選択 (Database Selection):</label>
+                    <select id="dbSelector" class="form-control">
+                        <option value="inpit">inpit.db</option>
+                        <option value="google_patents">google_patents.db</option>
+                        <option value="google_patents_gcp">google_patents_gcp.db</option>
+                        <option value="google_patents_s3">google_patents_s3.db</option>
+                    </select>
+                </div>
+                <div class="alert alert-info">
+                    <strong>注意 (Note):</strong> データベースを切り替えた後、クエリを実行すると選択したデータベースに対してクエリが実行されます。
+                    <br>After switching databases, queries will be executed against the selected database.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="row">
     <div class="col-md-12">
@@ -514,6 +566,136 @@ with open('templates/admin/sql_examples.html', 'w') as f:
 
 <div class="row">
     <div class="col-md-12">
+        <div class="box">
+            <div class="box-header with-border">
+                <h3 class="box-title">Google Patents データベースのクエリ例 (Google Patents Database Query Examples)</h3>
+            </div>
+            <div class="box-body">
+                <div class="panel-group" id="accordion-google-patents">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-tables">
+                                    テーブル一覧 (List of tables in Google Patents DB)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-patents-tables" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT name FROM sqlite_master WHERE type='table';</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-schema">
+                                    publicationsテーブルのスキーマ (Schema of publications table)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-patents-schema" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>PRAGMA table_info(publications);</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(publications);">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="PRAGMA table_info(publications);">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-basic">
+                                    特許データの基本検索 (Basic patent search)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-patents-basic" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, title_en, publication_date 
+FROM publications 
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-assignee">
+                                    出願人による検索 (Search by assignee)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-patents-assignee" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, assignee_harmonized, publication_date 
+FROM publications 
+WHERE assignee_harmonized LIKE '%Sony%' 
+ORDER BY publication_date DESC
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, assignee_harmonized, publication_date FROM publications WHERE assignee_harmonized LIKE '%Sony%' ORDER BY publication_date DESC LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, assignee_harmonized, publication_date FROM publications WHERE assignee_harmonized LIKE '%Sony%' ORDER BY publication_date DESC LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-keyword">
+                                    キーワード検索 (Keyword search)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-patents-keyword" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, abstract_ja, publication_date 
+FROM publications 
+WHERE title_ja LIKE '%人工知能%' OR abstract_ja LIKE '%人工知能%'
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, abstract_ja, publication_date FROM publications WHERE title_ja LIKE '%人工知能%' OR abstract_ja LIKE '%人工知能%' LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, abstract_ja, publication_date FROM publications WHERE title_ja LIKE '%人工知能%' OR abstract_ja LIKE '%人工知能%' LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-google-patents" href="#collapse-patents-family">
+                                    特許ファミリー検索 (Patent family search)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-patents-family" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT p.publication_number, p.title_ja, p.country_code, p.family_id
+FROM publications p
+JOIN patent_families f ON p.family_id = f.family_id
+WHERE f.family_id IN (
+    SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1
+)
+LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT p.publication_number, p.title_ja, p.country_code, p.family_id FROM publications p JOIN patent_families f ON p.family_id = f.family_id WHERE f.family_id IN (SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1) LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT p.publication_number, p.title_ja, p.country_code, p.family_id FROM publications p JOIN patent_families f ON p.family_id = f.family_id WHERE f.family_id IN (SELECT family_id FROM publications WHERE publication_number LIKE 'JP%' LIMIT 1) LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
         <div id="results" class="box">
             <div class="box-header">
                 <h3 class="box-title">実行結果 (Results)</h3>
@@ -562,9 +744,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
             
             // Execute the query
-            // Get the selected database from the SQL Query page
             const dbSelector = document.getElementById('dbSelector');
-            const dbType = dbSelector ? dbSelector.value : 'inpit';
+            const dbType = dbSelector.value;
             
             fetch('/query', {
                 method: 'POST',
