@@ -1,0 +1,142 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<h1>INPIT SQLサンプル</h1>
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-header">
+                <h3 class="box-title">サンプルクエリ</h3>
+            </div>
+            <div class="box-body">
+                <div class="form-group">
+                    <label for="exampleSelector">サンプルを選択:</label>
+                    <select id="exampleSelector" class="form-control" onchange="loadExample()">
+                        <option value="">-- 選択してください --</option>
+                        <option value="basic">基本検索</option>
+                        <option value="applicant">出願人による検索</option>
+                        <option value="date">日付範囲による検索</option>
+                        <option value="count">集計クエリ</option>
+                        <option value="join">結合クエリ</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="queryInput">SQL Query:</label>
+                    <textarea id="queryInput" class="form-control" rows="8"></textarea>
+                </div>
+                <button id="executeBtn" class="btn btn-primary">クエリ実行</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-md-12">
+        <div id="results" class="box">
+            <div class="box-header">
+                <h3 class="box-title">結果</h3>
+            </div>
+            <div class="box-body">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const examples = {
+    basic: `SELECT * FROM inpit_data LIMIT 10;`,
+    
+    applicant: `SELECT * FROM inpit_data 
+WHERE applicant_name LIKE '%テック%'
+ORDER BY application_date DESC
+LIMIT 20;`,
+    
+    date: `SELECT * FROM inpit_data 
+WHERE application_date BETWEEN '2022-01-01' AND '2023-12-31'
+ORDER BY application_date DESC
+LIMIT 20;`,
+    
+    count: `SELECT 
+    strftime('%Y', application_date) as year,
+    COUNT(*) as application_count
+FROM inpit_data
+GROUP BY strftime('%Y', application_date)
+ORDER BY year DESC;`,
+    
+    join: `-- 複数テーブルが存在する場合のサンプルクエリ
+-- 実際のデータベーススキーマに合わせて適宜修正してください
+SELECT i.*, 
+       (SELECT title_ja FROM google_patents_gcp.publications 
+        WHERE application_number = i.application_number LIMIT 1) as title_ja
+FROM inpit_data i
+WHERE i.application_date > '2020-01-01'
+LIMIT 10;`
+};
+
+function loadExample() {
+    const example = document.getElementById('exampleSelector').value;
+    if (example in examples) {
+        document.getElementById('queryInput').value = examples[example];
+    }
+}
+
+document.getElementById('executeBtn').addEventListener('click', function() {
+    const query = document.getElementById('queryInput').value;
+    
+    if (!query) {
+        alert('クエリを入力してください');
+        return;
+    }
+    
+    fetch('{{ url_for("inpit_examples.query") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'query=' + encodeURIComponent(query)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('resultContent');
+        
+        if (!data.success) {
+            resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            return;
+        }
+        
+        if (data.message) {
+            resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            return;
+        }
+        
+        // Display results in a table
+        let tableHtml = '<div class="table-responsive"><table class="table table-striped table-bordered">';
+        tableHtml += '<thead><tr>';
+        data.columns.forEach(column => {
+            tableHtml += `<th>${column}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+        
+        data.results.forEach(row => {
+            tableHtml += '<tr>';
+            row.forEach(cell => {
+                tableHtml += `<td>${cell === null ? '<em>NULL</em>' : cell}</td>`;
+            });
+            tableHtml += '</tr>';
+        });
+        
+        tableHtml += '</tbody></table></div>';
+        
+        resultDiv.innerHTML = `
+            <div class="alert alert-success">クエリ実行成功。${data.results.length} 行の結果。</div>
+            ${tableHtml}
+        `;
+    })
+    .catch(error => {
+        document.getElementById('resultContent').innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
+    });
+});
+</script>
+{% endblock %}

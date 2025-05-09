@@ -1,0 +1,9 @@
+fastapi==0.95.0
+uvicorn==0.21.1
+httpx==0.24.0
+pydantic==1.10.7
+requests==2.28.2
+boto3==1.26.114
+python-dotenv==1.0.0
+pandas==1.5.3
+mcp-api-python==0.1.0

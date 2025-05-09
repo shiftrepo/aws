@@ -1,0 +1,59 @@
+{% extends 'admin/base.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+    .navbar {
+        background-color: #343a40;
+    }
+    .navbar-brand {
+        font-weight: bold;
+        color: #ffffff !important;
+    }
+    .box {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
+        margin-bottom: 20px;
+    }
+    .box-header {
+        background-color: #f5f5f5;
+        border-bottom: 1px solid #ddd;
+        color: #333;
+        padding: 10px 15px;
+    }
+    .box-header .box-title {
+        margin: 0;
+    }
+    .box-body {
+        padding: 15px;
+    }
+    .table {
+        margin-bottom: 0;
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block access_control %}
+{% if current_user.is_authenticated %}
+<ul class="nav navbar-nav navbar-right">
+    <li>
+        <a href="{{ url_for('admin.logout_view') }}">ログアウト</a>
+    </li>
+</ul>
+{% endif %}
+{% endblock %}
+
+{% block brand %}
+<a class="navbar-brand" href="{{ url_for('admin.index') }}">特許DWH Database</a>
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script>
+    // Custom JavaScript can be added here
+</script>
+{% endblock %}
