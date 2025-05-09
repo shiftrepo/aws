@@ -12,6 +12,7 @@ retrieving patent family relationships.
 import os
 import json
 import logging
+import sqlite3
 from typing import Dict, List, Any
 
 # Import Google Patents functionality
@@ -252,18 +253,54 @@ class GooglePatentsMCPExtension:
             # Import the patents
             count = self.patent_fetcher.fetch_japanese_patents(limit=limit)
             
+            # Check if patents were imported
             if count > 0:
                 return {
                     "success": True,
                     "count": count,
                     "message": f"成功: {count}件の日本国特許を取得しました。"
                 }
+            elif count == 0:
+                # count=0 is returned when BigQuery fails but S3 download succeeds
+                # Check if S3 downloaded files exist and have data
+                gcp_db_exists = os.path.exists(GOOGLE_PATENTS_DB_PATH)
+                s3_db_exists = os.path.exists(S3_LOCAL_DB_PATH)
+                
+                if gcp_db_exists or s3_db_exists:
+                    # Determine which database to use for status
+                    db_path = GOOGLE_PATENTS_DB_PATH if gcp_db_exists else S3_LOCAL_DB_PATH
+                    
+                    try:
+                        # Check if the database has content
+                        conn = sqlite3.connect(db_path)
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT COUNT(*) FROM publications")
+                        pub_count = cursor.fetchone()[0]
+                        conn.close()
+                        
+                        if pub_count > 0:
+                            return {
+                                "success": True,
+                                "count": pub_count,
+                                "message": f"BigQueryでのデータ取得はスキップされましたが、S3から{pub_count}件の特許データを正常にダウンロードしました。",
+                                "from_s3": True
+                            }
+                    except Exception as db_error:
+                        logger.error(f"Error checking database content: {db_error}")
+                
+                # If we reach here, either no files were downloaded or they don't have valid data
+                return {
+                    "success": False,
+                    "count": 0,
+                    "message": "BigQueryでのデータ取得に失敗し、S3からのバックアップデータも利用できませんでした。詳細はログをご確認ください。",
+                    "error": "No patents were imported and backup data is not available"
+                }
             else:
                 return {
                     "success": False,
                     "count": 0,
                     "message": "特許データの取得に失敗しました。詳細はログをご確認ください。",
-                    "error": "No patents were imported"
+                    "error": "Import operation failed"
                 }
         except Exception as e:
             error_msg = f"Error importing Japanese patents: {str(e)}"

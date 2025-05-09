@@ -18,6 +18,7 @@ from google.oauth2 import service_account
 import time
 import tempfile
 import boto3
+import shutil
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 
@@ -175,46 +176,77 @@ class GooglePatentsFetcher:
             logger.error("BigQuery client is not initialized")
             return False
         
+        # Create database schema first
+        self._create_database_schema()
+        
+        # Use publication_date to get approximately the requested number
+        # Note: Updated to use the latest BigQuery schema
+        query = f"""
+        SELECT
+            publication_number,
+            filing_date,
+            publication_date,
+            application_number,
+            (SELECT STRING_AGG(name, '; ') FROM UNNEST(assignee_harmonized)) as assignee_harmonized,
+            ARRAY_TO_STRING(assignee, '; ') as assignee_original,
+            (SELECT STRING_AGG(text, ' ') FROM UNNEST(title_localized) WHERE language = 'ja') as title_ja,
+            (SELECT STRING_AGG(text, ' ') FROM UNNEST(title_localized) WHERE language = 'en') as title_en,
+            (SELECT STRING_AGG(text, ' ') FROM UNNEST(abstract_localized) WHERE language = 'ja') as abstract_ja,
+            (SELECT STRING_AGG(text, ' ') FROM UNNEST(abstract_localized) WHERE language = 'en') as abstract_en,
+            (SELECT STRING_AGG(text, ' ') FROM UNNEST(claims_localized) WHERE language = 'ja') as claims,
+            (SELECT STRING_AGG(code, '; ') FROM UNNEST(ipc)) as ipc_code,
+            family_id,
+            country_code,
+            kind_code,
+            priority_date,
+            grant_date,
+            '' as priority_claim,
+            '' as legal_status,
+            '' as status
+        FROM
+            `patents-public-data.patents.publications`
+        WHERE
+            country_code = 'JP'
+        ORDER BY
+            publication_date DESC
+        LIMIT
+            {limit}
+        """
+        
+        # Implement retry logic for BigQuery fetch
+        max_retries = 5
+        retry_count = 0
+        retry_delay = 2  # Start with 2 seconds
+        
+        while retry_count < max_retries:
+            try:
+                logger.info(f"Executing BigQuery query to fetch {limit} Japanese patents (attempt {retry_count+1}/{max_retries})")
+                query_job = self.client.query(query)
+                break
+            except Exception as e:
+                retry_count += 1
+                if "quota exceeded" in str(e).lower() and retry_count < max_retries:
+                    logger.warning(f"Quota exceeded error on retry {retry_count}/{max_retries}. Waiting {retry_delay} seconds before retrying...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    if retry_count >= max_retries:
+                        logger.error(f"Maximum retries ({max_retries}) reached. Error executing BigQuery: {e}")
+                        logger.info("Falling back to downloading pre-built DB files from S3")
+                        
+                        # Download DB files from S3 when all retries fail
+                        success = self._download_s3_db_files()
+                        if success:
+                            logger.info("Successfully downloaded DB files from S3. Skipping BigQuery import.")
+                            return 0  # Signal that we skipped BigQuery but downloaded files
+                        else:
+                            logger.error("Failed to download DB files from S3 after BigQuery failure")
+                            return False
+                    else:
+                        logger.error(f"Error executing BigQuery on retry {retry_count}: {e}")
+                        
+        # If we got here, either the query was successful or all retries failed
         try:
-            # Create database schema first
-            self._create_database_schema()
-            
-            # Use publication_date to get approximately the requested number
-            # Note: Updated to use the latest BigQuery schema
-            query = f"""
-            SELECT
-                publication_number,
-                filing_date,
-                publication_date,
-                application_number,
-                (SELECT STRING_AGG(name, '; ') FROM UNNEST(assignee_harmonized)) as assignee_harmonized,
-                ARRAY_TO_STRING(assignee, '; ') as assignee_original,
-                (SELECT STRING_AGG(text, ' ') FROM UNNEST(title_localized) WHERE language = 'ja') as title_ja,
-                (SELECT STRING_AGG(text, ' ') FROM UNNEST(title_localized) WHERE language = 'en') as title_en,
-                (SELECT STRING_AGG(text, ' ') FROM UNNEST(abstract_localized) WHERE language = 'ja') as abstract_ja,
-                (SELECT STRING_AGG(text, ' ') FROM UNNEST(abstract_localized) WHERE language = 'en') as abstract_en,
-                (SELECT STRING_AGG(text, ' ') FROM UNNEST(claims_localized) WHERE language = 'ja') as claims,
-                (SELECT STRING_AGG(code, '; ') FROM UNNEST(ipc)) as ipc_code,
-                family_id,
-                country_code,
-                kind_code,
-                priority_date,
-                grant_date,
-                '' as priority_claim,
-                '' as legal_status,
-                '' as status
-            FROM
-                `patents-public-data.patents.publications`
-            WHERE
-                country_code = 'JP'
-            ORDER BY
-                publication_date DESC
-            LIMIT
-                {limit}
-            """
-            
-            logger.info(f"Executing BigQuery query to fetch {limit} Japanese patents")
-            query_job = self.client.query(query)
             
             # Process results in batches and insert into SQLite
             conn = sqlite3.connect(self.db_path)
@@ -304,6 +336,40 @@ class GooglePatentsFetcher:
             logger.error(f"Error fetching Japanese patents: {e}")
             return 0
     
+    def _download_s3_db_files(self):
+        """
+        Download DB files from S3 bucket when BigQuery operations fail.
+        """
+        try:
+            s3_client = boto3.client('s3')
+            bucket_name = 'ndi-3supervision'
+            
+            # Define source and destination paths
+            s3_files = [
+                {'key': 'MIT/demo/GCP/google_patents_gcp.db', 'dest': '/app/data/db/google_patents_gcp.db'},
+                {'key': 'MIT/demo/GCP/google_patents_s3.db', 'dest': '/app/data/db/google_patents_s3.db'}
+            ]
+            
+            for file_info in s3_files:
+                logger.info(f"Downloading {file_info['key']} from S3 to {file_info['dest']}...")
+                # Make sure target directory exists
+                os.makedirs(os.path.dirname(file_info['dest']), exist_ok=True)
+                
+                s3_client.download_file(bucket_name, file_info['key'], file_info['dest'])
+                logger.info(f"Successfully downloaded {file_info['key']} to {file_info['dest']}")
+                
+                # Verify file was downloaded correctly
+                if os.path.exists(file_info['dest']):
+                    file_size = os.path.getsize(file_info['dest'])
+                    logger.info(f"Downloaded file size: {file_size} bytes")
+                else:
+                    logger.error(f"Downloaded file not found at {file_info['dest']}")
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error downloading DB files from S3: {e}")
+            return False
+
     def _get_family_size(self, family_id: str) -> int:
         """
         Get the size of a patent family by counting the number of patents with the same family_id
@@ -337,23 +403,45 @@ class GooglePatentsFetcher:
             except Exception as local_err:
                 # If local calculation fails, log and continue with BigQuery
                 logger.warning(f"Local family size calculation failed: {local_err}")
-                
-            # Fall back to BigQuery query
-            query = f"""
-            SELECT
-                COUNT(*) as family_size
-            FROM
-                `patents-public-data.patents.publications`
-            WHERE
-                family_id = '{family_id}'
-            """
             
-            query_job = self.client.query(query)
-            results = list(query_job)
+            # Fall back to BigQuery query with retry logic
+            max_retries = 5
+            retry_count = 0
+            retry_delay = 2  # Start with 2 seconds delay
             
-            if results:
-                return results[0].get('family_size', 0)
-            return 0
+            while retry_count < max_retries:
+                try:
+                    query = f"""
+                    SELECT
+                        COUNT(*) as family_size
+                    FROM
+                        `patents-public-data.patents.publications`
+                    WHERE
+                        family_id = '{family_id}'
+                    """
+                    
+                    query_job = self.client.query(query)
+                    results = list(query_job)
+                    
+                    if results:
+                        return results[0].get('family_size', 0)
+                    return 0
+                    
+                except Exception as e:
+                    retry_count += 1
+                    if "quota exceeded" in str(e).lower() and retry_count < max_retries:
+                        logger.warning(f"Quota exceeded error on retry {retry_count}/{max_retries}. Waiting {retry_delay} seconds before retrying...")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                    else:
+                        if retry_count >= max_retries:
+                            logger.error(f"Maximum retries ({max_retries}) reached. Error getting family size: {e}")
+                        else:
+                            logger.error(f"Error getting family size on retry {retry_count}: {e}")
+                        break
+            
+            # Return a default value if we can't determine the family size after retries
+            return 1  # Assume at least this patent is in the family
         except Exception as e:
             logger.error(f"Error getting family size: {e}")
             # Return a default value if we can't determine the family size
