@@ -1,0 +1,277 @@
+{% extends 'admin/master.html' %}
+
+{% block title %}{{ db_title }} SQL Examples{% endblock %}
+
+{% block body %}
+<h1>{{ db_title }} データベースクエリ例</h1>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="box">
+            <div class="box-body">
+                <div class="alert alert-info">
+                    <strong>注意 (Note):</strong> このページのクエリ例はすべて {{ db_title }} データベース ({{ db_file }}) 用です。
+                    <br>All query examples on this page are specific to the {{ db_title }} database ({{ db_file }}).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">テーブル情報の取得 (Table Information)</h3>
+            </div>
+            <div class="panel-body">
+                <div class="panel-group" id="accordion-table-info">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-list">
+                                    データベース内のテーブル一覧 (List all tables)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-table-list" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT name FROM sqlite_master WHERE type='table';</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT name FROM sqlite_master WHERE type='table';">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if db_type == 'inpit' %}
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-schema">
+                                    テーブルのスキーマ情報 (Table schema information)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-table-schema" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>PRAGMA table_info(inpit_data);</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(inpit_data);">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="PRAGMA table_info(inpit_data);">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-table-schema">
+                                    publicationsテーブルのスキーマ情報 (Schema of publications table)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-table-schema" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>PRAGMA table_info(publications);</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(publications);">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="PRAGMA table_info(publications);">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-table-info" href="#collapse-family-schema">
+                                    patent_familiesテーブルのスキーマ情報 (Schema of patent_families table)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-family-schema" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>PRAGMA table_info(patent_families);</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="PRAGMA table_info(patent_families);">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="PRAGMA table_info(patent_families);">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if db_type == 'inpit' %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">基本的なSELECT文 (Basic SELECT statements)</h3>
+            </div>
+            <div class="panel-body">
+                <div class="panel-group" id="accordion-basic-select">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-all">
+                                    すべてのデータを取得 (Select all data)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-select-all" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT * FROM inpit_data LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT * FROM inpit_data LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT * FROM inpit_data LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">基本的なSELECT文 (Basic SELECT statements)</h3>
+            </div>
+            <div class="panel-body">
+                <div class="panel-group" id="accordion-basic-select">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion-basic-select" href="#collapse-select-all">
+                                    特許データの基本取得 (Basic patent data retrieval)
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="collapse-select-all" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <pre>SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;</pre>
+                                <button class="btn btn-sm btn-primary copy-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">コピー (Copy)</button>
+                                <button class="btn btn-sm btn-success run-btn" data-query="SELECT publication_number, title_ja, title_en, publication_date FROM publications LIMIT 10;">実行 (Run)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">実行結果 (Results)</h3>
+            </div>
+            <div class="panel-body">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle copy buttons
+    document.querySelectorAll('.copy-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const query = this.getAttribute('data-query');
+            
+            // Create a temporary textarea to copy text
+            const textarea = document.createElement('textarea');
+            textarea.value = query;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            // Show feedback
+            const originalText = this.textContent;
+            this.textContent = 'コピーしました (Copied)!';
+            setTimeout(() => {
+                this.textContent = originalText;
+            }, 1500);
+        });
+    });
+    
+    // Handle run buttons
+    document.querySelectorAll('.run-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const query = this.getAttribute('data-query');
+            
+            // Show a loading indicator
+            const resultDiv = document.getElementById('resultContent');
+            resultDiv.innerHTML = `<div class="text-center"><i class="fa fa-spinner fa-spin fa-2x"></i><p>実行中 (Executing query)...</p></div>`;
+            
+            // Scroll to results
+            document.getElementById('resultContent').scrollIntoView({ behavior: 'smooth' });
+            
+            // Get the endpoint from a data attribute
+            const dbType = '{{ db_type }}';
+            let endpoint = '/query'; // Default fallback
+            
+            if (dbType === 'inpit') {
+                endpoint = '/inpit_examples/query';
+            } else if (dbType === 'google_patents_gcp') {
+                endpoint = '/google_patents_gcp_examples/query';
+            } else if (dbType === 'google_patents_s3') {
+                endpoint = '/google_patents_s3_examples/query';
+            }
+            
+            // Execute the query
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'query=' + encodeURIComponent(query)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                
+                if (data.message) {
+                    resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    return;
+                }
+                
+                // Display results in a table
+                let tableHtml = '<div class="table-responsive"><table class="table table-striped table-bordered">';
+                tableHtml += '<thead><tr>';
+                data.columns.forEach(column => {
+                    tableHtml += `<th>${column}</th>`;
+                });
+                tableHtml += '</tr></thead><tbody>';
+                
+                data.results.forEach(row => {
+                    tableHtml += '<tr>';
+                    row.forEach(cell => {
+                        tableHtml += `<td>${cell === null ? '<em>NULL</em>' : cell}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                });
+                
+                tableHtml += '</tbody></table></div>';
+                
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">クエリが実行されました (Query executed successfully). ${data.results.length} 行のデータが返されました (rows returned).</div>
+                    <div class="well well-sm"><pre>${query}</pre></div>
+                    ${tableHtml}
+                `;
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="alert alert-danger">エラー (Error): ${error}</div>`;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
