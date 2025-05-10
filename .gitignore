@@ -175,3 +175,4 @@ tosapi-*.json
 data/
 data-*/
 *.db
+~/.aws/

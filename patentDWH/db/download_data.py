@@ -216,6 +216,7 @@ def create_empty_db(db_path, schema_type="patents"):
 def process_inpit_csv_to_sqlite():
     """
     Process downloaded INPIT CSV file and create SQLite database.
+    Uses JP to EN mapping to convert Japanese column headers to English.
     Returns:
         bool: True if successful, False otherwise
     """
@@ -226,18 +227,43 @@ def process_inpit_csv_to_sqlite():
     try:
         logger.info(f"Processing INPIT CSV file to SQLite database: {INPIT_DB_PATH}")
         
+        # Load Japanese to English mapping
+        jp_to_en_mapping_path = "/app/data/jp_to_en_mapping.json"
+        if not os.path.exists(jp_to_en_mapping_path):
+            logger.warning(f"JP to EN mapping file not found at {jp_to_en_mapping_path}. Will use SQL-friendly column names.")
+            jp_to_en_mapping = {}
+        else:
+            try:
+                import json
+                with open(jp_to_en_mapping_path, 'r', encoding='utf-8') as f:
+                    jp_to_en_mapping = json.load(f)
+                logger.info(f"Loaded {len(jp_to_en_mapping)} Japanese to English column mappings")
+            except Exception as e:
+                logger.error(f"Error loading JP to EN mapping: {e}")
+                jp_to_en_mapping = {}
+        
         # Read the CSV file using pandas with proper encoding
         df = pd.read_csv(LOCAL_FILE_PATH_INPIT, encoding='utf-8')
         
-        # Store column mapping for future reference
-        column_mapping = {}
+        # Store both original Japanese and English mappings for reference
+        column_mapping = {}    # Clean column name to original Japanese name
+        jp_en_used_mapping = {}  # Original Japanese name to English name used
         cleaned_columns = []
         
-        # Clean column names for SQLite
+        # Clean column names for SQLite and convert to English where possible
         for col in df.columns:
-            # Create a SQL-friendly column name
-            clean_col = col.lower().replace(' ', '_').replace('-', '_').replace('/', '_').replace('(', '').replace(')', '')
-            clean_col = ''.join(c if c.isalnum() or c == '_' else '_' for c in clean_col)
+            # Use English mapping if available
+            if col in jp_to_en_mapping:
+                en_col = jp_to_en_mapping[col]
+                jp_en_used_mapping[col] = en_col
+                # Still ensure it's SQL-friendly
+                clean_col = en_col.lower().replace(' ', '_').replace('-', '_').replace('/', '_').replace('(', '').replace(')', '')
+                clean_col = ''.join(c if c.isalnum() or c == '_' else '_' for c in clean_col)
+            else:
+                # If no mapping, just clean the Japanese column name
+                clean_col = col.lower().replace(' ', '_').replace('-', '_').replace('/', '_').replace('(', '').replace(')', '')
+                clean_col = ''.join(c if c.isalnum() or c == '_' else '_' for c in clean_col)
+                jp_en_used_mapping[col] = clean_col
             
             # Ensure the column name starts with a letter
             if not clean_col[0].isalpha():
@@ -251,8 +277,8 @@ def process_inpit_csv_to_sqlite():
                 i += 1
                 
             cleaned_columns.append(clean_col)
-            column_mapping[clean_col] = col  # Store mapping of clean name to original
-            
+            column_mapping[clean_col] = col  # Store mapping of clean name to original Japanese
+        
         # Rename the columns
         df.columns = cleaned_columns
         
@@ -276,13 +302,20 @@ def process_inpit_csv_to_sqlite():
         conn.commit()
         conn.close()
         
-        # Save column mapping to a JSON file for reference
+        # Save column mappings to JSON files for reference
         import json
+        
+        # Save clean column to original Japanese mapping
         with open('/app/data/column_mapping.json', 'w', encoding='utf-8') as f:
             json.dump(column_mapping, f, ensure_ascii=False, indent=2)
+        
+        # Save Japanese to English mapping that was used
+        with open('/app/data/jp_en_used_mapping.json', 'w', encoding='utf-8') as f:
+            json.dump(jp_en_used_mapping, f, ensure_ascii=False, indent=2)
             
         logger.info(f"Successfully created INPIT database with {len(df)} records")
         logger.info(f"Created {len(cleaned_columns)} columns with mapping saved to column_mapping.json")
+        logger.info(f"Japanese to English mapping saved to jp_en_used_mapping.json")
         
         return True
     except Exception as e:

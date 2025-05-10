@@ -17,6 +17,7 @@ patentDWHは、ユーザーフレンドリーなWebインターフェースとMC
 
 ## 機能
 
+- **自然言語クエリ**：AWS Bedrock（Claude 3 Sonnet、Titan Embedding）を利用した特許データへの自然言語クエリ機能。詳細は[自然言語クエリドキュメント](./README_NATURAL_LANGUAGE_QUERY.md)を参照。
 - **SQLクエリ用WebUI**：すべてのデータベースに対してSQLクエリを実行するための直接的なWebインターフェース。
 - **SQLサンプル**：一般的な特許検索用の事前構築されたSQLクエリ例。
 - **MCP統合**：AIアシスタント統合のための完全なMCPサーバー実装。
@@ -119,11 +120,35 @@ curl -X POST -H "Content-Type: application/json" \
   - Google Patents S3サンプル
   - フリーSQLクエリツール
 
+### 日本語から英語へのカラム名変換
+
+特許データの日本語カラム名を英語に変換する機能が追加されました。この機能により、CSVファイルから読み込んだデータが、日本語のカラム名ではなく英語のカラム名でSQLiteデータベースに格納されます。主な機能は以下の通りです：
+
+1. **カラム名マッピング定義**: システムは `/app/data/jp_to_en_mapping.json` ファイルを使用して、日本語のカラム名を英語のカラム名にマッピングします。
+2. **透過的な変換**: CSVファイルからデータが読み込まれる際に、日本語のカラム名が自動的に英語に変換されます。
+3. **マッピング履歴**: 変換に使用された実際のマッピングは `/app/data/jp_en_used_mapping.json` ファイルに保存されます。
+4. **柔軟なフォールバック**: マッピングファイルが存在しない場合や、特定の日本語カラム名にマッピングが定義されていない場合、システムは従来通りSQL互換のカラム名に変換します。
+
+#### カスタムマッピングの定義方法
+
+独自の日本語から英語へのマッピングを定義するには：
+
+1. `/app/data/jp_to_en_mapping.json` ファイルを編集します。
+2. 次の形式でJSONオブジェクトを定義します：
+   ```json
+   {
+     "日本語カラム名1": "english_column_name1",
+     "日本語カラム名2": "english_column_name2",
+     ...
+   }
+   ```
+3. システムを再起動するか、CSVデータを再ロードして変更を適用します。
+
 ### MCPサーバー
 
 MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提供します：
 
-1. **patent_sql_query**：任意の特許データベースに対してSQLクエリを実行します。
+1. **patent_sql_query**：任意の特許データベースに対してSQLクエリを実行します。（注意：カラム名は英語名を使用して検索します）
    ```json
    {
      "query": "SELECT * FROM inpit_data LIMIT 5",
@@ -142,7 +167,46 @@ MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提
    }
    ```
 
-2. **get_database_info**：利用可能な特許データベースに関する情報を取得します。
+2. **patent_nl_query**：自然言語での質問を特許データベースに対して実行します。詳細は[自然言語クエリドキュメント](./README_NATURAL_LANGUAGE_QUERY.md)と[自然言語クエリ例](./NATURAL_LANGUAGE_QUERY_EXAMPLES.md)を参照。
+   ```json
+   {
+     "query": "ソニーが出願した人工知能関連の特許を教えてください",
+     "db_type": "google_patents_gcp"
+   }
+   ```
+   結果例:
+   ```json
+   {
+     "success": true,
+     "query": "ソニーが出願した人工知能関連の特許を教えてください",
+     "sql": "SELECT publication_number, title_ja, publication_date, assignee_harmonized FROM publications WHERE assignee_harmonized LIKE '%Sony%' AND (title_ja LIKE '%人工知能%' OR title_ja LIKE '%AI%' OR title_ja LIKE '%機械学習%') ORDER BY publication_date DESC LIMIT 20;",
+     "db_type": "google_patents_gcp",
+     "sql_result": {
+       "success": true,
+       "columns": ["publication_number", "title_ja", "publication_date", "assignee_harmonized"],
+       "results": [
+         // 結果データ
+       ],
+       "record_count": 15
+     },
+     "response": "ソニー（Sony）が出願した人工知能関連の特許として、データベースには15件の特許が見つかりました。これらの特許は公開日の新しい順に表示されています。..."
+   }
+   ```
+   
+3. **check_aws_credentials**：AWS Bedrockサービスの認証情報が正しく設定されているか確認します。
+   ```json
+   {}
+   ```
+   結果例:
+   ```json
+   {
+     "success": true,
+     "message": "AWS credentials are correctly configured for Bedrock services",
+     "aws_region": "us-east-1"
+   }
+   ```
+
+4. **get_database_info**：利用可能な特許データベースに関する情報を取得します。
    ```json
    {
      "db_type": null
@@ -160,7 +224,7 @@ MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提
    }
    ```
 
-3. **get_sql_examples**：特定のデータベースタイプのSQLクエリ例を取得します。
+5. **get_sql_examples**：特定のデータベースタイプのSQLクエリ例を取得します。
    ```json
    {
      "db_type": "inpit"
@@ -179,6 +243,30 @@ MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提
      }
    }
    ```
+
+### 自然言語クエリ
+
+patentDWHシステムの自然言語クエリ機能を使用すると、複雑なSQLクエリを書かなくても、日本語や英語で直接特許データベースに質問することができます。この機能は、AWS Bedrockの Claude 3 Haikuモデルを使用してユーザーの質問をSQLに変換し、結果を自然言語で回答します。
+
+**主な特徴**：
+
+- 日本語と英語での質問をサポート
+- 3種類のデータベース（INPIT、Google Patents GCP、Google Patents S3）に対応
+- 特許の検索、統計分析、トレンド分析などの多様なクエリタイプをサポート
+- 結果は分かりやすい自然言語で提供
+
+**利用可能な質問例**：
+
+詳細な質問例については、[自然言語クエリ例](./NATURAL_LANGUAGE_QUERY_EXAMPLES.md)を参照してください。以下はその一部です：
+
+```
+テック株式会社が出願した特許は何件ありますか？
+ソニーが出願した人工知能関連の特許を教えてください
+IPCコードG06Fに属する特許の国別出願数を比較してください
+自動運転技術において、トヨタとテスラの特許ポートフォリオの違いを分析してください
+```
+
+技術的な詳細については、[自然言語クエリドキュメント](./README_NATURAL_LANGUAGE_QUERY.md)を参照してください。
 
 ClaudeやMCPをサポートする他のAIアシスタントで使用するための設定：
 
