@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  patentdwh-db:
+    build:
+      context: ./db
+    container_name: patentdwh-db
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=5002
+    restart: unless-stopped
+
+  patentdwh-mcp-enhanced:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.enhanced
+    container_name: patentdwh-mcp-enhanced
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - PATENT_DB_URL=http://patentdwh-db:5002
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+    depends_on:
+      - patentdwh-db
+    restart: unless-stopped
