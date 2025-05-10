@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  # PatentDWH DB Service
+  patentdwh-db:
+    build:
+      context: ../patentDWH/db
+    container_name: patentdwh-db
+    ports:
+      - "5002:5002"
+    volumes:
+      - ../patentDWH/data:/app/data
+    environment:
+      - PORT=5002
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  # PatentDWH MCP Enhanced Service
+  patentdwh-mcp-enhanced:
+    build:
+      context: ../patentDWH/app
+      dockerfile: Dockerfile.enhanced
+    container_name: patentdwh-mcp-enhanced
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - PATENT_DB_URL=http://patentdwh-db:5002
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    depends_on:
+      - patentdwh-db
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  # Patent Analysis Service
+  patent-analysis:
+    build:
+      context: .
+    container_name: patent-analysis
+    volumes:
+      - ./output:/app/output
+    environment:
+      - MCP_URL=http://patentdwh-mcp-enhanced:8080/api/v1/mcp
+      - DB_URL=http://patentdwh-db:5002/api/sql-query
+      # Use environment variables for AWS credentials
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    networks:
+      - patent-network
+    depends_on:
+      - patentdwh-mcp-enhanced
+    # Command will be provided when running the container
+    # For example: docker-compose -f combined-docker-compose.yml run patent-analysis "トヨタ" inpit
+
+networks:
+  patent-network:
+    driver: bridge

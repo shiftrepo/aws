@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  patent-analysis:
+    build:
+      context: .
+    container_name: patent-analysis
+    volumes:
+      - ./output:/app/output
+    environment:
+      - MCP_URL=http://patentdwh-mcp-enhanced:8080/api/v1/mcp
+      - DB_URL=http://patentdwh-db:5002/api/sql-query
+      # Use environment variables for AWS credentials
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    networks:
+      - patent-network
+    # Command will be provided when running the container
+    # For example: docker-compose run patent-analysis "トヨタ" inpit
+
+networks:
+  patent-network:
+    # This lets the container connect to the patentDWH services
+    external: true
+    name: patentdwh_default
