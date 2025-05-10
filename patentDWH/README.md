@@ -78,38 +78,33 @@ docker compose down
 ```bash
 # INPITデータベースに対するクエリ例（curl使用）
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"database": "inpit", "query": "SELECT * FROM patents LIMIT 5"}' \
-  http://localhost:8080/api/v1/query
+  -d '{"query": "SELECT * FROM inpit_data LIMIT 5", "db_type": "inpit"}' \
+  http://localhost:5002/api/sql-query
 
 # Google Patents GCPデータベースに対するクエリ例
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"database": "google_patents_gcp", "query": "SELECT publication_number, title_ja FROM patents LIMIT 5"}' \
-  http://localhost:8080/api/v1/query
+  -d '{"query": "SELECT publication_number, title_ja FROM publications LIMIT 5", "db_type": "google_patents_gcp"}' \
+  http://localhost:5002/api/sql-query
 
 # Google Patents S3データベースに対するクエリ例
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"database": "google_patents_s3", "query": "SELECT id, title FROM patents LIMIT 5"}' \
-  http://localhost:8080/api/v1/query
+  -d '{"query": "SELECT publication_number, title_ja FROM publications LIMIT 5", "db_type": "google_patents_s3"}' \
+  http://localhost:5002/api/sql-query
 ```
 
 #### MCP APIの使用例
 
 ```bash
 # 利用可能なデータベース情報の取得
-curl http://localhost:8080/api/v1/databases
-
-# SQLクエリ例の取得
-curl http://localhost:8080/api/v1/examples/inpit
-curl http://localhost:8080/api/v1/examples/google_patents_gcp
-curl http://localhost:8080/api/v1/examples/google_patents_s3
+curl http://localhost:8080/api/status
 
 # MCP APIを使用したクエリの実行
 curl -X POST -H "Content-Type: application/json" \
   -d '{
     "tool_name": "patent_sql_query",
     "tool_input": {
-      "database": "inpit",
-      "query": "SELECT * FROM patents WHERE title LIKE '%AI%' LIMIT 10"
+      "query": "SELECT * FROM inpit_data WHERE title LIKE \"%AI%\" LIMIT 10",
+      "db_type": "inpit"
     }
   }' \
   http://localhost:8080/api/v1/mcp
@@ -129,8 +124,61 @@ curl -X POST -H "Content-Type: application/json" \
 MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提供します：
 
 1. **patent_sql_query**：任意の特許データベースに対してSQLクエリを実行します。
+   ```json
+   {
+     "query": "SELECT * FROM inpit_data LIMIT 5",
+     "db_type": "inpit"
+   }
+   ```
+   結果例:
+   ```json
+   {
+     "success": true,
+     "columns": ["id", "application_number", "application_date", "publication_number", "publication_date", "registration_number", "registration_date", "applicant_name", "inventor_name", "title", "ipc_code", "application_status", "summary"],
+     "results": [
+       [1, "JP2022123456", "2022-01-15", "JP2023987654A", "2023-07-20", "特許第6789012号", "2023-12-05", "テック株式会社", "発明太郎", "AI特許分析システム", "G06N 20/00", "登録済み", "AIを用いて特許を分析するシステム"]
+     ],
+     "record_count": 1
+   }
+   ```
+
 2. **get_database_info**：利用可能な特許データベースに関する情報を取得します。
+   ```json
+   {
+     "db_type": null
+   }
+   ```
+   結果例:
+   ```json
+   {
+     "success": true,
+     "database_info": {
+       "inpit": { "record_count": 10000 },
+       "google_patents_gcp": { "record_count": 5000 },
+       "google_patents_s3": { "record_count": 8000 }
+     }
+   }
+   ```
+
 3. **get_sql_examples**：特定のデータベースタイプのSQLクエリ例を取得します。
+   ```json
+   {
+     "db_type": "inpit"
+   }
+   ```
+   結果例:
+   ```json
+   {
+     "success": true,
+     "db_type": "inpit",
+     "examples": {
+       "basic": "SELECT * FROM inpit_data LIMIT 10;",
+       "applicant": "SELECT * FROM inpit_data WHERE applicant_name LIKE '%テック%' ORDER BY application_date DESC LIMIT 20;",
+       "date": "SELECT * FROM inpit_data WHERE application_date BETWEEN '2022-01-01' AND '2023-12-31' ORDER BY application_date DESC LIMIT 20;",
+       "count": "SELECT strftime('%Y', application_date) as year, COUNT(*) as application_count FROM inpit_data GROUP BY strftime('%Y', application_date) ORDER BY year DESC;"
+     }
+   }
+   ```
 
 ClaudeやMCPをサポートする他のAIアシスタントで使用するための設定：
 
@@ -141,6 +189,58 @@ ClaudeやMCPをサポートする他のAIアシスタントで使用するため
   "url": "http://localhost:8080/api/v1/mcp"
 }
 ```
+
+## テーブル構造
+
+### INPITデータベース
+主要テーブル: `inpit_data`
+
+| カラム名 | 説明 |
+|--------|------|
+| id | 主キー |
+| application_number | 出願番号 |
+| application_date | 出願日 |
+| publication_number | 公開番号 |
+| publication_date | 公開日 |
+| registration_number | 登録番号 |
+| registration_date | 登録日 |
+| applicant_name | 出願人名 |
+| inventor_name | 発明者名 |
+| title | 発明の名称 |
+| ipc_code | 国際特許分類コード |
+| application_status | 出願状況 |
+| summary | 要約 |
+
+### Google Patents データベース
+主要テーブル: `publications`
+
+| カラム名 | 説明 |
+|--------|------|
+| publication_number | 公開番号（主キー） |
+| filing_date | 出願日 |
+| publication_date | 公開日 |
+| application_number | 出願番号 |
+| assignee_harmonized | 標準化された権利者名 |
+| assignee_original | 元の権利者名 |
+| title_ja | タイトル（日本語） |
+| title_en | タイトル（英語） |
+| abstract_ja | 要約（日本語） |
+| abstract_en | 要約（英語） |
+| claims | 請求項 |
+| ipc_code | 国際特許分類コード |
+| family_id | 特許ファミリーID |
+| country_code | 国コード |
+| kind_code | 種別コード |
+
+その他のテーブル: `patent_families` (特許ファミリー情報)
+
+| カラム名 | 説明 |
+|--------|------|
+| id | 主キー |
+| family_id | 特許ファミリーID |
+| application_number | 出願番号 |
+| publication_number | 公開番号 |
+| country_code | 国コード |
 
 ## データソース
 
@@ -240,6 +340,7 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
    cd /app
    ls -la data/
    sqlite3 data/inpit.db ".tables"
+   sqlite3 data/inpit.db "SELECT * FROM inpit_data LIMIT 5"
    ```
 
 ## ライセンス

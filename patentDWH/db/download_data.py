@@ -171,14 +171,32 @@ def create_empty_db(db_path, schema_type="patents"):
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_family_family_id ON patent_families (family_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_family_app_num ON patent_families (application_number)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_family_pub_num ON patent_families (publication_number)')
-        
+            
         elif schema_type == "inpit":
-            # Create empty inpit data table (column names will be determined from CSV)
+            # Create empty inpit data table
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS inpit_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                application_number TEXT,
+                application_date TEXT,
+                publication_number TEXT,
+                publication_date TEXT,
+                registration_number TEXT,
+                registration_date TEXT,
+                applicant_name TEXT,
+                inventor_name TEXT,
+                title TEXT,
+                ipc_code TEXT,
+                application_status TEXT,
+                summary TEXT
             )
             ''')
+            
+            # Create indexes for better performance
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_app_num ON inpit_data (application_number)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_pub_num ON inpit_data (publication_number)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_applicant ON inpit_data (applicant_name)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_ipc ON inpit_data (ipc_code)')
         
         conn.commit()
         conn.close()
@@ -189,7 +207,7 @@ def create_empty_db(db_path, schema_type="patents"):
         except Exception as e:
             logger.warning(f"Could not set permissions on empty database file: {e}")
             
-        logger.info(f"Empty database created successfully at {db_path}")
+        logger.info(f"Empty database structure created successfully at {db_path}")
         return True
     except Exception as e:
         logger.error(f"Error creating empty database: {e}")
@@ -327,9 +345,13 @@ if __name__ == "__main__":
         process_success = process_inpit_csv_to_sqlite()
         if not process_success:
             logger.error("Failed to process INPIT CSV to SQLite.")
+            # Create empty database structure
+            logger.info("Creating empty INPIT database instead.")
+            create_empty_db(INPIT_DB_PATH, "inpit")
     else:
         logger.error("Failed to download INPIT data from S3.")
-        # Create empty database
+        # Create empty database structure
+        logger.info("Creating empty INPIT database structure.")
         create_empty_db(INPIT_DB_PATH, "inpit")
     
     # Download Google Patents databases

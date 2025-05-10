@@ -62,6 +62,61 @@ class Registry:
     
     def mount_to_app(self, app):
         """FastAPIアプリにMCP用のルートを追加する簡易実装"""
+        # MCPのstatusエンドポイント
+        @app.get("/api/status")
+        async def mcp_status():
+            """MCP status endpoint - returns information about the available tools"""
+            tools = []
+            for name, tool_info in self.tools.items():
+                tools.append({
+                    "name": name,
+                    "type": DEFAULT_TOOL_TYPE,
+                    "description": tool_info["description"],
+                    "param_schema": tool_info["param_schema"]
+                })
+            
+            return {
+                "status": "available",
+                "tools": tools,
+                "resources": []  # リソースは今回の実装では使用しない
+            }
+        
+        # MCPのメインエンドポイント
+        @app.post("/api/v1/mcp")
+        async def mcp_endpoint(request: Request):
+            """MCP main endpoint - handles tool calls"""
+            try:
+                # リクエストのJSONを取得
+                data = await request.json()
+                logger.info(f"MCP request received: {data}")
+                
+                # ツール名とパラメータの抽出
+                tool_name = data.get("tool_name")
+                tool_input = data.get("tool_input", {})
+                
+                # ツールが存在するか確認
+                if tool_name not in self.tools:
+                    logger.error(f"Tool not found: {tool_name}")
+                    return JSONResponse(
+                        status_code=404,
+                        content={"error": f"Tool '{tool_name}' not found"}
+                    )
+                
+                # ツール関数の実行
+                tool_func = self.tools[tool_name]["function"]
+                result = await tool_func(tool_input)
+                
+                # 結果を返す
+                logger.info(f"Tool execution result: {result}")
+                return JSONResponse(content=result)
+                
+            except Exception as e:
+                logger.error(f"Error in MCP endpoint: {e}")
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": f"Internal server error: {str(e)}"}
+                )
+        
         return app
 
 class FSResourceEngine:
@@ -134,19 +189,29 @@ class DatabaseInfoParams(BaseModel):
     }
     """
 )
-async def patent_sql_query(params: SQLQueryParams) -> Dict[str, Any]:
+async def patent_sql_query(params) -> Dict[str, Any]:
     """Execute a SQL query on the patent database."""
     try:
+        # Handle both dictionary and SQLQueryParams object
+        # For dictionary access (MCPサーバー経由の呼び出し)
+        if isinstance(params, dict):
+            query = params.get('query')
+            db_type = params.get('db_type', 'inpit')
+        # For SQLQueryParams object (直接的なAPIアクセス)
+        else:
+            query = params.query
+            db_type = params.db_type
+            
         # Basic validation - only SELECT queries allowed for security
-        if not params.query.strip().lower().startswith("select"):
+        if not query.strip().lower().startswith("select"):
             raise ValueError("Only SELECT queries are allowed for security reasons")
 
         # Make request to the patent database API
         async with httpx.AsyncClient() as client:
-            logger.info(f"Executing query on {params.db_type} database: {params.query}")
+            logger.info(f"Executing query on {db_type} database: {query}")
             response = await client.post(
                 f"{PATENT_DB_URL}/api/sql-query",
-                json={"query": params.query, "db_type": params.db_type}
+                json={"query": query, "db_type": db_type}
             )
             
             # Handle API response
