@@ -637,6 +637,9 @@ Resources:
           echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /root/.bashrc
           echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /root/.bashrc
           echo "export AWS_DEFAULT_REGION='${RegionNameParam}'" >> /root/.bashrc
+          echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /home/ec2-user/.bashrc
+          echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /home/ec2-user/.bashrc
+          echo "export AWS_DEFAULT_REGION='${RegionNameParam}'" >> /home/ec2-user/.bashrc
 
           mkdir -p /root/.ssh
           echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
