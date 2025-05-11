@@ -63,8 +63,30 @@ class NLQueryRequest(BaseModel):
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint that verifies the server is running."""
-    return {"status": "healthy", "service": "patentDWH-MCP"}
+    """Health check endpoint that verifies the server is running and can connect to the database."""
+    global nl_processor
+    
+    # Initialize NL processor if not already done
+    if nl_processor is None:
+        nl_processor = get_enhanced_nl_processor()
+        
+    # Check database connection
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:  # Longer timeout
+            response = await client.get(f"{PATENT_DB_URL}/health")
+            db_connected = response.status_code == 200
+    except Exception as e:
+        logger.error(f"Health check error connecting to DB: {str(e)}")
+        db_connected = False
+    
+    status = "healthy" if db_connected else "degraded"
+    return {
+        "status": status, 
+        "service": "patentDWH-MCP", 
+        "database_connected": db_connected,
+        "aws_configured": nl_processor.is_aws_configured if nl_processor else False
+    }
 
 # Server status endpoint
 @app.get("/api/status")

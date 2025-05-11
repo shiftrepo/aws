@@ -18,8 +18,15 @@ from typing import Dict, List, Any, Optional, Tuple
 # Import from the original NLQueryProcessor
 from patched_nl_query_processor import NLQueryProcessor as PatchedNLQueryProcessor
 
-# Import LangChain components - minimal imports to avoid dependency issues
-from langchain_community.llms.bedrock import Bedrock
+# Import LangChain components - updated for newer LangChain versions
+try:
+    from langchain_community.llms.bedrock import Bedrock
+except ImportError:
+    # Fall back to old import path if needed
+    try:
+        from langchain.llms.bedrock import Bedrock
+    except ImportError:
+        logging.error("Failed to import Bedrock from langchain. Ensure langchain and langchain-community are properly installed.")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
