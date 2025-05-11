@@ -2,7 +2,7 @@
 """
 Natural Language Query Processor for patentDWH with direct Bedrock SQL generation fallback
 
-This module extends the original NLQueryProcessor with a direct Bedrock API call
+This module extends the base NLQueryProcessor with a direct Bedrock API call
 for SQL generation when the primary SQL generation method fails.
 """
 
@@ -13,12 +13,15 @@ import boto3
 from typing import Dict, List, Any, Optional
 import httpx
 
-# Import original NLQueryProcessor
-from nl_query_processor import NLQueryProcessor as OriginalNLQueryProcessor
-from nl_query_processor import get_nl_processor as get_original_nl_processor
+# Import base NLQueryProcessor
+from base_nl_query_processor import NLQueryProcessor as BaseNLQueryProcessor
+from base_nl_query_processor import get_base_nl_processor
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # AWS Bedrock settings
@@ -27,7 +30,7 @@ CLAUDE_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
 # Patent DB API URL from environment variable
 PATENT_DB_URL = os.environ.get("PATENT_DB_URL", "http://patentdwh-db:5002")
 
-class NLQueryProcessor(OriginalNLQueryProcessor):
+class NLQueryProcessor(BaseNLQueryProcessor):
     """
     Extended Natural Language Query Processor for patentDWH
     

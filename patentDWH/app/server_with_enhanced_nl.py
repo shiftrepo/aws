@@ -17,13 +17,18 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Body, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
+import time
 
 # Import the enhanced NL query processor
 from enhanced_nl_query_processor import get_enhanced_nl_processor
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging with more detailed format and DEBUG level
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Load configuration
@@ -317,6 +322,80 @@ async def lifespan(app: FastAPI):
     
     # Cleanup (if needed) when application shuts down
     # No specific cleanup needed for this application
+
+# HTTPリクエストとレスポンスの詳細をログ出力するミドルウェア
+class RequestResponseLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # リクエスト情報を記録
+        request_id = str(time.time())
+        request_body = None
+        
+        # リクエスト本文を取得（可能な場合）
+        try:
+            request_body = await request.body()
+            if len(request_body) > 0:
+                try:
+                    # JSON形式の場合は整形して表示
+                    json_body = json.loads(request_body)
+                    request_body = json.dumps(json_body, indent=2, ensure_ascii=False)
+                except:
+                    # JSONでない場合はそのままテキストとして表示
+                    pass
+        except Exception as e:
+            request_body = f"[取得不可: {str(e)}]"
+            
+        # リクエストの詳細情報をログに記録
+        logger.debug(f"Request [{request_id}]: {request.method} {request.url.path}")
+        logger.debug(f"Request [{request_id}] Headers: {dict(request.headers)}")
+        if request_body:
+            logger.debug(f"Request [{request_id}] Body: {request_body}")
+        
+        # 開始時間を記録    
+        start_time = time.time()
+        
+        # 次のミドルウェアまたはエンドポイントを呼び出し
+        try:
+            response = await call_next(request)
+            
+            # レスポンス本文をキャプチャ
+            response_body = b""
+            async for chunk in response.body_iterator:
+                response_body += chunk
+                
+            # 新しいレスポンスを作成
+            new_response = Response(
+                content=response_body,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.media_type
+            )
+            
+            # レスポンス情報をログに記録
+            execution_time = time.time() - start_time
+            logger.debug(f"Response [{request_id}]: {response.status_code} (処理時間: {execution_time:.6f}秒)")
+            
+            # レスポンスの内容をログに記録（可能な場合）
+            if len(response_body) > 0:
+                try:
+                    # JSONレスポンスの場合は整形して表示
+                    json_response = json.loads(response_body)
+                    logger.debug(f"Response [{request_id}] Body: {json.dumps(json_response, indent=2, ensure_ascii=False)}")
+                except:
+                    # JSONでない場合または大きすぎる場合は一部をログに
+                    if len(response_body) > 1000:
+                        logger.debug(f"Response [{request_id}] Body: {response_body[:1000]}... (省略)")
+                    else:
+                        logger.debug(f"Response [{request_id}] Body: {response_body}")
+            
+            return new_response
+            
+        except Exception as e:
+            # エラー情報をログに記録
+            logger.exception(f"Response [{request_id}] Error: {str(e)}")
+            raise e
+
+# ミドルウェアを追加
+app.add_middleware(RequestResponseLoggingMiddleware)
 
 # Apply the lifespan to the app
 app.router.lifespan_context = lifespan

@@ -1,37 +1,33 @@
-FROM docker.io/python:3.9-slim
+FROM python:3.10-slim
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    sqlite3 \
-    awscli \
-    curl \
-    gosu \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set up working directory
 WORKDIR /app
 
-# Install Python packages
-COPY requirements.txt /app/
+# Install required packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy scripts and files
+# Copy application files
 COPY *.py /app/
-COPY *.sh /app/
-COPY templates /app/templates
+COPY templates/ /app/templates/
+COPY static/ /app/static/
 
-# Make scripts executable
-RUN chmod +x /app/*.sh
+# Add the MCP endpoint patch
+COPY mcp_endpoint_patch.py /app/
+COPY patched_entrypoint.sh /app/
+RUN chmod +x /app/patched_entrypoint.sh
 
-# Create data directory with proper permissions
-RUN mkdir -p /app/data && chmod 777 /app/data
+# Default port
+ENV PORT=5002
 
-# Set ownership to root
-RUN chown -R root:root /app
-
-# Expose port for SQLite Web UI
 EXPOSE 5002
 
-# Set entrypoint
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Use our custom entrypoint
+CMD ["/bin/bash", "/app/patched_entrypoint.sh"]

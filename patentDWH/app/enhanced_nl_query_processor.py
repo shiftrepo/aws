@@ -15,8 +15,9 @@ import tempfile
 import httpx
 from typing import Dict, List, Any, Optional, Tuple
 
-# Import from the original NLQueryProcessor
-from patched_nl_query_processor import NLQueryProcessor as PatchedNLQueryProcessor
+# Import base components to ensure proper inheritance chain
+from base_nl_query_processor import NLQueryProcessor as BaseNLQueryProcessor
+from base_nl_query_processor import get_base_nl_processor
 
 # Import LangChain components - updated for newer LangChain versions
 try:
@@ -29,7 +30,10 @@ except ImportError:
         logging.error("Failed to import Bedrock from langchain. Ensure langchain and langchain-community are properly installed.")
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # AWS Bedrock settings
@@ -38,7 +42,7 @@ CLAUDE_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
 # Patent DB API URL from environment variable
 PATENT_DB_URL = os.environ.get("PATENT_DB_URL", "http://patentdwh-db:5002")
 
-class EnhancedNLQueryProcessor(PatchedNLQueryProcessor):
+class EnhancedNLQueryProcessor(BaseNLQueryProcessor):
     """
     Enhanced Natural Language Query Processor with option to use LangChain as primary method
 
@@ -73,6 +77,87 @@ class EnhancedNLQueryProcessor(PatchedNLQueryProcessor):
         except Exception as e:
             logger.error(f"Error setting up LangChain: {e}")
 
+    async def _generate_fallback_sql(self, query: str, db_type: str) -> str:
+        """
+        Generate SQL using direct Bedrock API call as a fallback method.
+        
+        Args:
+            query: Natural language query
+            db_type: Database type
+            
+        Returns:
+            Generated SQL query
+        """
+        try:
+            if not self.is_aws_configured or not self.bedrock_runtime:
+                logger.error("Bedrock client not available")
+                return ""
+            
+            # Get schema information for this database type with retry logic
+            schema_info = self.schemas.get(db_type, {})
+            if not schema_info or "tables" not in schema_info or not schema_info["tables"]:
+                logger.warning("Schema information is missing or incomplete, attempting to refresh schemas")
+                # Try to refresh schemas
+                self.schemas = self._get_database_schemas()
+                schema_info = self.schemas.get(db_type, {})
+            
+            # Format schema information for the prompt
+            schema_text = "テーブル一覧:\n"
+            for table_name, table_info in schema_info.get("tables", {}).items():
+                columns = table_info.get("columns", [])
+                if not columns:
+                    continue
+                
+                schema_text += f"\nテーブル: {table_name}\n"
+                schema_text += "カラム:\n"
+                for col in columns:
+                    schema_text += f"- {col}\n"
+            
+            # Create a prompt for SQL generation
+            prompt = f"""あなたは特許データベースのSQLクエリ生成の専門家です。
+次のSQL問い合わせを生成してください。
+
+### データベースの種類: SQLite
+
+### データベーススキーマ情報:
+{schema_text}
+
+### 質問:
+{query}
+
+### 応答:
+SQLクエリのみを出力してください。説明は不要です。バックティック(```)やSQL識別子も含めないでください。
+"""
+
+            # Call Bedrock
+            response = self.bedrock_runtime.invoke_model(
+                modelId=CLAUDE_MODEL_ID,
+                body=json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 1000,
+                    "temperature": 0,
+                    "system": "あなたは特許データベースのSQLクエリ生成専門AIアシスタントです。ユーザーの質問に対して必ずSQLクエリのみを返します。",
+                    "messages": [{"role": "user", "content": prompt}]
+                })
+            )
+            
+            # Parse response
+            response_body = json.loads(response.get("body").read())
+            sql_query = response_body.get("content", [{}])[0].get("text", "")
+            
+            # Clean up the SQL query
+            if "```sql" in sql_query:
+                sql_query = sql_query.split("```sql")[1].split("```")[0].strip()
+            elif "```" in sql_query:
+                sql_query = sql_query.split("```")[1].split("```")[0].strip()
+            
+            logger.info(f"Fallback generated SQL: {sql_query}")
+            return sql_query
+            
+        except Exception as e:
+            logger.error(f"Error generating fallback SQL: {e}")
+            return ""
+    
     async def _generate_sql_with_langchain(self, query: str, db_type: str) -> Tuple[str, bool]:
         """
         Generate SQL using LangChain by directly querying the LLM.
