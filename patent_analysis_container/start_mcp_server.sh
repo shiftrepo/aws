@@ -9,19 +9,17 @@ echo "  Patent Analysis MCP Server Startup"
 echo "======================================================"
 echo ""
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "ERROR: Docker is not installed or not in PATH"
-    echo "Please install Docker first:"
-    echo "  https://docs.docker.com/get-docker/"
+# Check if Podman is installed
+if ! command -v podman &> /dev/null; then
+    echo "ERROR: Podman is not installed or not in PATH"
+    echo "Please install Podman first"
     exit 1
 fi
 
-# Check if docker-compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    echo "ERROR: docker-compose is not installed or not in PATH"
-    echo "Please install docker-compose first:"
-    echo "  https://docs.docker.com/compose/install/"
+# Check if podman-compose is installed
+if ! command -v podman-compose &> /dev/null; then
+    echo "ERROR: podman-compose is not installed or not in PATH"
+    echo "Please install podman-compose first"
     exit 1
 fi
 
@@ -33,9 +31,18 @@ chmod 777 ./output
 mkdir -p ../app/patent_system/data
 chmod 777 ../app/patent_system/data
 
-# Build and start the MCP server
-echo "Building and starting the Patent Analysis MCP server..."
-docker-compose -f docker-compose.mcp.yml up -d --build
+# Clean up any previous container instances 
+echo "Cleaning up any previous container instances..."
+podman-compose -f docker-compose.mcp.yml down 2>/dev/null || true
+podman rm -f patent-analysis-mcp 2>/dev/null || true
+
+# Build the container with the latest changes
+echo "Building the Patent Analysis MCP server..."
+podman-compose -f docker-compose.mcp.yml build
+
+# Start the MCP server
+echo "Starting the Patent Analysis MCP server..."
+podman-compose -f docker-compose.mcp.yml up -d
 
 # Check if the server started correctly
 if [ $? -eq 0 ]; then
@@ -68,7 +75,7 @@ else
     echo ""
     echo "ERROR: Failed to start the Patent Analysis MCP server"
     echo "Check the logs for more information:"
-    echo "  docker-compose -f docker-compose.mcp.yml logs"
+    echo "  podman-compose -f docker-compose.mcp.yml logs"
     exit 1
 fi
 

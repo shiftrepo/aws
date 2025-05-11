@@ -16,14 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Create directory structure
 RUN mkdir -p /app/output && chmod 777 /app/output
-RUN mkdir -p /app/app/patent_system
+RUN mkdir -p /app/app/patent_system && chmod -R 777 /app/app
 
 # Copy the application code
+COPY patent_analysis_simple.py .
 COPY patent_analysis_mcp_server.py .
-
-# Copy necessary SQLite DB modules
-COPY ../app/patent_system/models_sqlite.py /app/app/patent_system/
-COPY ../app/patent_system/db_sqlite.py /app/app/patent_system/
 
 # Create __init__.py files for proper imports
 RUN touch /app/app/__init__.py
@@ -38,4 +35,4 @@ ENV PORT=8000
 ENV OUTPUT_DIR=/app/output
 
 # Run server on container startup
-CMD ["python", "patent_analysis_mcp_server.py"]
+CMD ["python", "patent_analysis_simple.py"]

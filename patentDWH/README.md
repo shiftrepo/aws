@@ -80,8 +80,8 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 3. 特許分析サービスを使用する場合は、別途起動します：
    ```bash
    cd ../patent_analysis_container
-   docker-compose build
-   docker-compose run patent-analysis "出願人名" [db_type]
+   podman-compose build
+   podman-compose run patent-analysis "出願人名" [db_type]
    ```
 
 4. 特許分析MCPサーバーを起動する場合：
@@ -101,7 +101,7 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 
 2. 特許分析を実行する場合：
    ```bash
-   docker-compose -f docker-compose.consolidated.yml run patent-analysis "出願人名" [db_type]
+   podman-compose -f docker-compose.consolidated.yml run patent-analysis "出願人名" [db_type]
    ```
 
 ## 使用方法
@@ -131,14 +131,14 @@ curl http://localhost:8080/health
 curl http://localhost:8000/health  # 特許分析MCPサーバー
 
 # ログを確認する
-docker compose logs -f
+podman-compose logs -f
 # または
-docker compose -f docker-compose.consolidated.yml logs -f
+podman-compose -f docker-compose.consolidated.yml logs -f
 
 # サービスを停止する
-docker compose down
+podman-compose down
 # または
-docker compose -f docker-compose.consolidated.yml down
+podman-compose -f docker-compose.consolidated.yml down
 ```
 
 #### SQLクエリの実行例
@@ -185,11 +185,11 @@ curl -X POST -H "Content-Type: application/json" \
 ```bash
 # 特許分析の実行（通常方法）
 cd patent_analysis_container
-docker compose run patent-analysis "トヨタ" inpit
+podman-compose run patent-analysis "トヨタ" inpit
 
 # 特許分析の実行（統合方法）
 cd patentDWH
-docker compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+podman-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
 ```
 
 #### 特許分析MCPサーバーの利用例
@@ -287,11 +287,11 @@ patent_analysisは以下の方法でpatentDWHシステムと連携します：
 ```bash
 # 方法1: 通常方法（patent_analysisを個別に実行）
 cd patent_analysis_container
-docker-compose run patent-analysis "トヨタ" inpit
+podman-compose run patent-analysis "トヨタ" inpit
 
 # 方法2: 統合方法（patentDWHの一部として実行）
 cd patentDWH
-docker-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+podman-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
 
 # 方法3: スクリプトを使用した実行（patentDWHディレクトリから）
 ./direct_run_analysis.sh "トヨタ" inpit
@@ -332,8 +332,8 @@ cd patent_analysis_container
 chmod +x start_mcp_server.sh
 ./start_mcp_server.sh
 
-# または、Dockerコマンドで直接起動する場合
-docker-compose -f docker-compose.mcp.yml up -d
+# または、Podmanコマンドで直接起動する場合
+podman-compose -f docker-compose.mcp.yml up -d
 ```
 
 **主要なエンドポイント**：
@@ -465,13 +465,13 @@ curl http://localhost:8000/
 特定の出願人の特許分析を行うには：
 
 ```bash
-docker compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+podman-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
 ```
 
 ### 6. すべてのサービスを停止
 
 ```bash
-docker compose -f docker-compose.consolidated.yml down
+podman-compose -f docker-compose.consolidated.yml down
 ```
 
 ## 詳細ログとトラブルシューティング
@@ -490,14 +490,14 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 
 1. 詳細なログを確認する (ログは自動的にコンテナの起動時に出力されます)：
    ```
-   docker compose -f docker-compose.consolidated.yml logs -f
+   podman-compose -f docker-compose.consolidated.yml logs -f
    ```
 
 2. 特定のコンテナの詳細なログを確認する：
    ```
-   docker compose -f docker-compose.consolidated.yml logs -f patentdwh-db
-   docker compose -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced
-   docker compose -f docker-compose.consolidated.yml logs -f patent-analysis
+   podman-compose -f docker-compose.consolidated.yml logs -f patentdwh-db
+   podman-compose -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced
+   podman-compose -f docker-compose.consolidated.yml logs -f patent-analysis
    ```
 
 3. データベースファイルがダウンロードされていることを確認する：
@@ -508,15 +508,15 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 
 4. サービスの再起動：
    ```
-   docker compose -f docker-compose.consolidated.yml down
-   docker compose -f docker-compose.consolidated.yml up -d
+   podman-compose -f docker-compose.consolidated.yml down
+   podman-compose -f docker-compose.consolidated.yml up -d
    ```
 
 5. データのクリーンアップと再ダウンロード：
    ```
    rm -rf data/*.db
-   docker compose -f docker-compose.consolidated.yml down
-   docker compose -f docker-compose.consolidated.yml up -d
+   podman-compose -f docker-compose.consolidated.yml down
+   podman-compose -f docker-compose.consolidated.yml up -d
    ```
 
 ## ソースコードSTEP数

@@ -1,0 +1,8 @@
+{
+  "result": {
+    "applicant_name": "トヨタ",
+    "trend_analysis": "データが見つかりませんでした。",
+    "report_url": "/api/report/トヨタ/zip",
+    "message": "特許分析レポートが作成されました。ZIPファイルをダウンロードしてください。"
+  }
+}

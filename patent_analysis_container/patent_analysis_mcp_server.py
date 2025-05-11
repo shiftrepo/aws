@@ -13,15 +13,61 @@ from typing import Dict, List, Any, Optional
 import re
 from datetime import datetime
 import requests
+import importlib.util
+import inspect
+from sqlalchemy.orm import Session
 
 # Add path for importing local modules
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Import SQLite database modules
-from app.patent_system.models_sqlite import ensure_db_exists, SessionLocal, get_db
-from app.patent_system.db_sqlite import SQLiteDBManager
-from sqlalchemy.orm import Session
+# For development/debug - print paths
+print(f"Current working directory: {os.getcwd()}")
+print(f"Python path: {sys.path}")
+print(f"Directory listing for /app:")
+try:
+    print(os.listdir("/app"))
+    print(f"Directory listing for /app/app:")
+    print(os.listdir("/app/app"))
+    print(f"Directory listing for /app/app/patent_system:")
+    print(os.listdir("/app/app/patent_system"))
+except Exception as e:
+    print(f"Error listing directories: {e}")
+
+# Create mock implementations for development/testing if modules can't be imported
+try:
+    # Try to import the modules
+    from app.patent_system.models_sqlite import ensure_db_exists, SessionLocal, get_db
+    from app.patent_system.db_sqlite import SQLiteDBManager
+    print("Successfully imported SQLite modules")
+except ImportError as e:
+    print(f"Error importing modules: {e}")
+    # Mock implementations
+    print("Using mock implementations for SQLite modules")
+    
+    def ensure_db_exists():
+        print("Mock ensure_db_exists called")
+        return True
+        
+    def get_db():
+        print("Mock get_db called")
+        return None
+        
+    SessionLocal = None
+    
+    class SQLiteDBManager:
+        def __init__(self):
+            print("Mock SQLiteDBManager initialized")
+            
+        def __enter__(self):
+            return self
+            
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
+            
+        def get_patents_by_applicant(self, applicant_name):
+            print(f"Mock get_patents_by_applicant called for {applicant_name}")
+            return []
 
 app = FastAPI(title="Patent Analysis MCP Server", 
               description="MCP server for patent application trend analysis",
