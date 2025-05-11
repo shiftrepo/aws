@@ -34,8 +34,18 @@ chmod 777 ../app/patent_system/data
 
 # Clean up any previous container instances 
 echo "Cleaning up any previous container instances..."
-$COMPOSE_CMD -f docker-compose.mcp.yml down 2>/dev/null || true
+$CONTAINER_RUNTIME stop patent-analysis-mcp 2>/dev/null || true
 $CONTAINER_RUNTIME rm -f patent-analysis-mcp 2>/dev/null || true
+
+# If the compose command is not available, fall back to direct container commands
+if ! command -v $COMPOSE_CMD &> /dev/null; then
+    echo "WARNING: $COMPOSE_CMD not found, will use direct $CONTAINER_RUNTIME commands"
+    COMPOSE_CMD=""
+fi
+
+if [ -n "$COMPOSE_CMD" ]; then
+    $COMPOSE_CMD -f docker-compose.mcp.yml down 2>/dev/null || true
+fi
 
 # Make sure required environment variables are set (without exposing values)
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then

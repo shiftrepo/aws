@@ -43,18 +43,46 @@ if [[ ! -d "../patent_analysis_container" ]]; then
   exit 1
 fi
 
+# コンテナランタイムを検出
+if command -v podman &> /dev/null; then
+  CONTAINER_RUNTIME="podman"
+  COMPOSE_CMD="podman-compose"
+  echo -e "${BLUE}podmanとpodman-composeを使用します${NC}"
+elif command -v docker &> /dev/null; then
+  CONTAINER_RUNTIME="docker"
+  COMPOSE_CMD="docker compose"
+  echo -e "${YELLOW}dockerを使用します (podman推奨)${NC}"
+else
+  echo -e "${RED}エラー: podmanもdockerもインストールされていません${NC}"
+  exit 1
+fi
+
+# コンテナネットワークを確認・作成
+NETWORK_NAME="patentdwh_default"
+if ! $CONTAINER_RUNTIME network exists $NETWORK_NAME &>/dev/null; then
+  echo -e "${YELLOW}ネットワーク $NETWORK_NAME が存在しないため、作成します${NC}"
+  $CONTAINER_RUNTIME network create $NETWORK_NAME
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}ネットワーク $NETWORK_NAME の作成に失敗しました${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}ネットワーク $NETWORK_NAME を作成しました${NC}"
+else
+  echo -e "${GREEN}既存のネットワーク $NETWORK_NAME を使用します${NC}"
+fi
+
 # 前回のサービスをクリーンアップ
 echo -e "${BLUE}1. 前回のサービスをクリーンアップしています...${NC}"
-docker compose -f docker-compose.consolidated.yml down 2>/dev/null
+$COMPOSE_CMD -f docker-compose.consolidated.yml down 2>/dev/null
 cd ../patent_analysis_container
-docker compose -f docker-compose.mcp.yml down 2>/dev/null
+$COMPOSE_CMD -f docker-compose.mcp.yml down 2>/dev/null
 cd ../patentDWH
 echo -e "${GREEN}クリーンアップ完了${NC}"
 echo ""
 
 # patentDWH基本サービスを起動
 echo -e "${BLUE}2. patentDWHの基本サービス（DB、MCPサーバー）を起動しています...${NC}"
-docker compose -f docker-compose.consolidated.yml up -d patentdwh-db patentdwh-mcp-enhanced
+$COMPOSE_CMD -f docker-compose.consolidated.yml up -d patentdwh-db patentdwh-mcp-enhanced
 echo -e "${GREEN}サービス起動コマンド実行${NC}"
 
 # サービスが起動するまで待機
@@ -69,7 +97,7 @@ done
 
 if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
   echo -e "${RED}\nデータベースサービスの起動確認に失敗しました。ログを確認してください。${NC}"
-  echo -e "${YELLOW}docker compose -f docker-compose.consolidated.yml logs -f patentdwh-db${NC}"
+  echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-db${NC}"
   exit 1
 fi
 
@@ -85,7 +113,7 @@ done
 
 if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
   echo -e "${RED}\nMCPサービスの起動確認に失敗しました。ログを確認してください。${NC}"
-  echo -e "${YELLOW}docker compose -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced${NC}"
+  echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced${NC}"
   exit 1
 fi
 
@@ -95,7 +123,7 @@ echo ""
 # 特許分析MCPサーバーの起動
 echo -e "${BLUE}3. 特許分析MCPサーバーを起動しています...${NC}"
 cd ../patent_analysis_container
-docker compose -f docker-compose.mcp.yml up -d
+$COMPOSE_CMD -f docker-compose.mcp.yml up -d
 cd ../patentDWH
 echo -e "${GREEN}特許分析MCPサーバー起動コマンド実行${NC}"
 
@@ -110,7 +138,7 @@ done
 
 if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
   echo -e "${RED}\n特許分析MCPサーバーの起動確認に失敗しました。ログを確認してください。${NC}"
-  echo -e "${YELLOW}cd ../patent_analysis_container && docker compose -f docker-compose.mcp.yml logs -f${NC}"
+  echo -e "${YELLOW}cd ../patent_analysis_container && $COMPOSE_CMD -f docker-compose.mcp.yml logs -f${NC}"
 else
   echo -e "${GREEN}\n   特許分析MCPサーバー稼働中${NC}"
 fi
@@ -132,13 +160,13 @@ echo -e "MCPサーバー: ${YELLOW}curl http://localhost:8080/health${NC}"
 echo -e "特許分析サーバー: ${YELLOW}curl http://localhost:8000/${NC}"
 echo ""
 echo -e "${BLUE}特許分析の実行例:${NC}"
-echo -e "${YELLOW}docker compose -f docker-compose.consolidated.yml run patent-analysis \"トヨタ\" inpit${NC}"
+echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml run patent-analysis \"トヨタ\" inpit${NC}"
 echo ""
 echo -e "${BLUE}サービスの停止:${NC}"
-echo -e "${YELLOW}docker compose -f docker-compose.consolidated.yml down${NC}"
-echo -e "${YELLOW}cd ../patent_analysis_container && docker compose -f docker-compose.mcp.yml down${NC}"
+echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml down${NC}"
+echo -e "${YELLOW}cd ../patent_analysis_container && $COMPOSE_CMD -f docker-compose.mcp.yml down${NC}"
 echo ""
 echo -e "${BLUE}各サービスのログ確認:${NC}"
-echo -e "データベース: ${YELLOW}docker compose -f docker-compose.consolidated.yml logs -f patentdwh-db${NC}"
-echo -e "MCPサーバー: ${YELLOW}docker compose -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced${NC}"
-echo -e "特許分析サーバー: ${YELLOW}cd ../patent_analysis_container && docker compose -f docker-compose.mcp.yml logs -f${NC}"
+echo -e "データベース: ${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-db${NC}"
+echo -e "MCPサーバー: ${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced${NC}"
+echo -e "特許分析サーバー: ${YELLOW}cd ../patent_analysis_container && $COMPOSE_CMD -f docker-compose.mcp.yml logs -f${NC}"

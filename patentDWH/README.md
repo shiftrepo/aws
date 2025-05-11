@@ -581,7 +581,7 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 
 ### トラブルシューティング
 
-サービスが正常に起動しない場合：
+#### コンテナが正常に起動しない場合
 
 1. 詳細なログを確認する (ログは自動的にコンテナの起動時に出力されます)：
    ```
@@ -603,4 +603,32 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 
 4. サービスの再起動：
    ```
-   podman-compose -f docker
+   podman-compose -f docker-compose.consolidated.yml down
+   podman-compose -f docker-compose.consolidated.yml up -d
+   ```
+
+#### 特許分析MCPコンテナが "Created" 状態で止まる場合
+
+特許分析MCPコンテナ（patent-analysis-mcp）が "Created" 状態で止まり、実行状態に移行しない場合は、以下の修正スクリプトを実行してください：
+
+1. patent_analysis_containerディレクトリに移動：
+   ```
+   cd patent_analysis_container
+   ```
+
+2. 修正スクリプトを実行：
+   ```
+   ./fix_mcp_container.sh
+   ```
+
+この問題は主に以下の原因で発生します：
+- ネットワーク設定の問題 (patentdwh_defaultネットワークへの接続が適切に構成されていない)
+- コンテナランタイムの互換性の問題 (podman使用時のDocker Compose設定のサポート)
+
+詳細は `patent_analysis_container/README_CONTAINER_FIX.md` を参照してください。
+
+5. より詳しい情報を得るためにネットワーク設定を確認する：
+   ```
+   podman network ls
+   podman network inspect patentdwh_default
+   ```

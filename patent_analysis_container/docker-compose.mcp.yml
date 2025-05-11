@@ -34,11 +34,9 @@ services:
 
 networks:
   patent-network:
-    # This lets the container connect to the patentDWH services if needed
-    external: false
-    # Changed from patentdwh_default to a local network since the external service is not running
-    # If you need to connect to external services, set external: true and uncomment the name line
-    # name: patentdwh_patent-network
+    # This lets the container connect to the patentDWH services
+    external: true
+    name: patentdwh_default
   default:
     # Local network for this compose file
     
