@@ -177,26 +177,59 @@ def create_empty_db(db_path, schema_type="patents"):
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS inpit_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                open_patent_info_number TEXT,
+                title TEXT,
+                open_patent_info_registration_date TEXT,
+                latest_update_date TEXT,
                 application_number TEXT,
                 application_date TEXT,
+                applicant TEXT,
                 publication_number TEXT,
-                publication_date TEXT,
                 registration_number TEXT,
-                registration_date TEXT,
-                applicant_name TEXT,
-                inventor_name TEXT,
-                title TEXT,
-                ipc_code TEXT,
-                application_status TEXT,
-                summary TEXT
+                patent_owner TEXT,
+                invention_name TEXT,
+                technical_field1 TEXT,
+                technical_field2 TEXT,
+                technical_field3 TEXT,
+                function1 TEXT,
+                function2 TEXT,
+                function3 TEXT,
+                applicable_products TEXT,
+                purpose TEXT,
+                effect TEXT,
+                technical_overview TEXT,
+                implementation_record_status TEXT,
+                licensing_record_status TEXT,
+                patent_right_transfer TEXT,
+                patent_transfer_consideration_lump_sum_required TEXT,
+                patent_transfer_consideration_lump_sum TEXT,
+                patent_transfer_desired_domestic_transferee_availability TEXT,
+                patent_transfer_desired_domestic_transferee TEXT,
+                patent_transfer_desired_foreign_transferee_availability TEXT,
+                patent_transfer_desired_foreign_transferee TEXT,
+                patent_license_availability TEXT,
+                patent_license_terms TEXT,
+                patent_license_consideration_lump_sum_required TEXT,
+                patent_license_consideration_lump_sum TEXT,
+                patent_license_consideration_running_royalty_required TEXT,
+                patent_license_consideration_running_royalty TEXT,
+                patent_license_desired_domestic_licensee_availability TEXT,
+                patent_license_desired_domestic_licensee TEXT,
+                patent_license_desired_foreign_licensee_availability TEXT,
+                patent_license_desired_foreign_licensee TEXT,
+                registrant_name TEXT,
+                registrant_category TEXT,
+                international_patent_classification_ipc TEXT,
+                related_patents_domestic TEXT,
+                related_patents_foreign TEXT
             )
             ''')
             
             # Create indexes for better performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_app_num ON inpit_data (application_number)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_pub_num ON inpit_data (publication_number)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_applicant ON inpit_data (applicant_name)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_ipc ON inpit_data (ipc_code)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_applicant ON inpit_data (applicant)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_ipc ON inpit_data (international_patent_classification_ipc)')
         
         conn.commit()
         conn.close()

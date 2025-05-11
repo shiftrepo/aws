@@ -375,21 +375,33 @@ curl -X GET http://localhost:8000/api/report/トヨタ/zip -o toyota_report.zip
 ### INPITデータベース
 主要テーブル: `inpit_data`
 
-| カラム名 | 説明 |
-|--------|------|
-| id | 主キー |
-| application_number | 出願番号 |
-| application_date | 出願日 |
-| publication_number | 公開番号 |
-| publication_date | 公開日 |
-| registration_number | 登録番号 |
-| registration_date | 登録日 |
-| applicant_name | 出願人名 |
-| inventor_name | 発明者名 |
-| title | 発明の名称 |
-| ipc_code | 国際特許分類コード |
-| application_status | 出願状況 |
-| summary | 要約 |
+| カラム名 | 説明 | English Field Name |
+|--------|------|-------------------|
+| id | 主キー | id |
+| open_patent_info_number | 開放特許情報番号 | open_patent_info_number |
+| title | タイトル | title |
+| open_patent_info_registration_date | 開放特許情報登録日 | open_patent_info_registration_date |
+| latest_update_date | 最新更新日 | latest_update_date |
+| application_number | 出願番号 | application_number |
+| application_date | 出願日 | application_date |
+| applicant | 出願人 | applicant |
+| publication_number | 公開番号 | publication_number |
+| registration_number | 登録番号 | registration_number |
+| patent_owner | 特許権者 | patent_owner |
+| invention_name | 発明の名称 | invention_name |
+| technical_field1 | 技術分野1 | technical_field1 |
+| technical_field2 | 技術分野2 | technical_field2 |
+| technical_field3 | 技術分野3 | technical_field3 |
+| function1 | 機能1 | function1 |
+| function2 | 機能2 | function2 |
+| function3 | 機能3 | function3 |
+| applicable_products | 適用製品 | applicable_products |
+| purpose | 目的 | purpose |
+| effect | 効果 | effect |
+| technical_overview | 技術概要 | technical_overview |
+| implementation_record_status | 実施実績：有無 | implementation_record_status |
+| licensing_record_status | 許諾実績：有無 | licensing_record_status |
+| international_patent_classification_ipc | 国際特許分類（IPC） | international_patent_classification_ipc |
 
 ### Google Patents データベース
 主要テーブル: `publications`
@@ -416,7 +428,37 @@ curl -X GET http://localhost:8000/api/report/トヨタ/zip -o toyota_report.zip
 
 patentDWHシステムの各コンポーネントを統合的に起動する方法です。これにより、データベース、MCPサーバー、特許分析サービスを一度に起動できます。
 
-### 1. 統合Docker Composeファイルの使用
+### すべてのコンテナを同時に起動する方法（推奨）
+
+patentDWHとpatent_analysisを含むすべてのコンテナを一括で起動するには以下の手順に従ってください：
+
+```bash
+# 1. リポジトリのルートディレクトリに移動
+cd patentDWH
+
+# 2. AWS認証情報の設定（必要な場合）
+export AWS_ACCESS_KEY_ID="your_aws_key_id"
+export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
+export AWS_REGION="us-east-1"  # 必要に応じて変更
+
+# 3. 統合セットアップスクリプトを実行
+./setup_consolidated.sh
+
+# 4. patent_analysis_container ディレクトリに移動
+cd ../patent_analysis_container
+
+# 5. 特許分析MCPサーバーを起動
+./start_mcp_server.sh
+```
+
+これにより、以下のすべてのサービスが起動します：
+- **patentdwh-db**: 特許データベースサービス (ポート 5002)
+- **patentdwh-mcp-enhanced**: 拡張MCP（LangChain機能付き） (ポート 8080)
+- **patent-analysis-mcp**: 特許分析MCPサーバー (ポート 8000)
+
+### 個別に起動する方法
+
+#### 1. 統合Docker Composeファイルの使用
 
 `docker-compose.consolidated.yml`ファイルには以下のサービスが含まれています：
 
@@ -424,7 +466,7 @@ patentDWHシステムの各コンポーネントを統合的に起動する方�
 2. **patentdwh-mcp-enhanced**: 拡張MCP（LangChain機能付き）
 3. **patent-analysis**: 特許分析サービス
 
-### 2. 統合セットアップスクリプトの実行
+#### 2. 統合セットアップスクリプトの実行
 
 ```bash
 cd patentDWH
@@ -436,7 +478,7 @@ cd patentDWH
 - patentdwh-dbとpatentdwh-mcp-enhancedサービスを起動
 - サービスの健全性を確認
 
-### 3. 特許分析MCPサーバーの追加（オプション）
+#### 3. 特許分析MCPサーバーの追加（オプション）
 
 特許分析MCPサーバーも起動したい場合は、以下のコマンドを実行します：
 

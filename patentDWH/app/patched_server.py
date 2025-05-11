@@ -375,8 +375,9 @@ async def get_sql_examples(params: Dict[str, str]) -> Dict[str, Any]:
     
     examples = {
         "inpit": {
+            "schema": "PRAGMA table_info(inpit_data);",
             "basic": "SELECT * FROM inpit_data LIMIT 10;",
-            "applicant": "SELECT * FROM inpit_data WHERE applicant_name LIKE '%テック%' ORDER BY application_date DESC LIMIT 20;",
+            "applicant": "SELECT * FROM inpit_data WHERE applicant LIKE '%テック%' ORDER BY application_date DESC LIMIT 20;",
             "date": "SELECT * FROM inpit_data WHERE application_date BETWEEN '2022-01-01' AND '2023-12-31' ORDER BY application_date DESC LIMIT 20;",
             "count": "SELECT strftime('%Y', application_date) as year, COUNT(*) as application_count FROM inpit_data GROUP BY strftime('%Y', application_date) ORDER BY year DESC;"
         },

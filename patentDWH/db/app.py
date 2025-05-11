@@ -684,9 +684,10 @@ with open('templates/admin/inpit_sql_examples.html', 'w') as f:
 
 <script>
 const examples = {
+    schema: `PRAGMA table_info(inpit_data);`,
     basic: `SELECT * FROM inpit_data LIMIT 10;`,
     applicant: `SELECT * FROM inpit_data 
-WHERE applicant_name LIKE '%テック%'
+WHERE applicant LIKE '%テック%'
 ORDER BY application_date DESC
 LIMIT 20;`,
     date: `SELECT * FROM inpit_data 

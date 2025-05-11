@@ -107,23 +107,100 @@ else
     echo -e "${GREEN}[INFO] AWS credentials are set${NC}"
 fi
 
+# Create patched compose file with explicit network configuration
+echo -e "${BLUE}[INFO] Creating patched consolidated compose file...${NC}"
+cat > docker-compose.consolidated.patched.yml << EOL
+version: '3'
+
+services:
+  # PatentDWH DB Service - Core database service
+  patentdwh-db:
+    build:
+      context: ./db
+    container_name: patentdwh-db
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./data:/app/data:z
+    environment:
+      - PORT=5002
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=\${AWS_REGION:-ap-northeast-1}
+      - SKIP_DATA_DOWNLOAD=false
+    user: "root:root"  # Run as root
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  # PatentDWH MCP Enhanced Service - MCP server with LangChain integration
+  patentdwh-mcp-enhanced:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.enhanced
+    container_name: patentdwh-mcp-enhanced
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - PATENT_DB_URL=http://patentdwh-db:5002
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=\${AWS_REGION:-us-east-1}
+      - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
+      - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
+    volumes:
+      - ./data:/app/data:z
+      - ./data/db:/app/data/db:z
+    user: "root:root"  # Run as root
+    depends_on:
+      - patentdwh-db
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  # Patent Analysis Service - For analyzing patent data
+  patent-analysis:
+    build:
+      context: ../patent_analysis_container
+    container_name: patent-analysis
+    volumes:
+      - ../patent_analysis_container/output:/app/output
+    environment:
+      - MCP_URL=http://patentdwh-mcp-enhanced:8080/api/v1/mcp
+      - DB_URL=http://patentdwh-db:5002/api/sql-query
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=\${AWS_REGION:-us-east-1}
+    networks:
+      - patent-network
+    depends_on:
+      - patentdwh-mcp-enhanced
+    # Command will be provided when running the container
+    # Example: docker-compose -f docker-compose.consolidated.patched.yml run patent-analysis "トヨタ" inpit
+
+networks:
+  patent-network:
+    driver: bridge
+EOL
+
 # Building and starting containers with error handling
 echo -e "${BLUE}[INFO] Building containers...${NC}"
-$COMPOSE_CMD -f docker-compose.consolidated.yml build
+$COMPOSE_CMD -f docker-compose.consolidated.patched.yml build
 if [ $? -ne 0 ]; then
     error_exit "Failed to build containers. Check the error messages above."
 fi
 echo -e "${GREEN}[INFO] Container build successful${NC}"
 
 echo -e "${BLUE}[INFO] Starting containers...${NC}"
-$COMPOSE_CMD -f docker-compose.consolidated.yml up -d patentdwh-db patentdwh-mcp-enhanced
+$COMPOSE_CMD -f docker-compose.consolidated.patched.yml up -d patentdwh-db patentdwh-mcp-enhanced
 if [ $? -ne 0 ]; then
     error_exit "Failed to start containers. Check the error messages above."
 fi
 echo -e "${GREEN}[INFO] Containers started successfully${NC}"
 
 echo -e "${BLUE}[INFO] Container status:${NC}"
-$COMPOSE_CMD -f docker-compose.consolidated.yml ps
+$COMPOSE_CMD -f docker-compose.consolidated.patched.yml ps
 
 # Wait for services to start with progress indicator
 echo -e "${BLUE}[INFO] Waiting for services to start...${NC}"
@@ -148,7 +225,7 @@ else
         echo -e "  - No response received"
     fi
     echo -e "${YELLOW}[INFO] Checking if containers are running...${NC}"
-    $COMPOSE_CMD -f docker-compose.consolidated.yml ps
+    $COMPOSE_CMD -f docker-compose.consolidated.patched.yml ps
     show_service_logs "patentdwh-db"
 fi
 
@@ -179,8 +256,8 @@ fi
 echo -e "${BLUE}$(date '+%Y-%m-%d %H:%M:%S') Setup finished${NC}"
 echo ""
 echo -e "${BOLD}Access Information:${NC}"
-echo -e "  - Database service: database only, no UI available"
-echo -e "  - MCP API:         MCP server only, no UI available"
+echo -e "  - Database UI:  ${GREEN}http://localhost:5002/${NC}"
+echo -e "  - MCP API:      ${GREEN}http://localhost:8080/${NC}"
 echo ""
 echo -e "${BOLD}MCP configuration for Claude:${NC}"
 echo '{
@@ -190,11 +267,11 @@ echo '{
 }'
 echo ""
 echo -e "${BOLD}Example Usage for Patent Analysis:${NC}"
-echo -e "  - Run analysis: ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.yml run patent-analysis \"トヨタ\" inpit${NC}"
+echo -e "  - Run analysis: ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.patched.yml run patent-analysis \"トヨタ\" inpit${NC}"
 echo ""
 echo -e "${BOLD}Useful Commands:${NC}"
-echo -e "  - View logs:               ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f${NC}"
-echo -e "  - View specific container: ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f [patentdwh-db|patentdwh-mcp-enhanced]${NC}"
-echo -e "  - Stop services:           ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.yml down${NC}"
-echo -e "  - Restart services:        ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.yml restart${NC}"
+echo -e "  - View logs:               ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.patched.yml logs -f${NC}"
+echo -e "  - View specific container: ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.patched.yml logs -f [patentdwh-db|patentdwh-mcp-enhanced]${NC}"
+echo -e "  - Stop services:           ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.patched.yml down${NC}"
+echo -e "  - Restart services:        ${BLUE}$COMPOSE_CMD -f docker-compose.consolidated.patched.yml restart${NC}"
 echo -e "${BLUE}==============================${NC}"

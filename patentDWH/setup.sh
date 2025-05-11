@@ -97,23 +97,101 @@ else
     echo -e "${GREEN}[INFO] AWS credentials are set${NC}"
 fi
 
+# Create patched compose file with explicit network configuration
+echo -e "${BLUE}[INFO] Creating patched compose file...${NC}"
+cat > docker-compose.patched.yml << EOL
+version: '3'
+
+services:
+  patentdwh-db:
+    image: patentdwh-db:latest
+    container_name: patentdwh-db
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    environment:
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=ap-northeast-1
+      - SKIP_DATA_DOWNLOAD=false
+    volumes:
+      - ./data:/app/data:z
+    user: "root:root"
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  patentdwh-mcp:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: patentdwh-mcp
+    environment:
+      - PATENT_DB_URL=http://patentdwh-db:5002
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=ap-northeast-1
+      - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
+      - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data:z
+      - ./data/db:/app/data/db:z
+    user: "root:root"
+    depends_on:
+      - patentdwh-db
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  patentdwh-mcp-enhanced:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.enhanced
+    container_name: patentdwh-mcp-enhanced
+    environment:
+      - PATENT_DB_URL=http://patentdwh-db:5002
+      - AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=\${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=ap-northeast-1
+      - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
+      - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
+    ports:
+      - "8080"
+    volumes:
+      - ./data:/app/data:z
+      - ./data/db:/app/data/db:z
+    user: "root:root"
+    depends_on:
+      - patentdwh-db
+    networks:
+      - patent-network
+
+networks:
+  patent-network:
+    driver: bridge
+EOL
+
 # Building and starting containers with error handling
 echo -e "${BLUE}[INFO] Building containers...${NC}"
-$COMPOSE_CMD build
+$COMPOSE_CMD -f docker-compose.patched.yml build
 if [ $? -ne 0 ]; then
     error_exit "Failed to build containers. Check the error messages above."
 fi
 echo -e "${GREEN}[INFO] Container build successful${NC}"
 
 echo -e "${BLUE}[INFO] Starting containers...${NC}"
-$COMPOSE_CMD up -d
+$COMPOSE_CMD -f docker-compose.patched.yml up -d
 if [ $? -ne 0 ]; then
     error_exit "Failed to start containers. Check the error messages above."
 fi
 echo -e "${GREEN}[INFO] Containers started successfully${NC}"
 
 echo -e "${BLUE}[INFO] Container status:${NC}"
-$COMPOSE_CMD ps
+$COMPOSE_CMD -f docker-compose.patched.yml ps
 
 # Wait for services to start with progress indicator
 echo -e "${BLUE}[INFO] Waiting for services to start...${NC}"
@@ -138,7 +216,7 @@ else
         echo -e "  - No response received"
     fi
     echo -e "${YELLOW}[INFO] Checking if containers are running...${NC}"
-    $COMPOSE_CMD ps
+    $COMPOSE_CMD -f docker-compose.patched.yml ps
     show_service_logs "patentdwh-db"
 fi
 
@@ -192,9 +270,9 @@ echo '{
 }'
 echo ""
 echo -e "${BOLD}Useful Commands:${NC}"
-echo -e "  - View logs:               ${BLUE}$COMPOSE_CMD logs -f${NC}"
-echo -e "  - View specific container: ${BLUE}$COMPOSE_CMD logs -f [patentdwh-db|patentdwh-mcp]${NC}"
-echo -e "  - Stop services:           ${BLUE}$COMPOSE_CMD down${NC}"
-echo -e "  - Restart services:        ${BLUE}$COMPOSE_CMD restart${NC}"
-echo -e "  - Start shell in DB:       ${BLUE}$COMPOSE_CMD exec patentdwh-db /bin/bash${NC}"
+echo -e "  - View logs:               ${BLUE}$COMPOSE_CMD -f docker-compose.patched.yml logs -f${NC}"
+echo -e "  - View specific container: ${BLUE}$COMPOSE_CMD -f docker-compose.patched.yml logs -f [patentdwh-db|patentdwh-mcp]${NC}"
+echo -e "  - Stop services:           ${BLUE}$COMPOSE_CMD -f docker-compose.patched.yml down${NC}"
+echo -e "  - Restart services:        ${BLUE}$COMPOSE_CMD -f docker-compose.patched.yml restart${NC}"
+echo -e "  - Start shell in DB:       ${BLUE}$COMPOSE_CMD -f docker-compose.patched.yml exec patentdwh-db /bin/bash${NC}"
 echo -e "${BLUE}==============================${NC}"
