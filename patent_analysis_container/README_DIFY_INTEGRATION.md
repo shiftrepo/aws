@@ -74,7 +74,7 @@ curl -X POST http://localhost:8000/api/v1/mcp \
   -d '{
     "tool_name": "analyze_patent_trends",
     "tool_input": {
-      "applicant_name": "トヨタ"
+      "applicant": "トヨタ"
     }
   }'
 ```

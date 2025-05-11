@@ -6,6 +6,7 @@ import io
 import uvicorn
 import pandas as pd
 import matplotlib.pyplot as plt
+import logging
 from fastapi import FastAPI, HTTPException, Response, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -16,6 +17,13 @@ import requests
 import importlib.util
 import inspect
 from sqlalchemy.orm import Session
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Add path for importing local modules
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -59,6 +67,9 @@ def sanitize_string_for_filename(input_string):
 def execute_sql_query(query, db_type="sqlite"):
     """Execute SQL query using the patent_sql_query tool via MCP API or direct DB access"""
     try:
+        # Log the SQL query being executed
+        logger.info(f"Executing SQL query: {query}")
+        
         if db_type == "sqlite":
             # Use local SQLite connection
             with SQLiteDBManager() as db_manager:
@@ -71,46 +82,78 @@ def execute_sql_query(query, db_type="sqlite"):
                         match = re.search(r"LIKE\s+['\"]%(.+?)%['\"]", query)
                         if match:
                             applicant_name = match.group(1)
+                            logger.info(f"Extracted applicant name from SQL: {applicant_name}")
                             # Get patents by applicant
                             patents = db_manager.get_patents_by_applicant(applicant_name)
                             # Process to get IPC classifications by year
                             result = process_patents_for_trends(patents)
+                            logger.info(f"SQL query result: {len(result)} records returned")
                             return {
                                 "success": True,
                                 "columns": ["year", "ipc_class", "count"],
-                                "data": result
+                                "data": result,
+                                "sql_query": query  # Include the SQL query in the response
                             }
                 
                 # Fallback to the API for other queries
+                logger.info(f"Using external API for query: {query}")
                 payload = {
                     "query": query,
                     "db_type": db_type
                 }
                 response = requests.post(DB_URL, json=payload)
                 if response.status_code == 200:
-                    return response.json()
+                    result = response.json()
+                    if isinstance(result, dict) and "data" in result:
+                        logger.info(f"API query success: received {len(result.get('data', []))} records")
+                        # Add the SQL query to the response
+                        result["sql_query"] = query
+                        return result
+                    else:
+                        logger.info(f"API query success: response format doesn't contain 'data'")
+                        # Create a structured response with the SQL query
+                        return {
+                            "success": True,
+                            "data": result,
+                            "sql_query": query
+                        }
                 else:
-                    print(f"API error: {response.status_code} - {response.text}")
+                    logger.error(f"API error: {response.status_code} - {response.text}")
                     return None
         else:
             # Use the API for non-SQLite databases
+            logger.info(f"Using external API for {db_type} database query: {query}")
             payload = {
                 "query": query,
                 "db_type": db_type
             }
             response = requests.post(DB_URL, json=payload)
             if response.status_code == 200:
-                return response.json()
+                result = response.json()
+                if isinstance(result, dict) and "data" in result:
+                    logger.info(f"API query success: received {len(result.get('data', []))} records")
+                    # Add the SQL query to the response
+                    result["sql_query"] = query
+                    return result
+                else:
+                    logger.info(f"API query success: response format doesn't contain 'data'")
+                    # Create a structured response with the SQL query
+                    return {
+                        "success": True,
+                        "data": result,
+                        "sql_query": query
+                    }
             else:
-                print(f"API error: {response.status_code} - {response.text}")
+                logger.error(f"API error: {response.status_code} - {response.text}")
                 return None
     except Exception as e:
-        print(f"Exception executing query: {str(e)}")
+        logger.error(f"Exception executing query: {str(e)}")
         return None
 
 def execute_nl_query(query, db_type="sqlite"):
     """Execute natural language query using LLM API"""
     try:
+        logger.info(f"Executing natural language query: {query}")
         payload = {
             "tool_name": "patent_nl_query",
             "tool_input": {
@@ -118,19 +161,24 @@ def execute_nl_query(query, db_type="sqlite"):
                 "db_type": db_type
             }
         }
+        logger.info(f"Sending request to LLM service: {LLM_SERVICE_URL}")
         response = requests.post(LLM_SERVICE_URL, json=payload)
         if response.status_code == 200:
             data = response.json()
             if data.get("success", False):
+                logger.info("NL query successful")
+                # Log SQL queries if they're included in the response
+                if "sql_query" in data:
+                    logger.info(f"Generated SQL from NL query: {data['sql_query']}")
                 return data
             else:
-                print(f"Query error: {data.get('error', 'Unknown error')}")
+                logger.error(f"Query error: {data.get('error', 'Unknown error')}")
                 return None
         else:
-            print(f"API error: {response.status_code} - {response.text}")
+            logger.error(f"API error: {response.status_code} - {response.text}")
             return None
     except Exception as e:
-        print(f"Exception executing query: {str(e)}")
+        logger.error(f"Exception executing query: {str(e)}")
         return None
 
 def process_patents_for_trends(patents):
@@ -170,21 +218,21 @@ def process_patents_for_trends(patents):
 
 def get_patent_trends_by_applicant(applicant_name, db_type="sqlite"):
     """Get patent application trends by classification for a specific applicant from SQLite DB"""
-    print(f"Analyzing patent trends for applicant: {applicant_name}")
+    logger.info(f"Analyzing patent trends for applicant: {applicant_name}")
     
     if db_type == "sqlite":
         # Use local SQLite connection
         with SQLiteDBManager() as db_manager:
             # Get patents by applicant
             patents = db_manager.get_patents_by_applicant(applicant_name)
-            print(f"Found {len(patents)} patents for applicant {applicant_name}")
+            logger.info(f"Found {len(patents)} patents for applicant {applicant_name}")
             
             # Process to get IPC classifications by year
             results = process_patents_for_trends(patents)
             
             # Convert to DataFrame
             if not results:
-                print(f"No trend data found for applicant {applicant_name}")
+                logger.info(f"No trend data found for applicant {applicant_name}")
                 return pd.DataFrame()
                 
             df = pd.DataFrame(results)
@@ -205,13 +253,14 @@ def get_patent_trends_by_applicant(applicant_name, db_type="sqlite"):
         ORDER BY year, count DESC
         """
         
+        logger.info(f"Execute SQL query for applicant trends: {query}")
         result = execute_sql_query(query, db_type)
         if result and "data" in result:
             df = pd.DataFrame(result["data"])
-            print(f"Retrieved {len(df)} trend records via SQL")
+            logger.info(f"Retrieved {len(df)} trend records via SQL")
             return df
         else:
-            print("Failed to retrieve data via SQL")
+            logger.error("Failed to retrieve data via SQL")
             return pd.DataFrame()
 
 def generate_trend_chart(df, applicant_name):
@@ -337,14 +386,19 @@ def analyze_trends_with_llm(df, applicant_name):
     {df.to_string(index=False)}
     """
     
+    logger.info(f"Sending trend analysis request for applicant: {applicant_name}")
     # Execute natural language query
     result = execute_nl_query(analysis_query)
     
     if result and "response" in result:
+        # Log any SQL generated by the NL query
+        if "sql_query" in result:
+            logger.info(f"SQL generated for trend analysis: {result['sql_query']}")
         return result["response"]
     else:
         # Fallback if NL query fails
-        return f"{applicant_name}の特許出願動向の分析結果を取得できませんでした。SQLiteデータベースから直接データを確認してください。"
+        logger.error(f"Failed to get trend analysis for {applicant_name}")
+        return f"{applicant_name}の特許出願動向の分析結果を取得できませんでした。"
 
 def generate_markdown_report(applicant_name, chart_filename, trend_analysis):
     """Generate a markdown report with the chart and analysis"""
@@ -386,31 +440,52 @@ async def mcp_endpoint(request: MCPToolRequest):
         tool_input = request.tool_input
         
         # デバッグログを追加
-        print(f"Received MCP request: tool_name={tool_name}, tool_input={tool_input}")
+        logger.info(f"Received MCP request: tool_name={tool_name}, tool_input={tool_input}")
         
         if tool_name == "analyze_patent_trends":
             # 両方のパラメータ形式をサポート
             applicant_name = None
             if "applicant" in tool_input:
                 applicant_name = tool_input.get("applicant")
-                print(f"Using 'applicant' parameter: {applicant_name}")
+                logger.info(f"Using 'applicant' parameter: {applicant_name}")
             elif "applicant_name" in tool_input:
                 applicant_name = tool_input.get("applicant_name")
-                print(f"Using 'applicant_name' parameter: {applicant_name}")
+                logger.info(f"Using 'applicant_name' parameter: {applicant_name}")
             else:
-                print("Neither 'applicant' nor 'applicant_name' parameter found in request")
+                logger.warning("Neither 'applicant' nor 'applicant_name' parameter found in request")
                 
             db_type = tool_input.get("db_type", "sqlite")
             
             if not applicant_name:
                 return {"success": False, "error": "applicant or applicant_name parameter is required"}
             
+            # Direct SQL query attempt for debugging
+            try:
+                test_sql = f"SELECT * FROM inpit_data WHERE applicant LIKE '%{applicant_name}%' ORDER BY application_date DESC LIMIT 20;"
+                logger.info(f"Attempting direct SQL query for debug: {test_sql}")
+                test_result = execute_sql_query(test_sql, db_type)
+                if test_result:
+                    logger.info("Direct SQL query successful")
+                    # Include the raw SQL in the response for debugging
+                    if isinstance(test_result, dict):
+                        test_result["executed_sql"] = test_sql
+                else:
+                    logger.warning("Direct SQL query returned no results")
+            except Exception as sql_err:
+                logger.error(f"Error during direct SQL query: {str(sql_err)}")
+            
             result = await analyze_patent_data(applicant_name, db_type)
+            
+            # Include executed SQL in response
+            if "executed_sql" not in result:
+                result["executed_sql"] = f"SELECT * FROM inpit_data WHERE applicant LIKE '%{applicant_name}%' ORDER BY application_date DESC LIMIT 20;"
+            
             return {"success": True, "response": result}
         else:
             return {"success": False, "error": f"Tool '{tool_name}' not found"}
     
     except Exception as e:
+        logger.error(f"Exception in MCP endpoint: {str(e)}")
         return {"success": False, "error": str(e)}
 
 @app.post("/api/analyze")
@@ -569,6 +644,10 @@ async def execute_patent_tool(request: dict):
 
 async def analyze_patent_data(applicant_name, db_type="sqlite"):
     """Helper function to analyze patent data and return a summary"""
+    # Log direct SQL that would be used to fetch data
+    direct_sql = f"SELECT * FROM inpit_data WHERE applicant LIKE '%{applicant_name}%' ORDER BY application_date DESC LIMIT 20;"
+    logger.info(f"Direct SQL reference for {applicant_name}: {direct_sql}")
+    
     df = get_patent_trends_by_applicant(applicant_name, db_type)
     
     # Generate trend chart
@@ -588,7 +667,8 @@ async def analyze_patent_data(applicant_name, db_type="sqlite"):
         "summary": trend_analysis,
         "report_file": f"{filename}_patent_analysis.md",
         "chart_file": f"{filename}_classification_trend.png",
-        "download_url": f"/api/report/{applicant_name}/zip"
+        "download_url": f"/api/report/{applicant_name}/zip",
+        "executed_sql": direct_sql  # Include the SQL in the response
     }
     
     return result

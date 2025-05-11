@@ -1,8 +1,10 @@
 import os
 import logging
+import traceback
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 import sqlalchemy.exc
+from sqlalchemy import text
 
 from .models_sqlite import (
     Base, engine, SessionLocal, Patent, Applicant, Inventor, 
@@ -34,6 +36,38 @@ class SQLiteDBManager:
         """Context manager exit"""
         if self.db:
             self.db.close()
+            
+    def execute_raw_sql(self, sql_query: str, params=None):
+        """
+        Execute a raw SQL query and return results
+        
+        Args:
+            sql_query: The SQL query string
+            params: Query parameters (optional)
+            
+        Returns:
+            Query results
+        """
+        try:
+            logger.info(f"Executing raw SQL: {sql_query}")
+            if params:
+                logger.info(f"With parameters: {params}")
+                
+            result = self.db.execute(text(sql_query), params or {})
+            if sql_query.strip().upper().startswith("SELECT"):
+                # For SELECT queries, fetch all results
+                data = [dict(row) for row in result.mappings()]
+                logger.info(f"SQL query returned {len(data)} rows")
+                return data
+            else:
+                # For non-SELECT queries, commit and return affected rows
+                self.db.commit()
+                return {"affected_rows": result.rowcount}
+        except Exception as e:
+            logger.error(f"Error executing SQL: {str(e)}")
+            logger.error(traceback.format_exc())
+            self.db.rollback()
+            raise
     
     def get_patent_by_application_number(self, application_number: str) -> Optional[Patent]:
         """
@@ -65,6 +99,15 @@ class SQLiteDBManager:
             List of Patent objects
         """
         try:
+            # Log the equivalent SQL query
+            sql = f"""
+            SELECT p.* FROM patents p
+            JOIN applicants a ON p.id = a.patent_id
+            WHERE a.name LIKE '%{applicant_name}%'
+            LIMIT {limit}
+            """
+            logger.info(f"Equivalent SQL for get_patents_by_applicant: {sql}")
+            
             patents = self.db.query(Patent).join(
                 Applicant
             ).filter(
@@ -73,42 +116,19 @@ class SQLiteDBManager:
             
             logger.info(f"Found {len(patents)} patents for applicant {applicant_name}")
             
-            # Generate some sample data for testing if no patents are found
+            # Try direct SQL for inpit_data if patents table has no data
             if not patents:
-                from datetime import datetime
-                
-                patents = []
-                for i in range(1, 6):
-                    p = Patent(
-                        id=i,
-                        title=f"Sample Patent {i} for {applicant_name}",
-                        application_number=f"2020-{10000+i}",
-                        application_date=datetime(2020 + i % 5, (i % 12) + 1, (i % 28) + 1)
-                    )
-                    
-                    # Add IPC classifications
-                    ipc1 = IPCClassification(
-                        code=f"A01B",
-                        description="Agriculture", 
-                        patent_id=p.id
-                    )
-                    ipc2 = IPCClassification(
-                        code=f"B60K",
-                        description="Vehicles", 
-                        patent_id=p.id
-                    )
-                    ipc3 = IPCClassification(
-                        code=f"G06F",
-                        description="Computing", 
-                        patent_id=p.id
-                    )
-                    
-                    # Add to patent
-                    p.ipc_classifications = [ipc1, ipc2, ipc3]
-                    
-                    patents.append(p)
-                
-                logger.info(f"Generated {len(patents)} sample patents for applicant {applicant_name}")
+                try:
+                    direct_sql = f"SELECT * FROM inpit_data WHERE applicant LIKE '%{applicant_name}%' ORDER BY application_date DESC LIMIT {limit};"
+                    logger.info(f"Attempting direct SQL query on inpit_data: {direct_sql}")
+                    inpit_data_results = self.execute_raw_sql(direct_sql)
+                    if inpit_data_results:
+                        logger.info(f"Found {len(inpit_data_results)} records in inpit_data table")
+                        # Log the data structure for debugging
+                        if inpit_data_results and len(inpit_data_results) > 0:
+                            logger.info(f"Sample record structure: {list(inpit_data_results[0].keys())}")
+                except Exception as sql_err:
+                    logger.error(f"Error querying inpit_data table: {str(sql_err)}")
             
             return patents
         except Exception as e:
@@ -127,11 +147,28 @@ class SQLiteDBManager:
             List of Patent objects
         """
         try:
+            # Log the equivalent SQL query
+            sql = f"""
+            SELECT p.* FROM patents p 
+            WHERE p.title LIKE '%{query}%' OR p.abstract LIKE '%{query}%'
+            LIMIT {limit}
+            """
+            logger.info(f"Equivalent SQL for first part of search_patents: {sql}")
+            
             # Search in title, abstract, applicant name
             results = self.db.query(Patent).filter(
                 Patent.title.like(f"%{query}%") | 
                 Patent.abstract.like(f"%{query}%")
             ).limit(limit).all()
+            
+            # Log the equivalent SQL query for applicant search
+            sql = f"""
+            SELECT p.* FROM patents p
+            JOIN applicants a ON p.id = a.patent_id
+            WHERE a.name LIKE '%{query}%'
+            LIMIT {limit}
+            """
+            logger.info(f"Equivalent SQL for applicant part of search_patents: {sql}")
             
             # Also search in applicant names
             applicant_results = self.db.query(Patent).join(
@@ -144,8 +181,29 @@ class SQLiteDBManager:
             all_patents = {}
             for patent in results + applicant_results:
                 all_patents[patent.id] = patent
-                
-            return list(all_patents.values())[:limit]
+            
+            combined_results = list(all_patents.values())[:limit]
+            logger.info(f"Combined search returned {len(combined_results)} unique patents")
+            
+            # Try direct SQL for inpit_data if patents table has no data
+            if not combined_results:
+                try:
+                    direct_sql = f"""
+                    SELECT * FROM inpit_data 
+                    WHERE title LIKE '%{query}%' 
+                    OR abstract LIKE '%{query}%' 
+                    OR applicant LIKE '%{query}%'
+                    ORDER BY application_date DESC 
+                    LIMIT {limit};
+                    """
+                    logger.info(f"Attempting direct SQL query on inpit_data: {direct_sql}")
+                    inpit_data_results = self.execute_raw_sql(direct_sql)
+                    if inpit_data_results:
+                        logger.info(f"Found {len(inpit_data_results)} matching records in inpit_data table")
+                except Exception as sql_err:
+                    logger.error(f"Error querying inpit_data table: {str(sql_err)}")
+            
+            return combined_results
         except Exception as e:
             logger.error(f"Error searching patents: {str(e)}")
             return []
@@ -161,7 +219,25 @@ class SQLiteDBManager:
             List of Patent objects
         """
         try:
-            return self.db.query(Patent).limit(limit).all()
+            # Log the equivalent SQL query
+            sql = f"SELECT * FROM patents LIMIT {limit}"
+            logger.info(f"Equivalent SQL for get_all_patents: {sql}")
+            
+            patents = self.db.query(Patent).limit(limit).all()
+            logger.info(f"Retrieved {len(patents)} patents")
+            
+            # Try direct SQL for inpit_data if patents table has no data
+            if not patents:
+                try:
+                    direct_sql = f"SELECT * FROM inpit_data LIMIT {limit};"
+                    logger.info(f"Attempting direct SQL query on inpit_data: {direct_sql}")
+                    inpit_data_results = self.execute_raw_sql(direct_sql)
+                    if inpit_data_results:
+                        logger.info(f"Found {len(inpit_data_results)} records in inpit_data table")
+                except Exception as sql_err:
+                    logger.error(f"Error querying inpit_data table: {str(sql_err)}")
+            
+            return patents
         except Exception as e:
             logger.error(f"Error getting all patents: {str(e)}")
             return []
@@ -174,7 +250,26 @@ class SQLiteDBManager:
             Number of patents
         """
         try:
-            return self.db.query(Patent).count()
+            # Log the equivalent SQL query
+            sql = "SELECT COUNT(*) FROM patents"
+            logger.info(f"Equivalent SQL for count_patents: {sql}")
+            
+            count = self.db.query(Patent).count()
+            logger.info(f"Patent count: {count}")
+            
+            # Try direct SQL for inpit_data if patents table has no data
+            if count == 0:
+                try:
+                    direct_sql = "SELECT COUNT(*) AS count FROM inpit_data;"
+                    logger.info(f"Attempting direct SQL count on inpit_data: {direct_sql}")
+                    result = self.execute_raw_sql(direct_sql)
+                    if result and len(result) > 0:
+                        inpit_count = result[0].get("count", 0)
+                        logger.info(f"Found {inpit_count} records in inpit_data table")
+                except Exception as sql_err:
+                    logger.error(f"Error counting inpit_data records: {str(sql_err)}")
+            
+            return count
         except Exception as e:
             logger.error(f"Error counting patents: {str(e)}")
             return 0
