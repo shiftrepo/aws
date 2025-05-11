@@ -445,7 +445,7 @@ cd patentDWH
 # 2. AWS認証情報の設定（必要な場合）
 export AWS_ACCESS_KEY_ID="your_aws_key_id"
 export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
-export AWS_REGION="us-east-1"  # 必要に応じて変更
+export AWS_DEFAULT_REGION="us-east-1"  # 必要に応じて変更（REGIONではなくDEFAULT_REGIONを使用）
 
 # 3. すべてのサービスを一括で起動
 ./start_all_services.sh
@@ -455,6 +455,8 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 - **patentdwh-db**: 特許データベースサービス (ポート 5002)
 - **patentdwh-mcp-enhanced**: 拡張MCP（LangChain機能付き） (ポート 8080)
 - **patent-analysis-mcp**: 特許分析MCPサーバー (ポート 8000)
+
+> **重要な変更点**: Patent Analysis Containerの機能をpatentDWH内に完全に統合しました。これにより、以前はpatent_analysis_containerディレクトリから独立して起動する必要があった特許分析MCPサーバーも、patentDWH内から一元管理できるようになりました。ネットワーク設定の冗長性を解消し、より簡単に全サービスを起動できるようになっています。
 
 ### 個別に起動する方法
 

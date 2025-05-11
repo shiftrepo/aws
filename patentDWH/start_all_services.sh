@@ -80,13 +80,44 @@ cd ../patentDWH
 echo -e "${GREEN}クリーンアップ完了${NC}"
 echo ""
 
+# ログ出力関数
+log_info() {
+  echo -e "${BLUE}[INFO] $(date '+%Y-%m-%d %H:%M:%S') - $1${NC}"
+}
+
+log_success() {
+  echo -e "${GREEN}[SUCCESS] $(date '+%Y-%m-%d %H:%M:%S') - $1${NC}"
+}
+
+log_warning() {
+  echo -e "${YELLOW}[WARNING] $(date '+%Y-%m-%d %H:%M:%S') - $1${NC}"
+}
+
+log_error() {
+  echo -e "${RED}[ERROR] $(date '+%Y-%m-%d %H:%M:%S') - $1${NC}"
+}
+
 # patentDWH基本サービスを起動
 echo -e "${BLUE}2. patentDWHの基本サービス（DB、MCPサーバー）を起動しています...${NC}"
+log_info "docker-compose.consolidated.yml ファイルを使用してサービスを起動します"
 $COMPOSE_CMD -f docker-compose.consolidated.yml up -d patentdwh-db patentdwh-mcp-enhanced
-echo -e "${GREEN}サービス起動コマンド実行${NC}"
+if [ $? -eq 0 ]; then
+  log_success "サービス起動コマンドが正常に実行されました"
+else
+  log_error "サービス起動コマンドの実行中にエラーが発生しました"
+fi
+
+# コンテナIDとステータスを表示
+log_info "起動したコンテナの状態を確認します"
+$CONTAINER_RUNTIME ps -a | grep "patentdwh"
+
+# サービスのログを一部表示
+log_info "patentdwh-dbの最新のログを表示します（最大20行）"
+$COMPOSE_CMD -f docker-compose.consolidated.yml logs --tail=20 patentdwh-db
 
 # サービスが起動するまで待機
 echo -e "${BLUE}   サービスの起動を確認中...${NC}"
+log_info "データベースサービスの起動を確認しています: http://localhost:5002/health"
 MAX_RETRIES=30
 RETRY_COUNT=0
 while ! curl -s http://localhost:5002/health > /dev/null && [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
@@ -104,6 +135,7 @@ fi
 echo -e "${GREEN}\n   データベースサービス稼働中${NC}"
 
 # MCPサービスの起動確認
+log_info "MCPサービスの起動を確認しています: http://localhost:8080/health"
 RETRY_COUNT=0
 while ! curl -s http://localhost:8080/health > /dev/null && [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
   echo -n "."
@@ -112,34 +144,59 @@ while ! curl -s http://localhost:8080/health > /dev/null && [[ $RETRY_COUNT -lt 
 done
 
 if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
+  log_error "MCPサービスの起動確認に失敗しました"
+  log_info "patentdwh-mcp-enhancedの最新のログを表示します（最大20行）"
+  $COMPOSE_CMD -f docker-compose.consolidated.yml logs --tail=20 patentdwh-mcp-enhanced
   echo -e "${RED}\nMCPサービスの起動確認に失敗しました。ログを確認してください。${NC}"
   echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced${NC}"
   exit 1
 fi
 
+log_success "MCPサービス稼働中"
 echo -e "${GREEN}\n   MCPサービス稼働中${NC}"
 echo ""
 
 # 特許分析MCPサーバーの起動
 echo -e "${BLUE}3. 特許分析MCPサーバーを起動しています...${NC}"
-cd ../patent_analysis_container
-$COMPOSE_CMD -f docker-compose.mcp.yml up -d
-cd ../patentDWH
-echo -e "${GREEN}特許分析MCPサーバー起動コマンド実行${NC}"
+log_info "特許分析MCPサーバー（patent-analysis-mcp）を起動します"
+$COMPOSE_CMD -f docker-compose.consolidated.yml up -d patent-analysis-mcp
+if [ $? -eq 0 ]; then
+  log_success "特許分析MCPサーバー起動コマンドが正常に実行されました"
+else
+  log_error "特許分析MCPサーバーの起動中にエラーが発生しました"
+fi
+
+# コンテナの状態を確認
+log_info "起動した特許分析MCPサーバーの状態を確認します"
+$CONTAINER_RUNTIME ps -a | grep "patent-analysis-mcp"
+
+# サービスのログを一部表示
+log_info "patent-analysis-mcpの最新のログを表示します（最大20行）"
+$COMPOSE_CMD -f docker-compose.consolidated.yml logs --tail=20 patent-analysis-mcp
 
 # サービスが起動するまで待機
 echo -e "${BLUE}   特許分析MCPサーバーの起動を確認中...${NC}"
+log_info "特許分析MCPサーバーの起動を確認しています: http://localhost:8000/"
 RETRY_COUNT=0
 while ! curl -s http://localhost:8000/ > /dev/null && [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
   echo -n "."
   sleep 2
   ((RETRY_COUNT++))
+  
+  # 10回ごとにステータスを表示
+  if (( RETRY_COUNT % 10 == 0 )); then
+    log_info "まだ起動を確認できません... コンテナの状態を再確認します"
+    $CONTAINER_RUNTIME ps -a | grep "patent-analysis-mcp"
+  fi
 done
 
 if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
+  log_error "特許分析MCPサーバーの起動確認に失敗しました"
+  log_info "patent-analysis-mcpの詳細ログを確認してください"
   echo -e "${RED}\n特許分析MCPサーバーの起動確認に失敗しました。ログを確認してください。${NC}"
-  echo -e "${YELLOW}cd ../patent_analysis_container && $COMPOSE_CMD -f docker-compose.mcp.yml logs -f${NC}"
+  echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patent-analysis-mcp${NC}"
 else
+  log_success "特許分析MCPサーバー稼働中"
   echo -e "${GREEN}\n   特許分析MCPサーバー稼働中${NC}"
 fi
 echo ""
@@ -164,9 +221,9 @@ echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml run patent-ana
 echo ""
 echo -e "${BLUE}サービスの停止:${NC}"
 echo -e "${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml down${NC}"
-echo -e "${YELLOW}cd ../patent_analysis_container && $COMPOSE_CMD -f docker-compose.mcp.yml down${NC}"
+echo -e "${YELLOW}または ./stop_all_services.sh${NC}"
 echo ""
 echo -e "${BLUE}各サービスのログ確認:${NC}"
 echo -e "データベース: ${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-db${NC}"
 echo -e "MCPサーバー: ${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced${NC}"
-echo -e "特許分析サーバー: ${YELLOW}cd ../patent_analysis_container && $COMPOSE_CMD -f docker-compose.mcp.yml logs -f${NC}"
+echo -e "特許分析サーバー: ${YELLOW}$COMPOSE_CMD -f docker-compose.consolidated.yml logs -f patent-analysis-mcp${NC}"

@@ -3,9 +3,9 @@
 
 ## 特許分類別出願動向
 
-![特許分類別出願動向](chart_unavailable.png)
+![特許分類別出願動向](_classification_trend.png)
 
 ## 動向分析
 
-No patent data found for applicant: 
+の特許出願動向の分析を行いましたが、AIによる詳細分析が生成できませんでした。データを直接ご確認ください。
 

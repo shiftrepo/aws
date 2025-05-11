@@ -102,11 +102,25 @@ def initialize_db():
         
         # Create dynamic model for the table if table exists
         if 'inpit_data' in metadata.tables:
+            # Get the inpit_data table
+            inpit_table = Table('inpit_data', metadata, autoload=True, autoload_with=engine)
+            
+            # SQLAlchemy requires primary keys for ORM operations
+            # Check if the table already has a primary key defined
+            has_pk = any(column.primary_key for column in inpit_table.columns)
+            
+            if not has_pk:
+                # If no primary key is found, add a primary key constraint to the first column
+                # This is a workaround for the SQLAlchemy mapper requirement
+                first_column = list(inpit_table.columns)[0]
+                first_column.primary_key = True
+                logger.info(f"Added primary key to column '{first_column.name}' for table 'inpit_data'")
+            
             class InpitDataModel(Base):
-                __table__ = Table('inpit_data', metadata, autoload=True, autoload_with=engine)
+                __table__ = inpit_table
                 
                 def __str__(self):
-                    return f"InpitData {self.id}"
+                    return f"InpitData {self.__table__.columns[0].name}={getattr(self, self.__table__.columns[0].name, None)}"
             
             return InpitDataModel
         else:
