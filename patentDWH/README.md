@@ -2,6 +2,21 @@
 
 patentDWHは、ユーザーフレンドリーなWebインターフェースとMCPサーバーを通じて、特許データのSQLiteベースのストレージと検索機能を提供する特許データウェアハウスシステムです。
 
+## ドキュメント構成
+
+patentDWHシステムには、以下の複数のドキュメントがあります：
+
+| ドキュメント名 | 説明 |
+|------------|------|
+| **README.md** | このファイル。基本的な概要と機能説明（現在のファイル） |
+| [README_CONSOLIDATED.md](./README_CONSOLIDATED.md) | **統合Docker設定** - 複数のdocker-composeファイルを統合し、ローカルホスト専用サービスを削除した新しい設定の詳細 |
+| [README_NATURAL_LANGUAGE_QUERY.md](./README_NATURAL_LANGUAGE_QUERY.md) | 自然言語クエリ機能の詳細な使用方法 |
+| [README_ENHANCED_SETUP_JP.md](./README_ENHANCED_SETUP_JP.md) | 拡張機能付きのセットアップ手順（日本語） |
+| [ENHANCED_LANGCHAIN_USAGE.md](./ENHANCED_LANGCHAIN_USAGE.md) | 拡張LangChain機能の使用方法 |
+| [LANGCHAIN_FALLBACK_README.md](./LANGCHAIN_FALLBACK_README.md) | LangChainフォールバック機能の説明 |
+
+> **推奨**: 最新の統合設定（docker-compose.consolidated.yml）と専用セットアップスクリプト（setup_consolidated.sh）を使用してください。詳細は[README_CONSOLIDATED.md](./README_CONSOLIDATED.md)をご覧ください。
+
 ## 概要
 
 このシステムは主に2つのコンポーネントで構成されています：

@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+  # PatentDWH DB Service - Core database service
+  patentdwh-db:
+    build:
+      context: ./db
+    container_name: patentdwh-db
+    volumes:
+      - ./data:/app/data:z
+    environment:
+      - PORT=5002
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_REGION:-ap-northeast-1}
+      - SKIP_DATA_DOWNLOAD=false
+    user: "root:root"  # Run as root
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  # PatentDWH MCP Enhanced Service - MCP server with LangChain integration
+  patentdwh-mcp-enhanced:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.enhanced
+    container_name: patentdwh-mcp-enhanced
+    environment:
+      - PORT=8080
+      - PATENT_DB_URL=http://patentdwh-db:5002
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
+      - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
+    volumes:
+      - ./data:/app/data:z
+      - ./data/db:/app/data/db:z
+    user: "root:root"  # Run as root
+    depends_on:
+      - patentdwh-db
+    restart: unless-stopped
+    networks:
+      - patent-network
+
+  # Patent Analysis Service - For analyzing patent data
+  patent-analysis:
+    build:
+      context: ../patent_analysis_container
+    container_name: patent-analysis
+    volumes:
+      - ../patent_analysis_container/output:/app/output
+    environment:
+      - MCP_URL=http://patentdwh-mcp-enhanced:8080/api/v1/mcp
+      - DB_URL=http://patentdwh-db:5002/api/sql-query
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    networks:
+      - patent-network
+    depends_on:
+      - patentdwh-mcp-enhanced
+    # Command will be provided when running the container
+    # Example: docker-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+
+networks:
+  patent-network:
+    driver: bridge
