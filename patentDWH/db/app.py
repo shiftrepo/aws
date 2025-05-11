@@ -102,7 +102,10 @@ def initialize_db():
         # Create dynamic model for the table if table exists
         if 'inpit_data' in metadata.tables:
             class InpitDataModel(Base):
-                __table__ = Table('inpit_data', metadata, autoload=True, autoload_with=engine)
+                __table__ = metadata.tables['inpit_data']
+                
+                # Explicitly set the primary key
+                id = db.Column('id', db.Integer, primary_key=True)
                 
                 def __str__(self):
                     return f"InpitData {self.id}"

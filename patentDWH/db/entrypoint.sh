@@ -15,7 +15,8 @@ log_msg "Running as user: $(id)"
 log_msg "Environment variables:"
 log_msg "  - SKIP_DATA_DOWNLOAD: ${SKIP_DATA_DOWNLOAD}"
 log_msg "  - AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}"
-log_msg "  - AWS keys set: $(if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then echo "Yes"; else echo "No"; fi)"
+# Check if AWS keys are set without printing the actual values
+log_msg "  - AWS keys set: $(if [ -n "${AWS_ACCESS_KEY_ID}" ] && [ -n "${AWS_SECRET_ACCESS_KEY}" ]; then echo "Yes"; else echo "No"; fi)"
 
 # Set up proper permissions for data directory
 log_msg "Creating data directory with proper permissions"
