@@ -59,12 +59,13 @@ echo -e "${GREEN}[INFO] Deployed patched files successfully${NC}"
 
 # Set AWS credentials environment variables for the container
 echo -e "${BLUE}[INFO] Setting up AWS credentials in environment...${NC}"
-export AWS_REGION=${AWS_REGION:-us-east-1}
+# Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-dummy_access_key}
 export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy_secret_key}
 
 echo -e "${GREEN}[INFO] Using the following AWS credentials:${NC}"
-echo -e "  - AWS_REGION: $AWS_REGION"
+echo -e "  - AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
 echo -e "  - AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:0:4}...${AWS_ACCESS_KEY_ID:(-4)}"
 echo -e "  - AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:0:4}...${AWS_SECRET_ACCESS_KEY:(-4)}"
 

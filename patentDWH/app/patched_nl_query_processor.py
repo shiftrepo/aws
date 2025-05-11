@@ -136,7 +136,8 @@ SQLクエリのみを出力してください。説明は不要です。バッ�
             if not self.is_aws_configured:
                 return {
                     "success": False,
-                    "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_REGIONが適切に設定されていることを確認してください。"
+                    # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+                    "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_DEFAULT_REGIONが適切に設定されていることを確認してください。"
                 }
             
             # First try the original SQL generation method

@@ -48,9 +48,10 @@ class NLQueryProcessor:
                 self.is_aws_configured = False
             else:
                 # Initialize Bedrock client
+                # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
                 self.bedrock_runtime = boto3.client(
                     service_name="bedrock-runtime",
-                    region_name=os.environ.get("AWS_REGION", "us-east-1")
+                    region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
                 )
                 
                 # Perform a simple check to verify credentials
@@ -551,7 +552,7 @@ If the results are empty or don't fully answer the question, explain that clearl
             if not self.is_aws_configured:
                 return {
                     "success": False,
-                    "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_REGIONが適切に設定されていることを確認してください。"
+                    "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_DEFAULT_REGIONが適切に設定されていることを確認してください。"
                 }
             
             # Generate SQL query from natural language

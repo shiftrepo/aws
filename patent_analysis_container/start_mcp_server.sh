@@ -44,7 +44,7 @@ if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     echo "Please set these environment variables before starting the server:"
     echo "export AWS_ACCESS_KEY_ID=your_access_key"
     echo "export AWS_SECRET_ACCESS_KEY=your_secret_key"
-    echo "export AWS_REGION=your_region  # Optional, defaults to us-east-1"
+    echo "export AWS_DEFAULT_REGION=your_region  # Optional, defaults to us-east-1"
 fi
 
 # Build the container with the latest changes

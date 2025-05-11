@@ -12,7 +12,8 @@ TARGET_NEO4J_URI = os.environ.get("TARGET_NEO4J_URI", "bolt://neo4jRAG:7687")
 TARGET_NEO4J_USER = os.environ.get("TARGET_NEO4J_USER", "neo4j")
 TARGET_NEO4J_PASSWORD = os.environ.get("TARGET_NEO4J_PASSWORD", "password")
 
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")  # 例: 米国東部リージョン
+# Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+AWS_REGION = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")  # 例: 米国東部リージョン
 
 # デバッグログ
 print(f"SOURCE_NEO4J_URI: {SOURCE_NEO4J_URI}")

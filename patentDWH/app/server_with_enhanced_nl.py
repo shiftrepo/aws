@@ -93,7 +93,8 @@ async def server_status():
     return {
         "status": "running",
         "aws_configured": aws_configured,
-        "aws_region": os.environ.get("AWS_REGION", "not set"),
+        # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+        "aws_region": os.environ.get("AWS_DEFAULT_REGION", "not set"),
         "database_url": PATENT_DB_URL,
         "database_status": db_status,
         "enhanced_nl": True,
@@ -162,13 +163,15 @@ async def mcp_endpoint(request: MCPToolRequest):
                 return {
                     "success": True,
                     "message": "AWS credentials are correctly configured for Bedrock services",
-                    "aws_region": os.environ.get("AWS_REGION", "us-east-1")
+                    # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+                    "aws_region": os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
                 }
             else:
                 return {
                     "success": False,
                     "message": "AWS credentials are not configured properly",
-                    "error": "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, or AWS_REGION environment variables are not set correctly"
+                    # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+                    "error": "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, or AWS_DEFAULT_REGION environment variables are not set correctly"
                 }
                 
         elif tool_name == "get_database_info":

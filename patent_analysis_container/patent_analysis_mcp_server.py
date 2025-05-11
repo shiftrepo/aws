@@ -154,6 +154,7 @@ def execute_nl_query(query, db_type="sqlite"):
     """Execute natural language query using LLM API"""
     try:
         logger.info(f"Executing natural language query: {query}")
+        # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
         payload = {
             "tool_name": "patent_nl_query",
             "tool_input": {

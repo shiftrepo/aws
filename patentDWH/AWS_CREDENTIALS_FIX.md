@@ -79,7 +79,7 @@ To set up AWS credentials, follow these steps:
 
 ```bash
 # AWS認証情報を環境変数として設定
-export AWS_REGION=us-east-1
+export AWS_DEFAULT_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=your_access_key
 export AWS_SECRET_ACCESS_KEY=your_secret_key
 ```
@@ -125,7 +125,7 @@ If AWS credentials are not set or are invalid, natural language queries will ret
 ```json
 {
   "success": false,
-  "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_REGIONが適切に設定されていることを確認してください。"
+  "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_DEFAULT_REGIONが適切に設定されていることを確認してください。"
 }
 ```
 
@@ -133,11 +133,11 @@ If AWS credentials are not set or are invalid, natural language queries will ret
 
 If you see this error, check the following:
 
-1. 環境変数 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` が設定されているか
+1. 環境変数 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` が設定されているか
 2. 認証情報が AWS Bedrock にアクセスする権限を持っているか
 3. 指定されたリージョンで AWS Bedrock サービスが利用可能か
 
-1. Whether the environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` are set
+1. Whether the environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` are set
 2. Whether the credentials have permission to access AWS Bedrock
 3. Whether AWS Bedrock services are available in the specified region
 

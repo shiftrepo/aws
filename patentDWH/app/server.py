@@ -327,8 +327,9 @@ async def check_aws_credentials(params: Dict[str, Any]) -> Dict[str, Any]:
         if nl_processor.is_aws_configured:
             return {
                 "success": True,
+                # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
                 "message": "AWS credentials are correctly configured for Bedrock services",
-                "aws_region": os.environ.get("AWS_REGION", "us-east-1")
+                "aws_region": os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
             }
         else:
             # Check which credentials are missing
@@ -342,7 +343,8 @@ async def check_aws_credentials(params: Dict[str, Any]) -> Dict[str, Any]:
                 "success": False,
                 "message": "AWS credentials are not properly configured for Bedrock services",
                 "missing_credentials": missing_creds,
-                "aws_region": os.environ.get("AWS_REGION", "not set")
+                # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+                "aws_region": os.environ.get("AWS_DEFAULT_REGION", "not set")
             }
     except Exception as e:
         logger.error(f"Error checking AWS credentials: {str(e)}")
@@ -452,7 +454,8 @@ async def patent_nl_query(params) -> Dict[str, Any]:
         if not nl_processor.is_aws_configured:
             return {
                 "success": False,
-                "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_REGIONが適切に設定されていることを確認してください。"
+                # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+                "error": "AWS Bedrock設定エラー: AWS認証情報が設定されていないか無効です。AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_DEFAULT_REGIONが適切に設定されていることを確認してください。"
             }
             
         # Process the query
