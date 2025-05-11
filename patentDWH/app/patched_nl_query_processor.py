@@ -55,8 +55,13 @@ class NLQueryProcessor(OriginalNLQueryProcessor):
                 logger.error("Bedrock client not available")
                 return ""
             
-            # Get schema information for this database type
+            # Get schema information for this database type with retry logic
             schema_info = self.schemas.get(db_type, {})
+            if not schema_info or "tables" not in schema_info or not schema_info["tables"]:
+                logger.warning("Schema information is missing or incomplete, attempting to refresh schemas")
+                # Try to refresh schemas
+                self.schemas = self._get_database_schemas()
+                schema_info = self.schemas.get(db_type, {})
             
             # Format schema information for the prompt
             schema_text = "テーブル一覧:\n"

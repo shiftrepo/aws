@@ -17,10 +17,10 @@ services:
     environment:
       - LLM_SERVICE_URL=http://patentdwh-mcp-enhanced:8080/api/v1/mcp
       - DB_URL=http://patentdwh-db:5002/api/sql-query
-      # Use environment variables for AWS credentials
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Use environment variables for AWS credentials - never hardcode these
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
       # Server settings
       - HOST=0.0.0.0
       - PORT=8000
@@ -34,8 +34,10 @@ services:
 networks:
   patent-network:
     # This lets the container connect to the patentDWH services if needed
-    external: true
-    name: patentdwh_default
+    external: false
+    # Changed from patentdwh_default to a local network since the external service is not running
+    # If you need to connect to external services, set external: true and uncomment the name line
+    # name: patentdwh_patent-network
   default:
     # Local network for this compose file
     

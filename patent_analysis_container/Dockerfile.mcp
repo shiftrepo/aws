@@ -18,13 +18,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /app/output && chmod 777 /app/output
 RUN mkdir -p /app/app/patent_system && chmod -R 777 /app/app
 
-# Copy the application code
-COPY patent_analysis_simple.py .
+# Copy the necessary files
 COPY patent_analysis_mcp_server.py .
 
-# Create __init__.py files for proper imports
+# Add required files for models and database manager
+COPY models_sqlite.py /app/app/patent_system/
+COPY db_sqlite.py /app/app/patent_system/
+
+# Create proper directory structure and init files
+RUN mkdir -p /app/app/patent_system/data
 RUN touch /app/app/__init__.py
 RUN touch /app/app/patent_system/__init__.py
+RUN chmod -R 777 /app
 
 # Expose port for API
 EXPOSE 8000
@@ -35,4 +40,4 @@ ENV PORT=8000
 ENV OUTPUT_DIR=/app/output
 
 # Run server on container startup
-CMD ["python", "patent_analysis_simple.py"]
+CMD ["python", "patent_analysis_mcp_server.py"]

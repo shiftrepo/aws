@@ -320,6 +320,11 @@ HTML_TEMPLATE = """
                     GROUP BY p.id
                     LIMIT 10;
                 </div>
+                
+                <div class="example-query" onclick="setQueryText('SELECT * FROM sqlite_master WHERE type=\\'table\\' AND name=\\'inpit_data\\';')">
+                    -- Check if inpit_data table exists
+                    SELECT * FROM sqlite_master WHERE type='table' AND name='inpit_data';
+                </div>
             </div>
         </div>
         

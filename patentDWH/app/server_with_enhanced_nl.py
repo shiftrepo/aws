@@ -274,10 +274,12 @@ async def root():
         "docs": "/docs"
     }
 
-# Initialize the server
-@app.on_event("startup")
-async def startup_event():
-    """Initialize resources when the server starts."""
+# Initialize the server using lifespan event handler instead of deprecated on_event
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize resources when the application starts and handle cleanup when it shuts down."""
     global nl_processor
     try:
         # Initialize the enhanced NL processor
@@ -285,6 +287,14 @@ async def startup_event():
         logger.info("Enhanced NL processor initialized")
     except Exception as e:
         logger.error(f"Error initializing NL processor: {e}")
+    
+    yield  # This is where FastAPI serves requests
+    
+    # Cleanup (if needed) when application shuts down
+    # No specific cleanup needed for this application
+
+# Apply the lifespan to the app
+app.router.lifespan_context = lifespan
 
 if __name__ == "__main__":
     # Run the server

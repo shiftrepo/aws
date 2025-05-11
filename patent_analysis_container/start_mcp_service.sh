@@ -9,18 +9,17 @@ echo "  Patent Analysis MCP Server Startup"
 echo "======================================================"
 echo ""
 
-# Detect container runtime (Docker or Podman)
-if command -v docker &> /dev/null; then
-    CONTAINER_RUNTIME="docker"
-    COMPOSE_CMD="docker-compose"
-    echo "Using Docker as container runtime"
-elif command -v podman &> /dev/null; then
-    CONTAINER_RUNTIME="podman"
-    COMPOSE_CMD="podman-compose"
-    echo "Using Podman as container runtime"
-else
-    echo "ERROR: Neither Docker nor Podman is installed or in PATH"
-    echo "Please install Docker or Podman first"
+# Check if Podman is installed
+if ! command -v podman &> /dev/null; then
+    echo "ERROR: Podman is not installed or not in PATH"
+    echo "Please install Podman first"
+    exit 1
+fi
+
+# Check if podman-compose is installed
+if ! command -v podman-compose &> /dev/null; then
+    echo "ERROR: podman-compose is not installed or not in PATH"
+    echo "Please install podman-compose first"
     exit 1
 fi
 
@@ -34,26 +33,16 @@ chmod 777 ../app/patent_system/data
 
 # Clean up any previous container instances 
 echo "Cleaning up any previous container instances..."
-$COMPOSE_CMD -f docker-compose.mcp.yml down 2>/dev/null || true
-$CONTAINER_RUNTIME rm -f patent-analysis-mcp 2>/dev/null || true
-
-# Make sure required environment variables are set (without exposing values)
-if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "WARNING: AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY environment variables are not set."
-    echo "These are required for the server to function properly."
-    echo "Please set these environment variables before starting the server:"
-    echo "export AWS_ACCESS_KEY_ID=your_access_key"
-    echo "export AWS_SECRET_ACCESS_KEY=your_secret_key"
-    echo "export AWS_REGION=your_region  # Optional, defaults to us-east-1"
-fi
+podman-compose -f docker-compose.mcp.yml down 2>/dev/null || true
+podman rm -f patent-analysis-mcp 2>/dev/null || true
 
 # Build the container with the latest changes
 echo "Building the Patent Analysis MCP server..."
-$COMPOSE_CMD -f docker-compose.mcp.yml build
+podman-compose -f docker-compose.mcp.yml build
 
 # Start the MCP server
 echo "Starting the Patent Analysis MCP server..."
-$COMPOSE_CMD -f docker-compose.mcp.yml up -d
+podman-compose -f docker-compose.mcp.yml up -d
 
 # Check if the server started correctly
 if [ $? -eq 0 ]; then
@@ -86,7 +75,7 @@ else
     echo ""
     echo "ERROR: Failed to start the Patent Analysis MCP server"
     echo "Check the logs for more information:"
-    echo "  $COMPOSE_CMD -f docker-compose.mcp.yml logs"
+    echo "  podman-compose -f docker-compose.mcp.yml logs"
     exit 1
 fi
 

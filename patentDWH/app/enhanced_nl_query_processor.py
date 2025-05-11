@@ -82,11 +82,16 @@ class EnhancedNLQueryProcessor(PatchedNLQueryProcessor):
                 logger.error(f"LangChain LLM not configured")
                 return "", False
                 
-            # Get schema info for this database
+            # Get schema info for this database with retry/refresh if needed
             schema_info = self.schemas.get(db_type, {})
-            if not schema_info or "tables" not in schema_info:
-                logger.error(f"No schema info available for {db_type}")
-                return "", False
+            if not schema_info or "tables" not in schema_info or not schema_info["tables"]:
+                logger.warning(f"No schema info available for {db_type}, attempting to refresh schemas")
+                # Try to refresh schemas
+                self.schemas = self._get_database_schemas()
+                schema_info = self.schemas.get(db_type, {})
+                if not schema_info or "tables" not in schema_info or not schema_info["tables"]:
+                    logger.error(f"Could not retrieve schema info for {db_type} even after refresh")
+                    return "", False
                 
             # Create a descriptive prompt for the LLM
             tables_info = ""

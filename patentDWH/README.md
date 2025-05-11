@@ -17,6 +17,7 @@ patentDWHは、特許データのSQLiteベースのストレージと検索機�
   - [特許分析MCPサーバー](#特許分析mcpサーバー)
 - [テーブル構造](#テーブル構造)
 - [統合起動方法](#統合起動方法)
+- [サービスの起動と停止](#サービスの起動と停止)
 - [詳細ログとトラブルシューティング](#詳細ログとトラブルシューティング)
 - [ソースコードSTEP数](#ソースコードstep数)
 
@@ -74,7 +75,7 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 
 2. セットアップスクリプトを実行します：
    ```bash
-   ./setup.sh
+   ./init_setup.sh
    ```
 
 3. 特許分析サービスを使用する場合は、別途起動します：
@@ -87,8 +88,8 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 4. 特許分析MCPサーバーを起動する場合：
    ```bash
    cd ../patent_analysis_container
-   chmod +x start_mcp_server.sh
-   ./start_mcp_server.sh
+   chmod +x start_mcp_service.sh
+   ./start_mcp_service.sh
    ```
 
 ### 統合方法（詳細は[統合起動方法](#統合起動方法)を参照）
@@ -96,7 +97,7 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 1. 統合セットアップスクリプトを実行します：
    ```bash
    cd patentDWH
-   ./setup_consolidated.sh
+   ./init_consolidated_setup.sh
    ```
 
 2. 特許分析を実行する場合：
@@ -121,9 +122,12 @@ export AWS_REGION="us-east-1"  # 必要に応じて変更
 
 ```bash
 # サービスを起動する
-./setup.sh
+./init_setup.sh
 # または統合版
-./setup_consolidated.sh
+./init_consolidated_setup.sh
+
+# すべてのサービスを一括で起動する（推奨）
+./start_all_services.sh
 
 # サービスの状態を確認する
 curl http://localhost:5002/health
@@ -139,6 +143,8 @@ podman-compose -f docker-compose.consolidated.yml logs -f
 podman-compose down
 # または
 podman-compose -f docker-compose.consolidated.yml down
+# または（すべてのサービスを一括停止）
+./stop_all_services.sh
 ```
 
 #### SQLクエリの実行例
@@ -329,8 +335,8 @@ podman-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ
 ```bash
 # patent_analysis_containerディレクトリで起動する場合
 cd patent_analysis_container
-chmod +x start_mcp_server.sh
-./start_mcp_server.sh
+chmod +x start_mcp_service.sh
+./start_mcp_service.sh
 
 # または、Podmanコマンドで直接起動する場合
 podman-compose -f docker-compose.mcp.yml up -d
@@ -441,14 +447,8 @@ export AWS_ACCESS_KEY_ID="your_aws_key_id"
 export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
 export AWS_REGION="us-east-1"  # 必要に応じて変更
 
-# 3. 統合セットアップスクリプトを実行
-./setup_consolidated.sh
-
-# 4. patent_analysis_container ディレクトリに移動
-cd ../patent_analysis_container
-
-# 5. 特許分析MCPサーバーを起動
-./start_mcp_server.sh
+# 3. すべてのサービスを一括で起動
+./start_all_services.sh
 ```
 
 これにより、以下のすべてのサービスが起動します：
@@ -470,7 +470,7 @@ cd ../patent_analysis_container
 
 ```bash
 cd patentDWH
-./setup_consolidated.sh
+./init_consolidated_setup.sh
 ```
 
 このスクリプトは以下を実行します：
@@ -484,7 +484,7 @@ cd patentDWH
 
 ```bash
 cd patent_analysis_container
-./start_mcp_server.sh
+./start_mcp_service.sh
 ```
 
 ### 4. 動作確認
@@ -513,8 +513,61 @@ podman-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ
 ### 6. すべてのサービスを停止
 
 ```bash
-podman-compose -f docker-compose.consolidated.yml down
+./stop_all_services.sh
 ```
+
+## サービスの起動と停止
+
+patentDWHシステムの起動と停止を簡素化するために、以下のスクリプトが用意されています：
+
+### スクリプト一覧
+
+| スクリプト名 | 用途 | 説明 |
+|------------|------|------|
+| **start_all_services.sh** | 全サービスの起動 | patentDWHの基本サービスと特許分析MCPサーバーを含む全てのサービスを起動します |
+| **stop_all_services.sh** | 全サービスの停止 | 実行中のすべてのコンテナを安全に停止します |
+| **init_setup.sh** | 基本セットアップ | 基本的なpatentDWHサービスをセットアップします（従来のsetup.sh） |
+| **init_consolidated_setup.sh** | 統合セットアップ | 統合環境のセットアップを行います（従来のsetup_consolidated.sh） |
+| **start_mcp_service.sh** | 特許分析サーバー起動 | patent_analysis_container内で特許分析MCPサーバーを起動します |
+
+### 使用例
+
+#### 全サービスの起動
+
+全てのサービスを一度に起動するには：
+
+```bash
+cd patentDWH
+./start_all_services.sh
+```
+
+このスクリプトは以下の処理を行います：
+1. 前回のサービスをクリーンアップ
+2. patentDWH基本サービス（DB、MCPサーバー）を起動
+3. 特許分析MCPサーバーを起動
+4. 各サービスの起動確認とヘルスチェック
+5. 利用可能なサービスとそのURLを表示
+
+#### 全サービスの停止
+
+全てのサービスを一括で停止するには：
+
+```bash
+cd patentDWH
+./stop_all_services.sh
+```
+
+このスクリプトは以下の処理を行います：
+1. 特許分析MCPサーバーを停止
+2. patentDWHの基本サービスを停止
+3. 他のDocker Composeファイルで起動したサービスも念のため停止
+4. 残っているコンテナがあればユーザーに通知し、オプションで強制停止
+
+#### 注意事項
+
+- `start_all_services.sh`と`stop_all_services.sh`は、`patentDWH`ディレクトリ内で実行する必要があります
+- `start_mcp_service.sh`は、`patent_analysis_container`ディレクトリ内で実行する必要があります
+- AWS認証情報が環境変数として設定されていない場合、`start_all_services.sh`スクリプトは警告を表示しますが、確認後に続行できます
 
 ## 詳細ログとトラブルシューティング
 
@@ -550,28 +603,4 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 
 4. サービスの再起動：
    ```
-   podman-compose -f docker-compose.consolidated.yml down
-   podman-compose -f docker-compose.consolidated.yml up -d
-   ```
-
-5. データのクリーンアップと再ダウンロード：
-   ```
-   rm -rf data/*.db
-   podman-compose -f docker-compose.consolidated.yml down
-   podman-compose -f docker-compose.consolidated.yml up -d
-   ```
-
-## ソースコードSTEP数
-
-以下は、各コンポーネントのソースコードのSTEP数（行数）です：
-
-| コンポーネント | 実コード行数 | コメント行数 | 合計行数 |
-|-------------|-----------|----------|--------|
-| patentDWH/app | 783 | 127 | 910 |
-| patentDWH/db | 895 | 152 | 1047 |
-| patent_analysis_container | 624 | 89 | 713 |
-| patent-mcp-server/app | 412 | 73 | 485 |
-| patent-sqlite | 356 | 61 | 417 |
-| **合計** | **3070** | **502** | **3572** |
-
-注：行数は自動計測したもので、空白行や設定ファイルは含まれていません。
+   podman-compose -f docker

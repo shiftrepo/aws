@@ -21,53 +21,9 @@ from sqlalchemy.orm import Session
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# For development/debug - print paths
-print(f"Current working directory: {os.getcwd()}")
-print(f"Python path: {sys.path}")
-print(f"Directory listing for /app:")
-try:
-    print(os.listdir("/app"))
-    print(f"Directory listing for /app/app:")
-    print(os.listdir("/app/app"))
-    print(f"Directory listing for /app/app/patent_system:")
-    print(os.listdir("/app/app/patent_system"))
-except Exception as e:
-    print(f"Error listing directories: {e}")
-
-# Create mock implementations for development/testing if modules can't be imported
-try:
-    # Try to import the modules
-    from app.patent_system.models_sqlite import ensure_db_exists, SessionLocal, get_db
-    from app.patent_system.db_sqlite import SQLiteDBManager
-    print("Successfully imported SQLite modules")
-except ImportError as e:
-    print(f"Error importing modules: {e}")
-    # Mock implementations
-    print("Using mock implementations for SQLite modules")
-    
-    def ensure_db_exists():
-        print("Mock ensure_db_exists called")
-        return True
-        
-    def get_db():
-        print("Mock get_db called")
-        return None
-        
-    SessionLocal = None
-    
-    class SQLiteDBManager:
-        def __init__(self):
-            print("Mock SQLiteDBManager initialized")
-            
-        def __enter__(self):
-            return self
-            
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            pass
-            
-        def get_patents_by_applicant(self, applicant_name):
-            print(f"Mock get_patents_by_applicant called for {applicant_name}")
-            return []
+# Import required modules 
+from app.patent_system.models_sqlite import ensure_db_exists, SessionLocal, get_db
+from app.patent_system.db_sqlite import SQLiteDBManager
 
 app = FastAPI(title="Patent Analysis MCP Server", 
               description="MCP server for patent application trend analysis",
@@ -75,7 +31,7 @@ app = FastAPI(title="Patent Analysis MCP Server",
 
 # Define request models for OpenAPI
 class PatentAnalysisRequest(BaseModel):
-    applicant_name: str
+    applicant: str
     db_type: Optional[str] = "sqlite"
 
 class MCPToolRequest(BaseModel):
@@ -91,8 +47,14 @@ LLM_SERVICE_URL = os.environ.get("LLM_SERVICE_URL", "http://patentdwh-mcp-enhanc
 DB_URL = os.environ.get("DB_URL", "http://patentdwh-db:5002/api/sql-query")
 
 def sanitize_string_for_filename(input_string):
-    """Convert Japanese characters to romaji for filenames"""
-    return re.sub(r'[^\w\-_. ]', '', input_string)
+    """Safe filename creation that preserves Japanese characters"""
+    # Simply replace problematic characters instead of removing non-ASCII
+    unsafe_chars = r'[<>:"/\\|?*]'
+    safe_string = re.sub(unsafe_chars, '_', input_string)
+    # Ensure the string is not empty
+    if not safe_string or safe_string.isspace():
+        return "default_report"
+    return safe_string
 
 def execute_sql_query(query, db_type="sqlite"):
     """Execute SQL query using the patent_sql_query tool via MCP API or direct DB access"""
@@ -423,12 +385,25 @@ async def mcp_endpoint(request: MCPToolRequest):
         tool_name = request.tool_name
         tool_input = request.tool_input
         
+        # デバッグログを追加
+        print(f"Received MCP request: tool_name={tool_name}, tool_input={tool_input}")
+        
         if tool_name == "analyze_patent_trends":
-            applicant_name = tool_input.get("applicant_name")
+            # 両方のパラメータ形式をサポート
+            applicant_name = None
+            if "applicant" in tool_input:
+                applicant_name = tool_input.get("applicant")
+                print(f"Using 'applicant' parameter: {applicant_name}")
+            elif "applicant_name" in tool_input:
+                applicant_name = tool_input.get("applicant_name")
+                print(f"Using 'applicant_name' parameter: {applicant_name}")
+            else:
+                print("Neither 'applicant' nor 'applicant_name' parameter found in request")
+                
             db_type = tool_input.get("db_type", "sqlite")
             
             if not applicant_name:
-                return {"success": False, "error": "applicant_name is required"}
+                return {"success": False, "error": "applicant or applicant_name parameter is required"}
             
             result = await analyze_patent_data(applicant_name, db_type)
             return {"success": True, "response": result}
@@ -444,7 +419,7 @@ async def analyze_patents(request: PatentAnalysisRequest):
     Analyze patent trends for an applicant and return JSON results
     """
     try:
-        applicant_name = request.applicant_name
+        applicant_name = request.applicant
         db_type = request.db_type
         
         # Get patent trend data
@@ -559,9 +534,13 @@ async def execute_patent_tool(request: dict):
         arguments = request.get("arguments", {})
         
         if tool_name == "analyze_patent_trends":
-            applicant_name = arguments.get("applicant_name")
+            applicant_name = arguments.get("applicant")
             if not applicant_name:
-                raise HTTPException(status_code=400, detail="Missing required argument: applicant_name")
+                # 後方互換性のために、applicant_nameも確認
+                applicant_name = arguments.get("applicant_name")
+                
+            if not applicant_name:
+                raise HTTPException(status_code=400, detail="Missing required argument: applicant parameter")
                 
             db_type = arguments.get("db_type", "sqlite")
             

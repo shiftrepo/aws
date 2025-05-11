@@ -78,32 +78,51 @@ class NLQueryProcessor:
     def _get_database_schemas(self) -> Dict[str, Dict]:
         """
         Retrieve and cache the database schemas for all available databases.
+        With retry logic for container startup timing issues.
         
         Returns:
             Dict containing database schema information for each available database.
         """
-        try:
-            schemas = {}
-            
-            # Get database information from API
-            response = httpx.get(f"{PATENT_DB_URL}/api/status")
-            if response.status_code != 200:
-                logger.error(f"Failed to get database info: {response.text}")
-                return {}
+        max_retries = 5
+        retry_delay = 3  # seconds
+        attempt = 0
+        
+        while attempt < max_retries:
+            try:
+                schemas = {}
                 
-            db_info = response.json()
-            
-            # Process schema for each database
-            for db_type in ["inpit", "google_patents_gcp", "google_patents_s3"]:
-                if db_type not in db_info.get("databases", {}):
-                    continue
+                # Get database information from API
+                response = httpx.get(f"{PATENT_DB_URL}/api/status", timeout=5.0)
+                if response.status_code != 200:
+                    logger.warning(f"Failed to get database info (attempt {attempt+1}/{max_retries}): {response.text}")
+                    attempt += 1
+                    if attempt < max_retries:
+                        import time
+                        time.sleep(retry_delay)
+                        continue
+                    return {}
                     
-                schemas[db_type] = self._get_single_database_schema(db_type)
+                db_info = response.json()
                 
-            return schemas
-        except Exception as e:
-            logger.error(f"Error retrieving database schemas: {e}")
-            return {}
+                # Process schema for each database
+                for db_type in ["inpit", "google_patents_gcp", "google_patents_s3"]:
+                    if db_type not in db_info.get("databases", {}):
+                        continue
+                        
+                    schemas[db_type] = self._get_single_database_schema(db_type)
+                    
+                return schemas
+            except Exception as e:
+                logger.warning(f"Error retrieving database schemas (attempt {attempt+1}/{max_retries}): {e}")
+                attempt += 1
+                if attempt < max_retries:
+                    import time
+                    time.sleep(retry_delay)
+                else:
+                    logger.error(f"Failed to retrieve database schemas after {max_retries} attempts: {e}")
+                    return {}
+        
+        return {}
     
     def _get_single_database_schema(self, db_type: str) -> Dict:
         """
