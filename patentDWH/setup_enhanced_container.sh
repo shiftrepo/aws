@@ -92,7 +92,8 @@ services:
       - PATENT_DB_URL=http://patentdwh-db:5002
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     depends_on:
       - patentdwh-db
     restart: unless-stopped
@@ -102,11 +103,11 @@ EOL
 echo -e "${BLUE}[INFO] Checking AWS credentials...${NC}"
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     echo -e "${YELLOW}[WARNING] AWS credentials not set in environment.${NC}"
-    echo "To use Bedrock services, please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION."
+    echo "To use Bedrock services, please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_DEFAULT_REGION."
     echo "Example:"
     echo "  export AWS_ACCESS_KEY_ID=your_access_key"
     echo "  export AWS_SECRET_ACCESS_KEY=your_secret_key"
-    echo "  export AWS_REGION=us-east-1"
+    echo "  export AWS_DEFAULT_REGION=us-east-1"
 else
     echo -e "${GREEN}[INFO] AWS credentials found in environment.${NC}"
 fi

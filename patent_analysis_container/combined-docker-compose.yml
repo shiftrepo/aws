@@ -29,7 +29,8 @@ services:
       - PATENT_DB_URL=http://patentdwh-db:5002
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     depends_on:
       - patentdwh-db
     restart: unless-stopped
@@ -49,7 +50,8 @@ services:
       # Use environment variables for AWS credentials
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     networks:
       - patent-network
     depends_on:

@@ -26,6 +26,7 @@ echo "Setting output directory permissions..."
 mkdir -p ../patent_analysis_container/output 2>/dev/null || true
 chmod 777 ../patent_analysis_container/output
 
+# Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
 # Step 4: Start the DB container first
 echo "Starting DB container..."
 podman run -d \
@@ -34,7 +35,7 @@ podman run -d \
   -e PORT=5002 \
   -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
   -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-  -e AWS_DEFAULT_REGION="${AWS_REGION:-ap-northeast-1}" \
+  -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-ap-northeast-1}" \
   -e SKIP_DATA_DOWNLOAD=false \
   -u root:root \
   --network=host \
@@ -44,6 +45,7 @@ podman run -d \
 echo "Waiting for DB to initialize..."
 sleep 5
 
+# Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
 # Step 5: Start the MCP Enhanced container
 echo "Starting MCP Enhanced container..."
 podman run -d \
@@ -54,7 +56,7 @@ podman run -d \
   -e PATENT_DB_URL=http://localhost:5002 \
   -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
   -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-  -e AWS_REGION="${AWS_REGION:-us-east-1}" \
+  -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}" \
   -e GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision \
   -e GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json \
   -u root:root \
@@ -70,6 +72,7 @@ echo "Building patent analysis container..."
 cd ../patent_analysis_container
 PATENT_ANALYSIS_IMAGE=$(podman build -q .)
 
+# Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
 echo "Running patent analysis..."
 podman run --rm \
   -v "$(pwd)/output:/app/output:z" \
@@ -77,7 +80,7 @@ podman run --rm \
   -e DB_URL=http://localhost:5002/api/sql-query \
   -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
   -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-  -e AWS_REGION="${AWS_REGION:-us-east-1}" \
+  -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}" \
   -u root:root \
   --network=host \
   --name patent-analysis \

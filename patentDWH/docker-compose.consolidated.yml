@@ -12,7 +12,8 @@ services:
       - PORT=5002
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_REGION:-ap-northeast-1}
+      # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
       - SKIP_DATA_DOWNLOAD=false
     user: "root:root"  # Run as root
     restart: unless-stopped
@@ -30,7 +31,8 @@ services:
       - PATENT_DB_URL=http://patentdwh-db:5002
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
       - GCP_CREDENTIALS_S3_BUCKET=ndi-3supervision
       - GCP_CREDENTIALS_S3_KEY=MIT/GCPServiceKey/tosapi-bf0ac4918370.json
     volumes:
@@ -55,7 +57,8 @@ services:
       - DB_URL=http://patentdwh-db:5002/api/sql-query
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Note: AWS_REGIONは使わず、AWS_DEFAULT_REGIONを利用すること。
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     networks:
       - patent-network
     depends_on:

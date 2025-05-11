@@ -22,7 +22,7 @@ print(f"SOURCE_NEO4J_PASSWORD: {SOURCE_NEO4J_PASSWORD}")
 print(f"TARGET_NEO4J_URI: {TARGET_NEO4J_URI}")
 print(f"TARGET_NEO4J_USER: {TARGET_NEO4J_USER}")
 print(f"TARGET_NEO4J_PASSWORD: {TARGET_NEO4J_PASSWORD}")
-print(f"AWS_REGION: {AWS_REGION}")
+print(f"AWS_DEFAULT_REGION: {AWS_REGION}")
 
 # AWSクライアントの初期化
 bedrock_runtime = boto3.client('bedrock-runtime', region_name=AWS_REGION)
