@@ -13,9 +13,8 @@ import boto3
 from typing import Dict, List, Any, Optional
 import httpx
 
-# Import from nl_query_processor
-from nl_query_processor import NLQueryProcessor as NLQueryProcessorWithFallback
-from nl_query_processor import get_nl_processor
+# Import from base_nl_query_processor instead of nl_query_processor to avoid circular import
+from base_nl_query_processor import NLQueryProcessor as BaseNLQueryProcessor
 
 # Configure logging
 logging.basicConfig(
@@ -30,7 +29,7 @@ CLAUDE_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
 # Patent DB API URL from environment variable
 PATENT_DB_URL = os.environ.get("PATENT_DB_URL", "http://patentdwh-db:5002")
 
-class NLQueryProcessor(NLQueryProcessorWithFallback):
+class NLQueryProcessor(BaseNLQueryProcessor):
     """
     Extended Natural Language Query Processor for patentDWH
     
@@ -198,11 +197,11 @@ SQLクエリのみを出力してください。説明は不要です。バッ�
             }
 
 # Singleton instance for reuse
-_instance = None
+_patched_instance = None
 
 def get_nl_processor():
     """Get a singleton instance of the NLQueryProcessor."""
-    global _instance
-    if _instance is None:
-        _instance = NLQueryProcessor()
-    return _instance
+    global _patched_instance
+    if _patched_instance is None:
+        _patched_instance = NLQueryProcessor()
+    return _patched_instance

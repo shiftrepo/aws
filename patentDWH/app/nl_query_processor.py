@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Natural Language Query Processor for patentDWH with direct Bedrock SQL generation fallback
+Natural Language Query Processor for patentDWH
 
-This module extends the base NLQueryProcessor with a direct Bedrock API call
-for SQL generation when the primary SQL generation method fails.
+This module provides the NLQueryProcessor that builds on the base processor
+and is used by higher-level implementations.
 """
 
 import os
@@ -13,7 +13,7 @@ import boto3
 from typing import Dict, List, Any, Optional
 import httpx
 
-# Import base NLQueryProcessor
+# Import base NLQueryProcessor directly to avoid circular import
 from base_nl_query_processor import NLQueryProcessor as BaseNLQueryProcessor
 from base_nl_query_processor import get_base_nl_processor
 

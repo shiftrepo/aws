@@ -91,7 +91,31 @@ if [ -z "$AWS_DEFAULT_REGION" ]; then
     export AWS_DEFAULT_REGION="us-east-1"
 fi
 
-# Step 4: Apply LangChain fix
+# Step 4: Apply FastAPI middleware import fix
+echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking for FastAPI middleware import issue"
+
+if [ -f "./fix_fastapi_middleware_import.sh" ]; then
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Applying FastAPI middleware import fix..."
+    ./fix_fastapi_middleware_import.sh || echo "[WARNING] $(date +"%Y-%m-%d %H:%M:%S") - FastAPI middleware fix failed but continuing"
+else
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking for FastAPI middleware import in server_with_enhanced_nl.py"
+    if grep -q "from fastapi.middleware.base import BaseHTTPMiddleware" "./app/server_with_enhanced_nl.py"; then
+        echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Applying manual middleware import fix"
+        cp "./app/server_with_enhanced_nl.py" "./app/server_with_enhanced_nl.py.bak"
+        sed -i 's/from fastapi\.middleware\.base import BaseHTTPMiddleware/from starlette.middleware.base import BaseHTTPMiddleware/' "./app/server_with_enhanced_nl.py"
+        
+        # Add starlette to requirements if not present
+        if ! grep -q "starlette>=" "./app/requirements_enhanced.txt"; then
+            echo "starlette>=0.27.0" >> "./app/requirements_enhanced.txt"
+        fi
+        
+        echo "[SUCCESS] $(date +"%Y-%m-%d %H:%M:%S") - Fixed FastAPI middleware import"
+    else
+        echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - No FastAPI middleware import issue detected"
+    fi
+fi
+
+# Step 5: Apply LangChain fix
 echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking for LangChain compatibility in requirements_enhanced.txt"
 
 # Make sure the requirements file has the correct versions
@@ -119,7 +143,43 @@ else
     fi
 fi
 
-# Step 5: Apply import fallback fix in enhanced_nl_query_processor.py
+# Step 5: Apply Dockerfile missing module fix
+echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking for Dockerfile missing module issue"
+
+if [ -f "./fix_dockerfile_missing_module.sh" ]; then
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Applying Dockerfile missing module fix..."
+    ./fix_dockerfile_missing_module.sh || echo "[WARNING] $(date +"%Y-%m-%d %H:%M:%S") - Dockerfile missing module fix failed but continuing"
+else
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - No Dockerfile missing module fix script found"
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking if base_nl_query_processor.py is missing from Dockerfile.enhanced"
+    
+    if [ -f "./app/Dockerfile.enhanced" ]; then
+        if ! grep -q "COPY base_nl_query_processor.py" "./app/Dockerfile.enhanced"; then
+            echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Adding base_nl_query_processor.py to Dockerfile.enhanced"
+            # Create backup
+            cp "./app/Dockerfile.enhanced" "./app/Dockerfile.enhanced.bak"
+            # Add missing file to COPY instructions
+            sed -i '/# Copy application files/,/COPY server_with_enhanced_nl.py/ s/COPY enhanced_nl_query_processor.py/COPY base_nl_query_processor.py .\nCOPY enhanced_nl_query_processor.py/' "./app/Dockerfile.enhanced"
+            echo "[SUCCESS] $(date +"%Y-%m-%d %H:%M:%S") - Updated Dockerfile.enhanced to include base_nl_query_processor.py"
+        else
+            echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - base_nl_query_processor.py is already in Dockerfile.enhanced"
+        fi
+    else
+        echo "[WARNING] $(date +"%Y-%m-%d %H:%M:%S") - Dockerfile.enhanced not found, skipping"
+    fi
+fi
+
+# Step 6: Apply circular import fix
+echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking for circular import issues"
+
+if [ -f "./fix_mcp_circular_import.sh" ]; then
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Applying circular import fix..."
+    ./fix_mcp_circular_import.sh || echo "[WARNING] $(date +"%Y-%m-%d %H:%M:%S") - Circular import fix failed but continuing"
+else
+    echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - No circular import fix script found, skipping"
+fi
+
+# Step 6: Apply import fallback fix in enhanced_nl_query_processor.py
 echo "[INFO] $(date +"%Y-%m-%d %H:%M:%S") - Checking for import fallback mechanism"
 
 if grep -q "try:" ./app/enhanced_nl_query_processor.py && \
