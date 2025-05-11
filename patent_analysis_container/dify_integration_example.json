@@ -1,0 +1,79 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Patent Analysis MCP Server",
+    "description": "MCP server for patent application trend analysis",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/tools/execute": {
+      "post": {
+        "operationId": "execute_patent_tool",
+        "summary": "Execute patent analysis tool",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatentAnalysisTool"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool execution result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PatentAnalysisTool": {
+        "type": "object",
+        "properties": {
+          "tool_name": {
+            "type": "string",
+            "enum": [
+              "analyze_patent_trends"
+            ]
+          },
+          "arguments": {
+            "type": "object",
+            "properties": {
+              "applicant_name": {
+                "type": "string",
+                "description": "The name of the applicant to analyze"
+              },
+              "db_type": {
+                "type": "string",
+                "description": "Database type to use",
+                "default": "inpit"
+              }
+            },
+            "required": [
+              "applicant_name"
+            ]
+          }
+        },
+        "required": [
+          "tool_name",
+          "arguments"
+        ]
+      }
+    }
+  }
+}

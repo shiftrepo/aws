@@ -1,0 +1,41 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    libfreetype6-dev \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Create directory structure
+RUN mkdir -p /app/output && chmod 777 /app/output
+RUN mkdir -p /app/app/patent_system
+
+# Copy the application code
+COPY patent_analysis_mcp_server.py .
+
+# Copy necessary SQLite DB modules
+COPY ../app/patent_system/models_sqlite.py /app/app/patent_system/
+COPY ../app/patent_system/db_sqlite.py /app/app/patent_system/
+
+# Create __init__.py files for proper imports
+RUN touch /app/app/__init__.py
+RUN touch /app/app/patent_system/__init__.py
+
+# Expose port for API
+EXPOSE 8000
+
+# Set environment variables
+ENV HOST=0.0.0.0
+ENV PORT=8000
+ENV OUTPUT_DIR=/app/output
+
+# Run server on container startup
+CMD ["python", "patent_analysis_mcp_server.py"]

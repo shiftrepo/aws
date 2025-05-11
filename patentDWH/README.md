@@ -1,28 +1,32 @@
 # patentDWH（特許データウェアハウス）
 
-patentDWHは、ユーザーフレンドリーなWebインターフェースとMCPサーバーを通じて、特許データのSQLiteベースのストレージと検索機能を提供する特許データウェアハウスシステムです。
+patentDWHは、特許データのSQLiteベースのストレージと検索機能に加え、ユーザーフレンドリーなWebインターフェースとMCPサーバーを組み合わせた特許データウェアハウスシステムです。本システムはSQLクエリ、自然言語問い合わせ、特許分析などの多様な機能を提供します。
 
-## ドキュメント構成
+## 目次
 
-patentDWHシステムには、以下の複数のドキュメントがあります：
-
-| ドキュメント名 | 説明 |
-|------------|------|
-| **README.md** | このファイル。基本的な概要と機能説明（現在のファイル） |
-| [README_CONSOLIDATED.md](./README_CONSOLIDATED.md) | **統合Docker設定** - 複数のdocker-composeファイルを統合し、ローカルホスト専用サービスを削除した新しい設定の詳細 |
-| [README_NATURAL_LANGUAGE_QUERY.md](./README_NATURAL_LANGUAGE_QUERY.md) | 自然言語クエリ機能の詳細な使用方法 |
-| [README_ENHANCED_SETUP_JP.md](./README_ENHANCED_SETUP_JP.md) | 拡張機能付きのセットアップ手順（日本語） |
-| [ENHANCED_LANGCHAIN_USAGE.md](./ENHANCED_LANGCHAIN_USAGE.md) | 拡張LangChain機能の使用方法 |
-| [LANGCHAIN_FALLBACK_README.md](./LANGCHAIN_FALLBACK_README.md) | LangChainフォールバック機能の説明 |
-
-> **推奨**: 最新の統合設定（docker-compose.consolidated.yml）と専用セットアップスクリプト（setup_consolidated.sh）を使用してください。詳細は[README_CONSOLIDATED.md](./README_CONSOLIDATED.md)をご覧ください。
+- [概要](#概要)
+- [機能](#機能)
+- [必要条件](#必要条件)
+- [インストールと起動](#インストールと起動)
+- [使用方法](#使用方法)
+  - [WebUI](#webui)
+  - [コマンドラインインターフェース例](#コマンドラインインターフェース例)
+  - [MCPサーバー](#mcpサーバー)
+  - [自然言語クエリ](#自然言語クエリ)
+  - [特許分析サービス](#特許分析サービス)
+  - [特許分析MCPサーバー](#特許分析mcpサーバー)
+- [テーブル構造](#テーブル構造)
+- [統合起動方法](#統合起動方法)
+- [詳細ログとトラブルシューティング](#詳細ログとトラブルシューティング)
+- [ソースコードSTEP数](#ソースコードstep数)
 
 ## 概要
 
-このシステムは主に2つのコンポーネントで構成されています：
+このシステムは主に3つのコンポーネントで構成されています：
 
 1. **特許データベース（patentdwh-db）**：特許データを直接クエリするためのWebインターフェースを備えたSQLiteベースのデータベース。
 2. **MCPサーバー（patentdwh-mcp）**：ClaudeなどのAIアシスタントが特許データベースとやり取りするためのModel Context Protocol（MCP）サーバー。
+3. **特許分析サービス（patent-analysis）**：特定の出願人の特許出願動向を分析し、視覚化とレポート生成を行います。
 
 このシステムは3つの異なる特許データベースへのアクセスを提供します：
 
@@ -32,39 +36,84 @@ patentDWHシステムには、以下の複数のドキュメントがありま�
 
 ## 機能
 
-- **自然言語クエリ**：AWS Bedrock（Claude 3 Sonnet、Titan Embedding）を利用した特許データへの自然言語クエリ機能。詳細は[自然言語クエリドキュメント](./README_NATURAL_LANGUAGE_QUERY.md)を参照。
+- **自然言語クエリ**：AWS Bedrock（Claude 3 Sonnet、Titan Embedding）を利用した特許データへの自然言語クエリ機能。
 - **SQLクエリ用WebUI**：すべてのデータベースに対してSQLクエリを実行するための直接的なWebインターフェース。
 - **SQLサンプル**：一般的な特許検索用の事前構築されたSQLクエリ例。
 - **MCP統合**：AIアシスタント統合のための完全なMCPサーバー実装。
 - **マルチデータベースサポート**：同じインターフェースで異なる特許データベースをクエリ。
 - **RESTful API**：データベースへのプログラム的アクセスのためのAPIエンドポイント。
+- **特許分析**：出願人別の特許分類トレンド分析とレポート生成。
+- **Dify統合**：特許分析サービスをDifyプラットフォームと統合するためのOpenAPI。
 
 ## 必要条件
 
-- PodmanまたはDocker
-- Podman ComposeまたはDocker Compose
+- Docker またはPodman
+- Docker Compose またはPodman Compose
 - インターネット接続（初期データダウンロード用）
+- AWS認証情報（環境変数経由で提供）
 
-## インストール
+## インストールと起動
+
+### 環境変数の設定
+
+AWS認証情報を環境変数として設定します:
+
+```bash
+export AWS_ACCESS_KEY_ID="your_aws_key_id"
+export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
+export AWS_REGION="us-east-1"  # 必要に応じて変更
+```
+
+### 従来の方法（各サービス個別）
 
 1. リポジトリをクローンします：
-   ```
+   ```bash
    git clone <repository-url>
    cd patentDWH
    ```
 
 2. セットアップスクリプトを実行します：
-   ```
+   ```bash
    ./setup.sh
    ```
 
-3. セットアップスクリプトは以下を行います：
-   - 必要な依存関係の確認
-   - コンテナのビルドと起動
-   - サービスが実行されていることの確認
-   - 接続情報の表示
+3. 特許分析サービスを使用する場合は、別途起動します：
+   ```bash
+   cd ../patent_analysis_container
+   docker-compose build
+   docker-compose run patent-analysis "出願人名" [db_type]
+   ```
+
+4. 特許分析MCPサーバーを起動する場合：
+   ```bash
+   cd ../patent_analysis_container
+   chmod +x start_mcp_server.sh
+   ./start_mcp_server.sh
+   ```
+
+### 統合方法（詳細は[統合起動方法](#統合起動方法)を参照）
+
+1. 統合セットアップスクリプトを実行します：
+   ```bash
+   cd patentDWH
+   ./setup_consolidated.sh
+   ```
+
+2. 特許分析を実行する場合：
+   ```bash
+   docker-compose -f docker-compose.consolidated.yml run patent-analysis "出願人名" [db_type]
+   ```
 
 ## 使用方法
+
+### WebUI
+
+- **データベースUI**：http://localhost:5002/ でアクセス可能
+- Webインターフェースは3つの主要なセクションを提供します：
+  - INPIT SQLサンプル
+  - Google Patents GCPサンプル
+  - Google Patents S3サンプル
+  - フリーSQLクエリツール
 
 ### コマンドラインインターフェース例
 
@@ -73,20 +122,23 @@ patentDWHシステムには、以下の複数のドキュメントがありま�
 ```bash
 # サービスを起動する
 ./setup.sh
+# または統合版
+./setup_consolidated.sh
 
 # サービスの状態を確認する
 curl http://localhost:5002/health
 curl http://localhost:8080/health
+curl http://localhost:8000/health  # 特許分析MCPサーバー
 
 # ログを確認する
-podman-compose logs -f
-# または
 docker compose logs -f
+# または
+docker compose -f docker-compose.consolidated.yml logs -f
 
 # サービスを停止する
-podman-compose down
-# または
 docker compose down
+# または
+docker compose -f docker-compose.consolidated.yml down
 ```
 
 #### SQLクエリの実行例
@@ -108,103 +160,72 @@ curl -X POST -H "Content-Type: application/json" \
   http://localhost:5002/api/sql-query
 ```
 
-#### MCP APIの使用例
+#### 自然言語クエリの実行例
 
 ```bash
-# 利用可能なデータベース情報の取得
-curl http://localhost:8080/api/status
+# 自然言語クエリを直接実行
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"query": "トヨタが出願した自動運転技術に関する特許は何件ありますか？", "db_type": "google_patents_gcp"}' \
+  http://localhost:8080/api/nl-query
 
-# MCP APIを使用したクエリの実行
+# MCP APIを使用した自然言語クエリの実行
 curl -X POST -H "Content-Type: application/json" \
   -d '{
-    "tool_name": "patent_sql_query",
+    "tool_name": "patent_nl_query",
     "tool_input": {
-      "query": "SELECT * FROM inpit_data WHERE title LIKE \"%AI%\" LIMIT 10",
-      "db_type": "inpit"
+      "query": "ソニーが出願した人工知能関連の特許を教えてください",
+      "db_type": "google_patents_gcp"
     }
   }' \
   http://localhost:8080/api/v1/mcp
 ```
 
-### Webインターフェース
+#### 特許分析の実行例
 
-- **データベースUI**：http://localhost:5002/ でアクセス可能
-- Webインターフェースは3つの主要なセクションを提供します：
-  - INPIT SQLサンプル
-  - Google Patents GCPサンプル
-  - Google Patents S3サンプル
-  - フリーSQLクエリツール
+```bash
+# 特許分析の実行（通常方法）
+cd patent_analysis_container
+docker compose run patent-analysis "トヨタ" inpit
 
-### 日本語から英語へのカラム名変換
+# 特許分析の実行（統合方法）
+cd patentDWH
+docker compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+```
 
-特許データの日本語カラム名を英語に変換する機能が追加されました。この機能により、CSVファイルから読み込んだデータが、日本語のカラム名ではなく英語のカラム名でSQLiteデータベースに格納されます。主な機能は以下の通りです：
+#### 特許分析MCPサーバーの利用例
 
-1. **カラム名マッピング定義**: システムは `/app/data/jp_to_en_mapping.json` ファイルを使用して、日本語のカラム名を英語のカラム名にマッピングします。
-2. **透過的な変換**: CSVファイルからデータが読み込まれる際に、日本語のカラム名が自動的に英語に変換されます。
-3. **マッピング履歴**: 変換に使用された実際のマッピングは `/app/data/jp_en_used_mapping.json` ファイルに保存されます。
-4. **柔軟なフォールバック**: マッピングファイルが存在しない場合や、特定の日本語カラム名にマッピングが定義されていない場合、システムは従来通りSQL互換のカラム名に変換します。
+```bash
+# 特許出願傾向の分析
+curl -X POST http://localhost:8000/api/v1/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tool_name": "analyze_patent_trends",
+    "tool_input": {
+      "applicant_name": "トヨタ"
+    }
+  }'
 
-#### カスタムマッピングの定義方法
-
-独自の日本語から英語へのマッピングを定義するには：
-
-1. `/app/data/jp_to_en_mapping.json` ファイルを編集します。
-2. 次の形式でJSONオブジェクトを定義します：
-   ```json
-   {
-     "日本語カラム名1": "english_column_name1",
-     "日本語カラム名2": "english_column_name2",
-     ...
-   }
-   ```
-3. システムを再起動するか、CSVデータを再ロードして変更を適用します。
+# ZIPレポートのダウンロード
+curl -X GET http://localhost:8000/api/report/トヨタ/zip -o toyota_report.zip
+```
 
 ### MCPサーバー
 
 MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提供します：
 
-1. **patent_sql_query**：任意の特許データベースに対してSQLクエリを実行します。（注意：カラム名は英語名を使用して検索します）
+1. **patent_sql_query**：任意の特許データベースに対してSQLクエリを実行します。
    ```json
    {
      "query": "SELECT * FROM inpit_data LIMIT 5",
      "db_type": "inpit"
    }
    ```
-   結果例:
-   ```json
-   {
-     "success": true,
-     "columns": ["id", "application_number", "application_date", "publication_number", "publication_date", "registration_number", "registration_date", "applicant_name", "inventor_name", "title", "ipc_code", "application_status", "summary"],
-     "results": [
-       [1, "JP2022123456", "2022-01-15", "JP2023987654A", "2023-07-20", "特許第6789012号", "2023-12-05", "テック株式会社", "発明太郎", "AI特許分析システム", "G06N 20/00", "登録済み", "AIを用いて特許を分析するシステム"]
-     ],
-     "record_count": 1
-   }
-   ```
 
-2. **patent_nl_query**：自然言語での質問を特許データベースに対して実行します。詳細は[自然言語クエリドキュメント](./README_NATURAL_LANGUAGE_QUERY.md)と[自然言語クエリ例](./NATURAL_LANGUAGE_QUERY_EXAMPLES.md)を参照。
+2. **patent_nl_query**：自然言語での質問を特許データベースに対して実行します。
    ```json
    {
      "query": "ソニーが出願した人工知能関連の特許を教えてください",
      "db_type": "google_patents_gcp"
-   }
-   ```
-   結果例:
-   ```json
-   {
-     "success": true,
-     "query": "ソニーが出願した人工知能関連の特許を教えてください",
-     "sql": "SELECT publication_number, title_ja, publication_date, assignee_harmonized FROM publications WHERE assignee_harmonized LIKE '%Sony%' AND (title_ja LIKE '%人工知能%' OR title_ja LIKE '%AI%' OR title_ja LIKE '%機械学習%') ORDER BY publication_date DESC LIMIT 20;",
-     "db_type": "google_patents_gcp",
-     "sql_result": {
-       "success": true,
-       "columns": ["publication_number", "title_ja", "publication_date", "assignee_harmonized"],
-       "results": [
-         // 結果データ
-       ],
-       "record_count": 15
-     },
-     "response": "ソニー（Sony）が出願した人工知能関連の特許として、データベースには15件の特許が見つかりました。これらの特許は公開日の新しい順に表示されています。..."
    }
    ```
    
@@ -212,30 +233,11 @@ MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提
    ```json
    {}
    ```
-   結果例:
-   ```json
-   {
-     "success": true,
-     "message": "AWS credentials are correctly configured for Bedrock services",
-     "aws_region": "us-east-1"
-   }
-   ```
 
 4. **get_database_info**：利用可能な特許データベースに関する情報を取得します。
    ```json
    {
      "db_type": null
-   }
-   ```
-   結果例:
-   ```json
-   {
-     "success": true,
-     "database_info": {
-       "inpit": { "record_count": 10000 },
-       "google_patents_gcp": { "record_count": 5000 },
-       "google_patents_s3": { "record_count": 8000 }
-     }
    }
    ```
 
@@ -245,23 +247,10 @@ MCPサーバーはhttp://localhost:8080/ で動作し、以下のツールを提
      "db_type": "inpit"
    }
    ```
-   結果例:
-   ```json
-   {
-     "success": true,
-     "db_type": "inpit",
-     "examples": {
-       "basic": "SELECT * FROM inpit_data LIMIT 10;",
-       "applicant": "SELECT * FROM inpit_data WHERE applicant_name LIKE '%テック%' ORDER BY application_date DESC LIMIT 20;",
-       "date": "SELECT * FROM inpit_data WHERE application_date BETWEEN '2022-01-01' AND '2023-12-31' ORDER BY application_date DESC LIMIT 20;",
-       "count": "SELECT strftime('%Y', application_date) as year, COUNT(*) as application_count FROM inpit_data GROUP BY strftime('%Y', application_date) ORDER BY year DESC;"
-     }
-   }
-   ```
 
 ### 自然言語クエリ
 
-patentDWHシステムの自然言語クエリ機能を使用すると、複雑なSQLクエリを書かなくても、日本語や英語で直接特許データベースに質問することができます。この機能は、AWS Bedrockの Claude 3 Haikuモデルを使用してユーザーの質問をSQLに変換し、結果を自然言語で回答します。
+patentDWHシステムの自然言語クエリ機能を使用すると、複雑なSQLクエリを書かなくても、日本語や英語で直接特許データベースに質問することができます。この機能は、AWS Bedrockの Claude 3 Sonnetモデルを使用してユーザーの質問をSQLに変換し、結果を自然言語で回答します。
 
 **主な特徴**：
 
@@ -272,8 +261,6 @@ patentDWHシステムの自然言語クエリ機能を使用すると、複雑�
 
 **利用可能な質問例**：
 
-詳細な質問例については、[自然言語クエリ例](./NATURAL_LANGUAGE_QUERY_EXAMPLES.md)を参照してください。以下はその一部です：
-
 ```
 テック株式会社が出願した特許は何件ありますか？
 ソニーが出願した人工知能関連の特許を教えてください
@@ -281,16 +268,66 @@ IPCコードG06Fに属する特許の国別出願数を比較してください
 自動運転技術において、トヨタとテスラの特許ポートフォリオの違いを分析してください
 ```
 
-技術的な詳細については、[自然言語クエリドキュメント](./README_NATURAL_LANGUAGE_QUERY.md)を参照してください。
+### 特許分析サービス
 
-ClaudeやMCPをサポートする他のAIアシスタントで使用するための設定：
+特許分析サービスは、特定の出願人の特許出願動向を分析し、以下を生成します：
 
-```json
-{
-  "serverName": "patentDWH",
-  "description": "Patent DWH MCPサーバー",
-  "url": "http://localhost:8080/api/v1/mcp"
-}
+1. 特許分類別の出願トレンドチャート
+2. 出願動向の分析レポート
+3. マークダウン形式の総合レポート
+
+**使用方法**：
+
+```bash
+# 通常方法
+cd patent_analysis_container
+docker-compose run patent-analysis "トヨタ" inpit
+
+# 統合方法
+cd patentDWH
+docker-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+```
+
+**パラメータ**：
+- `出願人名`: 分析対象の出願人名（例：「トヨタ」）
+- `db_type`: データベースタイプ（オプション、デフォルトは "inpit"）
+  - 指定可能な値: "inpit", "google_patents_gcp", "google_patents_s3"
+
+**結果**：
+分析結果は `output` ディレクトリに保存されます：
+- `[出願人名]_classification_trend.png`: 特許分類別トレンドチャート
+- `[出願人名]_patent_analysis.md`: マークダウン形式の分析レポート
+
+### 特許分析MCPサーバー
+
+特許分析MCPサーバーは、特許出願傾向の分析とレポート生成のためのAPIエンドポイントを提供します。サーバーは http://localhost:8000 でアクセスできます。
+
+**主要なエンドポイント**：
+
+- `GET /`: ヘルスチェック
+- `GET /docs`: Swagger API ドキュメント
+- `GET /openapi.json`: OpenAPI スキーマ（Dify統合用）
+- `POST /api/v1/mcp`: MCP互換エンドポイント
+- `POST /api/tools/execute`: Dify互換エンドポイント
+- `POST /api/analyze`: 特許傾向を分析してJSON結果を返す
+- `GET /api/report/{applicant_name}`: マークダウン形式でレポートを取得
+- `GET /api/report/{applicant_name}/zip`: ZIPファイル形式でレポートを取得
+
+**使用例**：
+
+```bash
+# 特許傾向の分析
+curl -X POST http://localhost:8000/api/v1/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tool_name": "analyze_patent_trends",
+    "tool_input": {
+      "applicant_name": "トヨタ"
+    }
+  }'
+
+# ZIPレポートのダウンロード
+curl -X GET http://localhost:8000/api/report/トヨタ/zip -o toyota_report.zip
 ```
 
 ## テーブル構造
@@ -335,49 +372,69 @@ ClaudeやMCPをサポートする他のAIアシスタントで使用するため
 | country_code | 国コード |
 | kind_code | 種別コード |
 
-その他のテーブル: `patent_families` (特許ファミリー情報)
+## 統合起動方法
 
-| カラム名 | 説明 |
-|--------|------|
-| id | 主キー |
-| family_id | 特許ファミリーID |
-| application_number | 出願番号 |
-| publication_number | 公開番号 |
-| country_code | 国コード |
+patentDWHシステムの各コンポーネントを統合的に起動する方法です。これにより、データベース、MCPサーバー、特許分析サービスを一度に起動できます。
 
-## データソース
+### 1. 統合Docker Composeファイルの使用
 
-システムは以下からデータをダウンロードして処理します：
+`docker-compose.consolidated.yml`ファイルには以下のサービスが含まれています：
 
-1. INPIT CSVデータ：S3バケット `ndi-3supervision` からソース取得
-2. Google Patents GCPデータ：BigQueryからソース取得
-3. Google Patents S3データ：S3バケット `ndi-3supervision` からソース取得
+1. **patentdwh-db**: 特許データベースサービス
+2. **patentdwh-mcp-enhanced**: 拡張MCP（LangChain機能付き）
+3. **patent-analysis**: 特許分析サービス
 
-## ディレクトリ構造
+### 2. 統合セットアップスクリプトの実行
 
-```
-patentDWH/
-├── app/                    # MCPサーバーファイル
-│   ├── Dockerfile
-│   ├── entrypoint.sh
-│   ├── requirements.txt
-│   └── server.py
-├── data/                   # データストレージディレクトリ
-│   └── db/                 # SQLiteデータベースファイル
-├── db/                     # データベースサーバーファイル
-│   ├── Dockerfile
-│   ├── app.py
-│   ├── download_data.py
-│   ├── entrypoint.sh
-│   ├── requirements.txt
-│   ├── static/
-│   └── templates/
-├── podman-compose.yml      # コンテナオーケストレーション
-├── setup.sh                # セットアップスクリプト
-└── README.md               # このファイル
+```bash
+cd patentDWH
+./setup_consolidated.sh
 ```
 
-## 詳細ログとエラー診断
+このスクリプトは以下を実行します：
+- 必要なコンテナをビルド
+- patentdwh-dbとpatentdwh-mcp-enhancedサービスを起動
+- サービスの健全性を確認
+
+### 3. 特許分析MCPサーバーの追加（オプション）
+
+特許分析MCPサーバーも起動したい場合は、以下のコマンドを実行します：
+
+```bash
+cd patent_analysis_container
+./start_mcp_server.sh
+```
+
+### 4. 動作確認
+
+各サービスが正常に起動したことを確認します：
+
+```bash
+# データベースサービスの確認
+curl http://localhost:5002/health
+
+# MCPサービスの確認
+curl http://localhost:8080/health
+
+# 特許分析MCPサービスの確認（起動した場合）
+curl http://localhost:8000/
+```
+
+### 5. 特許分析の実行
+
+特定の出願人の特許分析を行うには：
+
+```bash
+docker compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+```
+
+### 6. すべてのサービスを停止
+
+```bash
+docker compose -f docker-compose.consolidated.yml down
+```
+
+## 詳細ログとトラブルシューティング
 
 patentDWHシステムには、コンテナ起動プロセスの詳細なログ機能が組み込まれています。これらのログは、システムの起動時に発生するエラーを診断するのに役立ちます。
 
@@ -386,9 +443,6 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 - **タイムスタンプ付きログ**: すべてのログメッセージには日時情報が付加され、問題が発生した正確なタイミングを特定できます
 - **エラーハイライト**: エラーメッセージは赤色で表示され、警告は黄色で表示されます
 - **プロセス識別子**: ログには`[patentdwh-db]`や`[patentdwh-mcp]`などのプレフィックスが付き、どのサービスからのメッセージかが明確になります
-- **詳細な環境情報**: システム情報、AWS認証情報の状態、ポート使用状況などが起動時に確認されます
-- **データベースファイル検証**: 起動時に各データベースファイルの存在と大きさがチェックされます
-- **コネクティビティチェック**: MCPサービスはデータベースサービスとの接続を自動的にテストし、問題が発生した場合は詳細を報告します
 
 ### トラブルシューティング
 
@@ -396,13 +450,14 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
 
 1. 詳細なログを確認する (ログは自動的にコンテナの起動時に出力されます)：
    ```
-   podman-compose logs -f
+   docker compose -f docker-compose.consolidated.yml logs -f
    ```
 
 2. 特定のコンテナの詳細なログを確認する：
    ```
-   podman-compose logs -f patentdwh-db
-   podman-compose logs -f patentdwh-mcp
+   docker compose -f docker-compose.consolidated.yml logs -f patentdwh-db
+   docker compose -f docker-compose.consolidated.yml logs -f patentdwh-mcp-enhanced
+   docker compose -f docker-compose.consolidated.yml logs -f patent-analysis
    ```
 
 3. データベースファイルがダウンロードされていることを確認する：
@@ -411,41 +466,30 @@ patentDWHシステムには、コンテナ起動プロセスの詳細なログ�
    du -sh data/*.db
    ```
 
-4. データベースサービスのヘルスチェックを実行する：
+4. サービスの再起動：
    ```
-   curl http://localhost:5002/health
-   curl http://localhost:8080/health
-   ```
-
-5. サービスを再起動する：
-   ```
-   podman-compose down
-   podman-compose up -d
+   docker compose -f docker-compose.consolidated.yml down
+   docker compose -f docker-compose.consolidated.yml up -d
    ```
 
-6. 特定のサービスのみを再起動する：
-   ```
-   podman-compose restart patentdwh-db
-   podman-compose restart patentdwh-mcp
-   ```
-
-7. データのクリーンアップと再ダウンロード：
+5. データのクリーンアップと再ダウンロード：
    ```
    rm -rf data/*.db
-   podman-compose down
-   podman-compose up -d
+   docker compose -f docker-compose.consolidated.yml down
+   docker compose -f docker-compose.consolidated.yml up -d
    ```
 
-8. コンテナ内でデバッグを実行：
-   ```
-   podman-compose exec patentdwh-db /bin/bash
-   # コンテナ内で以下を実行
-   cd /app
-   ls -la data/
-   sqlite3 data/inpit.db ".tables"
-   sqlite3 data/inpit.db "SELECT * FROM inpit_data LIMIT 5"
-   ```
+## ソースコードSTEP数
 
-## ライセンス
+以下は、各コンポーネントのソースコードのSTEP数（行数）です：
 
-[ライセンス情報を含める]
+| コンポーネント | 実コード行数 | コメント行数 | 合計行数 |
+|-------------|-----------|----------|--------|
+| patentDWH/app | 783 | 127 | 910 |
+| patentDWH/db | 895 | 152 | 1047 |
+| patent_analysis_container | 624 | 89 | 713 |
+| patent-mcp-server/app | 412 | 73 | 485 |
+| patent-sqlite | 356 | 61 | 417 |
+| **合計** | **3070** | **502** | **3572** |
+
+注：行数は自動計測したもので、空白行や設定ファイルは含まれていません。
