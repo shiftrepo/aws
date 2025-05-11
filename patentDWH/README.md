@@ -268,7 +268,7 @@ IPCコードG06Fに属する特許の国別出願数を比較してください
 自動運転技術において、トヨタとテスラの特許ポートフォリオの違いを分析してください
 ```
 
-### 特許分析サービス
+### 特許分析サービス（patent_analysis）
 
 特許分析サービスは、特定の出願人の特許出願動向を分析し、以下を生成します：
 
@@ -276,16 +276,27 @@ IPCコードG06Fに属する特許の国別出願数を比較してください
 2. 出願動向の分析レポート
 3. マークダウン形式の総合レポート
 
+**patentDWHとの関係**：
+patent_analysisは以下の方法でpatentDWHシステムと連携します：
+- patentDWHが提供する特許データベースにアクセスして出願情報を取得します
+- patentDWH MCPサービスのネットワークに接続する必要があります
+- 統合版では、patentDWHの一部として同一の`docker-compose.consolidated.yml`ファイルで管理できます
+
 **使用方法**：
 
 ```bash
-# 通常方法
+# 方法1: 通常方法（patent_analysisを個別に実行）
 cd patent_analysis_container
 docker-compose run patent-analysis "トヨタ" inpit
 
-# 統合方法
+# 方法2: 統合方法（patentDWHの一部として実行）
 cd patentDWH
 docker-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ" inpit
+
+# 方法3: スクリプトを使用した実行（patentDWHディレクトリから）
+./direct_run_analysis.sh "トヨタ" inpit
+# または非対話モード
+./run_patent_analysis_noninteractive.sh "トヨタ" inpit
 ```
 
 **パラメータ**：
@@ -298,9 +309,32 @@ docker-compose -f docker-compose.consolidated.yml run patent-analysis "トヨタ
 - `[出願人名]_classification_trend.png`: 特許分類別トレンドチャート
 - `[出願人名]_patent_analysis.md`: マークダウン形式の分析レポート
 
+**注意事項**：
+1. patent_analysisを実行する前に、必ずpatentDWHサービスが起動していることを確認してください
+2. AWS認証情報は環境変数として設定する必要があります
+3. 分析結果は、patent_analysis_containerの`output`ディレクトリまたはpatentDWH内の対応するディレクトリに保存されます
+
 ### 特許分析MCPサーバー
 
 特許分析MCPサーバーは、特許出願傾向の分析とレポート生成のためのAPIエンドポイントを提供します。サーバーは http://localhost:8000 でアクセスできます。
+
+**patentDWHとの関係**：
+特許分析MCPサーバーは、patentDWHシステムを拡張する形で動作します：
+- patentDWHが提供するデータベースに接続してデータを取得します
+- patentDWH MCPサーバーと連携して動作しますが、別のサーバーとして稼働します
+- AIアシスタント（Claude等）に対してMCPプロトコルを通じて特許分析機能を提供します
+- DifyプラットフォームとOpenAPI経由で統合することも可能です
+
+**起動方法**：
+```bash
+# patent_analysis_containerディレクトリで起動する場合
+cd patent_analysis_container
+chmod +x start_mcp_server.sh
+./start_mcp_server.sh
+
+# または、Dockerコマンドで直接起動する場合
+docker-compose -f docker-compose.mcp.yml up -d
+```
 
 **主要なエンドポイント**：
 
@@ -329,6 +363,12 @@ curl -X POST http://localhost:8000/api/v1/mcp \
 # ZIPレポートのダウンロード
 curl -X GET http://localhost:8000/api/report/トヨタ/zip -o toyota_report.zip
 ```
+
+**AIアシスタントでの使用方法**：
+特許分析MCPサーバーをAIアシスタントから利用する場合、MCPプロトコルを通じて以下のツールが利用可能です：
+- `analyze_patent_trends`: 特定の出願人の特許出願動向を分析します
+- `get_report_markdown`: マークダウン形式のレポートを取得します
+- `get_report_download_url`: レポートのダウンロードURLを取得します
 
 ## テーブル構造
 
