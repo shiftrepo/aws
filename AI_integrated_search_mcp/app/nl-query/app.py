@@ -53,9 +53,19 @@ class BedrockClient:
         
         logger.info(f"Using AWS region: {self.region}")
         
-        # Create Bedrock client
+        # Create Bedrock client with cross-region functionality
         try:
+            # For normal Bedrock operations
             self.bedrock = boto3.client('bedrock-runtime', region_name=self.region)
+            
+            # For Claude 3.7 Sonnet which may require specific region (us-west-2)
+            self.claude_region = "us-west-2"  # Claude 3.7 Sonnet is available in this region
+            if self.region != self.claude_region:
+                logger.info(f"Creating cross-region client for Claude 3.7 in {self.claude_region}")
+                self.cross_region_bedrock = boto3.client('bedrock-runtime', region_name=self.claude_region)
+            else:
+                self.cross_region_bedrock = self.bedrock
+                
             logger.info("Bedrock client initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Bedrock client: {str(e)}")
@@ -91,8 +101,15 @@ class BedrockClient:
             # Convert request body to JSON
             body_json = json.dumps(body)
             
+            # Determine which client to use based on the model ID
+            if "claude-3-7" in self.llm_model_id or "us.anthropic" in self.llm_model_id:
+                logger.info(f"Using cross-region client for model: {self.llm_model_id}")
+                client = self.cross_region_bedrock
+            else:
+                client = self.bedrock
+                
             # Send request to Bedrock
-            response = self.bedrock.invoke_model(
+            response = client.invoke_model(
                 modelId=self.llm_model_id,
                 body=body_json
             )
