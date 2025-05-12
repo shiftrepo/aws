@@ -9,7 +9,8 @@ services:
     ports:
       - "${DATABASE_API_PORT}:5000"
     volumes:
-      - ./db/data:/app/data
+      - ./db/data:/app/data:Z
+    user: "1000:1000"
     environment:
       - INPUT_DB_S3_PATH=${INPUT_DB_S3_PATH}
       - BIGQUERY_DB_S3_PATH=${BIGQUERY_DB_S3_PATH}
@@ -33,6 +34,7 @@ services:
     container_name: ${NL_QUERY_CONTAINER}
     ports:
       - "${NL_QUERY_API_PORT}:5000"
+    user: "1000:1000"
     environment:
       - DATABASE_API_URL=http://sqlite-db:5000
       - LOG_LEVEL=DEBUG
@@ -58,6 +60,7 @@ services:
     container_name: ${WEBUI_CONTAINER}
     ports:
       - "${WEBUI_PORT}:5000"
+    user: "1000:1000"
     environment:
       - DATABASE_API_URL=http://sqlite-db:5000
       - NL_QUERY_API_URL=http://nl-query-service:5000

@@ -1,5 +1,9 @@
 FROM python:3.10-slim
 
+# Create ec2-user user and group with specific UID/GID
+RUN groupadd -g 1000 ec2-user && \
+    useradd -u 1000 -g ec2-user -s /bin/bash -m ec2-user
+
 WORKDIR /app
 
 # Install necessary packages for network troubleshooting
@@ -19,8 +23,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Set proper ownership for application files
+RUN chown -R ec2-user:ec2-user /app
+
 # Expose port for API
 EXPOSE 5000
+
+# Switch to ec2-user
+USER ec2-user
 
 # Command to run the API
 CMD ["python", "app.py"]

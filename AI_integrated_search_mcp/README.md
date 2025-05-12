@@ -223,6 +223,17 @@ If databases fail to download, check:
 podman logs sqlite-db
 ```
 
+#### Fixing Missing Databases
+
+If the health check reports missing databases, you can fix the issue using the provided scripts:
+
+```bash
+# To manually download missing databases and restart the database service
+./scripts/fix_missing_databases.sh
+```
+
+The system also includes a `download_databases.sh` script that is automatically called during the start process to ensure databases are available.
+
 ### Service Health Issues
 
 Run the health check script:

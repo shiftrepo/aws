@@ -41,6 +41,10 @@ echo "Using podman-compose to start services..."
 echo "Building container images locally..."
 podman-compose -f podman-compose.yml build
 
+# Download databases if needed
+echo "Checking for database files..."
+bash ./scripts/download_databases.sh
+
 # Start services with podman-compose
 echo "Starting services with podman-compose..."
 podman-compose -f podman-compose.yml up -d --force-recreate
