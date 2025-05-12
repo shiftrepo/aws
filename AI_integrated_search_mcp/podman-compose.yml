@@ -1,0 +1,63 @@
+version: '3'
+
+services:
+  # SQLite Database Container
+  sqlite-db:
+    build:
+      context: ./app/sqlite_server
+      dockerfile: Dockerfile
+    container_name: ai-sqlite-db
+    ports:
+      - "5001:5001"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
+      - S3_DB_BUCKET=${S3_DB_BUCKET:-your-bucket-name}
+      - S3_DB_KEY=${S3_DB_KEY:-path/to/your/db.sqlite}
+    volumes:
+      - ./data/sqlite:/app/data:z
+    user: "root:root"
+    restart: unless-stopped
+
+  # Natural Language Query MCP Server
+  nl-query-mcp:
+    build:
+      context: ./app/nl_query_server
+      dockerfile: Dockerfile
+    container_name: ai-nl-query-mcp
+    environment:
+      - SQLITE_API_URL=http://sqlite-db:5001
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
+      - LLM_MODEL=us.anthropic.claude-3-7-sonnet-20250219-v1:0
+      - EMBED_MODEL=amazon.titan-embed-text-v2:0
+      - RERANK_MODEL=amazon.rerank-v1:0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/nl_query:/app/data:z
+    user: "root:root"
+    depends_on:
+      - sqlite-db
+    restart: unless-stopped
+
+  # Web UI for SQL execution and schema visualization
+  web-ui:
+    build:
+      context: ./app/web_ui
+      dockerfile: Dockerfile
+    container_name: ai-web-ui
+    environment:
+      - SQLITE_API_URL=http://sqlite-db:5001
+      - MCP_API_URL=http://nl-query-mcp:8000
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./data/web_ui:/app/data:z
+    user: "root:root"
+    depends_on:
+      - sqlite-db
+      - nl-query-mcp
+    restart: unless-stopped
