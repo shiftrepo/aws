@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY *.py /app/
-COPY templates/ /app/templates/
-COPY static/ /app/static/
+# Create directories if they don't exist
+RUN mkdir -p /app/templates /app/static
 
 # Add the MCP endpoint patch
 COPY mcp_endpoint_patch.py /app/

@@ -97,8 +97,16 @@ log_error() {
   echo -e "${RED}[ERROR] $(date '+%Y-%m-%d %H:%M:%S') - $1${NC}"
 }
 
-# patentDWH基本サービスを起動
-echo -e "${BLUE}2. patentDWHの基本サービス（DB、MCPサーバー）を起動しています...${NC}"
+# patentDWH基本サービスをビルドして起動
+echo -e "${BLUE}2. patentDWHの基本サービス（DB、MCPサーバー）をビルドして起動しています...${NC}"
+log_info "docker-compose.consolidated.yml ファイルを使用してサービスをビルドします"
+$COMPOSE_CMD -f docker-compose.consolidated.yml build --no-cache patentdwh-db patentdwh-mcp-enhanced
+if [ $? -ne 0 ]; then
+  log_error "ビルドに失敗しました。エラーログを確認してください。"
+  exit 1
+fi
+log_success "ビルドが完了しました。サービスを起動します。"
+
 log_info "docker-compose.consolidated.yml ファイルを使用してサービスを起動します"
 $COMPOSE_CMD -f docker-compose.consolidated.yml up -d patentdwh-db patentdwh-mcp-enhanced
 if [ $? -eq 0 ]; then
@@ -156,8 +164,16 @@ log_success "MCPサービス稼働中"
 echo -e "${GREEN}\n   MCPサービス稼働中${NC}"
 echo ""
 
-# 特許分析MCPサーバーの起動
-echo -e "${BLUE}3. 特許分析MCPサーバーを起動しています...${NC}"
+# 特許分析MCPサーバーをビルドして起動
+echo -e "${BLUE}3. 特許分析MCPサーバーをビルドして起動しています...${NC}"
+log_info "特許分析MCPサーバー（patent-analysis-mcp）をビルドします"
+$COMPOSE_CMD -f docker-compose.consolidated.yml build --no-cache patent-analysis-mcp
+if [ $? -ne 0 ]; then
+  log_error "特許分析MCPサーバーのビルドに失敗しました。エラーログを確認してください。"
+  exit 1
+fi
+log_success "特許分析MCPサーバーのビルドが完了しました。サービスを起動します。"
+
 log_info "特許分析MCPサーバー（patent-analysis-mcp）を起動します"
 $COMPOSE_CMD -f docker-compose.consolidated.yml up -d patent-analysis-mcp
 if [ $? -eq 0 ]; then

@@ -212,16 +212,19 @@ else
     # Try to do our best with direct container commands
     $CONTAINER_RUNTIME build -t patentdwh-mcp-enhanced ./app -f ./app/Dockerfile.enhanced
     
-    # Start the DB service first
+    # Build the DB image first
+    $CONTAINER_RUNTIME build -t patentdwh-db:local ./db -f ./db/Dockerfile
+    
+    # Start the DB service
     $CONTAINER_RUNTIME run -d --name patentdwh-db \
         --network $EXTERNAL_NETWORK_NAME \
+        --restart unless-stopped \
         -p 5002:5002 \
         -e PORT=5002 \
         -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
         -e SKIP_DATA_DOWNLOAD=false \
         -v "./data:/app/data:z" \
-        --restart unless-stopped \
-        patentdwh-db
+        patentdwh-db:local
     
     sleep 5  # Give the DB time to start
     
@@ -234,7 +237,7 @@ else
         -v "./data:/app/data:z" \
         -v "./data/db:/app/data/db:z" \
         --restart unless-stopped \
-        patentdwh-mcp-enhanced
+        patentdwh-mcp-enhanced:local
 fi
 
 # Step 7: Wait and check if the service is running

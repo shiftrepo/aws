@@ -5,6 +5,7 @@ services:
   patentdwh-db:
     build:
       context: ./db
+      dockerfile: Dockerfile
     container_name: patentdwh-db
     ports:
       - "5002:5002"

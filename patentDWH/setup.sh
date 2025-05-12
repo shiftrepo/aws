@@ -104,7 +104,6 @@ version: '3'
 
 services:
   patentdwh-db:
-    image: patentdwh-db:latest
     container_name: patentdwh-db
     build:
       context: ./db

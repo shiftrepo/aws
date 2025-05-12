@@ -11,6 +11,7 @@ services:
     <<: *force-recreate
     build:
       context: ./db
+      dockerfile: Dockerfile
     container_name: patentdwh-db
     volumes:
       - ./data:/app/data:z

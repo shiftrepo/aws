@@ -8,7 +8,7 @@ pandas==1.3.3
 numpy==1.21.2
 boto3==1.18.63
 botocore==1.21.63
-google-cloud-bigquery==2.26.0
+google-cloud-bigquery>=3.3.5
 google-auth==2.3.0
 gunicorn==20.1.0
 werkzeug==2.0.1
