@@ -14,22 +14,21 @@ RED="\033[0;31m"
 BLUE="\033[0;34m"
 NC="\033[0m" # No Color
 
-# コンテナランタイムの検出
-if command -v podman &> /dev/null; then
-  CONTAINER_RUNTIME="podman"
-  echo -e "${BLUE}podmanを使用します${NC}"
-elif command -v docker &> /dev/null; then
-  CONTAINER_RUNTIME="docker"
-  echo -e "${BLUE}dockerを使用します${NC}"
-else
-  echo -e "${RED}エラー: podmanもdockerもインストールされていません${NC}"
+# podman-composeを使用
+CONTAINER_RUNTIME="podman"
+COMPOSE_COMMAND="podman-compose"
+echo -e "${BLUE}podman-composeを使用します${NC}"
+
+# podman-composeがインストールされているか確認
+if ! command -v podman-compose &> /dev/null; then
+  echo -e "${RED}エラー: podman-composeがインストールされていません${NC}"
   exit 1
 fi
 
 # patent-analysis-mcpコンテナが実行中かチェック
 if ! $CONTAINER_RUNTIME ps | grep -q "patent-analysis-mcp"; then
   echo -e "${RED}patent-analysis-mcpコンテナが実行されていません。${NC}"
-  echo -e "${YELLOW}まず'start_mcp_server.sh'を実行してください。${NC}"
+  echo -e "${YELLOW}$COMPOSE_COMMANDでサービスを起動してください。${NC}"
   exit 1
 fi
 
@@ -87,6 +86,23 @@ echo ""
 echo -e "${BLUE}5. ネットワーク一覧:${NC}"
 $CONTAINER_RUNTIME network ls
 
+# podman-composeの設定を表示
+echo ""
+echo -e "${BLUE}6. podman-compose設定ファイルの確認:${NC}"
+echo -e "${YELLOW}podman-compose.yml の内容:${NC}"
+cat podman-compose.yml | grep -A10 "networks:"
+echo ""
+
+# コンテナ接続性修正ヒント
 echo ""
 echo -e "${GREEN}テスト完了！${NC}"
 echo "各テストの結果を確認し、ネットワーク設定を必要に応じて調整してください。"
+echo ""
+echo -e "${YELLOW}問題がある場合の対処法:${NC}"
+echo "1. ネットワークが正しく設定されていることを確認してください。"
+echo "2. patentdwh_defaultネットワークが存在することを確認："
+echo "   $CONTAINER_RUNTIME network ls | grep patentdwh_default"
+echo "3. 存在しない場合、以下のコマンドで作成できます："
+echo "   $CONTAINER_RUNTIME network create patentdwh_default"
+echo "4. 再度サービスを起動："
+echo "   cd /root/aws.git/patent_analysis_container && $COMPOSE_COMMAND -f podman-compose.yml up -d"

@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  patent-analysis-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: patent-analysis-mcp
+    volumes:
+      - ./output:/app/output
+      # Ensure SQLite database directory is mounted
+      - sqlite-data:/app/app/patent_system/data
+    ports:
+      - "8000:8000"  # Expose API port
+    environment:
+      - LLM_SERVICE_URL=http://patentdwh-mcp-enhanced:8080/api/v1/mcp
+      - DB_URL=http://patentdwh-db:5002/api/sql-query
+      # Use environment variables for AWS credentials
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_DEFAULT_REGION
+      # Server settings
+      - HOST=0.0.0.0
+      - PORT=8000
+      - OUTPUT_DIR=/app/output
+      - DATABASE_PATH=/app/app/patent_system/data/patents.db
+    networks:
+      - patent-network
+      - default
+    restart: unless-stopped
+
+networks:
+  patent-network:
+    # This lets the container connect to the patentDWH services
+    external: true
+    name: patentdwh_default
+  default:
+    # Local network for this compose file
+    
+volumes:
+  sqlite-data:
+    # Persistent storage for SQLite database

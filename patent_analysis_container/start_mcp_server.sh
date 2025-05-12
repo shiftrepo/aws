@@ -9,18 +9,23 @@ echo "  Patent Analysis MCP Server Startup"
 echo "======================================================"
 echo ""
 
-# Detect container runtime (Docker or Podman)
-if command -v docker &> /dev/null; then
-    CONTAINER_RUNTIME="docker"
-    COMPOSE_CMD="docker-compose"
-    echo "Using Docker as container runtime"
-elif command -v podman &> /dev/null; then
-    CONTAINER_RUNTIME="podman"
-    COMPOSE_CMD="podman-compose"
-    echo "Using Podman as container runtime"
-else
-    echo "ERROR: Neither Docker nor Podman is installed or in PATH"
-    echo "Please install Docker or Podman first"
+# Podman-compose前提でセットアップ
+CONTAINER_RUNTIME="podman"
+COMPOSE_CMD="podman-compose"
+COMPOSE_FILE="podman-compose.yml"
+echo "Using Podman and podman-compose with $COMPOSE_FILE"
+
+# podman-composeが利用可能か確認
+if ! command -v podman-compose &> /dev/null; then
+    echo "ERROR: podman-compose is not installed or not in PATH"
+    echo "Please install podman-compose first"
+    exit 1
+fi
+
+# podmanが利用可能か確認
+if ! command -v podman &> /dev/null; then
+    echo "ERROR: podman is not installed or not in PATH"
+    echo "Please install podman first"
     exit 1
 fi
 
@@ -59,11 +64,21 @@ fi
 
 # Build the container with the latest changes
 echo "Building the Patent Analysis MCP server..."
-$COMPOSE_CMD -f docker-compose.mcp.yml build
+$COMPOSE_CMD -f $COMPOSE_FILE build
+
+# ネットワークの確認と作成
+echo "Checking for required networks..."
+if ! $CONTAINER_RUNTIME network ls | grep -q "patentdwh_default"; then
+    echo "Creating patentdwh_default network..."
+    $CONTAINER_RUNTIME network create patentdwh_default
+    echo "Network patentdwh_default created."
+else
+    echo "Network patentdwh_default already exists."
+fi
 
 # Start the MCP server
-echo "Starting the Patent Analysis MCP server..."
-$COMPOSE_CMD -f docker-compose.mcp.yml up -d
+echo "Starting the Patent Analysis MCP server with podman-compose..."
+$COMPOSE_CMD -f $COMPOSE_FILE up -d
 
 # Check if the server started correctly
 if [ $? -eq 0 ]; then
@@ -81,6 +96,12 @@ if [ $? -eq 0 ]; then
     echo "  - GET  /api/report/{applicant_name} - Get report in markdown format"
     echo "  - GET  /api/report/{applicant_name}/zip - Get report as zip file"
     echo ""
+    echo "コンテナ接続性テストを実行するには:"
+    echo "./test_container_connectivity.sh"
+    echo ""
+    echo "詳細なPodman使用ガイドは以下を参照してください:"
+    echo "README_PODMAN_USAGE.md"
+    echo ""
     echo "Example CURL commands:"
     echo "  curl -X POST http://localhost:8000/api/v1/mcp -H 'Content-Type: application/json' \\"
     echo "      -d '{\"tool_name\":\"analyze_patent_trends\",\"tool_input\":{\"applicant_name\":\"トヨタ\"}}'"
@@ -96,7 +117,7 @@ else
     echo ""
     echo "ERROR: Failed to start the Patent Analysis MCP server"
     echo "Check the logs for more information:"
-    echo "  $COMPOSE_CMD -f docker-compose.mcp.yml logs"
+    echo "  $COMPOSE_CMD -f $COMPOSE_FILE logs"
     exit 1
 fi
 
