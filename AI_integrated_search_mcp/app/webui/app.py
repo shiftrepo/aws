@@ -28,6 +28,7 @@ load_dotenv()
 # Constants
 DATABASE_API_URL = os.environ.get("DATABASE_API_URL", "http://sqlite-db:5000")
 NL_QUERY_API_URL = os.environ.get("NL_QUERY_API_URL", "http://nl-query-service:5000")
+LANGCHAIN_QUERY_API_URL = os.environ.get("LANGCHAIN_QUERY_API_URL", "http://langchain-query-service:5000")
 
 app = Flask(__name__)
 CORS(app)
@@ -185,9 +186,61 @@ class NLQueryClient:
                     
             return {"error": error_msg, "query": query}
 
+class LangChainQueryClient:
+    """Client for LangChain Query API"""
+    
+    def __init__(self, api_url):
+        """Initialize LangChain Query API client"""
+        self.api_url = api_url
+        logger.info(f"Initialized LangChain Query API client with URL: {api_url}")
+    
+    def get_health(self):
+        """Get health status of the LangChain Query API"""
+        logger.debug("Getting LangChain Query API health")
+        
+        try:
+            response = requests.get(f"{self.api_url}/health", timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            return True, data
+        except Exception as e:
+            logger.error(f"Error getting LangChain Query API health: {str(e)}")
+            return False, {"error": str(e)}
+    
+    def process_langchain_query(self, db_name, query):
+        """Process natural language query using LangChain"""
+        logger.info(f"Processing LangChain query on database {db_name}: {query}")
+        
+        try:
+            response = requests.post(
+                f"{self.api_url}/query/{db_name}",
+                json={"query": query},
+                timeout=60  # Increased timeout for LangChain processing
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            logger.debug(f"LangChain Query processing successful")
+            return data
+            
+        except requests.RequestException as e:
+            logger.error(f"Error processing LangChain query on database {db_name}: {str(e)}")
+            error_msg = str(e)
+            
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    if 'error' in error_data:
+                        error_msg = error_data['error']
+                except:
+                    pass
+                    
+            return {"error": error_msg, "query": query}
+
 # Initialize clients
 db_client = DatabaseClient(DATABASE_API_URL)
 nl_client = NLQueryClient(NL_QUERY_API_URL)
+langchain_client = LangChainQueryClient(LANGCHAIN_QUERY_API_URL)
 
 @app.route('/')
 def index():
@@ -256,6 +309,21 @@ def api_nl_query():
     result = nl_client.process_nl_query(db_name, query)
     return jsonify(result)
 
+@app.route('/api/langchain_query', methods=['POST'])
+def api_langchain_query():
+    """API endpoint for processing natural language query using LangChain"""
+    logger.debug("API LangChain query requested")
+    
+    data = request.get_json()
+    if not data or "db_name" not in data or "query" not in data:
+        return jsonify({"error": "Missing required parameters"}), 400
+        
+    db_name = data["db_name"]
+    query = data["query"]
+    
+    result = langchain_client.process_langchain_query(db_name, query)
+    return jsonify(result)
+
 @app.route('/api/schema/<db_name>')
 def api_get_schema(db_name):
     """API endpoint for getting database schema"""
@@ -272,9 +340,10 @@ def health():
     # Check health of services
     db_health, db_data = db_client.get_health()
     nl_health, nl_data = nl_client.get_health()
+    langchain_health, langchain_data = langchain_client.get_health()
     
     health_status = {
-        "status": "healthy" if db_health and nl_health else "degraded",
+        "status": "healthy" if db_health and nl_health and langchain_health else "degraded",
         "timestamp": time.time(),
         "dependencies": {
             "database_api": {
@@ -284,6 +353,10 @@ def health():
             "nl_query_api": {
                 "status": "healthy" if nl_health else "unhealthy",
                 "details": nl_data
+            },
+            "langchain_query_api": {
+                "status": "healthy" if langchain_health else "unhealthy",
+                "details": langchain_data
             }
         }
     }

@@ -24,6 +24,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="langchain-tab" data-bs-toggle="tab" data-bs-target="#langchain-content" type="button" role="tab" aria-controls="langchain-content" aria-selected="false">
+                    <i class="fas fa-robot"></i> LangChain Query
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="schema-tab" data-bs-toggle="tab" data-bs-target="#schema-content" type="button" role="tab" aria-controls="schema-content" aria-selected="false">
                     <i class="fas fa-table"></i> Database Schema
                 </button>
@@ -45,7 +50,7 @@
                             <div class="sample-query" onclick="loadSampleQuery({{ loop.index0 }})">
                                 {{ sample.name }}
                                 <button class="btn btn-sm btn-outline-secondary float-end copy-btn" 
-                                        onclick="event.stopPropagation(); copyToClipboard('{{ sample.query|escapejs }}')">
+                                        onclick="event.stopPropagation(); copyToClipboard(sampleQueries[{{ loop.index0 }}]['query'])">
                                     <i class="fas fa-copy"></i>
                                 </button>
                             </div>
@@ -155,6 +160,72 @@
                 </div>
             </div>
             
+            <!-- LangChain Query Tab -->
+            <div class="tab-pane fade" id="langchain-content" role="tabpanel" aria-labelledby="langchain-tab">
+                <div class="langchain-query-form">
+                    <h5>Ask a question in natural language (powered by LangChain)</h5>
+                    <div class="input-group mb-3">
+                        <input type="text" id="langchain-query-input" class="form-control" placeholder="e.g., Which companies have filed the most patents in the last 5 years?">
+                        <button class="btn btn-primary" type="button" id="run-langchain-query-btn" onclick="executeLangChainQuery()">
+                            <i class="fas fa-search"></i> Ask
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        Ask questions about the database in plain English using LangChain's DatabaseChain technology.
+                    </div>
+                </div>
+                
+                <div id="langchain-loading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Processing LangChain query...</p>
+                </div>
+                
+                <div id="langchain-results-container" class="langchain-query-results" style="display: none;">
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Generated SQL Query</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre id="langchain-generated-sql" class="bg-light p-3 rounded"></pre>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard($('#langchain-generated-sql').text())">
+                                <i class="fas fa-copy"></i> Copy SQL
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <span id="langchain-results-summary"></span>
+                            <button class="btn btn-sm btn-outline-secondary float-end copy-btn" onclick="copyLangChainResultsAsCSV()">
+                                <i class="fas fa-download"></i> Export as CSV
+                            </button>
+                        </div>
+                        <div class="card-body query-results">
+                            <div class="table-responsive">
+                                <table id="langchain-results-table" class="table table-striped table-bordered">
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">AI Explanation</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="langchain-explanation" class="explanation"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="langchain-error-container" class="mt-4 alert alert-danger" style="display: none;">
+                    <h5>Error</h5>
+                    <pre id="langchain-error-message"></pre>
+                </div>
+            </div>
+            
             <!-- Database Schema Tab -->
             <div class="tab-pane fade" id="schema-content" role="tabpanel" aria-labelledby="schema-tab">
                 <h5 class="mb-4">Database Tables and Columns</h5>
@@ -209,6 +280,33 @@
 
 {% block extra_js %}
 <script>
+    // Define the copyToClipboard function
+    function copyToClipboard(text) {
+        const tempElement = document.createElement('textarea');
+        tempElement.value = text;
+        document.body.appendChild(tempElement);
+        tempElement.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempElement);
+        
+        // Show a toast notification
+        const toast = document.createElement('div');
+        toast.classList.add('toast-notification');
+        toast.textContent = 'Copied to clipboard!';
+        document.body.appendChild(toast);
+        
+        // Remove after animation
+        setTimeout(() => {
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 2000);
+        }, 100);
+    }
+    
     let codeMirror;
     let currentDbName = "{{ db_name }}";
     let sampleQueries = {{ sample_queries|tojson }};
@@ -532,6 +630,142 @@
         });
         
         copyToClipboard(csvContent);
+    }
+    
+    function copyLangChainResultsAsCSV() {
+        if (!$.fn.DataTable.isDataTable('#langchain-results-table')) {
+            return;
+        }
+        
+        let csvContent = '';
+        const table = $('#langchain-results-table').DataTable();
+        
+        // Get headers
+        const headers = [];
+        $('#langchain-results-table thead th').each(function() {
+            headers.push($(this).text());
+        });
+        csvContent += headers.join(',') + '\n';
+        
+        // Get data
+        table.rows().every(function() {
+            const rowData = this.data();
+            const values = [];
+            rowData.forEach(cell => {
+                // Handle CSV escaping
+                const value = cell.replace(/<[^>]*>/g, ''); // Remove HTML
+                if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                    values.push(`"${value.replace(/"/g, '""')}"`);
+                } else {
+                    values.push(value);
+                }
+            });
+            csvContent += values.join(',') + '\n';
+        });
+        
+        copyToClipboard(csvContent);
+    }
+    
+    function executeLangChainQuery() {
+        const query = $('#langchain-query-input').val().trim();
+        if (!query) {
+            return;
+        }
+        
+        $('#run-langchain-query-btn').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+        $('#run-langchain-query-btn').prop('disabled', true);
+        $('#langchain-loading').show();
+        $('#langchain-results-container').hide();
+        $('#langchain-error-container').hide();
+        
+        $.ajax({
+            url: '/api/langchain_query',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                db_name: currentDbName,
+                query: query
+            }),
+            success: function(data) {
+                $('#run-langchain-query-btn').html('<i class="fas fa-search"></i> Ask');
+                $('#run-langchain-query-btn').prop('disabled', false);
+                $('#langchain-loading').hide();
+                
+                if (data.error) {
+                    $('#langchain-error-message').text(data.error);
+                    $('#langchain-error-container').show();
+                    return;
+                }
+                
+                // Display SQL query
+                $('#langchain-generated-sql').text(data.sql_query);
+                
+                // Display results
+                const tableEl = $('#langchain-results-table');
+                tableEl.empty();
+                
+                if (!data.columns || !data.results || data.results.length === 0) {
+                    $('#langchain-results-summary').text('Query executed successfully. No rows returned.');
+                    $('#langchain-results-container').show();
+                    return;
+                }
+                
+                // Create table header
+                let headerHtml = '<thead><tr>';
+                data.columns.forEach(col => {
+                    headerHtml += `<th>${col}</th>`;
+                });
+                headerHtml += '</tr></thead>';
+                
+                // Create table body
+                let bodyHtml = '<tbody>';
+                data.results.forEach(row => {
+                    bodyHtml += '<tr>';
+                    data.columns.forEach(col => {
+                        bodyHtml += `<td>${row[col] !== null ? row[col] : '<em>NULL</em>'}</td>`;
+                    });
+                    bodyHtml += '</tr>';
+                });
+                bodyHtml += '</tbody>';
+                
+                tableEl.append(headerHtml + bodyHtml);
+                
+                // Initialize DataTable
+                if ($.fn.DataTable.isDataTable('#langchain-results-table')) {
+                    $('#langchain-results-table').DataTable().destroy();
+                }
+                
+                $('#langchain-results-table').DataTable({
+                    responsive: true,
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+                });
+                
+                // Update summary
+                $('#langchain-results-summary').text(`Query executed in ${data.execution_time_ms}ms. ${data.row_count} rows returned.`);
+                
+                // Display explanation
+                $('#langchain-explanation').html(data.explanation);
+                
+                $('#langchain-results-container').show();
+            },
+            error: function(xhr) {
+                $('#run-langchain-query-btn').html('<i class="fas fa-search"></i> Ask');
+                $('#run-langchain-query-btn').prop('disabled', false);
+                $('#langchain-loading').hide();
+                
+                let errorMessage = 'Error processing query';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.error) {
+                        errorMessage = response.error;
+                    }
+                } catch (e) {}
+                
+                $('#langchain-error-message').text(errorMessage);
+                $('#langchain-error-container').show();
+            }
+        });
     }
 </script>
 {% endblock %}
