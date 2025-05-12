@@ -21,20 +21,10 @@ else
   exit 1
 fi
 
-# Check if source.aws exists and source it if it does
-if [ -f ~/.aws/source.aws ]; then
-  echo "Sourcing AWS credentials from ~/.aws/source.aws"
-  source ~/.aws/source.aws
-  echo "AWS credentials sourced. Region: $AWS_REGION"
-else
-  echo "Warning: AWS credentials file not found at ~/.aws/source.aws"
-  echo "Make sure AWS credentials are properly set in environment variables."
-fi
-
-# Check if AWS credentials are available
+# Check if AWS credentials are available from environment variables
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   echo "ERROR: AWS credentials not found in environment variables."
-  echo "Please set them before running this script."
+  echo "Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_DEFAULT_REGION environment variables before running this script."
   exit 1
 fi
 
@@ -93,9 +83,13 @@ else
   echo "✗ BigQuery database does not exist"
 fi
 
-# Restart the database container to ensure it recognizes the files
-echo "Restarting database container to load the database files..."
-podman restart "$CONTAINER_NAME"
+# Restart the database container (if it exists) to ensure it recognizes the files
+if podman ps -a | grep -q "$CONTAINER_NAME"; then
+  echo "Restarting database container to load the database files..."
+  podman restart "$CONTAINER_NAME"
+else
+  echo "Database container '$CONTAINER_NAME' not found. Container will be created in the next step."
+fi
 
 echo "================================================="
 echo "Database download completed"

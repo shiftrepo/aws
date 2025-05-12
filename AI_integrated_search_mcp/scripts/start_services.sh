@@ -12,20 +12,10 @@ set -e
 cd "$(dirname "$0")/.."
 ROOT_DIR=$(pwd)
 
-# Check if source.aws exists and source it if it does
-if [ -f ~/.aws/source.aws ]; then
-  echo "Sourcing AWS credentials from ~/.aws/source.aws"
-  source ~/.aws/source.aws
-  echo "AWS credentials sourced. Region: $AWS_REGION"
-else
-  echo "Warning: AWS credentials file not found at ~/.aws/source.aws"
-  echo "Make sure AWS credentials are properly set in environment variables."
-fi
-
-# Check if AWS credentials are available
+# Check if AWS credentials are available from environment variables
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   echo "ERROR: AWS credentials not found in environment variables."
-  echo "Please set them before running this script."
+  echo "Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_DEFAULT_REGION environment variables before running this script."
   exit 1
 fi
 
@@ -35,19 +25,102 @@ echo "AWS region: $AWS_DEFAULT_REGION"
 if ! grep -q "^AWS_DEFAULT_REGION=" .env; then
   echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> .env
 fi
-echo "Using podman-compose to start services..."
 
-# Build and start services with podman-compose
-echo "Building container images locally..."
-podman-compose -f podman-compose.yml build
+# Load environment variables from .env file
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+  echo "Environment variables loaded from .env file"
+fi
+
+# Stop and remove any existing containers with the same names
+echo "Cleaning up any existing containers..."
+for CONTAINER in "${DATABASE_CONTAINER:-sqlite-db}" "${NL_QUERY_CONTAINER:-nl-query-service}" "${WEBUI_CONTAINER:-web-ui}"
+do
+  if podman ps -a | grep -q "$CONTAINER"; then
+    echo "Removing existing container: $CONTAINER"
+    podman rm -f "$CONTAINER" 2>/dev/null || true
+  fi
+done
+
+# Ensure data directory exists and has proper permissions
+DATA_DIR="$ROOT_DIR/db/data"
+if [ ! -d "$DATA_DIR" ]; then
+  echo "Creating data directory: $DATA_DIR"
+  mkdir -p "$DATA_DIR"
+fi
 
 # Download databases if needed
 echo "Checking for database files..."
 bash ./scripts/download_databases.sh
 
-# Start services with podman-compose
-echo "Starting services with podman-compose..."
-podman-compose -f podman-compose.yml up -d --force-recreate
+# Set proper permissions on database files
+echo "Setting proper permissions on database files..."
+chmod 644 "$DATA_DIR/"*.db 2>/dev/null || true
+
+# Create a dedicated network for the containers if it doesn't exist
+echo "Ensuring dedicated container network exists..."
+podman network exists mcp-network 2>/dev/null || podman network create mcp-network
+
+# Skip podman-compose build which was causing issues
+echo "Building images directly instead of using podman-compose..."
+
+echo "Building and running containers individually to avoid dependency issues..."
+
+# Build individual images directly without using local registry
+echo "Building database image..."
+podman build -t sqlite-db-image:latest "$ROOT_DIR/db"
+
+echo "Starting database container..."
+podman run -d --name "${DATABASE_CONTAINER:-sqlite-db}" \
+  --network mcp-network \
+  -p "${DATABASE_API_PORT:-5003}:5000" \
+  -v "$ROOT_DIR/db/data:/app/data:Z" \
+  --user "$(id -u):$(id -g)" \
+  -e "INPUT_DB_S3_PATH=${INPUT_DB_S3_PATH}" \
+  -e "BIGQUERY_DB_S3_PATH=${BIGQUERY_DB_S3_PATH}" \
+  -e "LOG_LEVEL=DEBUG" \
+  -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+  -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+  -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+  sqlite-db-image:latest
+
+echo "Waiting for database container to initialize (15s)..."
+sleep 15
+
+# Build NL Query image
+echo "Building NL Query image..."
+podman build -t nl-query-image:latest "$ROOT_DIR/app/nl-query"
+
+# Start NL Query container
+echo "Starting NL Query container..."
+podman run -d --name "${NL_QUERY_CONTAINER:-nl-query-service}" \
+  --network mcp-network \
+  -p "${NL_QUERY_API_PORT:-5004}:5000" \
+  --user "$(id -u):$(id -g)" \
+  -e "DATABASE_API_URL=http://${DATABASE_CONTAINER:-sqlite-db}:5000" \
+  -e "LOG_LEVEL=DEBUG" \
+  -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+  -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+  -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+  nl-query-image:latest
+
+# Build Web UI image
+echo "Building Web UI image..."
+podman build -t web-ui-image:latest "$ROOT_DIR/app/webui"
+
+# Start Web UI container
+echo "Starting Web UI container..."
+podman run -d --name "${WEBUI_CONTAINER:-web-ui}" \
+  --network mcp-network \
+  -p "${WEBUI_PORT:-5002}:5000" \
+  --user "$(id -u):$(id -g)" \
+  -e "DATABASE_API_URL=http://${DATABASE_CONTAINER:-sqlite-db}:5000" \
+  -e "NL_QUERY_API_URL=http://${NL_QUERY_CONTAINER:-nl-query-service}:5000" \
+  -e "LOG_LEVEL=DEBUG" \
+  -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+  -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+  -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+  web-ui-image:latest
 
 # Wait for services to start
 echo "Waiting for services to start up..."
@@ -91,3 +164,5 @@ echo ""
 echo "================================================="
 echo "AI Integrated Search MCP Services Started"
 echo "================================================="
+echo "Running health check..."
+bash "$ROOT_DIR/scripts/check_health.sh"
