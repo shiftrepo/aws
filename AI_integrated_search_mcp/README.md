@@ -1,147 +1,230 @@
 # AI Integrated Search MCP
 
-AI Integrated Search MCP is a system that combines SQLite database access with natural language querying capabilities powered by AWS Bedrock. The system provides a web-based user interface for executing both SQL and natural language queries against a SQLite database.
+A system that combines SQLite databases with natural language querying powered by AWS Bedrock, designed to be used as MCP servers for Dify integration.
 
-## Features
+## Overview
 
-- **SQLite Database API**: Direct SQL query execution with API endpoints for database interaction
-- **Natural Language Querying**: Convert natural language questions into SQL using AWS Bedrock's Claude model
-- **Web UI**: User-friendly interface with:
-  - SQL query editor with sample queries
-  - Natural language question interface
-  - Database schema visualization
-  - Results display with export capabilities
-- **MCP Protocol Support**: Implements the Model Context Protocol for integration with tools like Dify
+This system provides a comprehensive solution for interacting with SQLite databases through both direct SQL queries and natural language queries. It consists of three main components:
+
+1. **Database Service**: A service that downloads SQLite databases from S3 and provides an API to interact with them
+2. **Natural Language Query Service**: A service that uses AWS Bedrock models to translate natural language queries into SQL
+3. **Web UI**: A user interface that allows users to interact with both services through a web browser
 
 ## Architecture
 
-The system consists of three main components running as containers:
+The system is built using a containerized microservices architecture:
 
-1. **SQLite Database Container (Port 5001)**
-   - Provides API access to the SQLite database
-   - Supports downloading database files from S3
-   - Includes schema exploration and SQL execution endpoints
-   
-2. **Natural Language Query Container (Port 8000)**
-   - Provides MCP-compatible API for natural language processing
-   - Uses AWS Bedrock AI models:
-     - Claude 3.7 Sonnet for SQL generation
-     - Titan Embedding for text embedding
-     - Amazon Reranker for result optimization
-   
-3. **Web UI Container (Port 5002)**
-   - User-friendly web interface for both SQL and NL queries
-   - Database schema visualization
-   - Query results display and export
+```
+┌───────────────┐      ┌───────────────┐      ┌───────────────┐
+│               │      │               │      │               │
+│    Web UI     │◄────►│  Database API │◄────►│     AWS S3    │
+│   (Port 5002) │      │   (Port 5003) │      │               │
+│               │      │               │      └───────────────┘
+└───────┬───────┘      └───────┬───────┘
+        │                      │
+        │                      │
+        │              ┌───────┴───────┐      ┌───────────────┐
+        │              │  NL Query API │      │  AWS Bedrock  │
+        └──────────────►   (Port 5004) │◄────►│     Claude    │
+                       │               │      │               │
+                       └───────────────┘      └───────────────┘
+```
 
 ## Prerequisites
 
-- Podman and podman-compose installed
-- AWS account with Bedrock access and appropriate permissions
-- S3 bucket with a SQLite database file (or the system can create an empty one)
+- podman and podman-compose
+- AWS credentials configured (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
+- Access to AWS Bedrock services (Claude, Titan Embedding, and Rerank models)
 
-## Environment Variables
+## Getting Started
 
-The following environment variables need to be set:
-
-```bash
-# Required
-export AWS_ACCESS_KEY_ID=your_access_key_id
-export AWS_SECRET_ACCESS_KEY=your_secret_access_key
-export AWS_DEFAULT_REGION=ap-northeast-1  # or your preferred region
-
-# Optional (SQLite database location in S3)
-export S3_DB_BUCKET=your-s3-bucket
-export S3_DB_KEY=path/to/your/db.sqlite
-```
-
-## Installation
-
-1. Clone this repository:
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/AI_integrated_search_mcp.git
+git clone <repository-url>
 cd AI_integrated_search_mcp
 ```
 
-2. Set up environment variables (see above)
+### 2. Set Up AWS Credentials
 
-3. Make the scripts executable:
-
-```bash
-chmod +x start_services.sh stop_services.sh
-```
-
-4. Start the services:
+Create a source file with your AWS credentials that can be sourced:
 
 ```bash
-sudo ./start_services.sh
+mkdir -p ~/.aws
+cat > ~/.aws/source.aws << EOF
+export AWS_ACCESS_KEY_ID=your_access_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+export AWS_REGION=your_aws_region
+EOF
+chmod 600 ~/.aws/source.aws
 ```
 
-Or, if you've added your user to the `podman` group:
+### 3. Start the Services
 
 ```bash
-./start_services.sh
+source ~/.aws/source.aws  # Source AWS credentials
+./scripts/start_services.sh
 ```
 
-## Usage
+The script will:
+- Check for AWS credentials
+- Start all services using podman-compose
+- Verify that all services are running
+- Display the URLs for accessing the services
 
-After starting the services, you can access the Web UI at:
+### 4. Access the Web UI
 
+Open a web browser and navigate to:
 ```
 http://localhost:5002
 ```
 
-The Web UI provides three main sections:
+## Services
 
-- **SQL Query**: Direct SQL querying with syntax highlighting
-- **Natural Language Query**: Ask questions in plain language
-- **Database Schema**: View tables and columns in the database
+### Database Service (Port 5003)
 
-## API Endpoints
+This service downloads SQLite databases from S3 and provides an API to interact with them:
 
-### SQLite API (Port 5001)
+- `/health` - Health check endpoint
+- `/databases` - List available databases
+- `/schema/{db_name}` - Get schema for a specific database
+- `/execute/{db_name}` - Execute SQL query on a database
+- `/sample_queries/{db_name}` - Get sample queries for a database
+- `/docs` - API documentation
 
-- `/health`: Health check endpoint
-- `/tables`: List all tables in the database
-- `/tables/{table_name}`: Get details about a specific table
-- `/execute`: Execute SQL queries
-- `/sample_queries`: Get sample SQL queries
+### Natural Language Query Service (Port 5004)
 
-### Natural Language Query API (Port 8000)
+This service translates natural language queries into SQL:
 
-- `/health`: Health check endpoint
-- `/query`: Process natural language queries
-- MCP resources:
-  - `/schema`: Get database schema
-  - `/sample_queries`: Get sample natural language queries
-- MCP tools:
-  - `generate_sql`: Generate SQL from natural language
-  - `execute_nl_query`: Execute natural language queries
+- `/health` - Health check endpoint
+- `/query/{db_name}` - Process natural language query
+- `/docs` - API documentation
 
-## Stopping the Services
+### Web UI (Port 5002)
 
-To stop all services:
+The web interface allows users to:
+- View available databases
+- Execute SQL queries with syntax highlighting
+- Ask natural language questions about the databases
+- View database schemas
+- Use sample queries as templates
+- Export query results as CSV
 
-```bash
-sudo ./stop_services.sh
+## Using the System
+
+### Direct SQL Queries
+
+1. Navigate to the Web UI at http://localhost:5002
+2. Select a database
+3. Use the SQL Query tab to write and execute SQL queries
+4. View the results in the table format
+
+### Natural Language Queries
+
+1. Navigate to the Web UI at http://localhost:5002
+2. Select a database
+3. Switch to the Natural Language Query tab
+4. Type your question in plain English
+5. View the generated SQL, results, and AI-generated explanation
+
+### Database Schema
+
+1. Navigate to the Web UI at http://localhost:5002
+2. Select a database
+3. Switch to the Database Schema tab
+4. Browse through the tables and their columns
+
+## Databases
+
+The system works with two databases:
+
+1. **Inpit Database**: Located at `s3://ndi-3supervision/MIT/demo/inpit/inpit.db`
+2. **BigQuery Database**: Located at `s3://ndi-3supervision/MIT/demo/GCP/google_patents_gcp.db`
+
+## MCP Integration
+
+Both the Database API and Natural Language Query API are designed to be used as MCP servers for Dify integration. They provide OpenAPI specifications at the `/openapi` endpoint.
+
+### Example MCP Configuration for Dify
+
+```yaml
+name: ai-integrated-search
+server_url: http://localhost:5003
+tools:
+  - name: execute_sql
+    description: Execute SQL query on a database
+    parameters:
+      - name: db_name
+        description: Database name (input or bigquery)
+        required: true
+        type: string
+        enum: [input, bigquery]
+      - name: query
+        description: SQL query to execute
+        required: true
+        type: string
+resources:
+  - name: get_schema
+    description: Get database schema
+    url: /schema/{db_name}
+  - name: get_sample_queries
+    description: Get sample SQL queries for a database
+    url: /sample_queries/{db_name}
 ```
 
-## Security Considerations
+## Admin Commands
 
-- The system uses environment variables for AWS credentials instead of hardcoding them
-- Root execution is required for podman in some environments
-- Access to the Web UI and APIs should be restricted in production environments
+### Starting Services
 
-## Dify Integration
+```bash
+./scripts/start_services.sh
+```
 
-The natural language query container implements the MCP protocol, making it compatible with Dify and similar platforms. To connect to Dify:
+### Stopping Services
 
-1. In Dify, go to Model Providers > Add Custom Provider
-2. Select "Model Context Protocol (MCP)"
-3. Enter the URL of your MCP server (e.g., `http://your-server-ip:8000`)
-4. Select the available tools and resources to use
+```bash
+./scripts/stop_services.sh
+```
 
-## License
+### Checking Health
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+```bash
+./scripts/check_health.sh
+```
+
+## Troubleshooting
+
+### Container Connectivity Issues
+
+If services can't communicate with each other, check the network configuration:
+
+```bash
+podman network ls
+podman inspect mcp-network
+```
+
+### Database Download Issues
+
+If databases fail to download, check:
+
+1. AWS credentials are properly set
+2. The S3 buckets are accessible
+3. The database service logs:
+
+```bash
+podman logs sqlite-db
+```
+
+### Service Health Issues
+
+Run the health check script:
+
+```bash
+./scripts/check_health.sh
+```
+
+## Security Notes
+
+- AWS credentials are never stored in the container or code files
+- Credentials are obtained from environment variables set via source command
+- The system is designed for internal use and should not be exposed to the internet without proper security measures

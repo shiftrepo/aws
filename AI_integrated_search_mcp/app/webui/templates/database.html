@@ -1,0 +1,537 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ db_name }} Database - AI Integrated Search{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>{{ db_name|capitalize }} Database</h1>
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+        
+        <ul class="nav nav-tabs" id="databaseTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="sql-tab" data-bs-toggle="tab" data-bs-target="#sql-content" type="button" role="tab" aria-controls="sql-content" aria-selected="true">
+                    <i class="fas fa-code"></i> SQL Query
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="nl-tab" data-bs-toggle="tab" data-bs-target="#nl-content" type="button" role="tab" aria-controls="nl-content" aria-selected="false">
+                    <i class="fas fa-comments"></i> Natural Language Query
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="schema-tab" data-bs-toggle="tab" data-bs-target="#schema-content" type="button" role="tab" aria-controls="schema-content" aria-selected="false">
+                    <i class="fas fa-table"></i> Database Schema
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="databaseTabsContent">
+            <!-- SQL Query Tab -->
+            <div class="tab-pane fade show active" id="sql-content" role="tabpanel" aria-labelledby="sql-tab">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <h5>SQL Editor</h5>
+                        <textarea id="sql-editor" class="form-control"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Sample Queries</h5>
+                        <div class="sample-queries overflow-auto" style="max-height: 220px;">
+                            {% for sample in sample_queries %}
+                            <div class="sample-query" onclick="loadSampleQuery({{ loop.index0 }})">
+                                {{ sample.name }}
+                                <button class="btn btn-sm btn-outline-secondary float-end copy-btn" 
+                                        onclick="event.stopPropagation(); copyToClipboard('{{ sample.query|escapejs }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <button id="run-sql-btn" class="btn btn-primary" onclick="executeQuery()">
+                            <i class="fas fa-play"></i> Run Query
+                        </button>
+                        <button class="btn btn-outline-secondary ms-2" onclick="clearSqlResults()">
+                            <i class="fas fa-eraser"></i> Clear Results
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="sql-results-container" class="mt-4" style="display: none;">
+                    <h5>Query Results</h5>
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <span id="sql-results-summary"></span>
+                            <button class="btn btn-sm btn-outline-secondary float-end copy-btn" onclick="copySqlResultsAsCSV()">
+                                <i class="fas fa-download"></i> Export as CSV
+                            </button>
+                        </div>
+                        <div class="card-body query-results">
+                            <div class="table-responsive">
+                                <table id="sql-results-table" class="table table-striped table-bordered">
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="sql-error-container" class="mt-4 alert alert-danger" style="display: none;">
+                    <h5>Error</h5>
+                    <pre id="sql-error-message"></pre>
+                </div>
+            </div>
+            
+            <!-- Natural Language Query Tab -->
+            <div class="tab-pane fade" id="nl-content" role="tabpanel" aria-labelledby="nl-tab">
+                <div class="nl-query-form">
+                    <h5>Ask a question in natural language</h5>
+                    <div class="input-group mb-3">
+                        <input type="text" id="nl-query-input" class="form-control" placeholder="e.g., What are the top 10 most common patent classifications?">
+                        <button class="btn btn-success" type="button" id="run-nl-query-btn" onclick="executeNLQuery()">
+                            <i class="fas fa-search"></i> Ask
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        Ask questions about the database in plain English, and the AI will generate and execute a SQL query.
+                    </div>
+                </div>
+                
+                <div id="nl-loading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Processing natural language query...</p>
+                </div>
+                
+                <div id="nl-results-container" class="nl-query-results" style="display: none;">
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Generated SQL Query</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre id="nl-generated-sql" class="bg-light p-3 rounded"></pre>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard($('#nl-generated-sql').text())">
+                                <i class="fas fa-copy"></i> Copy SQL
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <span id="nl-results-summary"></span>
+                            <button class="btn btn-sm btn-outline-secondary float-end copy-btn" onclick="copyNlResultsAsCSV()">
+                                <i class="fas fa-download"></i> Export as CSV
+                            </button>
+                        </div>
+                        <div class="card-body query-results">
+                            <div class="table-responsive">
+                                <table id="nl-results-table" class="table table-striped table-bordered">
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">AI Explanation</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="nl-explanation" class="explanation"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="nl-error-container" class="mt-4 alert alert-danger" style="display: none;">
+                    <h5>Error</h5>
+                    <pre id="nl-error-message"></pre>
+                </div>
+            </div>
+            
+            <!-- Database Schema Tab -->
+            <div class="tab-pane fade" id="schema-content" role="tabpanel" aria-labelledby="schema-tab">
+                <h5 class="mb-4">Database Tables and Columns</h5>
+                
+                <div class="accordion" id="schemaAccordion">
+                    {% for table_name, columns in schema.items() %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}" 
+                                    aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="collapse{{ loop.index }}">
+                                <strong>{{ table_name }}</strong>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                             aria-labelledby="heading{{ loop.index }}" data-bs-parent="#schemaAccordion">
+                            <div class="accordion-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped schema-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Column Name</th>
+                                                <th>Type</th>
+                                                <th>Not Null</th>
+                                                <th>Default Value</th>
+                                                <th>Primary Key</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for column in columns %}
+                                            <tr>
+                                                <td>{{ column.name }}</td>
+                                                <td>{{ column.type }}</td>
+                                                <td>{% if column.notnull == 1 %}<i class="fas fa-check text-success"></i>{% else %}<i class="fas fa-times text-secondary"></i>{% endif %}</td>
+                                                <td>{{ column.dflt_value if column.dflt_value != None else '' }}</td>
+                                                <td>{% if column.pk == 1 %}<i class="fas fa-key text-warning"></i>{% else %}<i class="fas fa-times text-secondary"></i>{% endif %}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let codeMirror;
+    let currentDbName = "{{ db_name }}";
+    let sampleQueries = {{ sample_queries|tojson }};
+    
+    $(document).ready(function() {
+        // Initialize CodeMirror
+        codeMirror = CodeMirror.fromTextArea(document.getElementById("sql-editor"), {
+            mode: "text/x-sql",
+            theme: "dracula",
+            lineNumbers: true,
+            lineWrapping: true,
+            indentWithTabs: false,
+            indentUnit: 4,
+            smartIndent: true,
+            matchBrackets: true,
+            autofocus: true
+        });
+        
+        // Set initial sample query
+        if (sampleQueries && sampleQueries.length > 0) {
+            codeMirror.setValue(sampleQueries[0].query);
+        }
+        
+        // Enter key in NL query input
+        $('#nl-query-input').keypress(function(e) {
+            if (e.which === 13) {
+                executeNLQuery();
+            }
+        });
+    });
+    
+    function loadSampleQuery(index) {
+        if (sampleQueries && sampleQueries[index]) {
+            codeMirror.setValue(sampleQueries[index].query);
+        }
+    }
+    
+    function executeQuery() {
+        const query = codeMirror.getValue().trim();
+        if (!query) {
+            return;
+        }
+        
+        $('#run-sql-btn').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...');
+        $('#run-sql-btn').prop('disabled', true);
+        $('#sql-results-container').hide();
+        $('#sql-error-container').hide();
+        
+        $.ajax({
+            url: '/api/execute_query',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                db_name: currentDbName,
+                query: query
+            }),
+            success: function(data) {
+                $('#run-sql-btn').html('<i class="fas fa-play"></i> Run Query');
+                $('#run-sql-btn').prop('disabled', false);
+                
+                if (data.error) {
+                    $('#sql-error-message').text(data.error);
+                    $('#sql-error-container').show();
+                    return;
+                }
+                
+                if (data.rows) {
+                    // Display SELECT results
+                    displaySqlResults(data);
+                } else {
+                    // Display results for non-SELECT queries
+                    displayNonSelectResults(data);
+                }
+            },
+            error: function(xhr) {
+                $('#run-sql-btn').html('<i class="fas fa-play"></i> Run Query');
+                $('#run-sql-btn').prop('disabled', false);
+                
+                let errorMessage = 'Error executing query';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.error) {
+                        errorMessage = response.error;
+                    }
+                } catch (e) {}
+                
+                $('#sql-error-message').text(errorMessage);
+                $('#sql-error-container').show();
+            }
+        });
+    }
+    
+    function displaySqlResults(data) {
+        const tableEl = $('#sql-results-table');
+        tableEl.empty();
+        
+        if (!data.columns || !data.rows || data.rows.length === 0) {
+            $('#sql-results-summary').text('Query executed successfully. No rows returned.');
+            $('#sql-results-container').show();
+            return;
+        }
+        
+        // Create table header
+        let headerHtml = '<thead><tr>';
+        data.columns.forEach(col => {
+            headerHtml += `<th>${col}</th>`;
+        });
+        headerHtml += '</tr></thead>';
+        
+        // Create table body
+        let bodyHtml = '<tbody>';
+        data.rows.forEach(row => {
+            bodyHtml += '<tr>';
+            data.columns.forEach(col => {
+                bodyHtml += `<td>${row[col] !== null ? row[col] : '<em>NULL</em>'}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        bodyHtml += '</tbody>';
+        
+        tableEl.append(headerHtml + bodyHtml);
+        
+        // Initialize DataTable
+        if ($.fn.DataTable.isDataTable('#sql-results-table')) {
+            $('#sql-results-table').DataTable().destroy();
+        }
+        
+        $('#sql-results-table').DataTable({
+            responsive: true,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+        });
+        
+        // Update summary
+        $('#sql-results-summary').text(`Query executed in ${data.execution_time_ms}ms. ${data.row_count} rows returned.`);
+        $('#sql-results-container').show();
+    }
+    
+    function displayNonSelectResults(data) {
+        let message = 'Query executed successfully.';
+        if (data.affected_rows !== undefined) {
+            message += ` ${data.affected_rows} rows affected.`;
+        }
+        message += ` (${data.execution_time_ms}ms)`;
+        
+        $('#sql-results-table').empty();
+        $('#sql-results-summary').text(message);
+        $('#sql-results-container').show();
+    }
+    
+    function clearSqlResults() {
+        $('#sql-results-container').hide();
+        $('#sql-error-container').hide();
+    }
+    
+    function executeNLQuery() {
+        const query = $('#nl-query-input').val().trim();
+        if (!query) {
+            return;
+        }
+        
+        $('#run-nl-query-btn').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+        $('#run-nl-query-btn').prop('disabled', true);
+        $('#nl-loading').show();
+        $('#nl-results-container').hide();
+        $('#nl-error-container').hide();
+        
+        $.ajax({
+            url: '/api/nl_query',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                db_name: currentDbName,
+                query: query
+            }),
+            success: function(data) {
+                $('#run-nl-query-btn').html('<i class="fas fa-search"></i> Ask');
+                $('#run-nl-query-btn').prop('disabled', false);
+                $('#nl-loading').hide();
+                
+                if (data.error) {
+                    $('#nl-error-message').text(data.error);
+                    $('#nl-error-container').show();
+                    return;
+                }
+                
+                // Display SQL query
+                $('#nl-generated-sql').text(data.sql_query);
+                
+                // Display results
+                const tableEl = $('#nl-results-table');
+                tableEl.empty();
+                
+                if (!data.columns || !data.results || data.results.length === 0) {
+                    $('#nl-results-summary').text('Query executed successfully. No rows returned.');
+                    $('#nl-results-container').show();
+                    return;
+                }
+                
+                // Create table header
+                let headerHtml = '<thead><tr>';
+                data.columns.forEach(col => {
+                    headerHtml += `<th>${col}</th>`;
+                });
+                headerHtml += '</tr></thead>';
+                
+                // Create table body
+                let bodyHtml = '<tbody>';
+                data.results.forEach(row => {
+                    bodyHtml += '<tr>';
+                    data.columns.forEach(col => {
+                        bodyHtml += `<td>${row[col] !== null ? row[col] : '<em>NULL</em>'}</td>`;
+                    });
+                    bodyHtml += '</tr>';
+                });
+                bodyHtml += '</tbody>';
+                
+                tableEl.append(headerHtml + bodyHtml);
+                
+                // Initialize DataTable
+                if ($.fn.DataTable.isDataTable('#nl-results-table')) {
+                    $('#nl-results-table').DataTable().destroy();
+                }
+                
+                $('#nl-results-table').DataTable({
+                    responsive: true,
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+                });
+                
+                // Update summary
+                $('#nl-results-summary').text(`Query executed in ${data.execution_time_ms}ms. ${data.row_count} rows returned.`);
+                
+                // Display explanation
+                $('#nl-explanation').html(data.explanation);
+                
+                $('#nl-results-container').show();
+            },
+            error: function(xhr) {
+                $('#run-nl-query-btn').html('<i class="fas fa-search"></i> Ask');
+                $('#run-nl-query-btn').prop('disabled', false);
+                $('#nl-loading').hide();
+                
+                let errorMessage = 'Error processing query';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.error) {
+                        errorMessage = response.error;
+                    }
+                } catch (e) {}
+                
+                $('#nl-error-message').text(errorMessage);
+                $('#nl-error-container').show();
+            }
+        });
+    }
+    
+    function copySqlResultsAsCSV() {
+        if (!$.fn.DataTable.isDataTable('#sql-results-table')) {
+            return;
+        }
+        
+        let csvContent = '';
+        const table = $('#sql-results-table').DataTable();
+        
+        // Get headers
+        const headers = [];
+        $('#sql-results-table thead th').each(function() {
+            headers.push($(this).text());
+        });
+        csvContent += headers.join(',') + '\n';
+        
+        // Get data
+        table.rows().every(function() {
+            const rowData = this.data();
+            const values = [];
+            rowData.forEach(cell => {
+                // Handle CSV escaping
+                const value = cell.replace(/<[^>]*>/g, ''); // Remove HTML
+                if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                    values.push(`"${value.replace(/"/g, '""')}"`);
+                } else {
+                    values.push(value);
+                }
+            });
+            csvContent += values.join(',') + '\n';
+        });
+        
+        copyToClipboard(csvContent);
+    }
+    
+    function copyNlResultsAsCSV() {
+        if (!$.fn.DataTable.isDataTable('#nl-results-table')) {
+            return;
+        }
+        
+        let csvContent = '';
+        const table = $('#nl-results-table').DataTable();
+        
+        // Get headers
+        const headers = [];
+        $('#nl-results-table thead th').each(function() {
+            headers.push($(this).text());
+        });
+        csvContent += headers.join(',') + '\n';
+        
+        // Get data
+        table.rows().every(function() {
+            const rowData = this.data();
+            const values = [];
+            rowData.forEach(cell => {
+                // Handle CSV escaping
+                const value = cell.replace(/<[^>]*>/g, ''); // Remove HTML
+                if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                    values.push(`"${value.replace(/"/g, '""')}"`);
+                } else {
+                    values.push(value);
+                }
+            });
+            csvContent += values.join(',') + '\n';
+        });
+        
+        copyToClipboard(csvContent);
+    }
+</script>
+{% endblock %}

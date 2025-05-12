@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Integrated Search - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">AI Integrated Search</h1>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Available Databases</h5>
+            </div>
+            <div class="card-body">
+                {% if databases %}
+                    <div class="row">
+                        {% for db in databases %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">{{ db.name }}</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">{{ db.description }}</p>
+                                        {% if db.exists %}
+                                            <p class="text-success"><i class="fas fa-check-circle"></i> Database loaded</p>
+                                            <p>Size: {{ (db.size_bytes / 1024 / 1024) | round(2) }} MB</p>
+                                        {% else %}
+                                            <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> Database not loaded yet</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer">
+                                        <a href="{{ url_for('database_view', db_name=db.name) }}" class="btn btn-primary">
+                                            <i class="fas fa-database"></i> Explore Database
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> No databases are currently available.
+                        This could be because the database service is still starting up or there was an error loading the databases.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">SQL Query</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Execute SQL queries directly on the available databases.</p>
+                        <p>Features include:</p>
+                        <ul>
+                            <li>SQL editor with syntax highlighting</li>
+                            <li>Sample queries for quick reference</li>
+                            <li>Results displayed in interactive tables</li>
+                            <li>Query execution statistics</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Natural Language Query</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Ask questions in natural language and get results from the database.</p>
+                        <p>Features include:</p>
+                        <ul>
+                            <li>Translation of natural language to SQL</li>
+                            <li>AI-powered explanation of results</li>
+                            <li>Integration with AWS Bedrock Claude model</li>
+                            <li>Results displayed in interactive tables</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Database Service</h6>
+                        {% if db_service_health %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> Database API is healthy and running
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle"></i> Database API is unavailable or experiencing issues
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Natural Language Query Service</h6>
+                        {% if nl_service_health %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> NL Query API is healthy and running
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle"></i> NL Query API is unavailable or experiencing issues
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

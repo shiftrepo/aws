@@ -1,63 +1,70 @@
 version: '3'
 
 services:
-  # SQLite Database Container
   sqlite-db:
     build:
-      context: ./app/sqlite_server
+      context: ./db
       dockerfile: Dockerfile
-    container_name: ai-sqlite-db
+    container_name: ${DATABASE_CONTAINER}
     ports:
-      - "5001:5001"
-    environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
-      - S3_DB_BUCKET=${S3_DB_BUCKET:-your-bucket-name}
-      - S3_DB_KEY=${S3_DB_KEY:-path/to/your/db.sqlite}
+      - "${DATABASE_API_PORT}:5000"
     volumes:
-      - ./data/sqlite:/app/data:z
-    user: "root:root"
+      - ./db/data:/app/data
+    environment:
+      - INPUT_DB_S3_PATH=${INPUT_DB_S3_PATH}
+      - BIGQUERY_DB_S3_PATH=${BIGQUERY_DB_S3_PATH}
+      - LOG_LEVEL=DEBUG
+    networks:
+      - mcp-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Natural Language Query MCP Server
-  nl-query-mcp:
+  nl-query-service:
     build:
-      context: ./app/nl_query_server
+      context: ./app/nl-query
       dockerfile: Dockerfile
-    container_name: ai-nl-query-mcp
-    environment:
-      - SQLITE_API_URL=http://sqlite-db:5001
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}
-      - LLM_MODEL=us.anthropic.claude-3-7-sonnet-20250219-v1:0
-      - EMBED_MODEL=amazon.titan-embed-text-v2:0
-      - RERANK_MODEL=amazon.rerank-v1:0
+    container_name: ${NL_QUERY_CONTAINER}
     ports:
-      - "8000:8000"
-    volumes:
-      - ./data/nl_query:/app/data:z
-    user: "root:root"
-    depends_on:
-      - sqlite-db
+      - "${NL_QUERY_API_PORT}:5000"
+    environment:
+      - DATABASE_API_URL=http://sqlite-db:5000
+      - LOG_LEVEL=DEBUG
+    networks:
+      - mcp-network
     restart: unless-stopped
+    depends_on:
+      sqlite-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Web UI for SQL execution and schema visualization
   web-ui:
     build:
-      context: ./app/web_ui
+      context: ./app/webui
       dockerfile: Dockerfile
-    container_name: ai-web-ui
-    environment:
-      - SQLITE_API_URL=http://sqlite-db:5001
-      - MCP_API_URL=http://nl-query-mcp:8000
+    container_name: ${WEBUI_CONTAINER}
     ports:
-      - "5002:5002"
-    volumes:
-      - ./data/web_ui:/app/data:z
-    user: "root:root"
-    depends_on:
-      - sqlite-db
-      - nl-query-mcp
+      - "${WEBUI_PORT}:5000"
+    environment:
+      - DATABASE_API_URL=http://sqlite-db:5000
+      - NL_QUERY_API_URL=http://nl-query-service:5000
+      - LOG_LEVEL=DEBUG
+    networks:
+      - mcp-network
     restart: unless-stopped
+    depends_on:
+      sqlite-db:
+        condition: service_healthy
+      nl-query-service:
+        condition: service_healthy
+
+networks:
+  mcp-network:
+    driver: bridge
