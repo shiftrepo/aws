@@ -29,12 +29,21 @@ if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   exit 1
 fi
 
-echo "AWS region: $AWS_REGION"
+echo "AWS region: $AWS_DEFAULT_REGION"
+
+# Add AWS region to .env file if not already there
+if ! grep -q "^AWS_DEFAULT_REGION=" .env; then
+  echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> .env
+fi
 echo "Using podman-compose to start services..."
+
+# Build and start services with podman-compose
+echo "Building container images locally..."
+podman-compose -f podman-compose.yml build
 
 # Start services with podman-compose
 echo "Starting services with podman-compose..."
-podman-compose -f podman-compose.yml up -d
+podman-compose -f podman-compose.yml up -d --force-recreate
 
 # Wait for services to start
 echo "Waiting for services to start up..."

@@ -12,7 +12,7 @@ This system provides a comprehensive solution for interacting with SQLite databa
 
 ## Architecture
 
-The system is built using a containerized microservices architecture:
+The system is built using a containerized microservices architecture. All containers are built locally from Dockerfiles and are not pulled from Docker Hub:
 
 ```
 ┌───────────────┐      ┌───────────────┐      ┌───────────────┐
@@ -29,6 +29,11 @@ The system is built using a containerized microservices architecture:
                        │               │      │               │
                        └───────────────┘      └───────────────┘
 ```
+
+Each service is built from a local Dockerfile:
+- Database service: Built from ./db/Dockerfile
+- Natural language query service: Built from ./app/nl-query/Dockerfile
+- Web UI service: Built from ./app/webui/Dockerfile
 
 ## Prerequisites
 
@@ -68,9 +73,12 @@ source ~/.aws/source.aws  # Source AWS credentials
 
 The script will:
 - Check for AWS credentials
+- Build all services locally from Dockerfiles (no Docker Hub pulls)
 - Start all services using podman-compose
 - Verify that all services are running
 - Display the URLs for accessing the services
+
+**Important Note**: All container images are built locally using the Dockerfiles in the repository, not pulled from Docker Hub. This ensures full control over the containers and prevents external dependencies.
 
 ### 4. Access the Web UI
 

@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     iputils-ping \
     net-tools \
-    netcat \
+    netcat-openbsd \
     sqlite3 \
     awscli \
     && apt-get clean \
