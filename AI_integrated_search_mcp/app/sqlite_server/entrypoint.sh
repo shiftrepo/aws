@@ -20,9 +20,16 @@ echo "S3 DB Key: $S3_DB_KEY"
 # Download the database from S3
 echo "Downloading database file from S3: s3://$S3_DB_BUCKET/$S3_DB_KEY"
 aws s3 cp s3://$S3_DB_BUCKET/$S3_DB_KEY /app/data/db/database.sqlite || {
-    echo "WARNING: Failed to download database from S3. Creating an empty database."
-    touch /app/data/db/database.sqlite
-    sqlite3 /app/data/db/database.sqlite "PRAGMA journal_mode=WAL;"
+    echo "WARNING: Failed to download database from S3. Creating a test database instead."
+    echo "Running init_test_db.py to create sample data..."
+    python /app/init_test_db.py
+    if [ $? -eq 0 ]; then
+        echo "Test database created successfully."
+    else
+        echo "Failed to create test database. Creating an empty database instead."
+        touch /app/data/db/database.sqlite
+        sqlite3 /app/data/db/database.sqlite "PRAGMA journal_mode=WAL;"
+    fi
 }
 
 # Set permissions
