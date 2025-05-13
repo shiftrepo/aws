@@ -482,6 +482,10 @@
                 db_name: currentDbName,
                 query: query
             }),
+            dataType: 'json',
+            accepts: {
+                json: 'application/json; charset=utf-8'
+            },
             success: function(data) {
                 $('#run-nl-query-btn').html('<i class="fas fa-search"></i> Ask');
                 $('#run-nl-query-btn').prop('disabled', false);
