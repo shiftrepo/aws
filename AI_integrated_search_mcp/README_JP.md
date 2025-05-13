@@ -28,12 +28,20 @@ AWS Bedrockを活用したSQLiteデータベースと自然言語クエリを組
         └──────────────►   (Port 5004) │◄────►│     Claude    │
                        │               │      │               │
                        └───────────────┘      └───────────────┘
+                              │
+                              │
+                      ┌───────┴───────┐
+                      │ Trend Analysis│
+                      │   (Port 5006) │
+                      │               │
+                      └───────────────┘
 ```
 
 各サービスはローカルのDockerfileからビルドされます：
 - データベースサービス: ./db/Dockerfileからビルド
 - 自然言語クエリサービス: ./app/nl-query/Dockerfileからビルド
 - Web UIサービス: ./app/webui/Dockerfileからビルド
+- トレンド分析サービス: ./app/trend-analysis/Dockerfileからビルド
 
 ## 前提条件
 
@@ -101,6 +109,14 @@ http://localhost:5002
 
 - `/health` - ヘルスチェックエンドポイント
 - `/query/{db_name}` - 自然言語クエリの処理
+- `/docs` - API ドキュメント
+
+### トレンド分析サービス（ポート5006）
+
+このサービスは出願人名に基づいて特許出願のトレンド分析を行います：
+
+- `/health` - ヘルスチェックエンドポイント
+- `/analyze` - 出願人別の特許分類トレンド分析
 - `/docs` - API ドキュメント
 
 ### Web UI（ポート5002）
@@ -318,6 +334,35 @@ curl -X POST http://localhost:5004/query/bigquery \
 }
 ```
 
+### トレンド分析サービスAPI
+
+#### 1. 特許分類トレンド分析
+
+```bash
+curl -X POST http://localhost:5006/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicant_name": "テック株式会社",
+    "start_year": 2010,
+    "end_year": 2023
+  }'
+```
+
+応答例：
+```json
+{
+  "applicant_name": "テック株式会社",
+  "yearly_classification_counts": {
+    "2010": {"A": 12, "B": 8, "C": 5, "G": 23, "H": 45},
+    "2011": {"A": 14, "B": 10, "C": 7, "G": 28, "H": 52},
+    "2012": {"A": 15, "B": 11, "C": 8, "G": 30, "H": 54}
+    // 他の年も同様...
+  },
+  "chart_image": "BASE64ENCODED_IMAGE_DATA_HERE",
+  "assessment": "テック株式会社の特許出願分析:\n\n1. 全体的な特許活動: 2010年から2023年にかけて特許出願は着実に増加傾向にあります。\n\n2. 主要技術分野:\n   - H（電気）: 全出願の約45%を占める主要分野\n   - G（物理学）: 全出願の約30%を占める第二の主要分野\n   - A（生活必需品）: 全出願の約12%を占める成長分野\n\n3. 最大出願年: 2021年に最も多くの出願（168件）がありました。\n\n4. 技術多様化: 技術領域は2010年の4分野から2023年の6分野へと拡大し、研究開発の幅が広がっていることを示しています。"
+}
+```
+
 ## システムの使い方
 
 ### 直接SQLクエリ
@@ -378,6 +423,33 @@ resources:
   - name: get_sample_queries
     description: Get sample SQL queries for a database
     url: /sample_queries/{db_name}
+```
+
+### Trend Analysis用のMCP設定例
+
+```yaml
+name: Trend Analysis MCP Server
+description: 出願人名別の特許出願トレンド分析
+base_url: http://localhost:5006
+auth:
+  type: none
+tools:
+  - name: analyze_patent_trends
+    description: 出願人名を基に特許出願の分類別トレンドを分析し、可視化と評価を提供
+    parameters:
+      type: object
+      required:
+        - applicant_name
+      properties:
+        applicant_name:
+          type: string
+          description: 分析対象の出願人/企業名
+        start_year:
+          type: integer
+          description: 分析期間の開始年（例：2010）
+        end_year:
+          type: integer
+          description: 分析期間の終了年（例：2023）
 ```
 
 ## 管理コマンド

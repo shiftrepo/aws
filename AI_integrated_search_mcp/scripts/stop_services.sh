@@ -20,8 +20,9 @@ echo "Checking for any remaining containers..."
 DATABASE_CONTAINER=${DATABASE_CONTAINER:-sqlite-db}
 NL_QUERY_CONTAINER=${NL_QUERY_CONTAINER:-nl-query-service}
 WEBUI_CONTAINER=${WEBUI_CONTAINER:-web-ui}
+TREND_ANALYSIS_CONTAINER=${TREND_ANALYSIS_CONTAINER:-trend-analysis-service}
 
-for container in "$DATABASE_CONTAINER" "$NL_QUERY_CONTAINER" "$WEBUI_CONTAINER"; do
+for container in "$DATABASE_CONTAINER" "$NL_QUERY_CONTAINER" "$WEBUI_CONTAINER" "$TREND_ANALYSIS_CONTAINER"; do
   if podman ps -a | grep -q "$container"; then
     echo "Found container $container, forcing stop and removal..."
     podman stop "$container" 2>/dev/null || true

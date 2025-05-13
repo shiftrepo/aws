@@ -42,20 +42,24 @@ do
   fi
 done
 
-# Ensure data directory exists and has proper permissions
+# Define data directory path
 DATA_DIR="$ROOT_DIR/db/data"
-if [ ! -d "$DATA_DIR" ]; then
-  echo "Creating data directory: $DATA_DIR"
-  mkdir -p "$DATA_DIR"
-fi
 
 # Download databases if needed
 echo "Checking for database files..."
 bash ./scripts/download_databases.sh
 
-# Set proper permissions on database files
-echo "Setting proper permissions on database files..."
-chmod 644 "$DATA_DIR/"*.db 2>/dev/null || true
+# Ensure data directory exists and has proper permissions
+if [ ! -d "$DATA_DIR" ]; then
+  echo "Creating data directory: $DATA_DIR"
+  mkdir -p "$DATA_DIR"
+fi
+
+# Set directory permissions more carefully
+echo "Setting directory permissions..."
+# Only change permissions for directories and files we can actually modify
+find "$DATA_DIR" -type d -exec chmod 755 {} \; 2>/dev/null || true
+find "$DATA_DIR" -type f -name "*.db" -exec chmod 644 {} \; 2>/dev/null || true
 
 # Create a dedicated network for the containers if it doesn't exist
 echo "Ensuring dedicated container network exists..."
@@ -121,6 +125,29 @@ podman run -d --name "${WEBUI_CONTAINER:-web-ui}" \
   -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
   -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
   web-ui-image:latest
+
+# Build Trend Analysis image
+echo "Building Trend Analysis image..."
+podman build -t trend-analysis-image:latest "$ROOT_DIR/app/trend-analysis"
+
+# Create credentials directory if it doesn't exist
+echo "Setting up credentials directory for Trend Analysis..."
+mkdir -p "$ROOT_DIR/app/trend-analysis/credentials"
+
+# Start Trend Analysis container
+echo "Starting Trend Analysis container..."
+podman run -d --name "${TREND_ANALYSIS_CONTAINER:-trend-analysis-service}" \
+  --network mcp-network \
+  -p "${TREND_ANALYSIS_API_PORT:-5006}:5000" \
+  --user "$(id -u):$(id -g)" \
+  -v "$ROOT_DIR/app/trend-analysis/credentials:/app/credentials:Z" \
+  -e "DATABASE_API_URL=http://${DATABASE_CONTAINER:-sqlite-db}:5000" \
+  -e "LOG_LEVEL=DEBUG" \
+  -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+  -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+  -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}" \
+  -e "GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}" \
+  trend-analysis-image:latest
 
 # Wait for services to start
 echo "Waiting for services to start up..."

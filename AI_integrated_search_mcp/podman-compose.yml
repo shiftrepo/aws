@@ -1,6 +1,34 @@
 version: '3'
 
 services:
+  trend-analysis:
+    build:
+      context: ./app/trend-analysis
+      dockerfile: Dockerfile
+    container_name: ${TREND_ANALYSIS_CONTAINER}
+    ports:
+      - "${TREND_ANALYSIS_API_PORT}:5000"
+    user: "root"
+    environment:
+      - DATABASE_API_URL=http://sqlite-db:5000
+      - LOG_LEVEL=DEBUG
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - MPLCONFIGDIR=/tmp/.matplotlib
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    depends_on:
+      sqlite-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   sqlite-db:
     build:
       context: ./db

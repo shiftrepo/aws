@@ -18,10 +18,12 @@ fi
 DATABASE_CONTAINER=${DATABASE_CONTAINER:-sqlite-db}
 NL_QUERY_CONTAINER=${NL_QUERY_CONTAINER:-nl-query-service}
 WEBUI_CONTAINER=${WEBUI_CONTAINER:-web-ui}
+TREND_ANALYSIS_CONTAINER=${TREND_ANALYSIS_CONTAINER:-trend-analysis-service}
 
 DATABASE_API_PORT=${DATABASE_API_PORT:-5003}
 NL_QUERY_API_PORT=${NL_QUERY_API_PORT:-5004}
 WEBUI_PORT=${WEBUI_PORT:-5002}
+TREND_ANALYSIS_API_PORT=${TREND_ANALYSIS_API_PORT:-5006}
 
 # Function for color output
 GREEN='\033[0;32m'
@@ -66,6 +68,9 @@ nl_running=$?
 check_container "$WEBUI_CONTAINER"
 ui_running=$?
 
+check_container "$TREND_ANALYSIS_CONTAINER"
+trend_running=$?
+
 echo ""
 echo "Checking container health endpoints..."
 
@@ -97,6 +102,14 @@ if [ $nl_running -eq 0 ]; then
   nl_healthy=$?
 else
   nl_healthy=1
+fi
+
+# Check Trend Analysis service health
+if [ $trend_running -eq 0 ]; then
+  check_health_endpoint "$TREND_ANALYSIS_CONTAINER" "$TREND_ANALYSIS_API_PORT"
+  trend_healthy=$?
+else
+  trend_healthy=1
 fi
 
 # Web UI health can be checked through a simple HTTP request
@@ -163,9 +176,27 @@ if [ $db_running -eq 0 ]; then
 fi
 
 echo ""
+# Check Trend Analysis service
+if [ $trend_running -eq 0 ]; then
+  check_health_endpoint "$TREND_ANALYSIS_CONTAINER" "$TREND_ANALYSIS_API_PORT"
+  trend_healthy=$?
+  
+  # Test connectivity with database
+  if [ $db_running -eq 0 ]; then
+    if podman exec -it "$TREND_ANALYSIS_CONTAINER" curl -s -f "http://$DATABASE_CONTAINER:5000/health" > /dev/null; then
+      pass "Trend Analysis Service can connect to Database Service"
+    else
+      fail "Trend Analysis Service cannot connect to Database Service"
+    fi
+  fi
+else
+  trend_healthy=1
+fi
+
+echo ""
 echo "Overall system status:"
 
-if [ $db_healthy -eq 0 ] && [ $nl_healthy -eq 0 ] && [ $ui_healthy -eq 0 ]; then
+if [ $db_healthy -eq 0 ] && [ $nl_healthy -eq 0 ] && [ $ui_healthy -eq 0 ] && [ $trend_healthy -eq 0 ]; then
   echo -e "${GREEN}All systems are running and healthy${NC}"
 else
   echo -e "${RED}Some services are not running or not healthy${NC}"
@@ -176,6 +207,7 @@ echo "Service endpoints:"
 echo "Web UI: http://localhost:$WEBUI_PORT"
 echo "Database API: http://localhost:$DATABASE_API_PORT"
 echo "NL Query API: http://localhost:$NL_QUERY_API_PORT"
+echo "Trend Analysis API: http://localhost:$TREND_ANALYSIS_API_PORT"
 echo ""
 
 echo "================================================="
