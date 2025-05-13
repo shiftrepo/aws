@@ -40,16 +40,10 @@ def main():
         bedrock = boto3.client('bedrock-runtime', region_name=region)
         logger.info("Bedrock client initialized successfully")
         
-        # For Claude 3.7 Sonnet which may require specific region
+        # Use the region from environment variables for all models
+        # The environment should be properly configured with the correct region for the model
         model_id = os.environ.get("BEDROCK_LLM_MODEL", "amazon.titan-text-lite-v1")
-        if "claude-3-7" in model_id or "us.anthropic" in model_id:
-            claude_region = "us-west-2"  # Claude 3.7 Sonnet is available in this region
-            if region != claude_region:
-                logger.info(f"Creating cross-region client for Claude 3.7 in {claude_region}")
-                cross_region_bedrock = boto3.client('bedrock-runtime', region_name=claude_region)
-                # Use the cross-region client for Claude models
-                bedrock = cross_region_bedrock
-                logger.info("Cross-region Bedrock client initialized successfully")
+        logger.info(f"Using environment-configured region {region} for model {model_id}")
     except Exception as e:
         logger.error(f"Failed to initialize Bedrock client: {str(e)}")
         return False

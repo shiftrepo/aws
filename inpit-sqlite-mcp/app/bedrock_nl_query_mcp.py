@@ -31,7 +31,8 @@ COLUMN_MAPPING_PATH = "/app/data/column_mapping.json"
 # AWS Bedrock configuration
 MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
 EMBEDDING_MODEL_ID = "amazon.titan-embed-text-v2:0"
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+# Use region from environment variables only - no hardcoded fallback
+AWS_REGION = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
 
 # Schema definitions for MCP tools
 SCHEMAS = {

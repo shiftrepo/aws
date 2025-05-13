@@ -58,13 +58,10 @@ class BedrockClient:
             # For normal Bedrock operations
             self.bedrock = boto3.client('bedrock-runtime', region_name=self.region)
             
-            # For Claude 3.7 Sonnet which may require specific region (us-west-2)
-            self.claude_region = "us-west-2"  # Claude 3.7 Sonnet is available in this region
-            if self.region != self.claude_region:
-                logger.info(f"Creating cross-region client for Claude 3.7 in {self.claude_region}")
-                self.cross_region_bedrock = boto3.client('bedrock-runtime', region_name=self.claude_region)
-            else:
-                self.cross_region_bedrock = self.bedrock
+            # Use the same region for all models, as specified in environment variables
+            # No special region handling for specific models
+            self.cross_region_bedrock = self.bedrock
+            logger.info(f"Using environment-configured region for all models: {self.region}")
                 
             logger.info("Bedrock client initialized successfully")
         except Exception as e:

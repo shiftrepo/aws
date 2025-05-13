@@ -33,7 +33,7 @@ class BedrockNLQueryProcessor:
                  table_name: str = "inpit_data",
                  model_id: str = "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
                  embedding_model_id: str = "amazon.titan-embed-text-v2:0",
-                 region_name: str = "us-east-1"):
+                 region_name: Optional[str] = None):
         """
         Initialize the Bedrock-powered natural language query processor
         
@@ -52,8 +52,13 @@ class BedrockNLQueryProcessor:
         
         # Initialize AWS clients
         try:
-            logger.info(f"Initializing Bedrock clients in region {region_name}")
-            self.bedrock_client = boto3.client('bedrock-runtime', region_name=region_name)
+            # Use region_name if provided, otherwise fall back to environment variables
+            region = region_name or os.environ.get('AWS_REGION') or os.environ.get('AWS_DEFAULT_REGION')
+            if not region:
+                logger.warning("No AWS region specified and not found in environment variables")
+                
+            logger.info(f"Initializing Bedrock clients in region {region}")
+            self.bedrock_client = boto3.client('bedrock-runtime', region_name=region)
             logger.info("Bedrock clients initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Bedrock clients: {e}")

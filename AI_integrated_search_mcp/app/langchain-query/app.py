@@ -69,20 +69,9 @@ class BedrockLLM:
         logger.info(f"Using LLM model: {self.llm_model_id}")
         
         try:
-            # Determine if we need cross-region support for Claude 3.7 Sonnet
-            if "claude-3-7" in self.llm_model_id or "us.anthropic" in self.llm_model_id:
-                # Claude 3.7 Sonnet is available in us-west-2
-                claude_region = "us-west-2"
-                
-                if self.region != claude_region:
-                    logger.info(f"Using cross-region client for Claude 3.7 in {claude_region}")
-                    region_to_use = claude_region
-                else:
-                    region_to_use = self.region
-            else:
-                region_to_use = self.region
-                
-            logger.info(f"Creating LangChain BedrockChat with region: {region_to_use}")
+            # Use the environment-provided region for all models
+            region_to_use = self.region
+            logger.info(f"Creating LangChain BedrockChat with environment-configured region: {region_to_use}")
             
             # Create LangChain Bedrock Chat model
             self.llm = BedrockChat(
