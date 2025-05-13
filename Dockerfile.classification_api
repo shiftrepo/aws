@@ -1,0 +1,18 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir fastapi uvicorn requests pydantic
+
+# Copy application code
+COPY classification_api_server.py .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Expose the port
+EXPOSE 5006
+
+# Command to run the application
+CMD ["python", "classification_api_server.py"]

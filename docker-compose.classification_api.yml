@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  classification-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.classification_api
+    image: classification-api-image
+    container_name: classification-api-service
+    ports:
+      - "5006:5006"
+    networks:
+      - aiimcp-network
+    depends_on:
+      - sqlite-db
+    restart: unless-stopped
+    environment:
+      - DATABASE_API_URL=http://sqlite-db:5000
+
+networks:
+  aiimcp-network:
+    external: true

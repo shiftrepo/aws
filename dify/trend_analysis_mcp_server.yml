@@ -36,3 +36,35 @@ tools:
         end_year:
           type: integer
           description: Optional ending year for the analysis period (e.g., 2023)
+  - name: analyze_classification_trends
+    description: Analyze patent application trends by classification code, showing top applicants distribution by year with assessment and visualization
+    parameters:
+      type: object
+      required:
+        - classification_code
+      properties:
+        classification_code:
+          type: string
+          description: The IPC classification code to analyze patent data for (e.g., A, B, C, G, H)
+        start_year:
+          type: integer
+          description: Optional starting year for the analysis period (e.g., 2010)
+        end_year:
+          type: integer
+          description: Optional ending year for the analysis period (e.g., 2023)
+  - name: generate_classification_report_pdf
+    description: Generate a PDF report with patent trend analysis for a classification code, including visualizations and assessments
+    parameters:
+      type: object
+      required:
+        - classification_code
+      properties:
+        classification_code:
+          type: string
+          description: The IPC classification code to generate a patent report for (e.g., A, B, C, G, H)
+        start_year:
+          type: integer
+          description: Optional starting year for the analysis period (e.g., 2010)
+        end_year:
+          type: integer
+          description: Optional ending year for the analysis period (e.g., 2023)

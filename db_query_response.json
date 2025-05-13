@@ -1,0 +1,2963 @@
+{
+  "database": "bigquery",
+  "query": "\n    SELECT \n        substr(filing_date, 1, 4) as year,\n        assignee_original as applicant_name,\n        COUNT(*) as application_count\n    FROM \n        publications\n    WHERE \n        substr(ipc_code, 1, 1) = 'G'\n        AND substr(filing_date, 1, 4) >= '2010'\n        AND substr(filing_date, 1, 4) <= '2023'\n    GROUP BY \n        substr(filing_date, 1, 4), \n        assignee_original\n    ORDER BY \n        substr(filing_date, 1, 4), \n        COUNT(*) DESC\n    ",
+  "columns": [
+    "year",
+    "applicant_name",
+    "application_count"
+  ],
+  "rows": [
+    {
+      "year": "2018",
+      "applicant_name": "ジーイー－ヒタチ・ニュークリア・エナジー・アメリカズ・エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2018",
+      "applicant_name": "クアルコム，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "株式会社堀場エステック",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "株式会社オトングラス",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "小林製薬株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "レッコ インベスト アーベー",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "メモリアル スローン ケタリング キャンサー センター; エウレカ セラピューティクス，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "ホーチキ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "フラウンホッファー－ゲゼルシャフト ツァ フェルダールング デァ アンゲヴァンテン フォアシュンク エー．ファオ",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "ノヴェルティ・ノビリティ・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "デフィニティ スティフトゥング",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "ダッソー システムズ",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "シンフォニアテクノロジー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "シンクサイト株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "クアディエント・テクノロジー・フランス",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "エヌ・ティ・ティ・コミュニケーションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2019",
+      "applicant_name": "アマゾン テクノロジーズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "キヤノン株式会社",
+      "application_count": 8
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社リコー",
+      "application_count": 6
+    },
+    {
+      "year": "2020",
+      "applicant_name": "マイクロソフト テクノロジー ライセンシング，エルエルシー",
+      "application_count": 3
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ブラザー工業株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社半導体エネルギー研究所",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "日本電気株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "富士通株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "大日本印刷株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "京セラドキュメントソリューションズ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "パナソニック インテレクチュアル プロパティ コーポレーション オブ アメリカ",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "コーニンクレッカ フィリップス エヌ ヴェ",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "コニカミノルタ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "キヤノンマーケティングジャパン株式会社; キヤノンＩｔソリューションズ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "インターナショナル・ビジネス・マシーンズ・コーポレーション",
+      "application_count": 2
+    },
+    {
+      "year": "2020",
+      "applicant_name": "Ｎｅｃソリューションイノベータ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "Ａｇｃ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "高砂熱学工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "高史 豊永; 株式会社トップ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "華為技術有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "花王株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "興和株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "深▲ジェン▼引望智能技術有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "深▲せん▼市繹立鋭光科技開発有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社東芝; 東芝デジタルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社東海理化電機製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社日立ハイテクサイエンス",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社小松製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社寺岡精工",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社堀場製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社今仙電機製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社ユピテル",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社ミールケア",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社ビー・ナレッジ・デザイン",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社ディスコ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社ゼンリンデータコム",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社クオルテック",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社ほぼ日",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社farmo",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "株式会社SmartLaser&PlasmaSystems",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "栗田工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "東友ファインケム株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "東レエンジニアリング株式会社; 東レエンジニアリング先端半導体Ｍｉテクノロジー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "日本音響エンジニアリング株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "日本電信電話株式会社; 公立大学法人大阪",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "日本精工株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "川崎重工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "富士レビオ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "富士フイルムビジネスイノベーション株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "学校法人東京理科大学",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "国立大学法人東海国立大学機構",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "国立大学法人東京科学大学",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "国立大学法人広島大学; 株式会社前川製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ヴェンタナ メディカル システムズ， インク．",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ワシントン・ユニバーシティ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ルムス エルティーディー．",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ランディス・ギア イノベーションズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ラム リサーチ コーポレーション",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ライン プラス コーポレーション",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ライカ マイクロシステムズ シーエムエス ゲゼルシャフト ミット ベシュレンクテル ハフツング",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ラ トローブ ユニバーシティ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "モービルアイ ビジョン テクノロジーズ リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "マテリアライズ・ナムローゼ・フエンノートシャップ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "マジック リープ， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "マシューズ インターナショナル コーポレイション",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ファーマシーシーエックス インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "パナソニックＩｐマネジメント株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ハワード ヒューズ メディカル インスティチュート",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ネットスター株式会社; 株式会社モノリシックデザイン",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ニデックパワートレインシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ニッタン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "テクノプローべ ソシエタ ペル アチオニ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ソニーグループ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "スマート、アイ、アクチボラグ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "シスメックス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ゲオルク フィッシャー ローアライトゥングスズュステーメ アクチェンゲゼルシャフト",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "グローリー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "クラウドカンパニー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "キンドリル・インク",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "キヤノンメディカルシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "キヤノンファインテックニスカ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "カリス エムピーアイ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "オーロラ・オペレイションズ・インコーポレイティッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "オンビット カンパニーリミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "オリエンタル白石株式会社; 株式会社ティ・エス・プランニング; 株式会社エビデント",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "オムロン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "エージーシー グラス ユーロップ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "エルジー イノテック カンパニー リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "エッフェティ システム ソシエタ ア レスポンサビリタ リミタータ",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ウェスティングハウス エレクトリック カンパニー エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "ウイスコンシン アラムナイ リサーチ ファウンデーシヨン",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "インテル・コーポレーション",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "インテル コーポレイション",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "イルミナ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "アルプスアルパイン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "アルコン インコーポレイティド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "アネロ フォトニクス インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "アドバンスト・マイクロ・ディバイシズ・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "アシスト・メディカル・システムズ，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2020",
+      "applicant_name": "Hoya株式会社; Ｈｏｙａ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "キヤノン株式会社",
+      "application_count": 15
+    },
+    {
+      "year": "2021",
+      "applicant_name": "インターナショナル・ビジネス・マシーンズ・コーポレーション",
+      "application_count": 15
+    },
+    {
+      "year": "2021",
+      "applicant_name": "トヨタ自動車株式会社",
+      "application_count": 14
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本電気株式会社",
+      "application_count": 12
+    },
+    {
+      "year": "2021",
+      "applicant_name": "セイコーエプソン株式会社",
+      "application_count": 7
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本電信電話株式会社",
+      "application_count": 6
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ブラザー工業株式会社",
+      "application_count": 5
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社日立製作所",
+      "application_count": 4
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日清紡マイクロデバイス株式会社",
+      "application_count": 4
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ソニーグループ株式会社",
+      "application_count": 4
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社荏原製作所",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社東芝; 東芝インフラシステムズ株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社国際電気通信基礎技術研究所",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社ジャパンディスプレイ",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "東芝テック株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立大学法人 東京大学",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "京セラドキュメントソリューションズ株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "パナソニックＩｐマネジメント株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2021",
+      "applicant_name": "矢崎エナジーシステム株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "浜松ホトニクス株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社東芝; 東芝エネルギーシステムズ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社島津製作所",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社リコー",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社ダイセル",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社Subaru",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "東光東芝メーターシステムズ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本カーバイド工業株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "富士通株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "富士フイルム株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三菱重工業株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三星電子株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ローム株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "コニカミノルタ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2021",
+      "applicant_name": "Ｔｐホールディングス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "Ｎｅｃソリューションイノベータ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "Ｌｉｎｅヤフー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "Ａｍｏｅｂａ Ｅｎｅｒｇｙ株式会社; 国立大学法人北海道大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "Ａｇｃ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "鹿島建設株式会社; 国立大学法人 熊本大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "香港時代新能源科技有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "霊動科技（北京）有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "華為技術有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "維沃移動通信有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "沖電気工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "横河電機株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社Ｓｃｒｅｅｎホールディングス",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社東芝; 東芝デジタルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社東海理化電機製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社村田製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社日本総合研究所",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社堀場製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社ミツトヨ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社マンダム; 国立大学法人大阪大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社マネジメントソリューションズ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社フジタ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社トランストロン; 学校法人早稲田大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社デンソー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社ジェイテクト; 学校法人トヨタ学園",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社シマノ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社クラハシ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社カネカ; 公益財団法人神戸医療産業都市推進機構",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社カネカ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社オービック",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社エフコンサルタント",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社SmartLaser&PlasmaSystems",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社Six Voice; 国立大学法人北海道国立大学機構",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社P.A.lab",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社Fuji",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "株式会社 ミックウェア",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "東京瓦斯株式会社; 学校法人早稲田大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "東京エレクトロン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "村田機械株式会社; 学校法人梅村学園",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "有限会社 和晃",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "旭化成株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日立建機株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日立Astemo株式会社; 日立Ａｓｔｅｍｏ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本電子株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本電信電話株式会社; 国立大学法人横浜国立大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本電信電話株式会社; 公立大学法人大阪",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本放送協会",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本信号株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日本アビオニクス株式会社; 国立大学法人 香川大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "日揮グローバル株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "戸田建設株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "愛知製鋼株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "富士フイルムビジネスイノベーション株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "安立計器株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "学校法人金沢工業大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "学校法人 関西大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "地方独立行政法人東京都健康長寿医療センター",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立研究開発法人量子科学技術研究開発機構",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立大学法人東北大学; 株式会社エヌ・ティ・ティ・データ・エンジニアリングシステムズ",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立大学法人徳島大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立大学法人大阪大学; 国立大学法人九州大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立大学法人九州工業大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "国立大学法人 筑波大学; 国立研究開発法人理化学研究所",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "卓真 泉",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "北京字節跳動網絡技術有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "先臨三維科技股▲ふん▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "住友電気工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "住友重機械工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "中国電力株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三菱電機株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三菱電機モビリティ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三菱重工業株式会社; 国立大学法人千葉大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三菱造船株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "三洋化成工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ロボセンサー技研株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "レッドコート ソリューションズ，インコーポレーテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ルネサスエレクトロニクス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "リンテック株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "リコーインダストリアルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "リアルシー・（ベイジン）・テクノロジー・カンパニー・リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ラジオメーター・メディカル・アー・ペー・エス",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "マツダ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "マジック リープ， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "マクセル株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "マイクロビジョン，インク．",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "マイクロソフト テクノロジー ライセンシング，エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ホロジック， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ブリストル－マイヤーズ スクイブ カンパニー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "フジツウ テクノロジー ソリューションズ ゲーエムベーハー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ファナック株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ファチアブジェン インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ピーアイ・アドバンスド・マテリアルズ・カンパニー・リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ビゴ テクノロジー ピーティーイー． リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ヒヨン パク",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "パナソニックＩｐマネジメント株式会社; トヨタ自動車株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "パナソニックオートモーティブシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ニューログリー サイエンス ピーティーイー リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ニッタン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ナグラビジョン エス アー エール エル",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "トヨタテクニカルディベロップメント株式会社; 国立大学法人東海国立大学機構",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "デンカ株式会社; 国立大学法人北海道大学; 国立大学法人 岡山大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "デンカ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "デクセリアルズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "テックス理研株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ティーシーエル チャイナスター オプトエレクトロニクス テクノロジー カンパニー リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ツェットエフ、フリードリッヒスハーフェン、アクチエンゲゼルシャフト",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ソニーセミコンダクタソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "スミダコーポレーション株式会社; 国立大学法人京都大学",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ストーンリッジ エレクトロニクス アーベー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "スズキ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "スキルズ プラットフォーム インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ジェイピーモルガン・チェース・バンク，ナショナル・アソシエーション",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "シーカー エンジニアリング， エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "シュナイダーエレクトリックホールディングス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "シグレイ、インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "シェンチェン メタレンクス テクノロジー カンパニー リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ザ トラスティース オブ コロンビア ユニバーシティ イン ザ シティ オブ ニューヨーク",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ケーエルエー コーポレイション",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "グーグル エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "グローリー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "キヤノンメディカルシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "キオクシア株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "オークマ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "オムロン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "エフ． ホフマン－ラ ロシュ アーゲー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "エックス デベロップメント エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ウェスティングハウス エレクトリック スウェーデン アーベー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "イモコグ インク．",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "アルプスアルパイン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "アプライド マテリアルズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "アステッキホールディングス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "アクシス アーベー",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "アイフライテック カンパニー，リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "アイデックス ラボラトリーズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "ぺロトン テクノロジー インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2021",
+      "applicant_name": "Hoya株式会社; Ｈｏｙａ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "トヨタ自動車株式会社",
+      "application_count": 6
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社日立ハイテク",
+      "application_count": 3
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社デンソー",
+      "application_count": 3
+    },
+    {
+      "year": "2022",
+      "applicant_name": "本田技研工業株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2022",
+      "applicant_name": "テンセント・アメリカ・エルエルシー",
+      "application_count": 3
+    },
+    {
+      "year": "2022",
+      "applicant_name": "華為技術有限公司",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社村田製作所",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社日立製作所",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社日立産機システム",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社ニコン",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社Jon",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "日本電気株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "三菱電機株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "一也 西本; 株式会社インタートレード",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "スリーエム イノベイティブ プロパティズ カンパニー",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ザ リージェンツ オブ ザ ユニバーシティ オブ カリフォルニア",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "グーグル エルエルシー",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "▲騰▼▲訊▼科技（深▲セン▼）有限公司",
+      "application_count": 2
+    },
+    {
+      "year": "2022",
+      "applicant_name": "Ｎｅｃプラットフォームズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "Ｊｆｅスチール株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "３アイ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "綿陽恵科光電科技有限公司; 恵科股▲分▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "維沃移動通信有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "矢崎総業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "深▲セン▼市▲華▼星光▲電▼半▲導▼体▲顕▼示技▲術▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "江蘇恒瑞医薬股▲ふん▼有限公司; 上海恒瑞医薬有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "江▲蘇▼大学",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社Ｎｔｔドコモ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社東芝; 東芝デジタルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社東芝; 東芝エネルギーシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社東芝",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社島津製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社ミラボ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社OptoComb",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "株式会社 日立産業制御ソリューションズ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "杭州海康机器人股▲ふん▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "日鉄エンジニアリング株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "日立Ｇｅニュークリア・エナジー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "日立ヴァンタラ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "日本電信電話株式会社; 慶應義塾",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "日本電信電話株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "恵科股▲分▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "大日本印刷株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "国立研究開発法人理化学研究所",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "南京大学",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "北京石頭創新科技有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "公益財団法人鉄道総合技術研究所",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "全保連株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "光感(上海)科技有限公司; 光感（上海）科技有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "三菱電機ビルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "三井倉庫ホールディングス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "リム，ソン－キュ; リム，ジョン－ホ; リム，ジョン－ユン; キム，ミョン－ヒ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "リピエノ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "リアルフェイスバリュー・ビー・ブイ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ユンナン バイヤオ グループ カンパニー リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ヤマハ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "メドピア株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "マスターカード インターナシヨナル インコーポレイテツド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "マサチューセッツ インスティテュート オブ テクノロジー; ザ ジェネラル ホスピタル コーポレイション; ユニバーシティ オブ カンザス",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "マクドナルド・デトワイラー・アンド・アソシエイツ・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ベイジン・ジンドン・チアンシ・テクノロジー・カンパニー・リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ピュリゲン バイオシステムズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ピュア ストレージ， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "パナソニックＩｐマネジメント株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "パウ ジェネティック ソリューションズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "バルコ ビジュアル ソリューションズ，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "バイエル アクチェンゲゼルシャフト",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ハイパーコネクト リミテッド ライアビリティ カンパニー",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ハイダック システムズ アンド サービシズ ゲゼルシャフト ミット ベシュレンクテル ハフツング",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ニヴァロックス－ファー ソシエテ アノニム",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ドルビー ラボラトリーズ ライセンシング コーポレイション",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "センストーン インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "セイコーエプソン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "スティッチング・ニュークリア・リサーチ・アンド・コンサルタンシー・グループ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ジョンテ キム",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ジェネンテック，インコーポレーテッド; エフ． ホフマン－ラ ロシュ アーゲー",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ジェネシス クラウド サービシーズ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ザイリンクス インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "サン－ゴバン イゾベール",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "サンユー販売株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "コーニンクレッカ フィリップス エヌ ヴェ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "コンカレントデータ，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "クオンタム ヴァリー アイデアズ ラボラトリーズ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "クゥアルコム・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "クアンタム－エスアイ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "クアルコム，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "キヤノン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "キャタピラー インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "カール・ツァイス・エックス－レイ・マイクロスコピー・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "オスラー ダイアグノスティックス リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エーエーシーアコースティックテクノロジーズ（シンセン）カンパニーリミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エーエスエムエル ネザーランズ ビー．ブイ．",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エフ・ホフマン－ラ・ロシュ・アクチェンゲゼルシャフト",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エフサステクノロジーズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エヌピーエル マネージメント リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エヌチェーン ライセンシング アーゲー",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エヌイーシー ラボラトリーズ アメリカ インク",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "エクスカリバー サイエンシーズ， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "ウーブン・バイ・トヨタ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "インビトロジェン バイオサービシズ インディア プライベート リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "イルミナ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アンアースド ランド テクノロジーズ リミテッド ライアビリティ カンパニー",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アメリカン エキスプレス トラヴェル リレイテッド サーヴィシーズ カンパニー， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アボット ダイアベティス ケア インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アヘッド・バイオコンピューティング株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アネクソン，インコーポレーテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アナスタシー，ブルーノ",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アドバンスト・マイクロ・ディバイシズ・インコーポレイテッド; エーティーアイ・テクノロジーズ・ユーエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アトナープ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "アシュラント インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "▲蘇▼州晶智科技有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2022",
+      "applicant_name": "Kddi株式会社; Ｋｄｄｉ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "キヤノン株式会社",
+      "application_count": 10
+    },
+    {
+      "year": "2023",
+      "applicant_name": "トヨタ自動車株式会社",
+      "application_count": 8
+    },
+    {
+      "year": "2023",
+      "applicant_name": "京セラドキュメントソリューションズ株式会社",
+      "application_count": 7
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日本電気株式会社",
+      "application_count": 5
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三菱電機株式会社",
+      "application_count": 5
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社東芝; 東芝インフラシステムズ株式会社",
+      "application_count": 4
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日立Astemo株式会社; 日立Ａｓｔｅｍｏ株式会社",
+      "application_count": 4
+    },
+    {
+      "year": "2023",
+      "applicant_name": "マジック リープ， インコーポレイテッド",
+      "application_count": 4
+    },
+    {
+      "year": "2023",
+      "applicant_name": "アップル インコーポレイテッド",
+      "application_count": 4
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社東芝",
+      "application_count": 3
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社半導体エネルギー研究所",
+      "application_count": 3
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社三井住友銀行",
+      "application_count": 3
+    },
+    {
+      "year": "2023",
+      "applicant_name": "本田技研工業株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2023",
+      "applicant_name": "富士フイルムビジネスイノベーション株式会社",
+      "application_count": 3
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ＰａｙＰａｙ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "甲神電機株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "淳 山本",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "楽天グループ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社日立製作所",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社島津製作所",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社京三製作所",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社三井住友銀行; 三井住友カード株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社リコー",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ユピテル",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社プロテリアル",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社estie",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社Zozo",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社Stayway",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "本田技研工業株式会社; パシフィックコンサルタンツ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日立ヴァンタラ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "富士通株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三菱電機Ｉｔソリューションズ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三菱瓦斯化学株式会社; Ｍｇｃフィルシート株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三井化学株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "パナソニックＩｐマネジメント株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ニプロ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ダイキン工業株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "セラビジョン アクティエボラーグ",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "コニカミノルタ株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "グリー株式会社",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "エヌチェーン ライセンシング アーゲー",
+      "application_count": 2
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Ｔｏｐｐａｎホールディングス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Ｎｅｃソリューションイノベータ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Ｊｆｅプラントエンジ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Ｊｆｅスチール株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Ｆａｉｒｙ Ｄｅｖｉｃｅｓ株式会社; ダイキン工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ＤｅＳＣヘルスケア株式会社; メディカル・データ・ビジョン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ＤｅＳＣヘルスケア株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "３ｍｓ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "電子部品研究院",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "重佳 渡辺",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "采▲ぎょく▼科技股▲ふん▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "裕太 水藤",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "華能重慶珞▲ファン▼発電有限責任公司; 西安熱工研究院有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "稲田 捷也",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "稜研科技股▲ふん▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "理想科学工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "横河電機株式会社; 横河計測株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "横河電機株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社Ｊｖｃケンウッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社野村総合研究所",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社東芝; 東芝エネルギーシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社東京精密",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社村田製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社札幌メンテナンス",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社日立産機システム",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社日立ハイテク",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社日本触媒",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社愛光",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社建設システム",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社小糸製作所",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社伊予エンジニアリング",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ワコム",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ワイティーエム",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ペースノ－ト",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社パスコ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ニコン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ニカデン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ナリス化粧品",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社トプコン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社デンソー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社テクノメデイカ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社タウンズ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社ソシオネクスト",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社スマートバンク",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社コロプラ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社コベルコ科研",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社カプコン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社エフアンドエフ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社エスパー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社エクサ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社イデア・レコード",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社アドバンス",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社Zeals",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社Soken; 株式会社デンソー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "株式会社Mixi",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "東芝テック株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "東日本メディコム株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "晴雄 森重; 北村 康文; 山崎 秀夫; 高田 政浩",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日産化学株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日本電波株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日本電信電話株式会社; 国立大学法人九州大学",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日本陸送株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日本光電工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日本信号株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日新電機株式会社; 国立大学法人京都工芸繊維大学",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "日亜化学工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "新思考電機有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "忠興 木島",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "岩谷産業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "山里産業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "富士フイルム株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "学校法人福岡工業大学",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "大日本印刷株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "大和ハウス工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "国立研究開発法人科学技術振興機構",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "国立研究開発法人日本原子力研究開発機構",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "国立大学法人東北大学; エム・エムブリッジ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "国立大学法人大阪大学",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "国立大学法人 東京医科歯科大学; 国立大学法人東海国立大学機構",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "四川省林業和草原調査規劃院（四川省林業和草原生態環境監測中心）; 四川大学",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "北京字跳▲網▼絡技▲術▼有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "冨士電線株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "兼希工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "典子 田辺",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "修二 奥野",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "京葉瓦斯株式会社; 株式会社ニシヤマ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "之江実験室",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "中国科学院理化技術研究所",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三菱電機株式会社; 三菱電機ビルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三菱電機ビルソリューションズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "三菱重工機械システム株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ヴィーナリソーシーズ， インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ヴィアサット，インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ローム株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "レーザーテック株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "リジェネロン・ファーマシューティカルズ・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ラム リサーチ コーポレーション",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ユニヴェルシテ デクス－マルセイユ; サントル ナショナル ドゥ ラ ルシェルシュ シアンティフィック",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ユニバーサル シティ スタジオズ リミテッド ライアビリティ カンパニー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ヤマト科学株式会社; 泰彦 田畑",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "モノグラム・オーサピディクス・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "メトラー－トレド ゲーエムベーハー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ミニスイス・ソシエテ・アノニム; ミツミ電機株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "マクロニクス インターナショナル カンパニー リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ヘレーウス エレクトロ－ナイト インターナシヨナル エヌ ヴイ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ブルーイノベーション株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ブラザー工業株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "フレックソン ピーティーイー エルティーディー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "フラウンホーファー－ゲゼルシャフト・ツール・フェルデルング・デル・アンゲヴァンテン・フォルシュング・アインゲトラーゲネル・フェライン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "フラウンホッファー－ゲゼルシャフト ツァ フェルダールング デァ アンゲヴァンテン フォアシュンク エー．ファオ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ハンド ヘルド プロダクツ インコーポレーティッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ハイマックス テクノロジーズ リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ハイファイ ユーエスエー インコーポレーテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ネイバー コーポレーション; Ｌｉｎｅヤフー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ニッタン株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "トウキョウ エレクトロン デバイス アメリカ インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ディスペース ゲー・エム・ベー・ハー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "テキャット テクノロジーズ （スージョウ） リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ティルダ コーポレーション",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ソフトバンク株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ソニーグループ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ゼネラル・エレクトリック・カンパニイ",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "スリーエム イノベイティブ プロパティズ カンパニー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "スタンレー電気株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "シルク テクノロジーズ インコーポレイティッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "シュナイダーエレクトリックホールディングス株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "シャープ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "シャープディスプレイテクノロジー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ザ プロクター アンド ギャンブル カンパニー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "サイボウズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ゴールドマン サックス アンド カンパニー エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ケーティー アンド ジー コーポレイション",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "グーグル エルエルシー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "グローリー株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "グルドクラ，ホーカン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "クゥアルコム・インコーポレイテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "キヤノンメディカルシステムズ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "キオクシア株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "カール・ツァイス・エスエムティー・ゲーエムベーハー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "カシオ計算機株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "エルジー・ケム・リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "エルジー エナジー ソリューション リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "ウニベルシテ クロード ベルナール リヨン １; エコール ノルマル シュペリウール ドゥ リヨン; オスピス シヴィル ドゥ リヨン; サントル ナショナル ドゥ ラ ルシェルシュ シアンティフィック; アンスティチュート、ナシオナル、ドゥ、ラ、サンテ、エ、ドゥ、ラ、ルシェルシュ、メディカル; ウィジオン",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "イノベント バイオロジックス （スウツォウ） カンパニー，リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "アプライド メディカル リソーシーズ コーポレイション",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "アイフリー アシスティング コミュニケ－ション リミテッド",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "アイクストロン、エスイー",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "いすゞ自動車株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "▲騰▼▲訊▼科技（深▲セン▼）有限公司",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Toto株式会社; Ｔｏｔｏ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Dic株式会社; Ｄｉｃ株式会社",
+      "application_count": 1
+    },
+    {
+      "year": "2023",
+      "applicant_name": "Ckd株式会社; Ｃｋｄ株式会社",
+      "application_count": 1
+    }
+  ],
+  "row_count": 590,
+  "execution_time_ms": 7.71
+}
