@@ -1,0 +1,38 @@
+name: Trend Analysis MCP Server
+description: Analyze patent application trends by applicant name and classification
+base_url: http://localhost:5006
+auth:
+  type: none
+tools:
+  - name: analyze_patent_trends
+    description: Analyze patent application trends by applicant name, showing classification distribution by year with assessment and visualization
+    parameters:
+      type: object
+      required:
+        - applicant_name
+      properties:
+        applicant_name:
+          type: string
+          description: The name of the applicant/company to analyze patent data for
+        start_year:
+          type: integer
+          description: Optional starting year for the analysis period (e.g., 2010)
+        end_year:
+          type: integer
+          description: Optional ending year for the analysis period (e.g., 2023)
+  - name: generate_patent_report_pdf
+    description: Generate a PDF report with patent trend analysis for an applicant, including visualizations and assessments
+    parameters:
+      type: object
+      required:
+        - applicant_name
+      properties:
+        applicant_name:
+          type: string
+          description: The name of the applicant/company to generate a patent report for
+        start_year:
+          type: integer
+          description: Optional starting year for the analysis period (e.g., 2010)
+        end_year:
+          type: integer
+          description: Optional ending year for the analysis period (e.g., 2023)
