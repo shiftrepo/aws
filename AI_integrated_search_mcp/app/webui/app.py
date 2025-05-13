@@ -164,10 +164,13 @@ class NLQueryClient:
             response = requests.post(
                 f"{self.api_url}/query/{db_name}",
                 json={"query": query},
-                timeout=60  # Increased timeout for NL processing
+                timeout=60,  # Increased timeout for NL processing
+                headers={'Accept': 'application/json; charset=utf-8'}
             )
             response.raise_for_status()
-            data = response.json()
+            
+            # Use response.content to get raw bytes and decode with utf-8
+            data = json.loads(response.content.decode('utf-8'))
             
             logger.debug(f"NL Query processing successful")
             return data
@@ -307,7 +310,16 @@ def api_nl_query():
     query = data["query"]
     
     result = nl_client.process_nl_query(db_name, query)
-    return jsonify(result)
+    
+    # Ensure field names match what the frontend expects
+    if "rows" in result and "results" not in result:
+        result["results"] = result["rows"]
+    
+    # Return with explicit charset encoding
+    return Response(
+        json.dumps(result, ensure_ascii=False),
+        mimetype='application/json; charset=utf-8'
+    )
 
 @app.route('/api/langchain_query', methods=['POST'])
 def api_langchain_query():

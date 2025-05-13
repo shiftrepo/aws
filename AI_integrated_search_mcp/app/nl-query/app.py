@@ -476,7 +476,7 @@ class OpenAPISpec(Resource):
                                 "name": "db_name",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "string", "enum": ["input", "bigquery"]}
+                                "schema": {"type": "string", "enum": ["input", "bigquery", "inpit"]}
                             }
                         ],
                         "requestBody": {
@@ -526,8 +526,12 @@ class NLQuery(Resource):
         if not self.nl_processor:
             return {"error": "NL Query processor not initialized"}, 500
 
-        if db_name not in ["input", "bigquery"]:
+        if db_name not in ["input", "bigquery", "inpit"]:
             return {"error": "Invalid database name"}, 400
+            
+        # Map "inpit" to "input" for backward compatibility
+        if db_name == "inpit":
+            db_name = "input"
 
         data = request.get_json()
         if not data or "query" not in data:
