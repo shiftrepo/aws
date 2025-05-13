@@ -171,8 +171,7 @@ class NLQueryClient:
             
             # Use response.content to get raw bytes and decode with utf-8
             data = json.loads(response.content.decode('utf-8'))
-            
-            logger.debug(f"NL Query processing successful")
+            logger.debug(f"NL Query processing successful: {data}")
             return data
             
         except requests.RequestException as e:
@@ -314,6 +313,17 @@ def api_nl_query():
     # Ensure field names match what the frontend expects
     if "rows" in result and "results" not in result:
         result["results"] = result["rows"]
+    # Handle case where results is empty but explanation is available
+    if "explanation" in result and (not result.get("results") or not result.get("columns")):
+        # Create a minimal result structure if we have an explanation but no results table
+        if not result.get("results"):
+            result["results"] = []
+        if not result.get("columns"):
+            result["columns"] = []
+        if not result.get("row_count"):
+            result["row_count"] = 0
+    
+    logger.info(f"Sending NL query result to frontend: {result}")
     
     # Return with explicit charset encoding
     return Response(

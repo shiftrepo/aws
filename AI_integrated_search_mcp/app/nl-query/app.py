@@ -347,15 +347,18 @@ SQL Query:"""
         # Generate SQL query
         sql_query = self.generate_sql(user_query, db_name)
         if not sql_query:
+            logger.error("Failed to generate SQL query")
             return {"error": "Failed to generate SQL query", "query": user_query}
 
         # Execute SQL query
         query_result = self.db_client.execute_query(db_name, sql_query)
         if "error" in query_result:
+            logger.error(f"Error executing query: {query_result['error']}")
             return query_result
 
         # Ensure query was a SELECT
         if "rows" not in query_result:
+            logger.error("Generated query was not a SELECT query")
             return {
                 "error": "Generated query was not a SELECT query",
                 "query": sql_query,
@@ -364,6 +367,7 @@ SQL Query:"""
 
         # Generate explanation
         explanation = self._generate_explanation(user_query, sql_query, query_result)
+        logger.info(f"Generated explanation of length {len(explanation)} chars")
 
         # Return results
         result = {
@@ -377,6 +381,7 @@ SQL Query:"""
         }
 
         logger.info(f"Query processed successfully, returned {result['row_count']} rows")
+        logger.debug(f"Result structure: {list(result.keys())}")
         return result
 
     def _generate_explanation(self, user_query: str, sql_query: str, query_result: Dict[str, Any]) -> str:
@@ -542,6 +547,18 @@ class NLQuery(Resource):
 
         try:
             result = self.nl_processor.process_nl_query(user_query, db_name)
+            
+            # Ensure we always have consistent result structure
+            if "explanation" in result and (not result.get("results") or not result.get("columns")):
+                # Ensure minimal structure for UI if we have explanation but no proper results table
+                if not result.get("results"):
+                    result["results"] = []
+                if not result.get("columns"):
+                    result["columns"] = []
+                if not result.get("row_count"):
+                    result["row_count"] = 0
+            
+            logger.info(f"Sending response: {list(result.keys())}")
             
             # Ensure proper JSON encoding for multilingual content
             return Response(
