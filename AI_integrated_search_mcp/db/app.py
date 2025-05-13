@@ -230,6 +230,10 @@ class Schema(Resource):
         """Get schema of a database"""
         logger.debug(f"Schema requested for database: {db_name}")
         
+        # Map "inpit" to "input" for backward compatibility
+        if db_name == "inpit":
+            db_name = "input"
+            
         if db_name not in ["input", "bigquery"]:
             return {"error": "Invalid database name"}, 400
             
@@ -246,6 +250,10 @@ class ExecuteQuery(Resource):
         """Execute SQL query on a database"""
         logger.debug(f"Query execution requested for database: {db_name}")
         
+        # Map "inpit" to "input" for backward compatibility
+        if db_name == "inpit":
+            db_name = "input"
+            
         if db_name not in ["input", "bigquery"]:
             return {"error": "Invalid database name"}, 400
             
@@ -312,6 +320,10 @@ class SampleQueries(Resource):
         """Get sample queries for a database"""
         logger.debug(f"Sample queries requested for database: {db_name}")
         
+        # Map "inpit" to "input" for backward compatibility
+        if db_name == "inpit":
+            db_name = "input"
+            
         if db_name not in ["input", "bigquery"]:
             return {"error": "Invalid database name"}, 400
             
@@ -323,8 +335,24 @@ class SampleQueries(Resource):
                     "query": "SELECT name FROM sqlite_master WHERE type='table';"
                 },
                 {
-                    "name": "Count rows in table",
-                    "query": "SELECT COUNT(*) AS row_count FROM table_name;"
+                    "name": "Count rows in inpit_data table",
+                    "query": "SELECT COUNT(*) AS row_count FROM inpit_data;"
+                },
+                {
+                    "name": "Top 10 applicants",
+                    "query": "SELECT applicant, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant ORDER BY patent_count DESC LIMIT 10;"
+                },
+                {
+                    "name": "Patents by filing year",
+                    "query": "SELECT filing_year, COUNT(*) AS count FROM inpit_data GROUP BY filing_year ORDER BY filing_year DESC;"
+                },
+                {
+                    "name": "Find patents by keyword",
+                    "query": "SELECT publication_number, title, abstract FROM inpit_data WHERE title LIKE '%AI%' OR abstract LIKE '%AI%' LIMIT 20;"
+                },
+                {
+                    "name": "Recent patent publications",
+                    "query": "SELECT publication_number, title, publication_date FROM inpit_data ORDER BY publication_date DESC LIMIT 15;"
                 }
             ],
             "bigquery": [
@@ -333,8 +361,28 @@ class SampleQueries(Resource):
                     "query": "SELECT name FROM sqlite_master WHERE type='table';"
                 },
                 {
-                    "name": "Top patent applicants",
-                    "query": "SELECT assignee_harmonized, COUNT(*) as patent_count FROM patents GROUP BY assignee_harmonized ORDER BY patent_count DESC LIMIT 10;"
+                    "name": "Count patent families",
+                    "query": "SELECT COUNT(*) AS family_count FROM patent_families;"
+                },
+                {
+                    "name": "Count publications",
+                    "query": "SELECT COUNT(*) AS publication_count FROM publications;"
+                },
+                {
+                    "name": "Publications by country",
+                    "query": "SELECT country_code, COUNT(*) AS publication_count FROM publications GROUP BY country_code ORDER BY publication_count DESC LIMIT 15;"
+                },
+                {
+                    "name": "Patent family sizes",
+                    "query": "SELECT family_id, COUNT(*) AS family_size FROM publications GROUP BY family_id ORDER BY family_size DESC LIMIT 20;"
+                },
+                {
+                    "name": "Search publications by keyword",
+                    "query": "SELECT publication_number, title FROM publications WHERE title LIKE '%artificial intelligence%' LIMIT 20;"
+                },
+                {
+                    "name": "Recent patent publications",
+                    "query": "SELECT publication_number, title, publication_date FROM publications ORDER BY publication_date DESC LIMIT 15;"
                 }
             ]
         }
@@ -383,7 +431,7 @@ class OpenAPISpec(Resource):
                                 "name": "db_name",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "string", "enum": ["input", "bigquery"]}
+                                "schema": {"type": "string", "enum": ["input", "inpit", "bigquery"]}
                             }
                         ],
                         "responses": {
@@ -401,7 +449,7 @@ class OpenAPISpec(Resource):
                                 "name": "db_name", 
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "string", "enum": ["input", "bigquery"]}
+                                "schema": {"type": "string", "enum": ["input", "inpit", "bigquery"]}
                             }
                         ],
                         "requestBody": {
@@ -433,7 +481,7 @@ class OpenAPISpec(Resource):
                                 "name": "db_name",
                                 "in": "path",
                                 "required": True,
-                                "schema": {"type": "string", "enum": ["input", "bigquery"]}
+                                "schema": {"type": "string", "enum": ["input", "inpit", "bigquery"]}
                             }
                         ],
                         "responses": {

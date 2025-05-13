@@ -133,32 +133,87 @@ curl -X GET http://localhost:5003/databases
 #### 2. データベーススキーマの取得
 
 ```bash
-curl -X GET http://localhost:5003/schema/inpit
+curl -X GET http://localhost:5003/schema/bigquery
 ```
 
 応答例：
 ```json
 {
   "schema": {
-    "tables": [
+    "publications": [
       {
-        "name": "patents",
-        "columns": [
-          {"name": "patent_id", "type": "TEXT"},
-          {"name": "title", "type": "TEXT"},
-          {"name": "abstract", "type": "TEXT"},
-          {"name": "filing_date", "type": "DATE"},
-          {"name": "grant_date", "type": "DATE"}
-        ]
+        "cid": 0,
+        "name": "publication_number",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
       },
       {
-        "name": "inventors",
-        "columns": [
-          {"name": "inventor_id", "type": "TEXT"},
-          {"name": "patent_id", "type": "TEXT"},
-          {"name": "name", "type": "TEXT"},
-          {"name": "country", "type": "TEXT"}
-        ]
+        "cid": 1,
+        "name": "title",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "abstract",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "publication_date",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "country_code",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "family_id",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      }
+    ],
+    "patent_families": [
+      {
+        "cid": 0,
+        "name": "family_id",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 1,
+        "name": "family_size",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "earliest_filing_date",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
       }
     ]
   }
@@ -168,46 +223,69 @@ curl -X GET http://localhost:5003/schema/inpit
 #### 3. SQLクエリの実行
 
 ```bash
-curl -X POST http://localhost:5003/execute/inpit \
+curl -X POST http://localhost:5003/execute/bigquery \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT patent_id, title FROM patents LIMIT 5"
+    "query": "SELECT publication_number, title_ja FROM publications LIMIT 5"
   }'
 ```
 
 応答例：
 ```json
 {
-  "results": {
-    "columns": ["patent_id", "title"],
-    "rows": [
-      ["US123456A", "改良された半導体デバイス"],
-      ["US234567A", "効率的な太陽光発電パネル"],
-      ["US345678A", "新規な電気自動車のバッテリー管理システム"],
-      ["US456789A", "機械学習を用いた画像認識方法"],
-      ["US567890A", "高効率熱交換器"]
-    ]
-  }
+  "database": "bigquery",
+  "query": "SELECT publication_number, title FROM publications LIMIT 5",
+  "columns": ["publication_number", "title"],
+  "rows": [
+    {"publication_number": "US20210123456A1", "title": "Artificial Intelligence System for Autonomous Vehicles"},
+    {"publication_number": "EP3987654A1", "title": "Method and Apparatus for Signal Processing"},
+    {"publication_number": "CN112345678A", "title": "Deep Learning Model for Medical Image Analysis"},
+    {"publication_number": "JP2021987654A", "title": "再生可能エネルギー管理システム"},
+    {"publication_number": "WO2021123456A1", "title": "Improved Semiconductor Manufacturing Process"}
+  ],
+  "row_count": 5,
+  "execution_time_ms": 4.57
 }
 ```
 
 #### 4. サンプルクエリの取得
 
 ```bash
-curl -X GET http://localhost:5003/sample_queries/inpit
+curl -X GET http://localhost:5003/sample_queries/bigquery
 ```
 
 応答例：
 ```json
 {
+  "database": "bigquery",
   "sample_queries": [
     {
-      "title": "最新の特許5件を表示",
-      "query": "SELECT patent_id, title, grant_date FROM patents ORDER BY grant_date DESC LIMIT 5"
+      "name": "List all tables",
+      "query": "SELECT name FROM sqlite_master WHERE type='table';"
     },
     {
-      "title": "日本人発明者の特許",
-      "query": "SELECT p.patent_id, p.title, i.name FROM patents p JOIN inventors i ON p.patent_id = i.patent_id WHERE i.country = 'JP' LIMIT 10"
+      "name": "Count patent families",
+      "query": "SELECT COUNT(*) AS family_count FROM patent_families;"
+    },
+    {
+      "name": "Count publications",
+      "query": "SELECT COUNT(*) AS publication_count FROM publications;"
+    },
+    {
+      "name": "Publications by country",
+      "query": "SELECT country_code, COUNT(*) AS publication_count FROM publications GROUP BY country_code ORDER BY publication_count DESC LIMIT 15;"
+    },
+    {
+      "name": "Patent family sizes",
+      "query": "SELECT family_id, COUNT(*) AS family_size FROM publications GROUP BY family_id ORDER BY family_size DESC LIMIT 20;"
+    },
+    {
+      "name": "Search publications by keyword",
+      "query": "SELECT publication_number, title FROM publications WHERE title LIKE '%artificial intelligence%' LIMIT 20;"
+    },
+    {
+      "name": "Recent patent publications",
+      "query": "SELECT publication_number, title, publication_date FROM publications ORDER BY publication_date DESC LIMIT 15;"
     }
   ]
 }
@@ -218,29 +296,25 @@ curl -X GET http://localhost:5003/sample_queries/inpit
 #### 1. 自然言語クエリの処理
 
 ```bash
-curl -X POST http://localhost:5004/query/inpit \
+curl -X POST http://localhost:5004/query/bigquery \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "2020年以降に申請された人工知能関連の特許を5件表示して"
+    "query": "米国と日本の特許公開件数を比較して"
   }'
 ```
 
 応答例：
 ```json
 {
-  "natural_language_query": "2020年以降に申請された人工知能関連の特許を5件表示して",
-  "sql_query": "SELECT patent_id, title, abstract, filing_date FROM patents WHERE filing_date >= '2020-01-01' AND (abstract LIKE '%人工知能%' OR abstract LIKE '%AI%' OR abstract LIKE '%機械学習%' OR title LIKE '%人工知能%' OR title LIKE '%AI%' OR title LIKE '%機械学習%') ORDER BY filing_date DESC LIMIT 5",
-  "results": {
-    "columns": ["patent_id", "title", "abstract", "filing_date"],
-    "rows": [
-      ["US987654A", "深層学習を用いた音声認識システム", "本発明は深層学習アルゴリズムを使用して...", "2023-03-15"],
-      ["US876543A", "AIによる画像処理の方法", "本発明は人工知能技術を用いて...", "2022-11-02"],
-      ["US765432A", "自動運転車両のための機械学習システム", "自動運転車両の判断能力を向上させるための...", "2022-05-18"],
-      ["US654321A", "医療診断のためのAIアシスタント", "医療画像の解析と診断を支援するための...", "2021-08-23"],
-      ["US543210A", "自然言語処理による文書要約システム", "大量のテキストデータから重要な情報を抽出し...", "2020-12-10"]
-    ]
-  },
-  "explanation": "このクエリでは、filing_date（申請日）が2020年1月1日以降で、タイトルまたは概要に「人工知能」「AI」「機械学習」というキーワードを含む特許を検索しました。結果は申請日の新しい順に並べられ、上位5件を表示しています。"
+  "user_query": "米国と日本の特許公開件数を比較して",
+  "sql_query": "SELECT country_code, COUNT(*) AS publication_count FROM publications WHERE country_code IN ('US', 'JP') GROUP BY country_code ORDER BY publication_count DESC",
+  "results": [
+    {"country_code": "US", "publication_count": 12534},
+    {"country_code": "JP", "publication_count": 8976}
+  ],
+  "row_count": 2,
+  "columns": ["country_code", "publication_count"],
+  "explanation": "このクエリでは、米国（US）と日本（JP）の特許公開件数を比較しました。データベースから各国のコードで絞り込み、国ごとの公開件数をカウントして降順に並べています。結果から、米国の特許公開件数が12,534件、日本が8,976件であることがわかります。この期間においては米国の方が日本よりも約40%多い特許を公開していることが示されています。"
 }
 ```
 
