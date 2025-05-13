@@ -1,79 +1,109 @@
-# AI Integrated Search MCP Service Fix
+# AWS Bedrock Integration Fix
 
-## Issues
+## Problem Statement
 
-### 1. AWS Bedrock Service Error
-The application was failing with the following error:
+The system encountered a 403 error when attempting to use AWS Bedrock:
+
 ```
-Failed to initialize Bedrock client: Unknown service: 'bedrock-runtime'. Valid service names are: [long list of services]
+2025-05-13 02:08:08,499 - urllib3.connectionpool - DEBUG - https://bedrock-runtime.us-east-1.amazonaws.com:443 "POST /model/anthropic.claude-3-sonnet-20240229-v1%3A0/invoke HTTP/1.1" 403 77
 ```
 
-### 2. Database Connectivity Issues
-Health checks showed multiple database-related issues:
-- Database health endpoint not responding
-- Missing database files (inpit.db and google_patents_gcp.db)
-- Inter-container connectivity issues between services
+This error was caused by multiple issues:
 
-## Causes
+1. Hardcoded fallback model values in code that didn't match the model specified in `.env`
+2. Environment variables not being properly passed to containers
+3. No error handling for missing environment variables
 
-### AWS Bedrock Issue
-The error occurs because the boto3 version (1.26.135) is too old to support the AWS Bedrock service. The `bedrock-runtime` service was added in a newer version of the AWS SDK.
+## Issues Identified
 
-### Database Connectivity Issues
-- Database files not being properly downloaded from S3 during container startup
-- Permissions issues with the data directory
-- Services starting before the database is fully initialized
+### 1. Hardcoded Model IDs
 
-## Solutions
+Several files had hardcoded fallback model IDs that were different from what was specified in the `.env` file:
 
-### 1. AWS Bedrock Fix
-Updated the boto3 and botocore versions in both the nl-query and langchain-query services:
-- Changed boto3 from 1.26.135 to 1.34.21
-- Changed botocore from 1.29.135 to 1.34.21
+- In `test_bedrock.py`, there were multiple occurrences of hardcoded model IDs:
+  - `model_id = os.environ.get("BEDROCK_LLM_MODEL", "amazon.titan-text-lite-v1")`
+  - `model_id = os.environ.get("BEDROCK_LLM_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")`
+  - `model_id = os.environ.get("BEDROCK_LLM_MODEL", "amazon.titan-text-express-v1")`
 
-These versions are compatible with the AWS Bedrock service and include support for the `bedrock-runtime` endpoint.
+- In `app/nl-query/app.py`:
+  - `self.llm_model_id = os.environ.get("BEDROCK_LLM_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")`
+  - `self.embedding_model_id = os.environ.get("BEDROCK_EMBEDDING_MODEL", "amazon.titan-embed-text-v2:0")`
+  - `self.rerank_model_id = os.environ.get("BEDROCK_RERANK_MODEL", "amazon.rerank-v1:0")`
 
-### 2. Database Connectivity Fix
-- Added proper setup for database data directory with appropriate permissions
-- Modified service startup sequence to ensure database service initializes first
-- Added appropriate wait times between service startups to ensure proper initialization
+- In `app/langchain-query/app.py`:
+  - `self.llm_model_id = os.environ.get("BEDROCK_LLM_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")`
 
-## How to Apply the Fixes
+### 2. Missing Environment Variable Passing
 
-1. The requirements.txt files have been updated with the new versions:
-   - `AI_integrated_search_mcp/app/nl-query/requirements.txt`
-   - `AI_integrated_search_mcp/app/langchain-query/requirements.txt`
+The `podman-compose.yml` file wasn't passing the Bedrock model environment variables to the containers:
 
-2. A comprehensive rebuild script has been created to address all issues:
-   ```bash
-   cd /root/aws.git/AI_integrated_search_mcp
-   chmod +x rebuild_services.sh
-   ./rebuild_services.sh
-   ```
+- Missing in `nl-query-service` environment section:
+  - `BEDROCK_LLM_MODEL`
+  - `BEDROCK_EMBEDDING_MODEL`
+  - `BEDROCK_RERANK_MODEL`
 
-3. The rebuild script will:
-   - Stop running containers
-   - Rebuild all services with updated dependencies
-   - Create and set proper permissions on the data directory
-   - Start the database service first and wait for it to download files
-   - Start remaining services in the correct order
-   - Display service logs to verify the fixes work
+- Missing in `langchain-query-service` environment section:
+  - `BEDROCK_LLM_MODEL`
+  - `BEDROCK_EMBEDDING_MODEL`
+  - `BEDROCK_RERANK_MODEL`
 
-4. After restarting, verify the health of all services:
-   ```bash
-   ./scripts/check_health.sh
-   ```
+## Fixes Applied
 
-This will check:
-   - Container status
-   - Health endpoints
-   - Database file existence
-   - Inter-container connectivity
+### 1. Removed Hardcoded Model IDs
 
-## Note on AWS Credentials
-Remember that AWS credentials must be properly configured in the environment variables:
-- AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
-- AWS_DEFAULT_REGION
+Modified all files to not use fallback values for model IDs, but instead fail with a clear error if the environment variables are not set:
 
-These are already properly configured in the podman-compose.yml file to be passed to the containers.
+- Updated `test_bedrock.py`:
+  ```python
+  model_id = os.environ.get("BEDROCK_LLM_MODEL")
+  if not model_id:
+      logger.error("BEDROCK_LLM_MODEL not found in environment variables")
+      return False
+  ```
+
+- Updated `app/nl-query/app.py`:
+  ```python
+  self.llm_model_id = os.environ.get("BEDROCK_LLM_MODEL")
+  if not self.llm_model_id:
+      logger.error("BEDROCK_LLM_MODEL not found in environment variables")
+      raise ValueError("BEDROCK_LLM_MODEL not found in environment variables")
+  ```
+
+- Updated `app/langchain-query/app.py` in a similar way.
+
+### 2. Updated podman-compose.yml
+
+Added the missing environment variables to the container definitions:
+
+```yaml
+environment:
+  - DATABASE_API_URL=http://sqlite-db:5000
+  - LOG_LEVEL=DEBUG
+  - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+  - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+  - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+  - BEDROCK_LLM_MODEL=${BEDROCK_LLM_MODEL}
+  - BEDROCK_EMBEDDING_MODEL=${BEDROCK_EMBEDDING_MODEL}
+  - BEDROCK_RERANK_MODEL=${BEDROCK_RERANK_MODEL}
+```
+
+## Verification
+
+After applying these fixes, the system will:
+
+1. Properly use the model specified in the `.env` file: `us.anthropic.claude-3-7-sonnet-20250219-v1:0`
+2. Fail with a clear error message if any of the required environment variables are missing
+3. Pass the correct model IDs to the containers when using podman-compose
+
+To verify the fix, rebuild and restart the services:
+
+```bash
+cd /root/aws.git/AI_integrated_search_mcp
+./rebuild_services.sh
+```
+
+## Notes
+
+- AWS credentials are still only sourced from host OS environment variables, not from the `.env` file
+- Bedrock model configurations are sourced from the `.env` file
+- The containers must have the required environment variables set before they will work properly

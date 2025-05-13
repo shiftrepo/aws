@@ -42,14 +42,20 @@ def main():
         
         # Use the region from environment variables for all models
         # The environment should be properly configured with the correct region for the model
-        model_id = os.environ.get("BEDROCK_LLM_MODEL", "amazon.titan-text-lite-v1")
+        model_id = os.environ.get("BEDROCK_LLM_MODEL")
+        if not model_id:
+            logger.error("BEDROCK_LLM_MODEL not found in environment variables")
+            return False
         logger.info(f"Using environment-configured region {region} for model {model_id}")
     except Exception as e:
         logger.error(f"Failed to initialize Bedrock client: {str(e)}")
         return False
     
-    # Get specified model ID from environment or use default
-    model_id = os.environ.get("BEDROCK_LLM_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")
+    # Get specified model ID from environment
+    model_id = os.environ.get("BEDROCK_LLM_MODEL")
+    if not model_id:
+        logger.error("BEDROCK_LLM_MODEL not found in environment variables")
+        return False
     logger.info(f"Using model ID: {model_id}")
     
     # Get list of available models to check access
@@ -74,7 +80,10 @@ def main():
         
         # Prepare a simple test prompt
         # Format depends on the model
-        model_id = os.environ.get("BEDROCK_LLM_MODEL", "amazon.titan-text-express-v1")
+        model_id = os.environ.get("BEDROCK_LLM_MODEL")
+        if not model_id:
+            logger.error("BEDROCK_LLM_MODEL not found in environment variables")
+            return False
         
         if "anthropic" in model_id:
             # Claude format

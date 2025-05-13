@@ -65,7 +65,10 @@ class BedrockLLM:
         logger.info(f"Using AWS region: {self.region}")
         
         # Model ID
-        self.llm_model_id = os.environ.get("BEDROCK_LLM_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")
+        self.llm_model_id = os.environ.get("BEDROCK_LLM_MODEL")
+        if not self.llm_model_id:
+            logger.error("BEDROCK_LLM_MODEL not found in environment variables")
+            raise ValueError("BEDROCK_LLM_MODEL not found in environment variables")
         logger.info(f"Using LLM model: {self.llm_model_id}")
         
         try:

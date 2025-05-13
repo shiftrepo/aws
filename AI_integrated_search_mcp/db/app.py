@@ -112,28 +112,87 @@ def download_databases():
     
     # Download Input database
     if not INPUT_DB_PATH.exists():
+        logger.info(f"Input database not found at {INPUT_DB_PATH}, attempting to download from S3")
         if not download_db_from_s3(INPUT_DB_S3_PATH, INPUT_DB_PATH):
-            logger.error("Failed to download Input database")
+            logger.error("Failed to download Input database from S3")
+            logger.warning("Will check for database in mounted volume")
     else:
-        logger.info(f"Input database already exists at {INPUT_DB_PATH}")
+        logger.info(f"Input database already exists at {INPUT_DB_PATH} (size: {INPUT_DB_PATH.stat().st_size} bytes)")
+        # Ensure it's readable
+        try:
+            os.chmod(str(INPUT_DB_PATH), 0o644)
+        except Exception as e:
+            logger.warning(f"Could not set permissions on Input database: {str(e)}")
     
     # Download BigQuery database
     if not BIGQUERY_DB_PATH.exists():
+        logger.info(f"BigQuery database not found at {BIGQUERY_DB_PATH}, attempting to download from S3")
         if not download_db_from_s3(BIGQUERY_DB_S3_PATH, BIGQUERY_DB_PATH):
-            logger.error("Failed to download BigQuery database")
+            logger.error("Failed to download BigQuery database from S3")
+            logger.warning("Will check for database in mounted volume")
     else:
-        logger.info(f"BigQuery database already exists at {BIGQUERY_DB_PATH}")
+        logger.info(f"BigQuery database already exists at {BIGQUERY_DB_PATH} (size: {BIGQUERY_DB_PATH.stat().st_size} bytes)")
+        # Ensure it's readable
+        try:
+            os.chmod(str(BIGQUERY_DB_PATH), 0o644)
+        except Exception as e:
+            logger.warning(f"Could not set permissions on BigQuery database: {str(e)}")
 
 class Health(Resource):
     def get(self):
         """Health check endpoint"""
         logger.debug("Health check requested")
         
+        # Check if database files exist and are readable
+        input_db_exists = INPUT_DB_PATH.exists()
+        bigquery_db_exists = BIGQUERY_DB_PATH.exists()
+        
+        # Try to open the databases to verify they're readable
+        input_db_readable = False
+        bigquery_db_readable = False
+        
+        if input_db_exists:
+            try:
+                conn = sqlite3.connect(str(INPUT_DB_PATH))
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+                conn.close()
+                input_db_readable = True
+                logger.debug("Input database is readable")
+            except Exception as e:
+                logger.error(f"Input database exists but is not readable: {str(e)}")
+        
+        if bigquery_db_exists:
+            try:
+                conn = sqlite3.connect(str(BIGQUERY_DB_PATH))
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+                conn.close()
+                bigquery_db_readable = True
+                logger.debug("BigQuery database is readable")
+            except Exception as e:
+                logger.error(f"BigQuery database exists but is not readable: {str(e)}")
+        
+        # Determine overall status
+        is_healthy = (input_db_exists and input_db_readable) or (bigquery_db_exists and bigquery_db_readable)
+        
         health_status = {
-            "status": "healthy",
+            "status": "healthy" if is_healthy else "unhealthy",
             "databases": {
-                "input": INPUT_DB_PATH.exists(),
-                "bigquery": BIGQUERY_DB_PATH.exists()
+                "input": {
+                    "exists": input_db_exists,
+                    "readable": input_db_readable,
+                    "path": str(INPUT_DB_PATH),
+                    "size_bytes": INPUT_DB_PATH.stat().st_size if input_db_exists else None
+                },
+                "bigquery": {
+                    "exists": bigquery_db_exists,
+                    "readable": bigquery_db_readable,
+                    "path": str(BIGQUERY_DB_PATH),
+                    "size_bytes": BIGQUERY_DB_PATH.stat().st_size if bigquery_db_exists else None
+                }
             },
             "timestamp": time.time()
         }
@@ -432,12 +491,44 @@ api.add_resource(ExecuteQuery, '/execute/<string:db_name>')
 api.add_resource(SampleQueries, '/sample_queries/<string:db_name>')
 api.add_resource(OpenAPISpec, '/openapi')
 
+def check_and_fix_db_files():
+    """Check and fix database files if needed"""
+    # This function is called before the main thread to ensure databases are properly set up
+    logger.info("Checking database files...")
+    
+    # Run the fix_db_paths.py script if it exists
+    fix_script = Path(__file__).parent / "fix_db_paths.py"
+    if fix_script.exists():
+        logger.info("Running database path fix script")
+        try:
+            import fix_db_paths
+            results = fix_db_paths.fix_db_paths()
+            logger.info(f"Database fix results: {results}")
+        except ImportError:
+            logger.warning("Could not import fix_db_paths module")
+            pass  # Continue even if fix script fails
+    
+    # If databases are not found, try downloading them
+    if not (INPUT_DB_PATH.exists() and BIGQUERY_DB_PATH.exists()):
+        download_databases()
+    else:
+        logger.info("Both database files already exist")
+        
+    # Log database status
+    input_status = "Present" if INPUT_DB_PATH.exists() else "Missing"
+    bigquery_status = "Present" if BIGQUERY_DB_PATH.exists() else "Missing"
+    logger.info(f"Database status - Input: {input_status}, BigQuery: {bigquery_status}")
+
 def main():
     """Main entry point"""
     logger.info("Starting SQLite Database API Service")
     
-    # Download databases in a separate thread to not block server startup
+    # Check database files before starting service
+    check_and_fix_db_files()
+    
+    # Download databases in a separate thread in case they're still needed
     download_thread = threading.Thread(target=download_databases)
+    download_thread.daemon = True  # Make thread daemon so it doesn't block shutdown
     download_thread.start()
     
     # Log AWS region from environment
