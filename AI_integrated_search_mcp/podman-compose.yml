@@ -17,6 +17,11 @@ services:
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
       - MPLCONFIGDIR=/tmp/.matplotlib
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          mode: 01777
     networks:
       - mcp-network
     restart: unless-stopped

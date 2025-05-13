@@ -3,11 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from fpdf import FPDF
-import io
 import tempfile
 import os
+import io
 from datetime import datetime
-import boto3
 import os
 import tempfile
 import matplotlib.pyplot as plt
