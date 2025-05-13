@@ -113,10 +113,13 @@ http://localhost:5002
 
 ### トレンド分析サービス（ポート5006）
 
-このサービスは出願人名に基づいて特許出願のトレンド分析を行います：
+このサービスは特許出願のトレンド分析を行います：
 
 - `/health` - ヘルスチェックエンドポイント
-- `/analyze` - 出願人別の特許分類トレンド分析
+- `/analyze` - 出願人別の特許分類トレンド分析（年別・分類別の出願件数）
+- `/analyze_pdf` - 出願人別の分析レポートをPDF形式で生成
+- `/analyze_classification` - 特許分類別のトレンド分析（年別・出願人別の出願件数）
+- `/analyze_classification_pdf` - 特許分類別の分析レポートをPDF形式で生成
 - `/docs` - API ドキュメント
 
 ### Web UI（ポート5002）
@@ -336,7 +339,7 @@ curl -X POST http://localhost:5004/query/bigquery \
 
 ### トレンド分析サービスAPI
 
-#### 1. 特許分類トレンド分析
+#### 1. 出願人別・分類別の特許トレンド分析
 
 ```bash
 curl -X POST http://localhost:5006/analyze \
@@ -362,6 +365,76 @@ curl -X POST http://localhost:5006/analyze \
   "assessment": "テック株式会社の特許出願分析:\n\n1. 全体的な特許活動: 2010年から2023年にかけて特許出願は着実に増加傾向にあります。\n\n2. 主要技術分野:\n   - H（電気）: 全出願の約45%を占める主要分野\n   - G（物理学）: 全出願の約30%を占める第二の主要分野\n   - A（生活必需品）: 全出願の約12%を占める成長分野\n\n3. 最大出願年: 2021年に最も多くの出願（168件）がありました。\n\n4. 技術多様化: 技術領域は2010年の4分野から2023年の6分野へと拡大し、研究開発の幅が広がっていることを示しています。"
 }
 ```
+
+#### 2. 出願人別特許分析のPDFレポート生成
+
+```bash
+curl -X POST http://localhost:5006/analyze_pdf \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicant_name": "テック株式会社",
+    "start_year": 2010,
+    "end_year": 2023
+  }' \
+  --output テック株式会社_特許分析.pdf
+```
+
+応答: PDF形式のレポートファイルが生成され、指定した出力ファイルに保存されます。
+
+PDFレポートには以下が含まれます:
+- 会社名と分析期間
+- 特許出願トレンドの詳細評価
+- 棒グラフによる分類別・年別の特許出願件数の可視化
+- 主要な技術分野と注目すべきパターンの解説
+
+#### 3. 特許分類別・出願人別のトレンド分析
+
+```bash
+curl -X POST http://localhost:5006/analyze_classification \
+  -H "Content-Type: application/json" \
+  -d '{
+    "classification_code": "G",
+    "start_year": 2010,
+    "end_year": 2023
+  }'
+```
+
+応答例：
+```json
+{
+  "classification_code": "G",
+  "yearly_applicant_counts": {
+    "2010": {"テック株式会社": 23, "電子システム株式会社": 18, "ABC Technologies": 15, "XYZ研究所": 12, "Future Systems Inc": 10},
+    "2011": {"テック株式会社": 28, "電子システム株式会社": 22, "ABC Technologies": 19, "Future Systems Inc": 14, "サイエンス株式会社": 11},
+    "2012": {"テック株式会社": 30, "電子システム株式会社": 25, "ABC Technologies": 22, "サイエンス株式会社": 18, "Future Systems Inc": 15}
+    // 他の年も同様...
+  },
+  "chart_image": "BASE64ENCODED_IMAGE_DATA_HERE",
+  "assessment": "IPC分類 G（物理学）の特許出願分析:\n\n1. 全体的な傾向: 物理学分野の特許出願は2010年から2023年にかけて着実に増加傾向にあります。\n\n2. 主要出願人:\n   - テック株式会社: 全出願の約22%を占める主要出願人\n   - 電子システム株式会社: 全出願の約18%を占める第二の主要出願人\n   - ABC Technologies: 全出願の約15%を占める主要国際出願人\n\n3. 最大出願年: 2022年に最も多くの出願（245件）がありました。\n\n4. 出願人多様化: この分類における出願人数は2010年の12社から2023年の25社へと増加し、この技術分野での競争が激化していることを示しています。"
+}
+```
+
+#### 4. 特許分類別分析のPDFレポート生成
+
+```bash
+curl -X POST http://localhost:5006/analyze_classification_pdf \
+  -H "Content-Type: application/json" \
+  -d '{
+    "classification_code": "G",
+    "start_year": 2010,
+    "end_year": 2023
+  }' \
+  --output G分類_特許分析.pdf
+```
+
+応答: PDF形式のレポートファイルが生成され、指定した出力ファイルに保存されます。
+
+PDFレポートには以下が含まれます:
+- 分類コードと分類名（例：G - 物理学）
+- 分類における特許出願トレンドの詳細評価
+- 棒グラフによる主要出願人別・年別の特許出願件数の可視化
+- 分類における市場状況と競争環境の解説
+- 年による出願人多様性の変化
 
 ## システムの使い方
 
@@ -429,7 +502,7 @@ resources:
 
 ```yaml
 name: Trend Analysis MCP Server
-description: 出願人名別の特許出願トレンド分析
+description: 特許出願トレンド分析（出願人名別・分類別）
 base_url: http://localhost:5006
 auth:
   type: none
@@ -450,6 +523,54 @@ tools:
         end_year:
           type: integer
           description: 分析期間の終了年（例：2023）
+  - name: generate_patent_report_pdf
+    description: 出願人名を基に特許出願分析レポートをPDF形式で生成
+    parameters:
+      type: object
+      required:
+        - applicant_name
+      properties:
+        applicant_name:
+          type: string
+          description: レポート対象の出願人/企業名
+        start_year:
+          type: integer
+          description: 分析期間の開始年
+        end_year:
+          type: integer
+          description: 分析期間の終了年
+  - name: analyze_classification_trends
+    description: 特許分類コードを基に出願人別トレンドを分析し、可視化と評価を提供
+    parameters:
+      type: object
+      required:
+        - classification_code
+      properties:
+        classification_code:
+          type: string
+          description: 分析対象のIPC特許分類コード（例：A, B, C, G, H）
+        start_year:
+          type: integer
+          description: 分析期間の開始年（例：2010）
+        end_year:
+          type: integer
+          description: 分析期間の終了年（例：2023）
+  - name: generate_classification_report_pdf
+    description: 特許分類コードを基に分析レポートをPDF形式で生成
+    parameters:
+      type: object
+      required:
+        - classification_code
+      properties:
+        classification_code:
+          type: string
+          description: レポート対象のIPC特許分類コード（例：A, B, C, G, H）
+        start_year:
+          type: integer
+          description: 分析期間の開始年
+        end_year:
+          type: integer
+          description: 分析期間の終了年
 ```
 
 ## 管理コマンド
