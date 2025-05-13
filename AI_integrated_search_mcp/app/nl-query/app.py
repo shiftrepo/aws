@@ -68,21 +68,10 @@ class BedrockClient:
             logger.error(f"Failed to initialize Bedrock client: {str(e)}")
             raise
 
-        # Model IDs
-        self.llm_model_id = os.environ.get("BEDROCK_LLM_MODEL")
-        if not self.llm_model_id:
-            logger.error("BEDROCK_LLM_MODEL not found in environment variables")
-            raise ValueError("BEDROCK_LLM_MODEL not found in environment variables")
-
-        self.embedding_model_id = os.environ.get("BEDROCK_EMBEDDING_MODEL")
-        if not self.embedding_model_id:
-            logger.error("BEDROCK_EMBEDDING_MODEL not found in environment variables")
-            raise ValueError("BEDROCK_EMBEDDING_MODEL not found in environment variables")
-
-        self.rerank_model_id = os.environ.get("BEDROCK_RERANK_MODEL")
-        if not self.rerank_model_id:
-            logger.error("BEDROCK_RERANK_MODEL not found in environment variables")
-            raise ValueError("BEDROCK_RERANK_MODEL not found in environment variables")
+        # Model IDs - hardcoded values instead of environment variables
+        self.llm_model_id = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        self.embedding_model_id = "amazon.titan-embed-text-v2:0"
+        self.rerank_model_id = "amazon.rerank-v1:0"
 
         logger.info(f"Using LLM model: {self.llm_model_id}")
         logger.info(f"Using embedding model: {self.embedding_model_id}")
