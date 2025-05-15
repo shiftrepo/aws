@@ -82,9 +82,13 @@ def fix_db_paths():
     
     # Create or update a marker file to indicate fix was attempted
     marker_file = DATA_DIR / ".db_fix_applied"
-    with open(marker_file, "w") as f:
-        f.write("DB fix script was applied")
-    logger.info("Created marker file to indicate fix was applied")
+    try:
+        with open(marker_file, "w") as f:
+            f.write("DB fix script was applied")
+        logger.info("Created marker file to indicate fix was applied")
+    except PermissionError as e:
+        logger.warning(f"Could not create marker file due to permissions: {str(e)}")
+        logger.info("Continuing anyway as this is not critical")
     
     return {
         "input_db_exists": input_db_exists,

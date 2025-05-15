@@ -34,7 +34,7 @@ fi
 
 # Stop and remove any existing containers with the same names
 echo "Cleaning up any existing containers..."
-for CONTAINER in "${DATABASE_CONTAINER:-sqlite-db}" "${NL_QUERY_CONTAINER:-nl-query-service}" "${WEBUI_CONTAINER:-web-ui}"
+for CONTAINER in "${DATABASE_CONTAINER:-sqlite-db}" "${NL_QUERY_CONTAINER:-nl-query-service}" "${WEBUI_CONTAINER:-web-ui}" "${TREND_ANALYSIS_CONTAINER:-trend-analysis-service}"
 do
   if podman ps -a | grep -q "$CONTAINER"; then
     echo "Removing existing container: $CONTAINER"

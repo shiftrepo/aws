@@ -555,6 +555,10 @@ def check_and_fix_db_files():
         except ImportError:
             logger.warning("Could not import fix_db_paths module")
             pass  # Continue even if fix script fails
+        except Exception as e:
+            logger.error(f"Error during database fix: {str(e)}")
+            logger.warning("Continuing despite database fix error")
+            pass  # Continue even if fix script fails
     
     # If databases are not found, try downloading them
     if not (INPUT_DB_PATH.exists() and BIGQUERY_DB_PATH.exists()):
