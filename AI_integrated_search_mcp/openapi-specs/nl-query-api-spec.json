@@ -1,0 +1,61 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Natural Language Query API",
+    "description": "API for processing natural language queries using AWS Bedrock models to convert them to SQL",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5004"
+    }
+  ],
+  "paths": {
+    "/query/{db_name}": {
+      "post": {
+        "description": "Process a natural language query and convert it to SQL",
+        "operationId": "processNaturalLanguageQuery",
+        "parameters": [
+          {
+            "name": "db_name",
+            "in": "path",
+            "description": "Name of the database to query (input, inpit, or bigquery)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["input", "inpit", "bigquery"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Natural language query in Japanese or English"
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Check the health status of the API service",
+        "operationId": "healthCheck",
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

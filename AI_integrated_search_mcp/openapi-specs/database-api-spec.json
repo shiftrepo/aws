@@ -1,0 +1,106 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SQLite Database API",
+    "description": "API for interacting with SQLite databases containing patent data",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5003"
+    }
+  ],
+  "paths": {
+    "/execute/{db_name}": {
+      "post": {
+        "description": "Execute an SQL query on the specified database",
+        "operationId": "executeQuery",
+        "parameters": [
+          {
+            "name": "db_name",
+            "in": "path",
+            "description": "Name of the database (input, inpit, or bigquery)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["input", "inpit", "bigquery"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "SQL query to execute on the database"
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/schema/{db_name}": {
+      "get": {
+        "description": "Get the database schema for the specified database",
+        "operationId": "getSchema",
+        "parameters": [
+          {
+            "name": "db_name",
+            "in": "path",
+            "description": "Name of the database (input, inpit, or bigquery)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["input", "inpit", "bigquery"]
+            }
+          }
+        ],
+        "deprecated": false
+      }
+    },
+    "/sample_queries/{db_name}": {
+      "get": {
+        "description": "Get sample SQL queries for the specified database",
+        "operationId": "getSampleQueries",
+        "parameters": [
+          {
+            "name": "db_name",
+            "in": "path",
+            "description": "Name of the database (input, inpit, or bigquery)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["input", "inpit", "bigquery"]
+            }
+          }
+        ],
+        "deprecated": false
+      }
+    },
+    "/databases": {
+      "get": {
+        "description": "List all available databases",
+        "operationId": "listDatabases",
+        "deprecated": false
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Check the health status of the API service",
+        "operationId": "healthCheck",
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

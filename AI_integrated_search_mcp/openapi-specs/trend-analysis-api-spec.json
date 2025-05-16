@@ -1,0 +1,153 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Patent Trend Analysis API",
+    "description": "API for analyzing patent classification trends by applicant and generating reports",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5006"
+    }
+  ],
+  "paths": {
+    "/analyze": {
+      "post": {
+        "description": "Analyze patent trends by classification and year for a specific applicant",
+        "operationId": "analyzePatentTrends",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "applicant_name": {
+                    "type": "string",
+                    "description": "Name of the applicant/company to analyze"
+                  },
+                  "start_year": {
+                    "type": "integer",
+                    "description": "Starting year for analysis period (optional)"
+                  },
+                  "end_year": {
+                    "type": "integer",
+                    "description": "Ending year for analysis period (optional)"
+                  }
+                },
+                "required": ["applicant_name"]
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/analyze_pdf": {
+      "post": {
+        "description": "Generate a PDF report of patent trends by classification for a specific applicant",
+        "operationId": "generatePatentTrendsPDF",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "applicant_name": {
+                    "type": "string",
+                    "description": "Name of the applicant/company for the PDF report"
+                  },
+                  "start_year": {
+                    "type": "integer",
+                    "description": "Starting year for analysis period (optional)"
+                  },
+                  "end_year": {
+                    "type": "integer",
+                    "description": "Ending year for analysis period (optional)"
+                  }
+                },
+                "required": ["applicant_name"]
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/analyze_classification": {
+      "post": {
+        "description": "Analyze patent trends by applicant and year for a specific patent classification",
+        "operationId": "analyzeClassificationTrends",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "classification_code": {
+                    "type": "string",
+                    "description": "IPC classification code (e.g., 'A', 'B', 'G', 'H')"
+                  },
+                  "start_year": {
+                    "type": "integer",
+                    "description": "Starting year for analysis period (optional)"
+                  },
+                  "end_year": {
+                    "type": "integer",
+                    "description": "Ending year for analysis period (optional)"
+                  }
+                },
+                "required": ["classification_code"]
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/analyze_classification_pdf": {
+      "post": {
+        "description": "Generate a PDF report of patent trends by applicant for a specific classification",
+        "operationId": "generateClassificationTrendsPDF",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "classification_code": {
+                    "type": "string",
+                    "description": "IPC classification code (e.g., 'A', 'B', 'G', 'H')"
+                  },
+                  "start_year": {
+                    "type": "integer",
+                    "description": "Starting year for analysis period (optional)"
+                  },
+                  "end_year": {
+                    "type": "integer",
+                    "description": "Ending year for analysis period (optional)"
+                  }
+                },
+                "required": ["classification_code"]
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Check the health status of the API service",
+        "operationId": "healthCheck",
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

@@ -467,11 +467,133 @@ PDFレポートには以下が含まれます:
 1. **Inpitデータベース**: `s3://ndi-3supervision/MIT/demo/inpit/inpit.db`に配置
 2. **BigQueryデータベース**: `s3://ndi-3supervision/MIT/demo/GCP/google_patents_gcp.db`に配置
 
-## MCP統合
+## OpenAPI仕様とDify統合
 
-データベースAPIと自然言語クエリAPIの両方がDify統合用のMCPサーバーとして設計されています。`/openapi`エンドポイントでOpenAPI仕様を提供しています。
+各APIサービスは、Difyやその他のAIプラットフォームとの統合を容易にするために、OpenAPI 3.1.0仕様を提供しています。これらの仕様は `openapi-specs` ディレクトリに格納されています。
 
-### Dify用のMCP設定例
+### OpenAPI仕様ファイル
+
+以下のOpenAPI仕様ファイルが利用可能です：
+
+1. **データベースAPI** (`database-api-spec.json`) - SQLクエリの実行とデータベーススキーマへのアクセス用
+2. **自然言語クエリAPI** (`nl-query-api-spec.json`) - AWS Bedrockを使用した自然言語クエリ処理用
+3. **トレンド分析API** (`trend-analysis-api-spec.json`) - 特許トレンド分析とレポート生成用
+
+### Difyでの使用方法
+
+Difyダッシュボードでこれらの仕様ファイルをインポートして、カスタムツールプロバイダーとして設定できます：
+
+1. Difyダッシュボードで「モデルプロバイダー」>「ツールプロバイダー」>「カスタムツールプロバイダーを追加」を選択
+2. 名前を入力（例：「SQLiteデータベースAPI」）
+3. 対応するOpenAPI仕様ファイルの内容をアップロードまたは貼り付け
+4. 必要に応じて認証を設定（デフォルトでは認証なし）
+5. プロバイダーを保存
+
+### データベースAPI設定例
+
+```json
+{
+  "name": "SQLite Database API",
+  "description": "特許データを含むSQLiteデータベースとやり取りするためのAPI",
+  "base_url": "http://localhost:5003",
+  "auth": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "executeQuery",
+      "description": "指定されたデータベースでSQLクエリを実行する"
+    },
+    {
+      "name": "getSchema",
+      "description": "指定されたデータベースのスキーマを取得する"
+    },
+    {
+      "name": "getSampleQueries",
+      "description": "データベース用のサンプルSQLクエリを取得する"
+    },
+    {
+      "name": "listDatabases",
+      "description": "利用可能なすべてのデータベースを一覧表示する"
+    }
+  ]
+}
+```
+
+### 自然言語クエリAPI設定例
+
+```json
+{
+  "name": "Natural Language Query API",
+  "description": "AWS Bedrockモデルを使用して自然言語クエリを処理するためのAPI",
+  "base_url": "http://localhost:5004",
+  "auth": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "processNaturalLanguageQuery",
+      "description": "自然言語クエリを処理してSQLに変換する"
+    }
+  ]
+}
+```
+
+### トレンド分析API設定例
+
+```json
+{
+  "name": "Patent Trend Analysis API",
+  "description": "出願人別の特許分類トレンドを分析しレポートを生成するためのAPI",
+  "base_url": "http://localhost:5006",
+  "auth": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "analyzePatentTrends",
+      "description": "特定の出願人の分類別・年別特許トレンドを分析する"
+    },
+    {
+      "name": "generatePatentTrendsPDF",
+      "description": "特定の出願人の分類別特許トレンドのPDFレポートを生成する"
+    },
+    {
+      "name": "analyzeClassificationTrends",
+      "description": "特定の特許分類の出願人別・年別トレンドを分析する"
+    },
+    {
+      "name": "generateClassificationTrendsPDF",
+      "description": "特定の特許分類の出願人別トレンドのPDFレポートを生成する"
+    }
+  ]
+}
+```
+
+### Difyアプリケーションでのツールの使用例
+
+Difyアプリケーションでこれらのツールを使用する際のプロンプト例：
+
+#### データベースAPIの例
+```
+bigqueryデータベースに次のクエリを実行してください：
+SELECT publication_number, title FROM publications WHERE title LIKE '%artificial intelligence%' LIMIT 10
+```
+
+#### 自然言語クエリAPIの例
+```
+bigqueryデータベースに対して次の質問を処理してください：
+米国と日本の特許公開件数を比較して
+```
+
+#### トレンド分析APIの例
+```
+テック株式会社の2015年から2023年の特許トレンドを分析してください
+```
+
+### 既存のMCP設定例
+
+旧来のMCP設定もまだサポートされています：
 
 ```yaml
 name: ai-integrated-search
@@ -497,8 +619,6 @@ resources:
     description: Get sample SQL queries for a database
     url: /sample_queries/{db_name}
 ```
-
-### Trend Analysis用のMCP設定例
 
 ```yaml
 name: Trend Analysis MCP Server
