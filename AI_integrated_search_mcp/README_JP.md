@@ -683,3 +683,400 @@ Difyダッシュボードでこれらの仕様ファイルをインポートし�
 {
   "name": "SQLite Database API",
   "description": "特許データを含むSQLiteデータベースとやり取りするためのAPI",
+  "schema": {
+    "openapi": "3.1.0",
+    "info": {
+      "title": "SQLite Database API",
+      "description": "API for interacting with SQLite databases containing patent data",
+      "version": "v1.0.0"
+    },
+    "servers": [
+      {
+        "url": "http://localhost:5003"
+      }
+    ],
+    "paths": { ... }
+  }
+}
+```
+
+### 自然言語クエリAPI設定例
+
+```json
+{
+  "name": "Natural Language Query API",
+  "description": "自然言語クエリをSQLに変換してデータベースを検索するためのAPI",
+  "schema": {
+    "openapi": "3.1.0",
+    "info": {
+      "title": "Natural Language Query API",
+      "description": "API for processing natural language queries using AWS Bedrock models to convert them to SQL",
+      "version": "v1.0.0"
+    },
+    "servers": [
+      {
+        "url": "http://localhost:5004"
+      }
+    ],
+    "paths": { ... }
+  }
+}
+```
+
+### トレンド分析API設定例
+
+```json
+{
+  "name": "Patent Trend Analysis API",
+  "description": "特許出願のトレンド分析を行い、視覚的レポートを生成するためのAPI",
+  "schema": {
+    "openapi": "3.1.0",
+    "info": {
+      "title": "Patent Trend Analysis API",
+      "description": "API for analyzing patent classification trends by applicant and generating reports",
+      "version": "v1.0.0"
+    },
+    "servers": [
+      {
+        "url": "http://localhost:5006"
+      }
+    ],
+    "paths": { ... }
+  }
+}
+```
+
+## OpenAPIエンドポイントの詳細使用例
+
+以下は、各OpenAPIエンドポイントの詳細な使用例です。これらのエンドポイントは、HTTPクライアント（curl、Postman、Python requests等）またはDifyプラットフォームから直接アクセスできます。
+
+### データベースAPI（localhost:5003）のエンドポイント
+
+#### 1. SQLクエリ実行 (POST /execute/{db_name})
+
+**URLパラメータ:**
+- db_name: データベース名（"input", "inpit", "bigquery"のいずれか）
+
+**リクエスト本文:**
+```json
+{
+  "query": "SELECT COUNT(*) AS total_patents FROM publications"
+}
+```
+
+**レスポンス例:**
+```json
+{
+  "database": "bigquery",
+  "query": "SELECT COUNT(*) AS total_patents FROM publications",
+  "columns": ["total_patents"],
+  "rows": [
+    {"total_patents": 125784}
+  ],
+  "row_count": 1,
+  "execution_time_ms": 3.25
+}
+```
+
+**複雑なクエリ例:**
+```json
+{
+  "query": "SELECT p.publication_number, p.title, p.publication_date, p.country_code, pf.family_size FROM publications p JOIN patent_families pf ON p.family_id = pf.family_id WHERE p.publication_date >= '2020-01-01' AND p.title LIKE '%artificial intelligence%' ORDER BY pf.family_size DESC LIMIT 10"
+}
+```
+
+#### 2. データベーススキーマ取得 (GET /schema/{db_name})
+
+**URLパラメータ:**
+- db_name: データベース名（"input", "inpit", "bigquery"のいずれか）
+
+**レスポンス例:**
+```json
+{
+  "schema": {
+    "publications": [
+      {"name": "publication_number", "type": "TEXT", ...},
+      {"name": "title", "type": "TEXT", ...},
+      {"name": "abstract", "type": "TEXT", ...},
+      {"name": "publication_date", "type": "TEXT", ...},
+      ...
+    ],
+    "patent_families": [
+      {"name": "family_id", "type": "TEXT", ...},
+      {"name": "family_size", "type": "INTEGER", ...},
+      {"name": "earliest_filing_date", "type": "TEXT", ...},
+      ...
+    ],
+    ...
+  },
+  "table_count": 5,
+  "database": "bigquery"
+}
+```
+
+#### 3. サンプルクエリ取得 (GET /sample_queries/{db_name})
+
+**URLパラメータ:**
+- db_name: データベース名（"input", "inpit", "bigquery"のいずれか）
+
+**レスポンス例:**
+```json
+{
+  "database": "inpit",
+  "sample_queries": [
+    {
+      "name": "出願人TOP10",
+      "query": "SELECT applicant_name, COUNT(*) AS application_count FROM applicants GROUP BY applicant_name ORDER BY application_count DESC LIMIT 10"
+    },
+    {
+      "name": "分類別出願件数",
+      "query": "SELECT classification_code, COUNT(*) AS count FROM classifications GROUP BY classification_code ORDER BY count DESC"
+    },
+    ...
+  ],
+  "count": 12
+}
+```
+
+#### 4. 利用可能なデータベース一覧 (GET /databases)
+
+**レスポンス例:**
+```json
+{
+  "databases": ["inpit", "bigquery"],
+  "default": "bigquery",
+  "available_count": 2,
+  "status": "ok"
+}
+```
+
+#### 5. ヘルスチェック (GET /health)
+
+**レスポンス例:**
+```json
+{
+  "status": "ok",
+  "service": "database-api",
+  "version": "1.0.0",
+  "databases": {
+    "inpit": true,
+    "bigquery": true
+  },
+  "timestamp": "2025-05-17T21:15:00Z"
+}
+```
+
+### 自然言語クエリAPI（localhost:5004）のエンドポイント
+
+#### 1. 自然言語クエリ処理 (POST /query/{db_name})
+
+**URLパラメータ:**
+- db_name: データベース名（"input", "inpit", "bigquery"のいずれか）
+
+**リクエスト本文:**
+```json
+{
+  "query": "2020年以降に出願された人工知能に関する特許のうち、最も出願件数の多い5社を教えて"
+}
+```
+
+**レスポンス例:**
+```json
+{
+  "user_query": "2020年以降に出願された人工知能に関する特許のうち、最も出願件数の多い5社を教えて",
+  "sql_query": "SELECT applicant_name, COUNT(*) AS application_count FROM publications p JOIN applicants a ON p.publication_number = a.publication_number WHERE p.publication_date >= '2020-01-01' AND (p.title LIKE '%人工知能%' OR p.title LIKE '%AI%' OR p.title LIKE '%artificial intelligence%') GROUP BY applicant_name ORDER BY application_count DESC LIMIT 5",
+  "results": [
+    {"applicant_name": "テック株式会社", "application_count": 156},
+    {"applicant_name": "Samsung Electronics Co., Ltd.", "application_count": 134},
+    {"applicant_name": "IBM Corporation", "application_count": 128},
+    {"applicant_name": "電子システム株式会社", "application_count": 102},
+    {"applicant_name": "Google LLC", "application_count": 98}
+  ],
+  "row_count": 5,
+  "columns": ["applicant_name", "application_count"],
+  "explanation": "このクエリでは2020年1月1日以降に公開された特許から、タイトルに「人工知能」「AI」または「artificial intelligence」を含む特許を検索し、出願人ごとの出願件数を集計しました。その結果、テック株式会社が156件と最も多く、次いでSamsung Electronics、IBM、電子システム株式会社、Google LLCという順になっています。この結果から、日本企業とグローバル企業の両方が人工知能分野で積極的な特許活動を行っていることが分かります。"
+}
+```
+
+**英語の自然言語クエリ例:**
+```json
+{
+  "query": "What is the trend of patent applications in the field of renewable energy over the last decade?"
+}
+```
+
+#### 2. ヘルスチェック (GET /health)
+
+**レスポンス例:**
+```json
+{
+  "status": "ok",
+  "service": "nl-query-api",
+  "version": "1.0.0",
+  "bedrock_status": "connected",
+  "database_api_status": "connected",
+  "supported_languages": ["ja", "en"],
+  "timestamp": "2025-05-17T21:15:00Z"
+}
+```
+
+### トレンド分析API（localhost:5006）のエンドポイント
+
+#### 1. 出願人別・分類別トレンド分析 (POST /analyze)
+
+**リクエスト本文:**
+```json
+{
+  "applicant_name": "テック株式会社",
+  "start_year": 2015,
+  "end_year": 2023
+}
+```
+
+**レスポンス例:**
+```json
+{
+  "applicant_name": "テック株式会社",
+  "yearly_classification_counts": {
+    "2015": {"A": 15, "B": 12, "C": 8, "G": 35, "H": 67},
+    "2016": {"A": 18, "B": 14, "C": 9, "G": 38, "H": 72},
+    "2017": {"A": 22, "B": 16, "C": 11, "G": 42, "H": 78},
+    ...
+  },
+  "chart_image": "BASE64ENCODED_IMAGE_DATA",
+  "assessment": "テック株式会社の特許出願分析...",
+  "analysis_period": "2015-2023",
+  "total_applications": 1457
+}
+```
+
+#### 2. 出願人別PDF分析レポート生成 (POST /analyze_pdf)
+
+**リクエスト本文:**
+```json
+{
+  "applicant_name": "テック株式会社",
+  "start_year": 2015,
+  "end_year": 2023
+}
+```
+
+**レスポンス:** PDF形式のレポートファイルが返されます。
+
+#### 3. 特許分類別・出願人別トレンド分析 (POST /analyze_classification)
+
+**リクエスト本文:**
+```json
+{
+  "classification_code": "G06N",
+  "start_year": 2015,
+  "end_year": 2023
+}
+```
+
+**レスポンス例:**
+```json
+{
+  "classification_code": "G06N",
+  "classification_name": "コンピュータシステムに基づく特定の計算モデル",
+  "yearly_applicant_counts": {
+    "2015": {"テック株式会社": 18, "IBM Corporation": 22, "Microsoft Corporation": 15, ...},
+    "2016": {"テック株式会社": 25, "IBM Corporation": 26, "Google LLC": 19, ...},
+    ...
+  },
+  "chart_image": "BASE64ENCODED_IMAGE_DATA",
+  "assessment": "G06N分類（コンピュータシステムに基づく特定の計算モデル）の分析...",
+  "analysis_period": "2015-2023",
+  "total_applications": 2354,
+  "top_applicants": ["IBM Corporation", "テック株式会社", "Google LLC", "Microsoft Corporation", "電子システム株式会社"]
+}
+```
+
+#### 4. 特許分類別PDF分析レポート生成 (POST /analyze_classification_pdf)
+
+**リクエスト本文:**
+```json
+{
+  "classification_code": "G06N",
+  "start_year": 2015,
+  "end_year": 2023
+}
+```
+
+**レスポンス:** PDF形式のレポートファイルが返されます。
+
+#### 5. ヘルスチェック (GET /health)
+
+**レスポンス例:**
+```json
+{
+  "status": "ok",
+  "service": "trend-analysis-api",
+  "version": "1.0.0",
+  "database_connection": true,
+  "pdf_generation": true,
+  "timestamp": "2025-05-17T21:15:00Z"
+}
+```
+
+## Dify統合の詳細手順
+
+DifyプラットフォームでこれらのAPIをツールとして統合する手順は以下の通りです：
+
+### 1. Dify管理画面へのログイン
+
+Difyの管理ダッシュボードにログインします。
+
+### 2. ツールプロバイダーの追加
+
+1. 左メニューの「モデル」→「ツールプロバイダー」に移動します
+2. 「+ツールプロバイダー」ボタンをクリックします
+3. 「OpenAPI仕様からインポート」を選択します
+
+### 3. データベースAPIの追加
+
+1. プロバイダー名に「SQLite Database API」と入力します
+2. 「OpenAPIのURL」または「OpenAPI仕様を入力」から、`database-api-spec.json`の内容を貼り付けます
+3. 「インポート」をクリックし、正常に読み込まれたことを確認します
+4. 「保存」をクリックします
+
+### 4. 自然言語クエリAPIの追加
+
+1. 同様の手順で、プロバイダー名に「Natural Language Query API」と入力します
+2. `nl-query-api-spec.json`の内容を貼り付けます
+3. インポートして保存します
+
+### 5. トレンド分析APIの追加
+
+1. 同様の手順で、プロバイダー名に「Patent Trend Analysis API」と入力します
+2. `trend-analysis-api-spec.json`の内容を貼り付けます
+3. インポートして保存します
+
+### 6. アプリケーションでのツール有効化
+
+1. Difyで使用したいアプリケーションに移動します
+2. 「開発」→「ツール」タブに移動します
+3. 先ほど追加した3つのAPIを検索して有効にします
+
+### 7. ツールの構成
+
+各ツールの説明を編集し、AIがそのツールを適切に使用できるようにすることができます。
+
+### 8. プロンプト設定
+
+AIが適切なタイミングでこれらのツールを使うよう、プロンプトに説明を追加します。例：
+
+```
+あなたは特許データ分析アシスタントです。データベースAPI、自然言語クエリAPI、トレンド分析APIを使って、特許情報の検索や分析を支援します。
+...
+```
+
+### 9. 動作確認
+
+テストパネルで様々な質問をして、AIがツールを適切に使用できるかをテストします。例：
+
+- 「テック株式会社の過去5年間の特許出願傾向を教えて」
+- 「G分類の特許で最も出願の多い企業は？」
+- 「人工知能に関する特許でトップ出願人を教えて」
+
+これらの質問に対して、AIが適切なAPIを呼び出し、結果を分かりやすく説明することを確認します。
