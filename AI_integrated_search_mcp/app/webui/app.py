@@ -294,7 +294,12 @@ def api_execute_query():
     query = data["query"]
     
     result = db_client.execute_query(db_name, query)
-    return jsonify(result)
+    
+    # Return with explicit charset encoding and content type
+    return Response(
+        json.dumps(result, ensure_ascii=False),
+        mimetype='application/json; charset=utf-8'
+    )
 
 @app.route('/api/nl_query', methods=['POST'])
 def api_nl_query():

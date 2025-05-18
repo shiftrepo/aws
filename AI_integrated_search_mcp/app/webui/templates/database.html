@@ -411,17 +411,18 @@
         
         // Create table header
         let headerHtml = '<thead><tr>';
-        data.columns.forEach(col => {
-            headerHtml += `<th>${col}</th>`;
+        data.columns.forEach(function(col) {
+            headerHtml += '<th>' + col + '</th>';
         });
         headerHtml += '</tr></thead>';
         
         // Create table body
         let bodyHtml = '<tbody>';
-        data.rows.forEach(row => {
+        data.rows.forEach(function(row) {
             bodyHtml += '<tr>';
-            data.columns.forEach(col => {
-                bodyHtml += `<td>${row[col] !== null ? row[col] : '<em>NULL</em>'}</td>`;
+            data.columns.forEach(function(col) {
+                const value = row[col];
+                bodyHtml += '<td>' + (value !== null ? value : '<em>NULL</em>') + '</td>';
             });
             bodyHtml += '</tr>';
         });
@@ -441,7 +442,7 @@
         });
         
         // Update summary
-        $('#sql-results-summary').text(`Query executed in ${data.execution_time_ms}ms. ${data.row_count} rows returned.`);
+        $('#sql-results-summary').text('Query executed in ' + data.execution_time_ms + 'ms. ' + data.row_count + ' rows returned.');
         $('#sql-results-container').show();
     }
     
@@ -491,6 +492,8 @@
                 $('#run-nl-query-btn').prop('disabled', false);
                 $('#nl-loading').hide();
                 
+                console.log("NL query response:", data); // Debug log to see response structure
+                
                 if (data.error) {
                     $('#nl-error-message').text(data.error);
                     $('#nl-error-container').show();
@@ -498,7 +501,7 @@
                 }
                 
                 // Display SQL query
-                $('#nl-generated-sql').text(data.sql_query);
+                $('#nl-generated-sql').text(data.sql_query || '');
                 
                 // Display results
                 const tableEl = $('#nl-results-table');
@@ -507,22 +510,31 @@
                 if (!data.columns || !data.results || data.results.length === 0) {
                     $('#nl-results-summary').text('Query executed successfully. No rows returned.');
                     $('#nl-results-container').show();
+                    
+                    // Still display explanation even if no results
+                    if (data.explanation) {
+                        $('#nl-explanation').html(data.explanation);
+                    } else {
+                        $('#nl-explanation').html('<em>No explanation provided.</em>');
+                    }
+                    
                     return;
                 }
                 
                 // Create table header
                 let headerHtml = '<thead><tr>';
-                data.columns.forEach(col => {
-                    headerHtml += `<th>${col}</th>`;
+                data.columns.forEach(function(col) {
+                    headerHtml += '<th>' + col + '</th>';
                 });
                 headerHtml += '</tr></thead>';
                 
                 // Create table body
                 let bodyHtml = '<tbody>';
-                data.results.forEach(row => {
+                data.results.forEach(function(row) {
                     bodyHtml += '<tr>';
-                    data.columns.forEach(col => {
-                        bodyHtml += `<td>${row[col] !== null ? row[col] : '<em>NULL</em>'}</td>`;
+                    data.columns.forEach(function(col) {
+                        const value = row[col];
+                        bodyHtml += '<td>' + (value !== null ? value : '<em>NULL</em>') + '</td>';
                     });
                     bodyHtml += '</tr>';
                 });
@@ -542,10 +554,10 @@
                 });
                 
                 // Update summary
-                $('#nl-results-summary').text(`Query executed in ${data.execution_time_ms}ms. ${data.row_count} rows returned.`);
+                $('#nl-results-summary').text('Query executed in ' + (data.execution_time_ms || 0) + 'ms. ' + (data.row_count || data.results.length) + ' rows returned.');
                 
                 // Display explanation
-                $('#nl-explanation').html(data.explanation);
+                $('#nl-explanation').html(data.explanation || '<em>No explanation provided.</em>');
                 
                 $('#nl-results-container').show();
             },

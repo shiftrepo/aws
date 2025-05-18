@@ -340,19 +340,19 @@ class SampleQueries(Resource):
                 },
                 {
                     "name": "Top 10 applicants",
-                    "query": "SELECT applicant, COUNT(*) AS patent_count FROM inpit_data GROUP BY applicant ORDER BY patent_count DESC LIMIT 10;"
+                    "query": "SELECT 出願人, COUNT(*) AS 出願数 FROM inpit_data GROUP BY 出願人 ORDER BY 出願数 DESC LIMIT 10;"
                 },
                 {
-                    "name": "Patents by filing year",
-                    "query": "SELECT filing_year, COUNT(*) AS count FROM inpit_data GROUP BY filing_year ORDER BY filing_year DESC;"
+                    "name": "Patents by registration date",
+                    "query": "SELECT substr(開放特許情報登録日, 1, 4) AS 登録年, COUNT(*) AS 件数 FROM inpit_data GROUP BY 登録年 ORDER BY 登録年 DESC;"
                 },
                 {
                     "name": "Find patents by keyword",
-                    "query": "SELECT publication_number, title, abstract FROM inpit_data WHERE title LIKE '%AI%' OR abstract LIKE '%AI%' LIMIT 20;"
+                    "query": "SELECT 開放特許情報番号, タイトル, 技術概要 FROM inpit_data WHERE タイトル LIKE '%AI%' OR 技術概要 LIKE '%AI%' LIMIT 20;"
                 },
                 {
-                    "name": "Recent patent publications",
-                    "query": "SELECT publication_number, title, publication_date FROM inpit_data ORDER BY publication_date DESC LIMIT 15;"
+                    "name": "Recent patent registrations",
+                    "query": "SELECT 開放特許情報番号, タイトル, 開放特許情報登録日 FROM inpit_data ORDER BY 開放特許情報登録日 DESC LIMIT 15;"
                 }
             ],
             "bigquery": [
