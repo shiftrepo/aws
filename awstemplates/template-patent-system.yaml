@@ -50,11 +50,12 @@ Parameters:
 
   InstanceType4Localllm:
     Type: String
-    Description: Select the instance type (g4dn for local llm)
+    Description: Select the instance type (g4dn or p2 for local llm) p2 0.9$/1h g4dn 0.526$/1h
     Default: g4dn.xlarge
     AllowedValues:
       - t3.small
       - g4dn.xlarge
+      - p2.xlarge
       - t3.medium
       - t3.large
       - t3.xlarge
