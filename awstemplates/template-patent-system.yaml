@@ -283,6 +283,10 @@ Resources:
           FromPort: 3000
           ToPort: 3000
           CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
+        - IpProtocol: tcp
+          FromPort: 11434
+          ToPort: 11434
+          CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
