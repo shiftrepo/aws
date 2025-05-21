@@ -1,0 +1,468 @@
+app:
+  description: 審査基準に沿って進歩性を評価する。
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 進歩性評価
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/bedrock:0.0.18@af12ae0bf52866c1a81405adaa6020137bc2657f129cc6628022f1245d7c88ff
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1746309533136--1746309709692-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746309709692'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1746309533136--1746309943303-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746309943303'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1746309943303--1746309957536-target
+      source: '1746309943303'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1746309709692-source-1746309957536-target
+      source: '1746309709692'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1746309957536--1746310376843-target
+      source: '1746309957536'
+      sourceHandle: source
+      target: '1746310376843'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1746309533136--1746311066099-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1746311066099'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1746311066099-source-1746309957536-target
+      source: '1746311066099'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: knowledge-retrieval
+      id: 1746309533136-source-1747823945965-target
+      source: '1746309533136'
+      sourceHandle: source
+      target: '1747823945965'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: 1747823945965-source-1746309957536-target
+      source: '1747823945965'
+      sourceHandle: source
+      target: '1746309957536'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 開始
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: 主引用発明
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: tec_a
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: 副引用発明
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: tec_b
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: 請求項に係る発明
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: tec_c
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          label: 視点
+          max_length: 5000
+          options: []
+          required: true
+          type: paragraph
+          variable: point
+      height: 168
+      id: '1746309533136'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: false
+        selected: false
+        title: テキスト抽出
+        type: document-extractor
+        variable_selector:
+        - '1746309533136'
+        - tec_a
+      height: 92
+      id: '1746309709692'
+      position:
+        x: 384
+        y: 282
+      positionAbsolute:
+        x: 384
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: false
+        selected: false
+        title: テキスト抽出 2
+        type: document-extractor
+        variable_selector:
+        - '1746309533136'
+        - tec_b
+      height: 92
+      id: '1746309943303'
+      position:
+        x: 384
+        y: 413
+      positionAbsolute:
+        x: 384
+        y: 413
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1747823945965'
+          - result
+        desc: ''
+        model:
+          completion_params:
+            cross-region: true
+            reasoning_type: true
+            temperature: 0.3
+          mode: chat
+          name: anthropic claude
+          provider: langgenius/bedrock/bedrock
+        prompt_template:
+        - id: af2e0882-e6fb-44a9-811d-26fa25e8c581
+          role: system
+          text: 'あなたは、日本国特許審査官です。
+
+            主引用発明を、以下の(1)から(4)までの手順により、主引用発明から出発し て、当業者が請求項に係る発明に容易に到達する論理付けができるか否かを判
+            断します。
+
+
+            なお、下記事項の諸事情は、審査視点から得られたものを利用する。
+
+            3.1 進歩性が否定される方向に働く要素
+
+            3.1.1  主引用発明に副引用発明を適用する動機付け
+
+            (1) 技術分野の関連性
+
+            (2) 課題の共通性
+
+            (3) 作用、機能の共通性
+
+            (4) 引用発明の内容中の示唆
+
+            3.1.2  動機付け以外に進歩性が否定される方向に働く要素
+
+            (1) 設計変更等
+
+            (2) 先行技術の単なる寄せ集め
+
+            3.2 進歩性が肯定される方向に働く要素
+
+            3.2.1  引用発明と比較した有利な効果
+
+            (1) 引用発明と比較した有利な効果の参酌
+
+            (2) 意見書等で主張された効果の参酌
+
+            3.2.2  阻害要因
+
+            3.3 進歩性の判断における留意事項
+
+            審査視点:{{#context#}}
+
+            '
+        - id: 155ff4fd-13b5-4010-8b61-1c30d1b0e3e4
+          role: user
+          text: '主引用発明: {{#1746309709692.text#}}
+
+            副引用発明:{{#1746309943303.text#}}
+
+            請求項に係る発明:{{#1746309943303.text#}}
+
+            上記を利用し、請求項に関わる発明の発明の詳細な説明毎に進歩性を確認し評価して下さい。
+
+            進歩性の評価方法は下記の通りであり、評価のプロセス毎に審査支店に基づき判断し、判断結果を付記した上で、評価を段階的に進めて下さい。
+
+            段階的に評価した結果から進歩性の最終判断を理由付けして記載して下さい。
+
+            利用した審査視点は、参考として末尾に付記して下さい。
+
+
+            評価方法:
+
+            (1)  審査官は、請求項に係る発明と主引用発明との間の相違点に関し、進歩性 が否定される方向に働く要素(3.1参照)に係る諸事情に基づき、他の引用発明(以下この章において「副引用発明」という。)を適用したり、技術常識を考慮したりして、論理付けができるか否かを判断する。
+
+            (2) 上記(1)に基づき、論理付けができないと判断した場合は、審査官は、請求項に係る発明が進歩性を有していると判断する。
+
+            (3) 上記(1)に基づき、論理付けができると判断した場合は、審査官は、進歩 性が肯定される方向に働く要素(3.2参照)に係る諸事情も含めて総合的に評
+            価した上で論理付けができるか否かを判断する。
+
+            (4) 上記(3)に基づき、論理付けができないと判断した場合は、審査官は、請求項に係る発明が進歩性を有していると判断する。
+
+            上記(3)に基づき、論理付けができたと判断した場合は、審査官は、請求項に係る発明が進歩性を有していないと判断する。
+
+            請求項に関わる発明が、進歩性を有しているか評価して下さい。
+
+            なお、審査視点の何をどのように引用したか、最後に付記して下さい。'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1746309957536'
+      position:
+        x: 675
+        y: 282
+      positionAbsolute:
+        x: 675
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1746309957536'
+          - text
+          variable: text
+        selected: false
+        title: 終了
+        type: end
+      height: 90
+      id: '1746310376843'
+      position:
+        x: 979
+        y: 282
+      positionAbsolute:
+        x: 979
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: false
+        selected: false
+        title: テキスト抽出 3
+        type: document-extractor
+        variable_selector:
+        - '1746309533136'
+        - tec_c
+      height: 92
+      id: '1746311066099'
+      position:
+        x: 384
+        y: 544
+      positionAbsolute:
+        x: 384
+        y: 544
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - lXYOo7yH5tjJ6fms742mDCjKZZEonCzA+qRyeRG8w7peRa/U5ORvW73oNJKue2DQ
+        desc: ''
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: reranking_model
+          reranking_model:
+            model: amazon.rerank-v1:0
+            provider: langgenius/bedrock/bedrock
+          top_k: 4
+        query_variable_selector:
+        - '1746309533136'
+        - point
+        retrieval_mode: multiple
+        selected: false
+        title: 知識検索
+        type: knowledge-retrieval
+      height: 92
+      id: '1747823945965'
+      position:
+        x: 384
+        y: 675
+      positionAbsolute:
+        x: 384
+        y: 675
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -437.7014641540885
+      y: 99.68675860273666
+      zoom: 0.8021811663524873

@@ -1,0 +1,1877 @@
+app:
+  description: '各種情報取得を実施し、最後に問い合わせの回答を生成する。
+
+    インターネット検索
+
+    DWH
+
+    評価レポート
+
+    ローカルLLM'
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 統合サーチsql
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/bedrock:0.0.18@af12ae0bf52866c1a81405adaa6020137bc2657f129cc6628022f1245d7c88ff
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/searxng:0.0.5@4d354290d66892676a9f9dc7ce75cef323aae25dfc1c5057c7f770bd1052441b
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/ollama:0.0.6@7d66a960a68cafdcdf5589fdf5d01a995533f956853c69c54eddcf797006fa37
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1747547366688'
+        sourceType: iteration-start
+        targetType: tool
+      id: 1747547366688start-source-1747547417399-target
+      selected: false
+      source: 1747547366688start
+      sourceHandle: source
+      target: '1747547417399'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1747547366688'
+        sourceType: tool
+        targetType: code
+      id: 1747547417399-source-1747547714864-target
+      selected: false
+      source: '1747547417399'
+      sourceHandle: source
+      target: '1747547714864'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 1747546119142-source-1733226408233-target
+      selected: false
+      source: '1747546119142'
+      sourceHandle: source
+      target: '1733226408233'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1733192412182-source-1747546119142-target
+      selected: false
+      source: '1733192412182'
+      sourceHandle: source
+      target: '1747546119142'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: answer
+      id: 1747559305533-source-1747559467203-target
+      selected: false
+      source: '1747559305533'
+      sourceHandle: source
+      target: '1747559467203'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1733192412182-source-1747561605205-target
+      selected: false
+      source: '1733192412182'
+      sourceHandle: source
+      target: '1747561605205'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 1747561605205-source-1747563309793-target
+      selected: false
+      source: '1747561605205'
+      sourceHandle: source
+      target: '1747563309793'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: template-transform
+      id: 1747558891643-source-1747559305533-target
+      selected: false
+      source: '1747558891643'
+      sourceHandle: source
+      target: '1747559305533'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: template-transform
+      id: 1747564264364-source-1747568809800-target
+      selected: false
+      source: '1747564264364'
+      sourceHandle: source
+      target: '1747568809800'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: 1747563309793-source-1747658438705-target
+      selected: false
+      source: '1747563309793'
+      sourceHandle: source
+      target: '1747658438705'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: 1747658438705-source-1747658612936-target
+      selected: false
+      source: '1747658438705'
+      sourceHandle: source
+      target: '1747658612936'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+      id: 1747661587555-source-1747559467203-target
+      selected: false
+      source: '1747661587555'
+      sourceHandle: source
+      target: '1747559467203'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: 1747563309793-source-1747662105245-target
+      selected: false
+      source: '1747563309793'
+      sourceHandle: source
+      target: '1747662105245'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1747662105245-source-1747559467203-target
+      selected: false
+      source: '1747662105245'
+      sourceHandle: source
+      target: '1747559467203'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: llm
+      id: 1747568809800-source-1747566414888-target
+      selected: false
+      source: '1747568809800'
+      sourceHandle: source
+      target: '1747566414888'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 1747566414888-source-1747558891643-target
+      selected: false
+      source: '1747566414888'
+      sourceHandle: source
+      target: '1747558891643'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: tool
+      id: 1747563309793-source-1747816220124-target
+      source: '1747563309793'
+      sourceHandle: source
+      target: '1747816220124'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1747816220124-source-1747564264364-target
+      source: '1747816220124'
+      sourceHandle: source
+      target: '1747564264364'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: tool
+      id: 1733192412182-source-1747816312886-target
+      source: '1733192412182'
+      sourceHandle: source
+      target: '1747816312886'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1747816312886-source-1747661587555-target
+      source: '1747816312886'
+      sourceHandle: source
+      target: '1747661587555'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: 1733226408233-source-1747824572964-target
+      source: '1733226408233'
+      sourceHandle: source
+      target: '1747824572964'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1747824572964'
+        sourceType: tool
+        targetType: code
+      id: 1747824643153--1747824660666-target
+      source: '1747824643153'
+      sourceHandle: ''
+      target: '1747824660666'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInLoop: false
+        sourceType: iteration
+        targetType: llm
+      id: 1747824572964-source-1747566414888-target
+      source: '1747824572964'
+      sourceHandle: source
+      target: '1747566414888'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1747824572964'
+        sourceType: iteration-start
+        targetType: tool
+      id: 1747824572964start-source-1747824643153-target
+      source: 1747824572964start
+      sourceHandle: source
+      target: '1747824643153'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 質問の入力
+        type: start
+        variables: []
+      height: 54
+      id: '1733192412182'
+      position:
+        x: 332.3745379813148
+        y: 421.5
+      positionAbsolute:
+        x: 332.3745379813148
+        y: 421.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(arg1: str) -> dict:\n    queries = json.loads(arg1)[\"\
+          query\"]\n    return {\n        \"result\": queries,\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: array[string]
+        selected: false
+        title: WEB検索文言リスト作成
+        type: code
+        variables:
+        - value_selector:
+          - '1747546119142'
+          - text
+          variable: arg1
+      height: 54
+      id: '1733226408233'
+      position:
+        x: 931.5678853532411
+        y: 421.5
+      positionAbsolute:
+        x: 931.5678853532411
+        y: 421.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: anthropic claude
+          provider: langgenius/bedrock/bedrock
+        prompt_template:
+        - id: 845e6ae7-c80f-45c9-9562-09c047ae7354
+          role: system
+          text: 'あなたの役割は、ユーザーが入力したテキストと過去の会話履歴から、最適な検索クエリを3つ生成することです。
+
+
+            ### ガイドライン
+
+            - 入力テキストと過去の会話の文脈を考慮して、関連する検索クエリを生成してください
+
+            - 曖昧な表現（「これ」「それ」など）は具体的な表現に置き換えてください
+
+            - 具体的で検索に適した表現を使用してください
+
+            - 異なる側面や視点からの検索クエリを生成してください
+
+            - 各クエリは30文字以内に収めてください
+
+
+            ### 出力形式
+
+            JSON形式で出力:
+
+            {"query": [query_1, query_2, query_3]}'
+        selected: false
+        structured_output:
+          schema:
+            additionalProperties: false
+            properties: {}
+            required: []
+            type: object
+        structured_output_enabled: false
+        title: LLMによる情報収集視点作成
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1747546119142'
+      position:
+        x: 662.032388469495
+        y: 421.5
+      positionAbsolute:
+        x: 662.032388469495
+        y: 421.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        error_handle_mode: terminated
+        height: 243
+        is_parallel: false
+        iterator_selector:
+        - '1733226408233'
+        - result
+        output_selector:
+        - '1747547714864'
+        - filtered_results
+        output_type: array[object]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1747547366688start
+        title: リストイテレーション
+        type: iteration
+        width: 738
+      height: 243
+      id: '1747547366688'
+      position:
+        x: 1344.7122550885802
+        y: 55.71127201238207
+      positionAbsolute:
+        x: 1344.7122550885802
+        y: 55.71127201238207
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 738
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1747547366688start
+      parentId: '1747547366688'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 1368.7122550885802
+        y: 123.71127201238207
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        is_team_authorization: true
+        iteration_id: '1747547366688'
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Enter your search query
+            ja_JP: Enter your search query
+            pt_BR: Enter your search query
+            zh_Hans: 输入搜索关键词
+          label:
+            en_US: Query string
+            ja_JP: Query string
+            pt_BR: Query string
+            zh_Hans: 查询语句
+          llm_description: Key words for searching
+          max: null
+          min: null
+          name: query
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: general
+          form: form
+          human_description:
+            en_US: Search the web using SearXNG, a privacy-respecting metasearch engine
+            ja_JP: Search the web using SearXNG, a privacy-respecting metasearch engine
+            pt_BR: Search the web using SearXNG, a privacy-respecting metasearch engine
+            zh_Hans: 使用注重隐私的元搜索引擎 SearXNG 搜索网页
+          label:
+            en_US: search type
+            ja_JP: search type
+            pt_BR: search type
+            zh_Hans: 搜索类型
+          llm_description: ''
+          max: null
+          min: null
+          name: search_type
+          options:
+          - label:
+              en_US: General
+              ja_JP: General
+              pt_BR: General
+              zh_Hans: 综合
+            value: general
+          - label:
+              en_US: Images
+              ja_JP: Images
+              pt_BR: Images
+              zh_Hans: 图片
+            value: images
+          - label:
+              en_US: Videos
+              ja_JP: Videos
+              pt_BR: Videos
+              zh_Hans: 视频
+            value: videos
+          - label:
+              en_US: News
+              ja_JP: News
+              pt_BR: News
+              zh_Hans: 新闻
+            value: news
+          - label:
+              en_US: Map
+              ja_JP: Map
+              pt_BR: Map
+              zh_Hans: 地图
+            value: map
+          - label:
+              en_US: Music
+              ja_JP: Music
+              pt_BR: Music
+              zh_Hans: 音乐
+            value: music
+          - label:
+              en_US: It
+              ja_JP: It
+              pt_BR: It
+              zh_Hans: 信息技术
+            value: it
+          - label:
+              en_US: Science
+              ja_JP: Science
+              pt_BR: Science
+              zh_Hans: 科学
+            value: science
+          - label:
+              en_US: Files
+              ja_JP: Files
+              pt_BR: Files
+              zh_Hans: 文件
+            value: files
+          - label:
+              en_US: Social Media
+              ja_JP: Social Media
+              pt_BR: Social Media
+              zh_Hans: 社交媒体
+            value: social_media
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            ja_JP: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            pt_BR: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            zh_Hans: 对应的是 SearXNG API 的 time_range 参数，也取决于搜索引擎是否支持
+          label:
+            en_US: time range
+            ja_JP: time range
+            pt_BR: time range
+            zh_Hans: 时间范围
+          llm_description: ''
+          max: null
+          min: null
+          name: time_range
+          options:
+          - label:
+              en_US: In a day
+              ja_JP: In a day
+              pt_BR: In a day
+              zh_Hans: 一天内
+            value: day
+          - label:
+              en_US: In a week
+              ja_JP: In a week
+              pt_BR: In a week
+              zh_Hans: 一周内
+            value: week
+          - label:
+              en_US: In a month
+              ja_JP: In a month
+              pt_BR: In a month
+              zh_Hans: 一个月内
+            value: month
+          - label:
+              en_US: In a year
+              ja_JP: In a year
+              pt_BR: In a year
+              zh_Hans: 一年内
+            value: year
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          query: ''
+          search_type: ''
+          time_range: ''
+        provider_id: langgenius/searxng/searxng
+        provider_name: langgenius/searxng/searxng
+        provider_type: builtin
+        selected: false
+        title: SearXNG 外部Search
+        tool_configurations:
+          search_type: general
+          time_range: null
+        tool_description: SearXNG is a free internet metasearch engine which aggregates
+          results from more than 70 search services.
+        tool_label: SearXNG Search
+        tool_name: searxng_search
+        tool_parameters:
+          query:
+            type: mixed
+            value: '{{#1747547366688.item#}}'
+        type: tool
+      height: 116
+      id: '1747547417399'
+      parentId: '1747547366688'
+      position:
+        x: 131.17333537276454
+        y: 65
+      positionAbsolute:
+        x: 1475.8855904613447
+        y: 120.71127201238207
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "import json\nfrom typing import List, Dict, Any\nimport pprint # 整形して表示するためにインポート\n\
+          \n# loggingモジュールのインポートと設定は削除します\n\n# 関数の引数の型ヒントは辞書のリスト、戻り値の型ヒントはフィルタリング結果、エラー、デバッグログを含む辞書に合わせます\n\
+          def main(arg1: List[Dict[str, Any]]) -> Dict[str, Any]:\n    \"\"\"\n  \
+          \  入力された検索結果のリストから関連性の高い結果をフィルタリングし、エラー情報およびデバッグログを含めて返却します。\n\n    Args:\n\
+          \        arg1: 各検索結果（辞書）を含むリスト。\n              各検索結果辞書には 'content' と 'score'\
+          \ 等が含まれます。\n\n    Returns:\n        フィルタリングされた結果（'title', 'url', 'content',\
+          \ 'score'）\n        を含むリスト ('filtered_results')、\n        処理中に発生したエラー/警告のリスト\
+          \ ('errors')、\n        およびデバッグログのリスト ('debug_log')\n        を含む辞書。\n   \
+          \ \"\"\"\n    threshold = 0.3 # 関連性のスコアの閾値\n    filtered_results = []\n\
+          \    error_messages = [] # エラーや警告のメッセージを格納するリスト\n    debug_log = [] # デバッグログのメッセージを格納するリスト\n\
+          \n    debug_log.append(\"--- Starting main function ---\")\n    debug_log.append(f\"\
+          Threshold set to: {threshold}\")\n\n    # 入力 arg1 がリストであることを確認\n    if isinstance(arg1,\
+          \ list):\n        results_list = arg1 # arg1 自体がリストです\n        debug_log.append(f\"\
+          Input is a list with {len(results_list)} items.\")\n\n        # 取得したリストが空でないかを確認\n\
+          \        if not results_list:\n             debug_log.append(\"Info: Input\
+          \ list is empty. No results to process.\")\n             # リストが空の場合は、filtered_results\
+          \ も errors も debug_log もそのまま返されます\n\n        # 取得したリストの各要素（検索結果の辞書）を処理\n\
+          \        for i, result in enumerate(results_list): # enumerateを使ってインデックスも取得\n\
+          \            debug_log.append(f\"Processing item at index {i}\")\n     \
+          \       # 各要素が辞書であり、必要なキーが存在するかを確認\n            # score, title, url, content\
+          \ はフィルタリングと出力に必要と仮定\n            required_keys = [\"score\", \"title\",\
+          \ \"url\", \"content\"]\n            if isinstance(result, dict):\n    \
+          \            debug_log.append(f\"Item {i} is a dictionary.\")\n        \
+          \        if all(key in result for key in required_keys):\n             \
+          \       debug_log.append(f\"Item {i} has all required keys.\")\n       \
+          \             # score の値が数値型であることを確認\n                    score_value =\
+          \ result.get(\"score\")\n                    debug_log.append(f\"Item {i}:\
+          \ Type of score: {type(score_value)}, Value: {score_value}\")\n\n      \
+          \              if isinstance(score_value, (int, float)):\n             \
+          \          debug_log.append(f\"Item {i}: Score is numeric.\")\n        \
+          \               # スコアが閾値以上のものだけを filtered_results に追加\n                \
+          \       if score_value >= threshold:\n                           debug_log.append(f\"\
+          Item {i}: Score {score_value} meets threshold {threshold}. Adding to results.\"\
+          )\n                           filtered_result = {\n                    \
+          \           \"title\": result.get(\"title\", \"N/A\"), # .get() を使うとキーが存在しない場合もエラーにならない\n\
+          \                               \"url\": result.get(\"url\", \"N/A\"),\n\
+          \                               \"content\": result.get(\"content\", \"\
+          N/A\"),\n                               \"score\": score_value,\n      \
+          \                     }\n                           filtered_results.append(filtered_result)\n\
+          \                       else:\n                           # スコアが閾値未満の場合はデバッグログに記録\n\
+          \                           debug_log.append(f\"Item {i}: Score {score_value}\
+          \ below threshold {threshold}. Skipping.\")\n                    else:\n\
+          \                        # スコアが数値でない項目は、エラーメッセージとデバッグログに追加しスキップ\n      \
+          \                  msg = f\"Warning: Item at index {i} has non-numeric score:\
+          \ {score_value}. Skipping item.\"\n                        error_messages.append(msg\
+          \ + f\" Item details: {result}\") # errors には詳細も含める\n                  \
+          \      debug_log.append(msg) # debug_log には簡潔なメッセージ\n                  \
+          \      debug_log.append(f\"Item {i}: Full item details: {result}\") # 必要に応じて詳細もログに含める\n\
+          \n                else:\n                     # 必要なキーがない項目は、エラーメッセージとデバッグログに追加しスキップ\n\
+          \                     missing_keys = [key for key in required_keys if key\
+          \ not in result]\n                     msg = f\"Warning: Item at index {i}\
+          \ is missing required keys: {missing_keys}. Skipping item.\"\n         \
+          \            error_messages.append(msg + f\" Item details: {result}\")\n\
+          \                     debug_log.append(msg)\n                     debug_log.append(f\"\
+          Item {i}: Full item details: {result}\")\n\n            else:\n        \
+          \        # 項目が辞書でない場合、エラーメッセージとデバッグログに追加しスキップ\n                msg = f\"\
+          Warning: Item at index {i} is not a dictionary. Item type: {type(result)}.\
+          \ Skipping item.\"\n                error_messages.append(msg + f\" Item\
+          \ details: {result}\")\n                debug_log.append(msg)\n        \
+          \        debug_log.append(f\"Item at index {i}: Full item details: {result}\"\
+          )\n\n    else:\n        # 入力がリストでない場合、エラーメッセージとデバッグログに追加\n        msg =\
+          \ f\"Error: Input 'arg1' is not a list. Input type: {type(arg1)}. Cannot\
+          \ process.\"\n        error_messages.append(msg)\n        debug_log.append(msg)\n\
+          \n    debug_log.append(\"--- Finishing main function ---\")\n\n    # フィルタリングされた結果、エラーメッセージ、およびデバッグログを含む辞書を返却\n\
+          \    return {\n        \"filtered_results\": filtered_results,\n       \
+          \ \"errors\": error_messages#,\n        #\"debug_log\": debug_log # デバッグログリストを戻り値に追加\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1747547366688'
+        outputs:
+          errors:
+            children: null
+            type: array[object]
+          filtered_results:
+            children: null
+            type: array[object]
+        selected: false
+        title: 閾値による検索Scoreフィルタ
+        type: code
+        variables:
+        - value_selector:
+          - '1747547417399'
+          - json
+          variable: arg1
+      height: 54
+      id: '1747547714864'
+      parentId: '1747547366688'
+      position:
+        x: 461.12810025109684
+        y: 65
+      positionAbsolute:
+        x: 1805.840355339677
+        y: 120.71127201238207
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "import json\n\ndef main(arg1: str) -> dict:\n    parsed_output = json.loads(arg1)\n\
+          \    return {\n        \"answer\": parsed_output[\"answer\"], \n       \
+          \ \"references\": parsed_output.get(\"references\", []),\n    }\n\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          answer:
+            children: null
+            type: string
+          references:
+            children: null
+            type: array[object]
+        selected: false
+        title: まとめと参照の抽出
+        type: code
+        variables:
+        - value_selector:
+          - '1747566414888'
+          - text
+          variable: arg1
+      height: 54
+      id: '1747558891643'
+      position:
+        x: 2381.894672437129
+        y: 603.9145975570963
+      positionAbsolute:
+        x: 2381.894672437129
+        y: 603.9145975570963
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: '## 回答
+
+
+          {{answer}}
+
+
+          ## 参考情報
+
+
+          {% if references %}
+
+          {% for ref in references %}
+
+          [{{loop.index}}] [{{ref.title}}]({{ref.url}})
+
+          {% endfor %}
+
+          {% else %}
+
+          参考文献はありません
+
+          {% endif %}'
+        title: 回答作成
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1747558891643'
+          - answer
+          variable: answer
+        - value_selector:
+          - '1747558891643'
+          - references
+          variable: references
+      height: 54
+      id: '1747559305533'
+      position:
+        x: 2685.2638429290323
+        y: 603.9145975570963
+      positionAbsolute:
+        x: 2685.2638429290323
+        y: 603.9145975570963
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1747559305533.output#}}
+
+          {{#1747658438705.files#}}
+
+          下記のSQLなどで直接調査可能です。問い合わせから生成しました。
+
+          {{#1747661587555.sql_query#}}
+
+          ### 名寄せ情報
+
+          {{#1747662105245.text#}}'
+        desc: ''
+        selected: false
+        title: 回答出力
+        type: answer
+        variables: []
+      height: 194
+      id: '1747559467203'
+      position:
+        x: 2980.248690591287
+        y: 603.9145975570963
+      positionAbsolute:
+        x: 2980.248690591287
+        y: 603.9145975570963
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Name of the database (input, inpit, or bigquery)
+            ja_JP: Name of the database (input, inpit, or bigquery)
+            pt_BR: Name of the database (input, inpit, or bigquery)
+            zh_Hans: Name of the database (input, inpit, or bigquery)
+          label:
+            en_US: db_name
+            ja_JP: db_name
+            pt_BR: db_name
+            zh_Hans: db_name
+          llm_description: Name of the database (input, inpit, or bigquery)
+          max: null
+          min: null
+          name: db_name
+          options: []
+          placeholder:
+            en_US: Name of the database (input, inpit, or bigquery)
+            ja_JP: Name of the database (input, inpit, or bigquery)
+            pt_BR: Name of the database (input, inpit, or bigquery)
+            zh_Hans: Name of the database (input, inpit, or bigquery)
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: SQL query to execute on the database
+            ja_JP: SQL query to execute on the database
+            pt_BR: SQL query to execute on the database
+            zh_Hans: SQL query to execute on the database
+          label:
+            en_US: query
+            ja_JP: query
+            pt_BR: query
+            zh_Hans: query
+          llm_description: SQL query to execute on the database
+          max: null
+          min: null
+          name: query
+          options: []
+          placeholder:
+            en_US: SQL query to execute on the database
+            ja_JP: SQL query to execute on the database
+            pt_BR: SQL query to execute on the database
+            zh_Hans: SQL query to execute on the database
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        params:
+          db_name: ''
+          query: ''
+        provider_id: 77fb5ee5-b977-4265-b978-cae66aee8e5f
+        provider_name: DWH
+        provider_type: api
+        selected: false
+        title: executeQuery
+        tool_configurations: {}
+        tool_description: Execute an SQL query on the specified database
+        tool_label: executeQuery
+        tool_name: executeQuery
+        tool_parameters:
+          db_name:
+            type: mixed
+            value: input
+          query:
+            type: mixed
+            value: SELECT 技術分野1 AS セクション, COUNT(*) AS 出願数 FROM inpit_data WHERE 出願人
+              LIKE '%{{#1747563309793.result#}}%' GROUP BY 技術分野1 ORDER BY 出願数 DESC;
+        type: tool
+      height: 54
+      id: '1747816220124'
+      position:
+        x: 1232.985990891525
+        y: 884.8866694047815
+      positionAbsolute:
+        x: 1232.985990891525
+        y: 884.8866694047815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            model_name: Claude 3.7 Sonnet
+            temperature: 0.2
+          mode: chat
+          name: anthropic claude
+          provider: langgenius/bedrock/bedrock
+        prompt_template:
+        - id: 3c46289e-0d8a-4657-babd-6d6a7c32bb1a
+          role: system
+          text: 'あなたの役割は、ユーザーが入力した直前の会話履歴から、最適な特許出願人相当の固有名詞を抽出することです。
+
+
+            ### ガイドライン
+
+            - 入力テキストと過去の会話の文脈を考慮して、最もユーザの問いかけで重要なものを一つ選んでください。
+
+
+            ### 出力形式
+
+            JSON形式で出力:
+
+            {"applicant_name":  抽出した出願人名}'
+        selected: false
+        title: LLMによる出願人名抽出
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1747561605205'
+      position:
+        x: 661.9881975138796
+        y: 884.8866694047815
+      positionAbsolute:
+        x: 661.9881975138796
+        y: 884.8866694047815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(arg1: str) -> dict:\n    return {\n        \"result\": json.loads(arg1)[\"\
+          applicant_name\"],\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 出願人名文字列化
+        type: code
+        variables:
+        - value_selector:
+          - '1747561605205'
+          - text
+          variable: arg1
+      height: 54
+      id: '1747563309793'
+      position:
+        x: 931.5678853532411
+        y: 884.8866694047815
+      positionAbsolute:
+        x: 931.5678853532411
+        y: 884.8866694047815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(arg1: str) -> dict:\n    parsed_output = json.loads(arg1)\n\
+          \    return {\n        \"analyzed\": parsed_output[\"rows\"],\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          analyzed:
+            children: null
+            type: array[object]
+        selected: false
+        title: 検索結果抽出
+        type: code
+        variables:
+        - value_selector:
+          - '1747816220124'
+          - text
+          variable: arg1
+      height: 54
+      id: '1747564264364'
+      position:
+        x: 1536.9417999359098
+        y: 884.8866694047815
+      positionAbsolute:
+        x: 1536.9417999359098
+        y: 884.8866694047815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: anthropic claude
+          provider: langgenius/bedrock/bedrock
+        prompt_template:
+        - id: d571ea5c-d811-4829-9b41-48323f799e23
+          role: system
+          text: '以下の分類別出願数と検索結果から、ユーザーの質問に関連する情報のみを使って回答を生成してください。
+
+            使用した情報は必ず参考情報として出力してください。
+
+            プレーンテキストで出力して下さい。
+
+
+            ### 検索結果
+
+            /
+
+            ### 分類別出願数
+
+            {{#1747568809800.output#}}'
+        - id: beeef6ef-28c1-41ab-b208-300dd6445f67
+          role: user
+          text: "回答は、下記のJSON形式で出力してください。\n{\n    \"answer\": \"作成した回答の内容をここに記載\",\n\
+            \    \"references\": [\n        {\n            \"title\": \"タイトル\",\n\
+            \            \"url\": \"URL\"\n        }\n    ]\n}\n"
+        selected: false
+        title: LLMによる結果のまとめ
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - '1747816220124'
+            - files
+          enabled: true
+      height: 90
+      id: '1747566414888'
+      position:
+        x: 2070.8997719912995
+        y: 603.9145975570963
+      positionAbsolute:
+        x: 2070.8997719912995
+        y: 603.9145975570963
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: '| セクション | 出願数 |
+
+          |----------|--------|
+
+          {% for item in analyzed %}
+
+          | {{ item[''セクション''] }} | {{ item[''出願数''] }} |
+
+          {% endfor %}'
+        title: 抽出結果文章化
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1747564264364'
+          - analyzed
+          variable: analyzed
+      height: 54
+      id: '1747568809800'
+      position:
+        x: 1818.728452326558
+        y: 884.8866694047815
+      positionAbsolute:
+        x: 1818.728452326558
+        y: 884.8866694047815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-2950
+            key: ''
+            type: text
+            value: "{\n    \"applicant_name\": \"{{#1747563309793.result#}}\",\n \
+              \   \"start_year\": 2010,\n    \"end_year\": 2023\n  }"
+          type: json
+        desc: ''
+        headers: Content-Type:application/json
+        method: POST
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 分析PDF作成リクエスト
+        type: http-request
+        url: http://10.0.1.59:5006/analyze_pdf
+        variables: []
+      height: 110
+      id: '1747658438705'
+      position:
+        x: 1232.985990891525
+        y: 706.9870407079869
+      positionAbsolute:
+        x: 1232.985990891525
+        y: 706.9870407079869
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.3
+          mode: chat
+          name: anthropic claude
+          provider: langgenius/bedrock/bedrock
+        prompt_template:
+        - id: 4f8e3e62-2f55-4ef1-afad-3dd30d16e3b1
+          role: system
+          text: '図はグラフとして認識し、テキストの表に変換して下さい。
+
+            テキストは厳密に変換して下さい。'
+        - id: 699342a6-571a-44f8-a507-a6cd7de18b47
+          role: user
+          text: 'PDFファイルの内容をテキスト化して下さい。
+
+            {{#1747658438705.files#}}'
+        selected: false
+        title: PDF解析
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - '1747658438705'
+            - files
+          enabled: true
+      height: 90
+      id: '1747658612936'
+      position:
+        x: 1536.985990891525
+        y: 706.9870407079869
+      positionAbsolute:
+        x: 1536.985990891525
+        y: 706.9870407079869
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Name of the database to query (input, inpit, or bigquery)
+            ja_JP: Name of the database to query (input, inpit, or bigquery)
+            pt_BR: Name of the database to query (input, inpit, or bigquery)
+            zh_Hans: Name of the database to query (input, inpit, or bigquery)
+          label:
+            en_US: db_name
+            ja_JP: db_name
+            pt_BR: db_name
+            zh_Hans: db_name
+          llm_description: Name of the database to query (input, inpit, or bigquery)
+          max: null
+          min: null
+          name: db_name
+          options: []
+          placeholder:
+            en_US: Name of the database to query (input, inpit, or bigquery)
+            ja_JP: Name of the database to query (input, inpit, or bigquery)
+            pt_BR: Name of the database to query (input, inpit, or bigquery)
+            zh_Hans: Name of the database to query (input, inpit, or bigquery)
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Natural language query in Japanese or English
+            ja_JP: Natural language query in Japanese or English
+            pt_BR: Natural language query in Japanese or English
+            zh_Hans: Natural language query in Japanese or English
+          label:
+            en_US: query
+            ja_JP: query
+            pt_BR: query
+            zh_Hans: query
+          llm_description: Natural language query in Japanese or English
+          max: null
+          min: null
+          name: query
+          options: []
+          placeholder:
+            en_US: Natural language query in Japanese or English
+            ja_JP: Natural language query in Japanese or English
+            pt_BR: Natural language query in Japanese or English
+            zh_Hans: Natural language query in Japanese or English
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        params:
+          db_name: ''
+          query: ''
+        provider_id: f5d2e579-4509-4ab0-832c-5b025d174467
+        provider_name: DWHNL
+        provider_type: api
+        selected: false
+        title: processNaturalLanguageQuery
+        tool_configurations: {}
+        tool_description: Process a natural language query and convert it to SQL
+        tool_label: processNaturalLanguageQuery
+        tool_name: processNaturalLanguageQuery
+        tool_parameters:
+          db_name:
+            type: mixed
+            value: inpit
+          query:
+            type: mixed
+            value: '{{#sys.query#}}'
+        type: tool
+      height: 54
+      id: '1747816312886'
+      position:
+        x: 661.9881975138796
+        y: 1130.6890370510043
+      positionAbsolute:
+        x: 661.9881975138796
+        y: 1130.6890370510043
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "def main(arg1: str) -> dict:\n    parsed_output = json.loads(arg1)\n\
+          \    return {\n        \"sql_query\": parsed_output[\"sql_query\"],\n  \
+          \  }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          sql_query:
+            children: null
+            type: string
+        selected: false
+        title: NLSQL
+        type: code
+        variables:
+        - value_selector:
+          - '1747816312886'
+          - text
+          variable: arg1
+      height: 54
+      id: '1747661587555'
+      position:
+        x: 931.5678853532411
+        y: 1130.6890370510043
+      positionAbsolute:
+        x: 931.5678853532411
+        y: 1130.6890370510043
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: phi4:14b
+          provider: langgenius/ollama/ollama
+        prompt_template:
+        - id: 6062491a-208a-4334-8d8f-1c0151a3d4b0
+          role: system
+          text: '貴方は企業情報のスペシャリストです。
+
+            名寄せに関して豊富な知識を持っています。'
+        - id: 9ebc6a43-9e92-444e-9cf6-32cd29267d90
+          role: user
+          text: '{{#1747563309793.result#}}と同一視される名称を列挙して下さい。'
+        selected: false
+        title: phi4の名寄せ
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1747662105245'
+      position:
+        x: 1232.985990891525
+        y: 996.3803760053825
+      positionAbsolute:
+        x: 1232.985990891525
+        y: 996.3803760053825
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        error_handle_mode: terminated
+        height: 204
+        is_parallel: false
+        iterator_selector:
+        - '1733226408233'
+        - result
+        output_selector:
+        - '1747824660666'
+        - filtered_results
+        output_type: array[string]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1747824572964start
+        title: イテレーション 2
+        type: iteration
+        width: 692
+      height: 204
+      id: '1747824572964'
+      position:
+        x: 1235.567885353241
+        y: 421.5
+      positionAbsolute:
+        x: 1235.567885353241
+        y: 421.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 692
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1747824572964start
+      parentId: '1747824572964'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 1259.567885353241
+        y: 489.5
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        is_team_authorization: true
+        iteration_id: '1747824572964'
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Enter your search query
+            ja_JP: Enter your search query
+            pt_BR: Enter your search query
+            zh_Hans: 输入搜索关键词
+          label:
+            en_US: Query string
+            ja_JP: Query string
+            pt_BR: Query string
+            zh_Hans: 查询语句
+          llm_description: Key words for searching
+          max: null
+          min: null
+          name: query
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: general
+          form: form
+          human_description:
+            en_US: Search the web using SearXNG, a privacy-respecting metasearch engine
+            ja_JP: Search the web using SearXNG, a privacy-respecting metasearch engine
+            pt_BR: Search the web using SearXNG, a privacy-respecting metasearch engine
+            zh_Hans: 使用注重隐私的元搜索引擎 SearXNG 搜索网页
+          label:
+            en_US: search type
+            ja_JP: search type
+            pt_BR: search type
+            zh_Hans: 搜索类型
+          llm_description: ''
+          max: null
+          min: null
+          name: search_type
+          options:
+          - label:
+              en_US: General
+              ja_JP: General
+              pt_BR: General
+              zh_Hans: 综合
+            value: general
+          - label:
+              en_US: Images
+              ja_JP: Images
+              pt_BR: Images
+              zh_Hans: 图片
+            value: images
+          - label:
+              en_US: Videos
+              ja_JP: Videos
+              pt_BR: Videos
+              zh_Hans: 视频
+            value: videos
+          - label:
+              en_US: News
+              ja_JP: News
+              pt_BR: News
+              zh_Hans: 新闻
+            value: news
+          - label:
+              en_US: Map
+              ja_JP: Map
+              pt_BR: Map
+              zh_Hans: 地图
+            value: map
+          - label:
+              en_US: Music
+              ja_JP: Music
+              pt_BR: Music
+              zh_Hans: 音乐
+            value: music
+          - label:
+              en_US: It
+              ja_JP: It
+              pt_BR: It
+              zh_Hans: 信息技术
+            value: it
+          - label:
+              en_US: Science
+              ja_JP: Science
+              pt_BR: Science
+              zh_Hans: 科学
+            value: science
+          - label:
+              en_US: Files
+              ja_JP: Files
+              pt_BR: Files
+              zh_Hans: 文件
+            value: files
+          - label:
+              en_US: Social Media
+              ja_JP: Social Media
+              pt_BR: Social Media
+              zh_Hans: 社交媒体
+            value: social_media
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            ja_JP: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            pt_BR: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            zh_Hans: 对应的是 SearXNG API 的 time_range 参数，也取决于搜索引擎是否支持
+          label:
+            en_US: time range
+            ja_JP: time range
+            pt_BR: time range
+            zh_Hans: 时间范围
+          llm_description: ''
+          max: null
+          min: null
+          name: time_range
+          options:
+          - label:
+              en_US: In a day
+              ja_JP: In a day
+              pt_BR: In a day
+              zh_Hans: 一天内
+            value: day
+          - label:
+              en_US: In a week
+              ja_JP: In a week
+              pt_BR: In a week
+              zh_Hans: 一周内
+            value: week
+          - label:
+              en_US: In a month
+              ja_JP: In a month
+              pt_BR: In a month
+              zh_Hans: 一个月内
+            value: month
+          - label:
+              en_US: In a year
+              ja_JP: In a year
+              pt_BR: In a year
+              zh_Hans: 一年内
+            value: year
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          query: ''
+          search_type: ''
+          time_range: ''
+        provider_id: langgenius/searxng/searxng
+        provider_name: langgenius/searxng/searxng
+        provider_type: builtin
+        selected: false
+        title: SearXNG Search
+        tool_configurations:
+          search_type: general
+          time_range: null
+        tool_description: SearXNG is a free internet metasearch engine which aggregates
+          results from more than 70 search services.
+        tool_label: SearXNG Search
+        tool_name: searxng_search
+        tool_parameters:
+          query:
+            type: mixed
+            value: '{{#1747824572964.item#}}'
+        type: tool
+      height: 116
+      id: '1747824643153'
+      parentId: '1747824572964'
+      position:
+        x: 128
+        y: 68
+      positionAbsolute:
+        x: 1363.567885353241
+        y: 489.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    - data:
+        code: "import json\nfrom typing import List, Dict, Any\nimport pprint # 整形して表示するためにインポート\n\
+          \n# loggingモジュールのインポートと設定は削除します\n\n# 関数の引数の型ヒントは辞書のリスト、戻り値の型ヒントはフィルタリング結果、エラー、デバッグログを含む辞書に合わせます\n\
+          def main(arg1: List[Dict[str, Any]]) -> Dict[str, Any]:\n    \"\"\"\n  \
+          \  入力された検索結果のリストから関連性の高い結果をフィルタリングし、エラー情報およびデバッグログを含めて返却します。\n\n    Args:\n\
+          \        arg1: 各検索結果（辞書）を含むリスト。\n              各検索結果辞書には 'content' と 'score'\
+          \ 等が含まれます。\n\n    Returns:\n        フィルタリングされた結果（'title', 'url', 'content',\
+          \ 'score'）\n        を含むリスト ('filtered_results')、\n        処理中に発生したエラー/警告のリスト\
+          \ ('errors')、\n        およびデバッグログのリスト ('debug_log')\n        を含む辞書。\n   \
+          \ \"\"\"\n    threshold = 0.3 # 関連性のスコアの閾値\n    filtered_results = []\n\
+          \    error_messages = [] # エラーや警告のメッセージを格納するリスト\n    debug_log = [] # デバッグログのメッセージを格納するリスト\n\
+          \n    debug_log.append(\"--- Starting main function ---\")\n    debug_log.append(f\"\
+          Threshold set to: {threshold}\")\n\n    # 入力 arg1 がリストであることを確認\n    if isinstance(arg1,\
+          \ list):\n        results_list = arg1 # arg1 自体がリストです\n        debug_log.append(f\"\
+          Input is a list with {len(results_list)} items.\")\n\n        # 取得したリストが空でないかを確認\n\
+          \        if not results_list:\n             debug_log.append(\"Info: Input\
+          \ list is empty. No results to process.\")\n             # リストが空の場合は、filtered_results\
+          \ も errors も debug_log もそのまま返されます\n\n        # 取得したリストの各要素（検索結果の辞書）を処理\n\
+          \        for i, result in enumerate(results_list): # enumerateを使ってインデックスも取得\n\
+          \            debug_log.append(f\"Processing item at index {i}\")\n     \
+          \       # 各要素が辞書であり、必要なキーが存在するかを確認\n            # score, title, url, content\
+          \ はフィルタリングと出力に必要と仮定\n            required_keys = [\"score\", \"title\",\
+          \ \"url\", \"content\"]\n            if isinstance(result, dict):\n    \
+          \            debug_log.append(f\"Item {i} is a dictionary.\")\n        \
+          \        if all(key in result for key in required_keys):\n             \
+          \       debug_log.append(f\"Item {i} has all required keys.\")\n       \
+          \             # score の値が数値型であることを確認\n                    score_value =\
+          \ result.get(\"score\")\n                    debug_log.append(f\"Item {i}:\
+          \ Type of score: {type(score_value)}, Value: {score_value}\")\n\n      \
+          \              if isinstance(score_value, (int, float)):\n             \
+          \          debug_log.append(f\"Item {i}: Score is numeric.\")\n        \
+          \               # スコアが閾値以上のものだけを filtered_results に追加\n                \
+          \       if score_value >= threshold:\n                           debug_log.append(f\"\
+          Item {i}: Score {score_value} meets threshold {threshold}. Adding to results.\"\
+          )\n                           filtered_result = {\n                    \
+          \           \"title\": result.get(\"title\", \"N/A\"), # .get() を使うとキーが存在しない場合もエラーにならない\n\
+          \                               \"url\": result.get(\"url\", \"N/A\"),\n\
+          \                               \"content\": result.get(\"content\", \"\
+          N/A\"),\n                               \"score\": score_value,\n      \
+          \                     }\n                           filtered_results.append(filtered_result)\n\
+          \                       else:\n                           # スコアが閾値未満の場合はデバッグログに記録\n\
+          \                           debug_log.append(f\"Item {i}: Score {score_value}\
+          \ below threshold {threshold}. Skipping.\")\n                    else:\n\
+          \                        # スコアが数値でない項目は、エラーメッセージとデバッグログに追加しスキップ\n      \
+          \                  msg = f\"Warning: Item at index {i} has non-numeric score:\
+          \ {score_value}. Skipping item.\"\n                        error_messages.append(msg\
+          \ + f\" Item details: {result}\") # errors には詳細も含める\n                  \
+          \      debug_log.append(msg) # debug_log には簡潔なメッセージ\n                  \
+          \      debug_log.append(f\"Item {i}: Full item details: {result}\") # 必要に応じて詳細もログに含める\n\
+          \n                else:\n                     # 必要なキーがない項目は、エラーメッセージとデバッグログに追加しスキップ\n\
+          \                     missing_keys = [key for key in required_keys if key\
+          \ not in result]\n                     msg = f\"Warning: Item at index {i}\
+          \ is missing required keys: {missing_keys}. Skipping item.\"\n         \
+          \            error_messages.append(msg + f\" Item details: {result}\")\n\
+          \                     debug_log.append(msg)\n                     debug_log.append(f\"\
+          Item {i}: Full item details: {result}\")\n\n            else:\n        \
+          \        # 項目が辞書でない場合、エラーメッセージとデバッグログに追加しスキップ\n                msg = f\"\
+          Warning: Item at index {i} is not a dictionary. Item type: {type(result)}.\
+          \ Skipping item.\"\n                error_messages.append(msg + f\" Item\
+          \ details: {result}\")\n                debug_log.append(msg)\n        \
+          \        debug_log.append(f\"Item at index {i}: Full item details: {result}\"\
+          )\n\n    else:\n        # 入力がリストでない場合、エラーメッセージとデバッグログに追加\n        msg =\
+          \ f\"Error: Input 'arg1' is not a list. Input type: {type(arg1)}. Cannot\
+          \ process.\"\n        error_messages.append(msg)\n        debug_log.append(msg)\n\
+          \n    debug_log.append(\"--- Finishing main function ---\")\n\n    # フィルタリングされた結果、エラーメッセージ、およびデバッグログを含む辞書を返却\n\
+          \    return {\n        \"filtered_results\": filtered_results,\n       \
+          \ \"errors\": error_messages#,\n        #\"debug_log\": debug_log # デバッグログリストを戻り値に追加\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1747824572964'
+        outputs:
+          filtered_results:
+            children: null
+            type: array[string]
+        selected: false
+        title: コード実行 7
+        type: code
+        variables:
+        - value_selector:
+          - '1733226408233'
+          - result
+          variable: arg1
+      height: 54
+      id: '1747824660666'
+      parentId: '1747824572964'
+      position:
+        x: 432
+        y: 68
+      positionAbsolute:
+        x: 1667.567885353241
+        y: 489.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      zIndex: 1002
+    viewport:
+      x: -987.3026136542451
+      y: -61.98952441584231
+      zoom: 0.6533826269465861
