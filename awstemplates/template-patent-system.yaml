@@ -307,6 +307,14 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8081
+          ToPort: 8081
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
@@ -408,6 +416,22 @@ Resources:
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+          mkdir -p /root/.ssh
+          echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
+          chmod 400 /root/.ssh/id_ed25519
+
+          cat <<EOF > /root/.ssh/config
+          Host github.com
+            IdentityFile ~/.ssh/id_ed25519
+            User git
+          Host github.com
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
+          EOF
+
+          git clone git@github.com:shiftrepo/aws.git /root/aws.git
+
           cd /opt
           sudo git clone https://github.com/langgenius/dify.git
           #cd /opt/dify
