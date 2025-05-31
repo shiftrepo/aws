@@ -1,0 +1,282 @@
+{
+  "name": "Line",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/line-webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        -20
+      ],
+      "id": "6e236ee3-eeec-419f-bee7-7fc481e20deb",
+      "name": "LINE受信用",
+      "webhookId": "4462f08d-b2dc-41d9-abd0-939073af51e5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=(1)たとえばユーザからもらったテキストから、年月日・時間帯を正確に取得して、その日付の時間帯に予定があるか確認してください。 {{ $json.body.events[0].message.text }}(read)\n\n(2)もしその日付の時間帯に予定がなかったら、タイトルを含めて該当時間帯に予定を追加し、仮に予定が入っていたら、「その日程はNGです。」と回答してください。(create)\n\n必ず回答は一文で返し、改行コードは使わないでください。¥nのエスケープがある場合は、削除してください。",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        120,
+        -20
+      ],
+      "id": "7e886554-7469-4e1d-94bf-fa0db15e83ca",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1,
+      "position": [
+        60,
+        180
+      ],
+      "id": "d0c338dc-01c4-4e4c-876b-381b87106f1a",
+      "name": "AWS Bedrock Chat Model",
+      "credentials": {
+        "aws": {
+          "id": "15OZPcRTySrr6u5S",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5eea1332-0d9b-42fe-8857-4ef9972dfa1d",
+              "name": "body.events[0].message.text",
+              "value": "={{ $json.body.events[0].message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -20
+      ],
+      "id": "ec38cb79-b594-4ea8-b775-cc8f5c0180c2",
+      "name": "メッセージのみ取得"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "mit.seminars.ac@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mit.seminars.ac@gmail.com"
+        },
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', ``, 'number') }}",
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        220,
+        180
+      ],
+      "id": "d7d1f7fe-ac24-4233-9caa-e1e6ee7e12ed",
+      "name": "read",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "5dEtkCSFTPk9EZEN",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mit.seminars.ac@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mit.seminars.ac@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        360,
+        180
+      ],
+      "id": "cc86f9b7-c74f-4060-9f69-802289d7e17a",
+      "name": "create",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "5dEtkCSFTPk9EZEN",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer M9k0LeOx//dBELJo4Moa1UJiD+gI5z1/YqoEeK8/KZzN4Ow5dEVCK/yytZiz+7R1K2ICM1IOPxjzF8KpvMxdplil/4ICsOV5Ou4ZV5T5fNYRQtW4uHjtPqbycuNl4PWi6dEmZT85eD+F5UzmBTPtkQdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('LINE受信用').item.json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"{{ $json.output }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        620,
+        -20
+      ],
+      "id": "a9989dd0-ac09-4c08-8525-5813b91b39be",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c7eb751c-eeca-48a9-b6e0-e0d86fb89da8",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        -20
+      ],
+      "id": "dab9de8a-081c-4bff-99e4-6dde8cf85725",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "LINE受信用": {
+      "main": [
+        [
+          {
+            "node": "メッセージのみ取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS Bedrock Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "メッセージのみ取得": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "29a13a77-af0f-4920-81ee-97db4f126c6b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6575779377e6dc4e91c74c0ab2e663f2ade1742b4e4e52f1370ba41817410309"
+  },
+  "id": "96ImAGseHFslKytd",
+  "tags": []
+}
