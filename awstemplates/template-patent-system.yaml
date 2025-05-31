@@ -320,6 +320,14 @@ Resources:
           ToPort: 8081
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 30080
+          ToPort: 30080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可
@@ -348,6 +356,36 @@ Resources:
     Properties:
       HostedZoneId: !Ref ShiftComHostedZone # ここを修正
       Name: !Sub "n8n.${HostedZoneName}"
+      Type: A
+      TTL: 300
+      ResourceRecords:
+        !If # ResourceRecordsを条件付きで設定するために!Ifを使用
+          - CreateDifyServerCondition # Difyサーバーが作成される場合にのみインポートを試みる
+          - - !GetAtt SHIFTDifyInstance.PublicIp # 属性を直接参照
+          - - "127.0.0.1" # Difyサーバーが作成されない場合のプレースホルダーまたは安全なデフォルト
+
+  DifyRecordSet:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDifyServerCondition # この条件を追加
+    DependsOn: SHIFTDifyInstance # SHIFTDifyInstanceが作成された後にこのレコードセットを作成
+    Properties:
+      HostedZoneId: !Ref ShiftComHostedZone # ここを修正
+      Name: !Sub "dify.${HostedZoneName}"
+      Type: A
+      TTL: 300
+      ResourceRecords:
+        !If # ResourceRecordsを条件付きで設定するために!Ifを使用
+          - CreateDifyServerCondition # Difyサーバーが作成される場合にのみインポートを試みる
+          - - !GetAtt SHIFTDifyInstance.PublicIp # 属性を直接参照
+          - - "127.0.0.1" # Difyサーバーが作成されない場合のプレースホルダーまたは安全なデフォルト
+
+  TraeficRecordSet:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDifyServerCondition # この条件を追加
+    DependsOn: SHIFTDifyInstance # SHIFTDifyInstanceが作成された後にこのレコードセットを作成
+    Properties:
+      HostedZoneId: !Ref ShiftComHostedZone # ここを修正
+      Name: !Sub "traefic.${HostedZoneName}"
       Type: A
       TTL: 300
       ResourceRecords:
