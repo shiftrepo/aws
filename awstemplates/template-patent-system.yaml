@@ -90,7 +90,7 @@ Parameters:
 
   HostedZoneName:
     Type: String
-    Default: "shift.com"
+    Default: "shift-terminus.com"
     Description: The Route 53 hosted zone name (e.g. shift.com)
 
 #  EnableOriginalInstance:
