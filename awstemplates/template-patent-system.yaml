@@ -328,6 +328,10 @@ Resources:
           ToPort: 30080
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          FromPort: 30443
+          ToPort: 30443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0 # どこからでも80番ポートを許可

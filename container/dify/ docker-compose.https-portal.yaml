@@ -1,0 +1,31 @@
+include:
+    - docker-compose.yaml
+
+services:
+  https-portal:
+    restart: always
+    image: steveltn/https-portal:1
+    volumes:
+      - ssl_certs:/var/lib/https-portal
+    labels:
+      # Traefikでhttps-portalを有効化
+      - "traefik.enable=true"
+      # HTTPリクエストをhttps-portalにルーティング
+      - "traefik.http.routers.https-portal-http.rule=Host(`dify.shift-terminus.com`)" # HTTPアクセス用のドメイン
+      - "traefik.http.routers.https-portal-http.entrypoints=web" # HTTPエントリーポイント
+      - "traefik.http.services.https-portal-service.loadbalancer.server.port=80" # https-portalの内部HTTPポート
+      # HTTPSリクエストをhttps-portalにルーティング
+      # https-portalがTLSを終端するため、Traefik側でtls=trueは不要
+      - "traefik.http.routers.https-portal-https.rule=Host(`dify.shift-terminus.com`)" # HTTPSアクセス用のドメイン
+      - "traefik.http.routers.https-portal-https.entrypoints=websecure" # HTTPSエントリーポイント
+      - "traefik.http.services.https-portal-service.loadbalancer.server.port=443" # https-portalの内部HTTPSポート
+    ports:
+      - '30080:80' 
+      - '30443:443'
+    environment:
+      DOMAINS: 'dify.shift-terminus.com -> http://nginx:80, dify.shift-terminus.com => https://dify.shift-terminus.com'
+      STAGE: 'production'
+    container_name: dify_https-portal
+
+volumes:
+  ssl_certs:
