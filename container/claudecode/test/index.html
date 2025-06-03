@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>円の為替相場チェッカー</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>円の為替相場チェッカー</h1>
+        <div class="exchange-form">
+            <select id="currency-select">
+                <option value="USD">米ドル (USD)</option>
+                <option value="EUR">ユーロ (EUR)</option>
+                <option value="GBP">英ポンド (GBP)</option>
+                <option value="AUD">豪ドル (AUD)</option>
+                <option value="CAD">カナダドル (CAD)</option>
+                <option value="CNY">中国元 (CNY)</option>
+            </select>
+            <button id="check-rate">為替レートを確認</button>
+        </div>
+        <div class="result" id="result-area">
+            <p>通貨を選択して「為替レートを確認」ボタンを押してください。</p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
