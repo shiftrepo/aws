@@ -198,6 +198,9 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
       let teamVersion = '';
       const lines = myCurrentVersion.split('\n');
       
+      // ファイル内容の分析
+      const contentAnalysis = analyzeContent(myCurrentVersion);
+
       if (isTutorialFile) {
         // チュートリアル用ファイルの場合は特定の行を変更
         const modifiedLines = [...lines];
@@ -348,8 +351,8 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
         
         setMessages(prev => [...prev, {
           id: Date.now(),
-          sender: 'システム',
-          content: 'コンフリクトマーカー (<<<<<<<, =======, >>>>>>>) がまだ残っています。これらを全て削除してコンフリクトを解決してください。',
+          sender: teamMembers[0].name,
+          content: 'あれ、まだコンフリクトマーカー (<<<<<<<, =======, >>>>>>>) が残ってるね。これらを全て削除しないとコンフリクト解決にならないよ！もう一度試してみて。',
           timestamp: new Date()
         }]);
         
@@ -381,8 +384,8 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
       // 全ステップ完了
       setMessages(prev => [...prev, {
         id: Date.now(),
-        sender: 'システム',
-        content: 'コンフリクトが解決されました。コミットを作成してマージを完了してください。',
+        sender: teamMembers[1].name,
+        content: 'いいね！コンフリクトが解決されたよ。この変更をコミットしてマージを完了しましょう。',
         timestamp: new Date()
       }]);
       
@@ -454,9 +457,8 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
     const myLines = myVersion.split('\n');
     const teamLines = teamMemberVersion.split('\n');
     
-    // 編集されている内容を分析
+    // 編集されている内容を事前分析（ファイル形式などを判断するため）
     const contentAnalysis = analyzeContent(myVersion);
-    const teamContentAnalysis = analyzeContent(teamMemberVersion);
     
     // チュートリアルファイルの場合は分かりやすくコンフリクトを生成
     if (isTutorialFile) {
