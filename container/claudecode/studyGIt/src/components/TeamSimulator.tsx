@@ -335,7 +335,7 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
         sender: teamMembers[0].name,
         content: 'あ、このファイルにコンフリクトが発生してるね。<<<<<<< HEADから>>>>>>> feature-branchまでのマーカーを見て、両方の変更を上手くマージしてみて！',
         timestamp: new Date()
-      });
+      }]);
     } 
     else if (resolutionStep === 1) {
       // ユーザーが編集した内容でコンフリクトを解決
