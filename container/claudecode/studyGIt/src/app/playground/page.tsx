@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import DEFAULT_FILES from '@/components/DefaultFiles';
 import { useSearchParams } from 'next/navigation';
 import styles from './playground.module.css';
@@ -9,13 +9,13 @@ import GitVisualizer from '@/components/GitVisualizer';
 import CommandTerminal from '@/components/CommandTerminal';
 import TeamSimulator from '@/components/TeamSimulator';
 
-export default function Playground() {
+function PlaygroundContent() {
   const searchParams = useSearchParams();
   const username = searchParams.get('username') || 'ユーザー';
   
   const [activeTab, setActiveTab] = useState('files');
   // 初期コミット状態で開始するためのリポジトリ設定
-  const [repository, setRepository] = useState({
+  const [repository, setRepository] = useState<{files: Record<string, string>, commits: Array<{id: string, message: string, author: string, timestamp: string, branch: string, files: Record<string, string>, hasConflict?: boolean, resolvedConflict?: boolean}>, branches: string[], currentBranch: string}>({
     files: DEFAULT_FILES,
     commits: [
       {
@@ -50,7 +50,7 @@ export default function Playground() {
     ],
   });
   
-  const handleFileOperation = (operation, data) => {
+  const handleFileOperation = (operation: string, data: {name: string, content: string}): void => {
     // ファイル操作の処理（追加、変更、削除）
     let updatedFiles = { ...repository.files };
     
@@ -81,13 +81,17 @@ export default function Playground() {
     }
   };
   
-  const [conflictInfo, setConflictInfo] = useState({
+  const [conflictInfo, setConflictInfo] = useState<{
+    active: boolean,
+    resolved: boolean,
+    file: string | null,
+  }>({
     active: false,
     resolved: false,
     file: null,
   });
   
-  const handleCommit = (message) => {
+  const handleCommit = (message: string): void => {
     const newCommit = {
       id: `commit-${Date.now()}`,
       message,
@@ -119,7 +123,7 @@ export default function Playground() {
     }
   };
   
-  const handleTabChange = (tab) => {
+  const handleTabChange = (tab: string): void => {
     setActiveTab(tab);
     
     // チュートリアルの進行
@@ -225,5 +229,13 @@ export default function Playground() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Playground() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PlaygroundContent />
+    </Suspense>
   );
 }

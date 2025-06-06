@@ -234,7 +234,7 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
                 if (match[2].startsWith('"') || match[2].startsWith('\'')) {
                   const newValue = match[2].startsWith('"') ? '"Team version"' : '\'Team version\'';
                   modifiedLines[i] = modifiedLines[i].replace(match[0], `${match[1]}${newValue}`);
-                } else if (!isNaN(match[2])) {
+                } else if (!isNaN(Number(match[2]))) {
                   const newValue = parseInt(match[2]) + 100;
                   modifiedLines[i] = modifiedLines[i].replace(match[0], `${match[1]}${newValue}`);
                 }
@@ -416,7 +416,7 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
   };
   
   // 編集内容を読み取り、コンフリクトを生成する
-  const analyzeContent = (content) => {
+  const analyzeContent = (content: string): any => {
     // ファイルの種類によって適切な変更を手配
     if (content.includes('class') && content.includes('function')) {
       // JavaScriptクラスや関数を含むファイル
@@ -577,7 +577,7 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
   };
   
   // ユーザーが編集した内容の更新
-  const handleEditableContentChange = (e) => {
+  const handleEditableContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setUserEditableContent(e.target.value);
   };
   
