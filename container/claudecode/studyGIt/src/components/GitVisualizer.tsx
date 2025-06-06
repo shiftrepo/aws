@@ -10,6 +10,8 @@ interface Commit {
   timestamp: string;
   branch: string;
   files: Record<string, string>;
+  hasConflict?: boolean;
+  resolvedConflict?: boolean;
 }
 
 interface Repository {
@@ -57,7 +59,7 @@ export default function GitVisualizer({ repository }: GitVisualizerProps) {
       
       // コミットノード
       const commitNode = document.createElement('div');
-      commitNode.className = styles.commitNode;
+      commitNode.className = `${styles.commitNode} ${commit.hasConflict ? styles.conflictCommit : ''} ${commit.resolvedConflict ? styles.resolvedCommit : ''}`;
       
       // コミット情報
       const commitInfo = document.createElement('div');
@@ -71,6 +73,8 @@ export default function GitVisualizer({ repository }: GitVisualizerProps) {
         <div class="${styles.commitHeader}">
           <div class="${styles.commitId}">${shortId}</div>
           <div class="${styles.commitDate}">${new Date(commit.timestamp).toLocaleString()}</div>
+          ${commit.resolvedConflict ? `<div class="${styles.conflictResolved}">コンフリクト解決済み</div>` : ''}
+          ${commit.hasConflict && !commit.resolvedConflict ? `<div class="${styles.conflictDetected}">コンフリクト発生中</div>` : ''}
         </div>
         <div class="${styles.commitMessage}">${commit.message}</div>
         <div class="${styles.commitAuthor}">Author: ${commit.author}</div>
@@ -134,6 +138,14 @@ export default function GitVisualizer({ repository }: GitVisualizerProps) {
         <div className={styles.legendItem}>
           <div className={`${styles.legendSymbol} ${styles.headLegend}`}></div>
           <span>HEAD（現在の位置）</span>
+        </div>
+        <div className={styles.legendItem}>
+          <div className={`${styles.legendSymbol} ${styles.conflictLegend}`}></div>
+          <span>コンフリクト発生</span>
+        </div>
+        <div className={styles.legendItem}>
+          <div className={`${styles.legendSymbol} ${styles.resolvedLegend}`}></div>
+          <span>コンフリクト解決済</span>
         </div>
       </div>
     </div>

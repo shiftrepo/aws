@@ -80,21 +80,60 @@ export default function CommandTerminal({ repository, onCommit }: CommandTermina
       '',
     ];
     
-    if (Object.keys(repository.files).length === 0) {
-      output.push('リポジトリに変更はありません。');
+    // 最新のコミットと現在のファイル状態を比較して変更を検出
+    const lastCommit = repository.commits.length > 0 ? repository.commits[repository.commits.length - 1] : null;
+    const lastCommitFiles = lastCommit ? lastCommit.files : {};
+    
+    // 変更されたファイルを検出
+    const changedFiles = [];
+    const newFiles = [];
+    const deletedFiles = [];
+    
+    // 現在のファイルが追加または変更されているか確認
+    for (const file in repository.files) {
+      if (!lastCommitFiles[file]) {
+        newFiles.push(file);
+      } else if (lastCommitFiles[file] !== repository.files[file]) {
+        changedFiles.push(file);
+      }
+    }
+    
+    // 削除されたファイルを検出
+    for (const file in lastCommitFiles) {
+      if (!repository.files[file]) {
+        deletedFiles.push(file);
+      }
+    }
+    
+    const hasChanges = newFiles.length > 0 || changedFiles.length > 0 || deletedFiles.length > 0;
+    
+    if (!hasChanges && lastCommit) {
+      output.push('Nothing to commit, working tree clean');
     } else {
       if (showStaged) {
         output.push('Changes to be committed:');
         output.push('  (use "git restore --staged <file>..." to unstage)');
-        Object.keys(repository.files).forEach(file => {
+        newFiles.forEach(file => {
           output.push(`\t新規ファイル: ${file}`);
+        });
+        changedFiles.forEach(file => {
+          output.push(`\t変更: ${file}`);
+        });
+        deletedFiles.forEach(file => {
+          output.push(`\t削除: ${file}`);
         });
       } else {
         output.push('Changes not staged for commit:');
         output.push('  (use "git add <file>..." to update what will be committed)');
         output.push('  (use "git restore <file>..." to discard changes in working directory)');
-        Object.keys(repository.files).forEach(file => {
+        newFiles.forEach(file => {
+          output.push(`\t新規ファイル: ${file}`);
+        });
+        changedFiles.forEach(file => {
           output.push(`\t変更: ${file}`);
+        });
+        deletedFiles.forEach(file => {
+          output.push(`\t削除: ${file}`);
         });
       }
     }
@@ -130,11 +169,32 @@ export default function CommandTerminal({ repository, onCommit }: CommandTermina
       return;
     }
     
+    // 最新のコミットと現在のファイル状態を比較して変更を検出
+    const lastCommit = repository.commits.length > 0 ? repository.commits[repository.commits.length - 1] : null;
+    const lastCommitFiles = lastCommit ? lastCommit.files : {};
+    
+    // 変更されたファイルをカウント
+    let changedFilesCount = 0;
+    
+    // 現在のファイルが追加または変更されているか確認
+    for (const file in repository.files) {
+      if (!lastCommitFiles[file] || lastCommitFiles[file] !== repository.files[file]) {
+        changedFilesCount++;
+      }
+    }
+    
+    // 削除されたファイルをカウント
+    for (const file in lastCommitFiles) {
+      if (!repository.files[file]) {
+        changedFilesCount++;
+      }
+    }
+    
     // コミット実行
     onCommit(message);
     setShowStaged(false);
-    setCommandHistory(prev => [...prev, `[${repository.currentBranch} ${repository.commits.length + 1}] ${message}`]);
-    setCommandHistory(prev => [...prev, `${Object.keys(repository.files).length} ファイルが変更されました。`]);
+    setCommandHistory(prev => [...prev, `[${repository.currentBranch} ${repository.commits.length}] ${message}`]);
+    setCommandHistory(prev => [...prev, `${changedFilesCount} ファイルが変更されました。`]);
   };
   
   const handleGitLog = () => {

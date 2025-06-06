@@ -68,6 +68,12 @@ export default function Playground() {
     }
   };
   
+  const [conflictInfo, setConflictInfo] = useState({
+    active: false,
+    resolved: false,
+    file: null,
+  });
+  
   const handleCommit = (message) => {
     const newCommit = {
       id: `commit-${Date.now()}`,
@@ -76,12 +82,23 @@ export default function Playground() {
       timestamp: new Date().toISOString(),
       branch: repository.currentBranch,
       files: { ...repository.files },
+      hasConflict: conflictInfo.active && !conflictInfo.resolved,
+      resolvedConflict: conflictInfo.resolved,
     };
     
     setRepository(prev => ({
       ...prev,
       commits: [...prev.commits, newCommit],
     }));
+    
+    // コンフリクト情報をリセット
+    if (conflictInfo.resolved) {
+      setConflictInfo({
+        active: false,
+        resolved: false,
+        file: null
+      });
+    }
     
     // チュートリアルの進行
     if (tutorial.active && tutorial.step === 5) {
@@ -182,6 +199,9 @@ export default function Playground() {
             members={teamMembers}
             repository={repository}
             username={username}
+            onConflictStateChange={(conflictState) => {
+              setConflictInfo(conflictState);
+            }}
           />
         )}
         

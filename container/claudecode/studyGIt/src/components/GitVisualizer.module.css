@@ -226,3 +226,48 @@
   background-color: var(--accent);
   border-radius: 2px;
 }
+
+.conflictCommit {
+  background-color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);
+}
+
+.resolvedCommit {
+  background-color: var(--success);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+}
+
+.conflictLegend {
+  background-color: var(--danger);
+  border-radius: 50%;
+}
+
+.resolvedLegend {
+  background-color: var(--success);
+  border-radius: 50%;
+}
+
+.conflictDetected {
+  background-color: var(--danger);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  animation: pulse 1.5s infinite;
+}
+
+.conflictResolved {
+  background-color: var(--success);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
