@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import DEFAULT_FILES from '@/components/DefaultFiles';
 import { useSearchParams } from 'next/navigation';
 import styles from './playground.module.css';
 import FileExplorer from '@/components/FileExplorer';
@@ -13,10 +14,22 @@ export default function Playground() {
   const username = searchParams.get('username') || 'ユーザー';
   
   const [activeTab, setActiveTab] = useState('files');
+  // 初期コミット状態で開始するためのリポジトリ設定
   const [repository, setRepository] = useState({
-    files: {},
-    commits: [],
-    branches: ['main'],
+    files: DEFAULT_FILES,
+    commits: [
+      {
+        id: `commit-${Date.now()-10000}`,
+        message: '初期ファイルのコミット',
+        author: 'System',
+        timestamp: new Date(Date.now()-10000).toISOString(),
+        branch: 'main',
+        files: DEFAULT_FILES,
+        hasConflict: false,
+        resolvedConflict: false,
+      }
+    ],
+    branches: ['main', 'feature-branch'],
     currentBranch: 'main',
   });
   const [teamMembers, setTeamMembers] = useState([

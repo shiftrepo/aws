@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import styles from './GitVisualizer.module.css';
+import DEFAULT_FILES from '@/components/DefaultFiles';
 
 interface Commit {
   id: string;
@@ -26,6 +27,12 @@ interface GitVisualizerProps {
 }
 
 export default function GitVisualizer({ repository }: GitVisualizerProps) {
+  // 初期ロード時にデフォルトコミットがない場合は追加する処理
+  useEffect(() => {
+    if (repository.commits && repository.commits.length === 0) {
+      // 初期化用に別の処理を追加することがあればここに記述
+    }
+  }, [repository.commits]);
   const canvasRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
