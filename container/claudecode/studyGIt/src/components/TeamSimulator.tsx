@@ -333,12 +333,14 @@ export default function TeamSimulator(props: TeamSimulatorProps) {
       }]);
       
       // システム通知はチャットではなく、チームメンバーからのメッセージとして表示する
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        sender: teamMembers[0].name,
-        content: 'あ、このファイルにコンフリクトが発生してるね。<<<<<<< HEADから>>>>>>> feature-branchまでのマーカーを見て、両方の変更を上手くマージしてみて！',
-        timestamp: new Date()
-      }]);
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now() + 100,
+          sender: teamMembers[0].name,
+          content: 'あ、このファイルにコンフリクトが発生してるね。<<<<<<< HEADから>>>>>>> feature-branchまでのマーカーを見て、両方の変更を上手くマージしてみて！',
+          timestamp: new Date()
+        }]);
+      }, 100);
     } 
     else if (resolutionStep === 1) {
       // ユーザーが編集した内容でコンフリクトを解決
