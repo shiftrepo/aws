@@ -13,8 +13,8 @@ const GitFlowGuide = () => {
             <h3>Gitフローとは何か？</h3>
             <p>Git Flowは、ソフトウェア開発のためのブランチ戦略モデルです。このモデルでは、主に以下のブランチを使用します：</p>
             <ul>
-              <li><strong className={styles.mainBranch}>main/master</strong>: 本番環境に対応するブランチ。リリースされたコードのみが存在します。</li>
-              <li><strong className={styles.developBranch}>develop</strong>: 開発の基本となるブランチ。次のリリースに向けた開発が進行します。</li>
+              <li><strong className={styles.mainBranch}>main/master</strong>: 本番環境に対応するブランチ (本番B面)。リリースされたコードのみが存在します。</li>
+              <li><strong className={styles.developBranch}>develop</strong>: 開発の基本となるブランチ (開発A面)。次のリリースに向けた開発が進行します。</li>
               <li><strong className={styles.featureBranch}>feature</strong>: 新機能開発用のブランチ。developから分岐し、完了したらdevelopにマージします。</li>
               <li><strong className={styles.releaseBranch}>release</strong>: リリース準備用のブランチ。developから分岐し、リリース準備完了後にmainとdevelopの両方にマージします。</li>
               <li><strong className={styles.hotfixBranch}>hotfix</strong>: 緊急修正用のブランチ。mainから分岐し、修正後はmainとdevelopの両方にマージします。</li>
@@ -60,9 +60,9 @@ module.exports = app;`}
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
-                ↓
-  develop   o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
+                              ↓
+  develop (開発A面)         o───────────────────────────────────
               `}
             </pre>
           </div>
@@ -132,11 +132,11 @@ module.exports = {
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
                 
-  develop   o───────────────────────────────────
-                ↓
-  feature/     o─────────────────
+  develop (開発A面)         o───────────────────────────────────
+                              ↓
+  feature/                   o─────────────────
   login-system   
               `}
             </pre>
@@ -209,11 +209,11 @@ module.exports = {
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
                 
-  develop   o────────o──────────────────────────
-                    ↑
-  feature/     o─────┘
+  develop (開発A面)         o────────o──────────────────────────
+                                    ↑
+  feature/                     o─────┘
   login-system   
               `}
             </pre>
@@ -291,11 +291,11 @@ module.exports = {
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
                 
-  develop   o────────o──────────────────────────
-                      ↓
-  feature/            o─────────────
+  develop (開発A面)         o────────o──────────────────────────
+                                      ↓
+  feature/                            o─────────────
   user-profile    
               `}
             </pre>
@@ -375,11 +375,11 @@ module.exports = {
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
                 
-  develop   o────────o───────o─────────────────
-                           ↑
-  feature/            o─────┘
+  develop (開発A面)         o────────o───────o─────────────────
+                                           ↑
+  feature/                            o─────┘
   user-profile    
               `}
             </pre>
@@ -450,11 +450,11 @@ module.exports = app;`}
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
                 
-  develop   o────────o───────o─────────────────
-                                 ↓
-  release/                      o────
+  develop (開発A面)         o────────o───────o─────────────────
+                                                 ↓
+  release/                                      o────
   1.0.0  
               `}
             </pre>
@@ -506,11 +506,11 @@ module.exports = {
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o───────────────────────────────────
+  main/master (本番B面)     o───────────────────────────────────
                 
-  develop   o────────o───────o─────────────────
-                                 
-  release/                      o────o─
+  develop (開発A面)         o────────o───────o─────────────────
+                                                 
+  release/                                      o────o─
   1.0.0  
               `}
             </pre>
@@ -599,11 +599,11 @@ module.exports = {
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o──────────────────────o─(v1.0.0)───
-                                  ↑
-  develop   o────────o───────o────┴───o────────
-                                 ↑
-  release/                      o────o┘
+  main/master (本番B面)     o──────────────────────o─(v1.0.0)───
+                                                  ↑
+  develop (開発A面)         o────────o───────o────┴───o────────
+                                                 ↑
+  release/                                      o────o┘
   1.0.0  
               `}
             </pre>
@@ -679,11 +679,11 @@ module.exports = app;`}
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o──────────────────────o──────────────
-                                    ↓
-  develop   o────────o───────o──────o────────────
-                                   
-  hotfix/                         o─
+  main/master (本番B面)     o──────────────────────o──────────────
+                                                    ↓
+  develop (開発A面)         o────────o───────o──────o────────────
+                                                   
+  hotfix/                                         o─
   1.0.1                             
               `}
             </pre>
@@ -754,11 +754,11 @@ module.exports = app;`}
           <div className={styles.asciiArt}>
             <pre>
               {`
-  main     o──────────────────────o───────o─(v1.0.1)──
-                                    ↑       ↑
-  develop   o────────o───────o──────o───────┴───o────
-                                   ↑           ↑
-  hotfix/                         o───────────┘
+  main/master (本番B面)     o──────────────────────o───────o─(v1.0.1)──
+                                                    ↑       ↑
+  develop (開発A面)         o────────o───────o──────o───────┴───o────
+                                                   ↑           ↑
+  hotfix/                                         o───────────┘
   1.0.1                             
               `}
             </pre>
