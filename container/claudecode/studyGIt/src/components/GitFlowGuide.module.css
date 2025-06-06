@@ -169,9 +169,10 @@
 
 .branchVisual {
   position: relative;
-  height: 150px;
+  height: 200px;
   margin: 30px 0;
   padding: 0 20px;
+  overflow: hidden;
 }
 
 .mainBranchLine,
@@ -185,6 +186,7 @@
   height: 2px;
   display: flex;
   align-items: center;
+  z-index: 1;
 }
 
 .mainBranchLine {
@@ -247,11 +249,76 @@
   background-color: inherit;
   border-radius: 50%;
   margin-right: 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .mergeCommit {
   transform: scale(1.2);
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.branchArrow {
+  position: absolute;
+  border-width: 0;
+  border-style: solid;
+  z-index: 1;
+}
+
+.featureToDevelopArrow {
+  border-color: #2ecc71;
+  border-top-width: 2px;
+  border-right-width: 2px;
+  transform-origin: top right;
+}
+
+.developToReleaseArrow {
+  border-color: #f39c12;
+  border-top-width: 2px;
+  border-left-width: 2px;
+  transform-origin: top left;
+}
+
+.releaseToDevelopArrow {
+  border-color: #f39c12;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+  transform-origin: bottom right;
+}
+
+.releaseToMainArrow {
+  border-color: #f39c12;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+  transform-origin: bottom left;
+}
+
+.mainToHotfixArrow {
+  border-color: #9b59b6;
+  border-top-width: 2px;
+  border-left-width: 2px;
+  transform-origin: top left;
+}
+
+.hotfixToMainArrow {
+  border-color: #9b59b6;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+  transform-origin: bottom left;
+}
+
+.hotfixToDevelopArrow {
+  border-color: #9b59b6;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+  transform-origin: bottom right;
+}
+
+.arrowHead {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
 }
 
 .tagLabel {

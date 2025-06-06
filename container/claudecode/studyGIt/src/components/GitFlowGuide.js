@@ -66,6 +66,27 @@ module.exports = app;`}
               <span className={styles.commitDot}></span>
               <span className={styles.branchLabel}>develop</span>
             </div>
+            {/* mainからdevelopへの分岐を表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.developToMainArrow}`}
+              style={{
+                left: '20px',
+                top: '20px',
+                width: '2px',
+                height: '40px',
+                backgroundColor: '#3498db'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '-5px',
+                  left: '-4px',
+                  borderWidth: '5px 4px 0 4px',
+                  borderColor: '#3498db transparent transparent transparent'
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       )
@@ -143,6 +164,27 @@ module.exports = {
               <span className={styles.commitDot}></span>
               <span className={styles.branchLabel}>feature/login-system</span>
             </div>
+            {/* developからfeatureへの分岐を表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.featureArrow}`}
+              style={{
+                left: '20px',
+                top: '60px',
+                width: '2px',
+                height: '40px',
+                backgroundColor: '#2ecc71'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '-5px',
+                  left: '-4px',
+                  borderWidth: '5px 4px 0 4px',
+                  borderColor: '#2ecc71 transparent transparent transparent'
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       )
@@ -218,6 +260,27 @@ module.exports = {
               <span className={styles.commitDot}></span>
               <span className={styles.commitDot} className={styles.mergeCommit}></span>
               <span className={styles.branchLabel}>develop</span>
+            </div>
+            {/* featureからdevelopへのマージを表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.featureToDevelopArrow}`}
+              style={{
+                left: '40px',
+                top: '100px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '0 20px 0 0'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '35px',
+                  right: '-5px',
+                  borderWidth: '4px 5px 4px 0',
+                  borderColor: 'transparent #2ecc71 transparent transparent'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -304,6 +367,27 @@ module.exports = {
               <span className={styles.commitDot}></span>
               <span className={styles.branchLabel}>feature/user-profile</span>
             </div>
+            {/* developからfeatureへの分岐を表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.featureArrow}`}
+              style={{
+                left: '40px',
+                top: '60px',
+                width: '2px',
+                height: '40px',
+                backgroundColor: '#2ecc71'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '-5px',
+                  left: '-4px',
+                  borderWidth: '5px 4px 0 4px',
+                  borderColor: '#2ecc71 transparent transparent transparent'
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       )
@@ -388,6 +472,27 @@ module.exports = {
               <span className={styles.commitDot} className={styles.mergeCommit}></span>
               <span className={styles.branchLabel}>develop</span>
             </div>
+            {/* featureからdevelopへのマージを表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.featureToDevelopArrow}`}
+              style={{
+                left: '60px',
+                top: '100px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '0 20px 0 0'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '35px',
+                  right: '-5px',
+                  borderWidth: '4px 5px 4px 0',
+                  borderColor: 'transparent #2ecc71 transparent transparent'
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       )
@@ -466,6 +571,27 @@ module.exports = app;`}
             <div className={styles.releaseBranchLine}>
               <span className={styles.commitDot}></span>
               <span className={styles.branchLabel}>release/1.0.0</span>
+            </div>
+            {/* developからreleaseへの分岐を表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.developToReleaseArrow}`}
+              style={{
+                left: '60px',
+                top: '60px',
+                width: '2px',
+                height: '40px',
+                backgroundColor: '#f39c12'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '-5px',
+                  left: '-4px',
+                  borderWidth: '5px 4px 0 4px',
+                  borderColor: '#f39c12 transparent transparent transparent'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -624,6 +750,48 @@ module.exports = {
               <span className={styles.commitDot} className={styles.mergeCommit}></span>
               <span className={styles.branchLabel}>develop</span>
             </div>
+            {/* releaseからmainへのマージを表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.releaseToMainArrow}`}
+              style={{
+                right: '40px',
+                bottom: '140px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '0 0 0 20px'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  top: '35px',
+                  left: '-5px',
+                  borderWidth: '0 4px 5px 4px',
+                  borderColor: 'transparent transparent #f39c12 transparent'
+                }}
+              ></div>
+            </div>
+            {/* releaseからdevelopへのマージを表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.releaseToDevelopArrow}`}
+              style={{
+                left: '80px',
+                bottom: '100px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '0 0 20px 0'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  top: '35px',
+                  right: '-5px',
+                  borderWidth: '4px 0 4px 5px',
+                  borderColor: 'transparent transparent transparent #f39c12'
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       )
@@ -710,6 +878,27 @@ module.exports = app;`}
               <span className={styles.commitDot}></span>
               <span className={styles.branchLabel}>hotfix/1.0.1</span>
             </div>
+            {/* mainからhotfixへの分岐を表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.mainToHotfixArrow}`}
+              style={{
+                right: '40px',
+                top: '20px',
+                width: '2px',
+                height: '80px',
+                backgroundColor: '#9b59b6'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  bottom: '-5px',
+                  left: '-4px',
+                  borderWidth: '5px 4px 0 4px',
+                  borderColor: '#9b59b6 transparent transparent transparent'
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       )
@@ -789,6 +978,48 @@ module.exports = app;`}
               <span className={styles.commitDot}></span>
               <span className={styles.commitDot} className={styles.mergeCommit}></span>
               <span className={styles.branchLabel}>develop</span>
+            </div>
+            {/* hotfixからmainへのマージを表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.hotfixToMainArrow}`}
+              style={{
+                right: '60px',
+                bottom: '140px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '0 0 0 20px'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  top: '35px',
+                  left: '-5px',
+                  borderWidth: '0 4px 5px 4px',
+                  borderColor: 'transparent transparent #9b59b6 transparent'
+                }}
+              ></div>
+            </div>
+            {/* hotfixからdevelopへのマージを表す矢印 */}
+            <div 
+              className={`${styles.branchArrow} ${styles.hotfixToDevelopArrow}`}
+              style={{
+                left: '100px',
+                bottom: '100px',
+                width: '100px',
+                height: '80px',
+                borderRadius: '0 0 20px 0'
+              }}
+            >
+              <div 
+                className={styles.arrowHead}
+                style={{
+                  top: '75px',
+                  right: '-5px',
+                  borderWidth: '4px 0 4px 5px',
+                  borderColor: 'transparent transparent transparent #9b59b6'
+                }}
+              ></div>
             </div>
           </div>
         </div>
