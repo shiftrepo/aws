@@ -292,6 +292,143 @@
   padding-top: 30px;
 }
 
+/* グラフィカル表示スタイル */
+.graphicView {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  transition: all 0.3s ease;
+}
+
+.graphicView:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.gitGraph {
+  position: relative;
+  padding: 20px 0;
+}
+
+.branchRow {
+  position: relative;
+  height: 40px;
+  margin: 15px 0;
+}
+
+.graphBranch {
+  position: absolute;
+  height: 4px;
+  left: 150px;
+  right: 20px;
+  border-radius: 4px;
+}
+
+.graphBranchMain {
+  background-color: #e74c3c;
+}
+
+.graphBranchDevelop {
+  background-color: #3498db;
+}
+
+.graphBranchFeature {
+  background-color: #2ecc71;
+}
+
+.graphBranchRelease {
+  background-color: #f39c12;
+}
+
+.graphBranchHotfix {
+  background-color: #9b59b6;
+}
+
+.branchName {
+  position: absolute;
+  left: 0;
+  top: -7px;
+  width: 140px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.branchNameMain {
+  background-color: #e74c3c;
+}
+
+.branchNameDevelop {
+  background-color: #3498db;
+}
+
+.branchNameFeature {
+  background-color: #2ecc71;
+}
+
+.branchNameRelease {
+  background-color: #f39c12;
+}
+
+.branchNameHotfix {
+  background-color: #9b59b6;
+}
+
+.graphCommit {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  top: -8px;
+  background-color: inherit;
+  box-shadow: 0 0 0 3px white, 0 0 0 5px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graphCommit:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px white, 0 0 0 5px rgba(0, 0, 0, 0.2), 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.graphArrow {
+  position: absolute;
+  width: 2px;
+  background-color: inherit;
+  z-index: 1;
+}
+
+.graphArrowVertical {
+  width: 2px;
+}
+
+.graphArrowHorizontal {
+  height: 2px;
+}
+
+.graphTag {
+  position: absolute;
+  top: -30px;
+  background-color: #f1c40f;
+  color: #333;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 3;
+}
+
 .mainBranchLine,
 .developBranchLine,
 .featureBranchLine,
@@ -563,11 +700,43 @@
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
   transition: all 0.3s ease;
   animation: fadeIn 0.5s ease-out;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .developmentPhase:hover {
   box-shadow: 0 6px 15px rgba(76, 175, 80, 0.25);
   transform: translateX(5px);
+}
+
+.viewToggle {
+  display: flex;
+  gap: 10px;
+}
+
+.viewToggleButton {
+  padding: 8px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #4CAF50;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.viewToggleButton:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+}
+
+.viewToggleButton.active {
+  background: #4CAF50;
+  color: white;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 @keyframes fadeIn {

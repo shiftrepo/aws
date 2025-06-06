@@ -4,6 +4,7 @@ import styles from './GitFlowGuide.module.css';
 
 const GitFlowGuide = () => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [viewMode, setViewMode] = useState('ascii'); // 'ascii' または 'graphic'
   
   const steps = [
     {
@@ -58,15 +59,36 @@ module.exports = app;`}
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                               ↓
   develop (開発A面)         o───────────────────────────────────
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow + ' ' + styles.graphArrowVertical} 
+                     style={{ left: '210px', top: '36px', height: '30px', backgroundColor: '#3498db' }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -130,18 +152,45 @@ module.exports = {
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                 
   develop (開発A面)         o───────────────────────────────────
                               ↓
   feature/                   o─────────────────
   login-system   
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow + ' ' + styles.graphArrowVertical} 
+                     style={{ left: '210px', top: '76px', height: '30px', backgroundColor: '#2ecc71' }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '200px', left: '150px' }}>
+                    <div className={styles.graphCommit} style={{ left: '50px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -844,6 +893,20 @@ module.exports = app;`}
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <strong>開発工程：</strong> {steps[currentStep].development || "計画フェーズ"}
+        <motion.div className={styles.viewToggle}>
+          <button 
+            className={`${styles.viewToggleButton} ${viewMode === 'ascii' ? styles.active : ''}`}
+            onClick={() => setViewMode('ascii')}
+          >
+            アスキーアート
+          </button>
+          <button 
+            className={`${styles.viewToggleButton} ${viewMode === 'graphic' ? styles.active : ''}`}
+            onClick={() => setViewMode('graphic')}
+          >
+            グラフィカル
+          </button>
+        </motion.div>
       </motion.div>
       
       <motion.div 
