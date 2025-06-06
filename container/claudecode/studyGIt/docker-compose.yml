@@ -8,7 +8,11 @@ services:
     container_name: git-playground
     ports:
       - "3000:3000"
-    # Removed volume mounts that were causing permission issues
+    volumes:
+      - .:/app:z,U
+      - /app/node_modules
+    user: "root:root"
+    # Volume mounts with z flag for SELinux and setting host user permissions
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_HOST_URL=mcp.shift-terminus.com
