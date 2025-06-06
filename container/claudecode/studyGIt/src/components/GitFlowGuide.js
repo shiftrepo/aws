@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
 
 const GitFlowGuide = () => {
@@ -803,8 +804,20 @@ module.exports = app;`}
   };
 
   return (
-    <div className={styles.gitFlowGuide}>
-      <h2 className={styles.title}>Git Flow チュートリアル</h2>
+    <motion.div 
+      className={styles.gitFlowGuide}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.h2 
+        className={styles.title}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        Git Flow チュートリアル
+      </motion.h2>
       
       <div className={styles.progressBar}>
         {steps.map((step, index) => (
@@ -812,8 +825,11 @@ module.exports = app;`}
             key={index}
             className={`${styles.progressStep} ${index <= currentStep ? styles.completed : ''} ${index === currentStep ? styles.active : ''}`}
             onClick={() => setCurrentStep(index)}
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 * index, duration: 0.3 }}
           >
             <span className={styles.stepNumber}>{index + 1}</span>
             <span className={styles.stepTitle}>{step.title}</span>
@@ -821,31 +837,51 @@ module.exports = app;`}
         ))}
       </div>
       
-      <div className={styles.developmentPhase}>
+      <motion.div 
+        className={styles.developmentPhase}
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+      >
         <strong>開発工程：</strong> {steps[currentStep].development || "計画フェーズ"}
-      </div>
+      </motion.div>
       
-      <div className={styles.content}>
+      <motion.div 
+        className={styles.content}
+        key={currentStep}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         {steps[currentStep].content}
-      </div>
+      </motion.div>
       
-      <div className={styles.navigation}>
-        <button 
+      <motion.div 
+        className={styles.navigation}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <motion.button 
           className={styles.navButton} 
           onClick={prevStep} 
           disabled={currentStep === 0}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           前へ
-        </button>
-        <button 
+        </motion.button>
+        <motion.button 
           className={styles.navButton} 
           onClick={nextStep} 
           disabled={currentStep === steps.length - 1}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           次へ
-        </button>
-      </div>
-    </div>
+        </motion.button>
+      </motion.div>
+    </motion.div>
   );
 };
 
