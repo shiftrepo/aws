@@ -79,7 +79,7 @@ module.exports = app;`}
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '36px', height: '30px', width: '2px', backgroundColor: '#3498db' }} />
+                     style={{ position: 'absolute', left: '210px', top: '16px', height: '40px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }} />
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -292,7 +292,7 @@ module.exports = {
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '290px', top: '76px', height: '30px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71' }} />
+                     style={{ position: 'absolute', left: '280px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }} />
               </div>
             </div>
           )}
@@ -396,7 +396,7 @@ module.exports = {
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '310px', top: '76px', height: '30px', width: '2px', backgroundColor: '#2ecc71' }} />
+                     style={{ position: 'absolute', left: '310px', top: '56px', height: '40px', width: '2px', backgroundColor: '#2ecc71', zIndex: 1 }} />
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '100px', left: '250px' }}>
@@ -515,7 +515,7 @@ module.exports = {
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '370px', top: '76px', height: '30px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71' }} />
+                     style={{ position: 'absolute', left: '360px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }} />
               </div>
             </div>
           )}
@@ -582,18 +582,47 @@ module.exports = app;`}
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                 
   develop (開発A面)         o────────o───────o─────────────────
                                                  ↓
   release/                                      o────
   1.0.0  
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '280px' }} />
+                    <div className={styles.graphCommit} style={{ left: '380px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '390px', top: '56px', height: '40px', width: '2px', backgroundColor: '#f39c12', zIndex: 1 }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '50px', left: '360px' }}>
+                    <div className={styles.graphCommit} style={{ left: '40px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -638,18 +667,46 @@ module.exports = {
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                 
   develop (開発A面)         o────────o───────o─────────────────
                                                  
   release/                                      o────o─
   1.0.0  
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '280px' }} />
+                    <div className={styles.graphCommit} style={{ left: '380px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '100px', left: '360px' }}>
+                    <div className={styles.graphCommit} style={{ left: '40px' }} />
+                    <div className={styles.graphCommit} style={{ left: '90px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -731,18 +788,53 @@ module.exports = {
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o──────────────────────o─(v1.0.0)───
                                                   ↑
   develop (開発A面)         o────────o───────o────┴───o────────
                                                  ↑
   release/                                      o────o┘
   1.0.0  
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '480px' }} />
+                    <div className={styles.graphTag} style={{ left: '495px' }}>v1.0.0</div>
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '460px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#f39c12', zIndex: 1 }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '280px' }} />
+                    <div className={styles.graphCommit} style={{ left: '380px' }} />
+                    <div className={styles.graphCommit} style={{ left: '520px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '450px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#f39c12', zIndex: 1 }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '100px', left: '360px' }}>
+                    <div className={styles.graphCommit} style={{ left: '40px' }} />
+                    <div className={styles.graphCommit} style={{ left: '90px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -811,18 +903,49 @@ module.exports = app;`}
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o──────────────────────o──────────────
                                                     ↓
   develop (開発A面)         o────────o───────o──────o────────────
                                                    
   hotfix/                                         o─
   1.0.1                             
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '480px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '490px', top: '16px', height: '40px', width: '2px', backgroundColor: '#9b59b6', zIndex: 1 }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '280px' }} />
+                    <div className={styles.graphCommit} style={{ left: '380px' }} />
+                    <div className={styles.graphCommit} style={{ left: '480px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '40px', left: '480px' }}>
+                    <div className={styles.graphCommit} style={{ left: '30px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -886,18 +1009,54 @@ module.exports = app;`}
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o──────────────────────o───────o─(v1.0.1)──
                                                     ↑       ↑
   develop (開発A面)         o────────o───────o──────o───────┴───o────
                                                    ↑           ↑
   hotfix/                                         o───────────┘
   1.0.1                             
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '480px' }} />
+                    <div className={styles.graphCommit} style={{ left: '580px' }} />
+                    <div className={styles.graphTag} style={{ left: '595px' }}>v1.0.1</div>
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '560px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#9b59b6', zIndex: 1 }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '280px' }} />
+                    <div className={styles.graphCommit} style={{ left: '380px' }} />
+                    <div className={styles.graphCommit} style={{ left: '480px' }} />
+                    <div className={styles.graphCommit} style={{ left: '620px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '600px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#9b59b6', zIndex: 1 }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '110px', left: '480px' }}>
+                    <div className={styles.graphCommit} style={{ left: '100px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
