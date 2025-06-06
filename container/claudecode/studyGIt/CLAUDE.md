@@ -132,3 +132,16 @@ interface Commit {
 - styled-components
 - framer-motion
 - isomorphic-git (for Git operations simulation)
+
+### Volume Mounting
+
+When running with Docker or Podman in development mode, the repository is configured to mount local files into the container for hot-reload capability:
+
+```yaml
+volumes:
+  - .:/app:z,U    # Mount local directory with SELinux flags
+  - /app/node_modules
+user: "root:root" # Set user to root:root to resolve permission issues
+```
+
+The `z,U` flags are used for SELinux compatibility, and the root user setting ensures proper file permissions when mounting between host and container.
