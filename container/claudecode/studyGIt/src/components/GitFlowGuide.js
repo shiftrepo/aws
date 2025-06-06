@@ -808,14 +808,16 @@ module.exports = app;`}
       
       <div className={styles.progressBar}>
         {steps.map((step, index) => (
-          <div 
+          <motion.div 
             key={index}
             className={`${styles.progressStep} ${index <= currentStep ? styles.completed : ''} ${index === currentStep ? styles.active : ''}`}
             onClick={() => setCurrentStep(index)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
             <span className={styles.stepNumber}>{index + 1}</span>
             <span className={styles.stepTitle}>{step.title}</span>
-          </div>
+          </motion.div>
         ))}
       </div>
       
