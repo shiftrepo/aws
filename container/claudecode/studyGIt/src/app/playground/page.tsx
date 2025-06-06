@@ -8,6 +8,7 @@ import FileExplorer from '@/components/FileExplorer';
 import GitVisualizer from '@/components/GitVisualizer';
 import CommandTerminal from '@/components/CommandTerminal';
 import TeamSimulator from '@/components/TeamSimulator';
+import GitFlowGuide from '@/components/GitFlowGuide';
 
 function PlaygroundContent() {
   const searchParams = useSearchParams();
@@ -194,6 +195,12 @@ function PlaygroundContent() {
         >
           可視化
         </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'gitflow' ? styles.active : ''}`}
+          onClick={() => handleTabChange('gitflow')}
+        >
+          Git Flow
+        </button>
       </div>
       
       <div className={styles.content}>
@@ -226,6 +233,10 @@ function PlaygroundContent() {
           <GitVisualizer 
             repository={repository}
           />
+        )}
+        
+        {activeTab === 'gitflow' && (
+          <GitFlowGuide />
         )}
       </div>
     </div>

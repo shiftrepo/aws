@@ -1,0 +1,355 @@
+.gitFlowGuide {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.progressBar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  position: relative;
+  overflow-x: auto;
+  padding: 0 10px;
+}
+
+.progressBar::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e0e0e0;
+  z-index: 1;
+}
+
+.progressStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  min-width: 80px;
+  padding: 0 5px;
+}
+
+.stepNumber {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.stepTitle {
+  font-size: 12px;
+  text-align: center;
+  color: #666;
+  white-space: nowrap;
+}
+
+.progressStep.completed .stepNumber {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.progressStep.active .stepNumber {
+  background-color: #2196F3;
+  color: white;
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+}
+
+.section {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.section h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.codeBlock {
+  background-color: #282c34;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 15px 0;
+  overflow-x: auto;
+}
+
+.codeBlock pre {
+  margin: 0;
+}
+
+.codeBlock code {
+  color: #abb2bf;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+}
+
+.fileChanges {
+  margin-top: 20px;
+}
+
+.fileChanges h4 {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.file {
+  margin-bottom: 15px;
+  background-color: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+
+.fileName {
+  background-color: #e1e4e8;
+  padding: 8px 15px;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+}
+
+.file pre {
+  margin: 0;
+  padding: 15px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+}
+
+.file code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+}
+
+.newCode {
+  background-color: #e6ffed;
+  color: #22863a;
+  display: inline-block;
+  width: 100%;
+}
+
+.oldCode {
+  background-color: #ffeef0;
+  color: #cb2431;
+  text-decoration: line-through;
+}
+
+.highlightedCode {
+  background-color: #f8fafc;
+  border-left: 4px solid #2196F3;
+  padding-left: 10px;
+}
+
+.branchVisual {
+  position: relative;
+  height: 150px;
+  margin: 30px 0;
+  padding: 0 20px;
+}
+
+.mainBranchLine,
+.developBranchLine,
+.featureBranchLine,
+.releaseBranchLine,
+.hotfixBranchLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.mainBranchLine {
+  background-color: #e74c3c;
+  top: 20px;
+}
+
+.developBranchLine {
+  background-color: #3498db;
+  top: 60px;
+}
+
+.featureBranchLine {
+  background-color: #2ecc71;
+  top: 100px;
+}
+
+.releaseBranchLine {
+  background-color: #f39c12;
+  top: 100px;
+}
+
+.hotfixBranchLine {
+  background-color: #9b59b6;
+  top: 100px;
+}
+
+.branchLabel {
+  background-color: inherit;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.mainBranchLine .branchLabel {
+  background-color: #e74c3c;
+}
+
+.developBranchLine .branchLabel {
+  background-color: #3498db;
+}
+
+.featureBranchLine .branchLabel {
+  background-color: #2ecc71;
+}
+
+.releaseBranchLine .branchLabel {
+  background-color: #f39c12;
+}
+
+.hotfixBranchLine .branchLabel {
+  background-color: #9b59b6;
+}
+
+.commitDot {
+  width: 12px;
+  height: 12px;
+  background-color: inherit;
+  border-radius: 50%;
+  margin-right: 20px;
+}
+
+.mergeCommit {
+  transform: scale(1.2);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.tagLabel {
+  background-color: #ffeb3b;
+  color: #333;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.mainBranch {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.developBranch {
+  color: #3498db;
+  font-weight: bold;
+}
+
+.featureBranch {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.releaseBranch {
+  color: #f39c12;
+  font-weight: bold;
+}
+
+.hotfixBranch {
+  color: #9b59b6;
+  font-weight: bold;
+}
+
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.navButton {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.navButton:hover {
+  background-color: #0b7dda;
+}
+
+.navButton:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.flowDiagram {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.diagram {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.developmentPhase {
+  background-color: #e8f5e9;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border-left: 4px solid #4CAF50;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .progressStep .stepTitle {
+    font-size: 10px;
+  }
+  
+  .section {
+    padding: 15px;
+  }
+  
+  .codeBlock code, 
+  .file code {
+    font-size: 12px;
+  }
+}
+
+.content {
+  margin-bottom: 30px;
+}
