@@ -78,8 +78,8 @@ module.exports = app;`}
                     <div className={styles.graphCommit} style={{ left: '200px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow + ' ' + styles.graphArrowVertical} 
-                     style={{ left: '210px', top: '36px', height: '30px', backgroundColor: '#3498db' }} />
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '210px', top: '36px', height: '30px', width: '2px', backgroundColor: '#3498db' }} />
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -256,18 +256,46 @@ module.exports = {
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                 
   develop (開発A面)         o────────o──────────────────────────
                                     ↑
   feature/                     o─────┘
   login-system   
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '300px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '110px', left: '180px' }}>
+                    <div className={styles.graphCommit} style={{ left: '100px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '290px', top: '76px', height: '30px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71' }} />
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -338,18 +366,46 @@ module.exports = {
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                 
   develop (開発A面)         o────────o──────────────────────────
                                       ↓
   feature/                            o─────────────
   user-profile    
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '300px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '310px', top: '76px', height: '30px', width: '2px', backgroundColor: '#2ecc71' }} />
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '100px', left: '250px' }}>
+                    <div className={styles.graphCommit} style={{ left: '50px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -422,18 +478,47 @@ module.exports = {
               </pre>
             </div>
           </div>
-          <div className={styles.asciiArt}>
-            <pre>
-              {`
+          {viewMode === 'ascii' ? (
+            <div className={styles.asciiArt}>
+              <pre>
+                {`
   main/master (本番B面)     o───────────────────────────────────
                 
   develop (開発A面)         o────────o───────o─────────────────
                                            ↑
   feature/                            o─────┘
   user-profile    
-              `}
-            </pre>
-          </div>
+                `}
+              </pre>
+            </div>
+          ) : (
+            <div className={styles.graphicView}>
+              <div className={styles.gitGraph}>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
+                    <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommit} style={{ left: '280px' }} />
+                    <div className={styles.graphCommit} style={{ left: '380px' }} />
+                  </div>
+                </div>
+                <div className={styles.branchRow}>
+                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
+                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '110px', left: '260px' }}>
+                    <div className={styles.graphCommit} style={{ left: '100px' }} />
+                  </div>
+                </div>
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '370px', top: '76px', height: '30px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71' }} />
+              </div>
+            </div>
+          )}
         </div>
       )
     },
