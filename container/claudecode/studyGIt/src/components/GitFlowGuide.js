@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
 
 const GitFlowGuide = () => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [viewMode, setViewMode] = useState('ascii'); // 'ascii' または 'graphic'
+  const [viewMode, setViewMode] = useState('graphic'); // 'ascii' または 'graphic'
+  const [animationEnabled, setAnimationEnabled] = useState(true);
   
   const steps = [
     {
@@ -23,7 +24,8 @@ const GitFlowGuide = () => {
             </ul>
           </div>
           <div className={styles.flowDiagram}>
-            <img src="https://blog.kinto-technologies.com/assets/blog/authors/r.wen/git-flow-diagram.png" alt="Git Flow Diagram" className={styles.diagram}/>
+            <img src="https://nvie.com/img/git-model@2x.png" alt="Git Flow Diagram" className={styles.diagram}/>
+            <div className={styles.diagramCaption}>Git Flow モデル（Vincent Driessen氏による原典的な図）</div>
           </div>
         </>
       )
@@ -79,11 +81,15 @@ module.exports = app;`}
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '16px', height: '40px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }} />
+                     style={{ position: 'absolute', left: '210px', top: '16px', height: '40px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #3498db transparent' }} />
+                </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
                     <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '180px', fontSize: '10px', color: '#666' }}>初期コミット</div>
                   </div>
                 </div>
               </div>
@@ -178,14 +184,19 @@ module.exports = {
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
                     <div className={styles.graphCommit} style={{ left: '200px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '180px', fontSize: '10px', color: '#666' }}>初期化</div>
                   </div>
                 </div>
-                <div className={styles.graphArrow + ' ' + styles.graphArrowVertical} 
-                     style={{ left: '210px', top: '76px', height: '30px', backgroundColor: '#2ecc71' }} />
+                <div className={styles.graphArrow} 
+                     style={{ position: 'absolute', left: '210px', top: '76px', height: '30px', width: '2px', backgroundColor: '#2ecc71' }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent' }} />
+                </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '200px', left: '150px' }}>
                     <div className={styles.graphCommit} style={{ left: '50px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '30px', fontSize: '10px', color: '#666' }}>ログイン機能実装</div>
                   </div>
                 </div>
               </div>
@@ -283,6 +294,7 @@ module.exports = {
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
                     <div className={styles.graphCommit} style={{ left: '200px' }} />
                     <div className={styles.graphCommit} style={{ left: '300px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '280px', fontSize: '10px', color: '#666' }}>feature/login-systemをマージ</div>
                   </div>
                 </div>
                 <div className={styles.branchRow}>
@@ -292,7 +304,10 @@ module.exports = {
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '280px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }} />
+                     style={{ position: 'absolute', left: '280px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', top: '-5px', right: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#2ecc71 transparent transparent transparent', transform: 'rotate(-45deg)' }} />
+                </div>
               </div>
             </div>
           )}
@@ -396,11 +411,15 @@ module.exports = {
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '310px', top: '56px', height: '40px', width: '2px', backgroundColor: '#2ecc71', zIndex: 1 }} />
+                     style={{ position: 'absolute', left: '310px', top: '56px', height: '40px', width: '2px', backgroundColor: '#2ecc71', zIndex: 1 }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent' }} />
+                </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '100px', left: '250px' }}>
                     <div className={styles.graphCommit} style={{ left: '50px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '30px', fontSize: '10px', color: '#666' }}>プロファイル機能実装</div>
                   </div>
                 </div>
               </div>
@@ -924,10 +943,15 @@ module.exports = app;`}
                   <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
                     <div className={styles.graphCommit} style={{ left: '200px' }} />
                     <div className={styles.graphCommit} style={{ left: '480px' }} />
+                    <div className={styles.graphTag} style={{ left: '495px' }}>v1.0.0</div>
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '460px', fontSize: '10px', color: '#666' }}>releaseマージ</div>
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '490px', top: '16px', height: '40px', width: '2px', backgroundColor: '#9b59b6', zIndex: 1 }} />
+                     style={{ position: 'absolute', left: '490px', top: '16px', height: '40px', width: '2px', backgroundColor: '#9b59b6', zIndex: 1 }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #9b59b6 transparent' }} />
+                </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -941,6 +965,7 @@ module.exports = app;`}
                   <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '40px', left: '480px' }}>
                     <div className={styles.graphCommit} style={{ left: '30px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '10px', fontSize: '10px', color: '#666' }}>初期化例外処理追加</div>
                   </div>
                 </div>
               </div>
@@ -1032,10 +1057,14 @@ module.exports = app;`}
                     <div className={styles.graphCommit} style={{ left: '480px' }} />
                     <div className={styles.graphCommit} style={{ left: '580px' }} />
                     <div className={styles.graphTag} style={{ left: '595px' }}>v1.0.1</div>
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '560px', fontSize: '10px', color: '#666' }}>hotfixマージ</div>
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '560px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#9b59b6', zIndex: 1 }} />
+                     style={{ position: 'absolute', left: '560px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#9b59b6', zIndex: 1 }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', top: '-5px', right: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#9b59b6 transparent transparent transparent', transform: 'rotate(45deg)' }} />
+                </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -1044,14 +1073,19 @@ module.exports = app;`}
                     <div className={styles.graphCommit} style={{ left: '380px' }} />
                     <div className={styles.graphCommit} style={{ left: '480px' }} />
                     <div className={styles.graphCommit} style={{ left: '620px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '600px', fontSize: '10px', color: '#666' }}>hotfixマージ</div>
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '600px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#9b59b6', zIndex: 1 }} />
+                     style={{ position: 'absolute', left: '600px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#9b59b6', zIndex: 1 }}>
+                  <div className={styles.arrowHead} 
+                       style={{ position: 'absolute', top: '-5px', right: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#9b59b6 transparent transparent transparent', transform: 'rotate(125deg)' }} />
+                </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '110px', left: '480px' }}>
                     <div className={styles.graphCommit} style={{ left: '100px' }} />
+                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '80px', fontSize: '10px', color: '#666' }}>緊急修正</div>
                   </div>
                 </div>
               </div>
@@ -1076,8 +1110,8 @@ module.exports = app;`}
             </pre>
           </div>
           <div className={styles.flowDiagram}>
-            <img src="https://blog.kinto-technologies.com/assets/blog/authors/r.wen/git-flow-diagram.png" alt="Git Flow Full Diagram" className={styles.diagram}/>
-            <p>Git Flowの全体像：この流れを繰り返して開発を進めていきます</p>
+            <img src="https://nvie.com/img/git-model@2x.png" alt="Git Flow Full Diagram" className={styles.diagram}/>
+            <p>Git Flowの全体像：この流れを繰り返して開発を進めていきます。図は Vincent Driessen 氏による原典的な Git Flow モデル。</p>
           </div>
         </div>
       )
@@ -1150,15 +1184,21 @@ module.exports = app;`}
           >
             グラフィカル
           </button>
+          <button 
+            className={`${styles.viewToggleButton} ${animationEnabled ? styles.active : ''}`}
+            onClick={() => setAnimationEnabled(!animationEnabled)}
+          >
+            {animationEnabled ? 'アニメーション ON' : 'アニメーション OFF'}
+          </button>
         </motion.div>
       </motion.div>
       
       <motion.div 
         className={styles.content}
         key={currentStep}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={animationEnabled ? { opacity: 0 } : false}
+        animate={animationEnabled ? { opacity: 1 } : false}
+        transition={animationEnabled ? { duration: 0.5 } : { duration: 0 }}
       >
         {steps[currentStep].content}
       </motion.div>
