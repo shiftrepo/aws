@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "mermaid": "^10.9.0", 
+    "d3": "^7.9.0",
+    "reactflow": "^11.10.4"
+  },
+  "recommendedOption": "mermaid",
+  "implementation": {
+    "type": "mermaid",
+    "reasons": [
+      "軽量で導入しやすい",
+      "Gitグラフの表現に特化したsyntaxがある",
+      "既存のコードとの親和性が高い",
+      "SVG出力でアニメーションも実現可能"
+    ]
+  }
+}
