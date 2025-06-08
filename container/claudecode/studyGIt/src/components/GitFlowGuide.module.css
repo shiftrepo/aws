@@ -393,7 +393,7 @@
   top: -8px;
   background-color: inherit;
   box-shadow: 0 0 0 3px white, 0 0 0 5px rgba(0, 0, 0, 0.1);
-  z-index: 2;
+  z-index: 3; /* 矢印よりも前面に表示 */
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -424,6 +424,8 @@
   width: 2px;
   background-color: inherit;
   z-index: 1;
+  /* 矢印の両端に矢印ヘッドを表示する場合に備えて余白を確保 */
+  margin: 5px 0;
 }
 
 .graphArrowVertical {
@@ -591,6 +593,9 @@
   width: 0;
   height: 0;
   border-style: solid;
+  /* 矢印ヘッドを明確に見えるようにする */
+  z-index: 2;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.3));
 }
 
 .tagLabel {
