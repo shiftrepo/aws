@@ -9,12 +9,14 @@ import GitVisualizer from '@/components/GitVisualizer';
 import CommandTerminal from '@/components/CommandTerminal';
 import TeamSimulator from '@/components/TeamSimulator';
 import GitFlowGuide from '@/components/GitFlowGuide';
+import TeamGitFlow from '@/components/TeamGitFlow';
 
 function PlaygroundContent() {
   const searchParams = useSearchParams();
   const username = searchParams.get('username') || 'ユーザー';
   
   const [activeTab, setActiveTab] = useState('files');
+  const [gitFlowView, setGitFlowView] = useState('standard'); // 'standard' or 'team'
   // 初期コミット状態で開始するためのリポジトリ設定
   const [repository, setRepository] = useState<{files: Record<string, string>, commits: Array<{id: string, message: string, author: string, timestamp: string, branch: string, files: Record<string, string>, hasConflict?: boolean, resolvedConflict?: boolean}>, branches: string[], currentBranch: string}>({
     files: DEFAULT_FILES,
@@ -236,7 +238,23 @@ function PlaygroundContent() {
         )}
         
         {activeTab === 'gitflow' && (
-          <GitFlowGuide />
+          <div className={styles.gitFlowSelector}>
+            <div className={styles.viewOptions}>
+              <button 
+                className={`${styles.viewOption} ${gitFlowView === 'standard' ? styles.active : ''}`}
+                onClick={() => setGitFlowView('standard')}
+              >
+                標準 Git Flow
+              </button>
+              <button 
+                className={`${styles.viewOption} ${gitFlowView === 'team' ? styles.active : ''}`}
+                onClick={() => setGitFlowView('team')}
+              >
+                チーム Git Flow
+              </button>
+            </div>
+            {gitFlowView === 'standard' ? <GitFlowGuide /> : <TeamGitFlow />}
+          </div>
         )}
       </div>
     </div>

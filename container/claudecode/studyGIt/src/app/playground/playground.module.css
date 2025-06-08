@@ -145,3 +145,37 @@
   color: #333;
   margin-right: 8px;
 }
+
+/* TeamGitFlow component integration styles */
+.gitFlowSelector {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.viewOptions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.viewOption {
+  padding: 0.75rem 1.5rem;
+  background-color: #f0f0f0;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  text-align: center;
+}
+
+.viewOption:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.viewOption.active {
+  background-color: var(--primary);
+  color: white;
+}
