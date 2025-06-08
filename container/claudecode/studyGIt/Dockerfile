@@ -43,5 +43,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:3000/ || exit 1
 
-# Start the application
-CMD ["npm", "run", "dev"]
+# Start the application - explicitly setting host for Next.js
+CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
