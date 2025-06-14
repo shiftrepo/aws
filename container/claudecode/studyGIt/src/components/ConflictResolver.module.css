@@ -1,0 +1,559 @@
+.conflictResolver {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 2rem 0;
+  max-width: 1000px;
+}
+
+.title {
+  color: #333;
+  border-bottom: 2px solid #6366f1;
+  padding-bottom: 0.75rem;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.stepProgress {
+  display: flex;
+  justify-content: space-between;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.stepProgress::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 40px;
+  right: 40px;
+  height: 2px;
+  background: #e0e0e0;
+  z-index: 1;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stepNumber {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.stepLabel {
+  font-size: 0.8rem;
+  text-align: center;
+  color: #666;
+  max-width: 100px;
+}
+
+.step.active .stepNumber {
+  background-color: #6366f1;
+  color: white;
+  transform: scale(1.2);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+.step.completed .stepNumber {
+  background-color: #10b981;
+  color: white;
+}
+
+.viewToggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.viewButton {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.viewButton:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.viewButton.active {
+  background-color: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.resolveContent {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stepTitle {
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.stepDescription {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stepContent {
+  margin-top: 1rem;
+}
+
+/* コンフリクトファイル表示 */
+.conflictFile {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.filename {
+  background-color: #f1f3f5;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.codeBlock {
+  padding: 1rem;
+  margin: 0;
+  overflow-x: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.conflictMarkerStart {
+  background-color: #ffe8e8;
+  color: #d32f2f;
+  padding: 0.25rem 0;
+}
+
+.conflictMarkerMiddle {
+  background-color: #e8f4f8;
+  color: #1976d2;
+  padding: 0.25rem 0;
+}
+
+.conflictMarkerEnd {
+  background-color: #e8f8e8;
+  color: #388e3c;
+  padding: 0.25rem 0;
+}
+
+.localChange {
+  background-color: #ffebee;
+  padding: 0.25rem 0;
+}
+
+.incomingChange {
+  background-color: #e8f5e9;
+  padding: 0.25rem 0;
+}
+
+.normalLine {
+  padding: 0.25rem 0;
+}
+
+/* 差分ビュー */
+.diffView {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.diffPanel {
+  flex: 1;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.panelHeader {
+  background-color: #f1f3f5;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.headerBadge {
+  background-color: #6366f1;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.diffPanel:nth-child(2) .headerBadge {
+  background-color: #10b981;
+}
+
+.localCode {
+  background-color: #fff9f9;
+}
+
+.incomingCode {
+  background-color: #f9fff9;
+}
+
+.codeLine {
+  white-space: pre;
+  padding: 0.1rem 0;
+}
+
+/* 解決エディタ */
+.resolveEditor {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.editorHeader {
+  background-color: #f1f3f5;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.editorControls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.controlButton {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.useLocal {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+.useIncoming {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.useBoth {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.useLocal:hover {
+  background-color: #ef9a9a;
+  color: #601010;
+}
+
+.useIncoming:hover {
+  background-color: #a5d6a7;
+  color: #1b4d1e;
+}
+
+.useBoth:hover {
+  background-color: #90caf9;
+  color: #0d3c7a;
+}
+
+.resolveTextarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  border: none;
+  resize: vertical;
+}
+
+/* コミット確認 */
+.commitPreview {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.previewHeader {
+  background-color: #f1f3f5;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.resolvedLine {
+  padding: 0.1rem 0;
+}
+
+.commitBox {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.commitMessage {
+  margin-bottom: 1rem;
+}
+
+.commitMessage label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.messageInput {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.commitCommands {
+  background-color: #282c34;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.commandBlock {
+  margin: 0;
+  padding: 1rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  color: #abb2bf;
+}
+
+.commandBlock code {
+  display: block;
+  margin: 0.25rem 0;
+}
+
+/* 説明ボックス */
+.instructionBox {
+  background-color: #e0e7ff;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #6366f1;
+  margin-top: 1.5rem;
+}
+
+.instructionBox h4 {
+  margin-top: 0;
+  color: #4f46e5;
+}
+
+.instructionBox ul {
+  margin-bottom: 0;
+}
+
+.instructionBox li {
+  margin-bottom: 0.5rem;
+}
+
+.instructionBox li:last-child {
+  margin-bottom: 0;
+}
+
+/* ナビゲーション */
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.navButton {
+  padding: 0.75rem 1.5rem;
+  background-color: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.navButton:hover:not(:disabled) {
+  background-color: #4f46e5;
+  transform: translateY(-2px);
+}
+
+.navButton:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.stepInfo {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .conflictResolver {
+    padding: 1rem;
+  }
+  
+  .diffView {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .stepProgress::before {
+    left: 20px;
+    right: 20px;
+  }
+
+  .step {
+    padding: 0 10px;
+  }
+
+  .stepLabel {
+    font-size: 0.7rem;
+  }
+  
+  .resolveContent {
+    padding: 1rem;
+  }
+  
+  .instructionBox {
+    padding: 0.75rem;
+  }
+  
+  .instructionBox h4 {
+    font-size: 0.9rem;
+  }
+  
+  .instructionBox ul {
+    padding-left: 1rem;
+  }
+  
+  .instructionBox li {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.2rem;
+  }
+
+  .editorHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .editorControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .controlButton {
+    padding: 0.25rem;
+    font-size: 0.7rem;
+  }
+
+  .navigation {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .navButton {
+    width: 100%;
+  }
+
+  .stepInfo {
+    order: -1;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stepProgress {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+  
+  .stepProgress::before {
+    left: 0;
+    right: 0;
+  }
+  
+  .conflictFile,
+  .diffPanel,
+  .resolveEditor,
+  .commitPreview,
+  .commitBox {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  
+  .codeBlock {
+    font-size: 0.8rem;
+  }
+  
+  .resolveTextarea {
+    min-height: 150px;
+  }
+  
+  .filename {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .resolveContent {
+    margin-bottom: 1rem;
+  }
+  
+  .stepTitle {
+    font-size: 1rem;
+  }
+  
+  .stepDescription {
+    font-size: 0.9rem;
+  }
+  
+  .viewToggle {
+    margin-top: -0.5rem;
+  }
+}

@@ -1,0 +1,769 @@
+.teamSimulator {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: 
+    "members chat"
+    "members simulator";
+  gap: 1.5rem;
+  height: 100%;
+}
+
+/* Members section */
+.members {
+  grid-area: members;
+  background-color: #f9f9f9;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.members h2 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.member:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.avatar {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+}
+
+.memberInfo {
+  flex: 1;
+}
+
+.name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.activity {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Chat section */
+.chat {
+  grid-area: chat;
+  background-color: #f9f9f9;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat h2 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  min-height: 200px;
+  max-height: 200px;
+  background-color: white;
+  border-radius: var(--border-radius);
+}
+
+.message {
+  padding: 0.75rem;
+  background-color: #f0f0f0;
+  border-radius: var(--border-radius);
+  max-width: 80%;
+  align-self: flex-start;
+  position: relative;
+}
+
+.ownMessage {
+  background-color: #e3f2fd;
+  align-self: flex-end;
+}
+
+.messageSender {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.messageContent {
+  font-size: 0.9rem;
+}
+
+.messageTime {
+  font-size: 0.7rem;
+  color: #777;
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+.messageForm {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.messageInput {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+}
+
+.sendButton {
+  background-color: var(--primary);
+  color: white;
+  padding: 0.75rem 1.25rem;
+}
+
+/* Simulator section */
+.simulator {
+  grid-area: simulator;
+  background-color: #f9f9f9;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.simulator h2 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.simulator > p {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.fileSelection {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.fileSelection h3 {
+  margin-bottom: 1rem;
+  color: var(--secondary);
+  font-size: 1.1rem;
+}
+
+.fileList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.fileItem {
+  background-color: #f0f7ff;
+  border: 1px solid #d0e3ff;
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fileItem:hover {
+  background-color: #e3f2fd;
+  transform: translateY(-2px);
+}
+
+.emptyState {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+.conflictSetup {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.conflictSetup h3 {
+  color: var(--secondary);
+  margin-bottom: 1rem;
+}
+
+.conflictSetup p {
+  margin-bottom: 0.75rem;
+}
+
+.simulateButton {
+  background-color: var(--secondary);
+  margin: 1rem 0.5rem;
+}
+
+.cancelButton {
+  background-color: #6b7280;
+  margin: 1rem 0.5rem;
+}
+
+.conflictView {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+}
+
+.conflictView h3 {
+  color: var(--danger);
+  margin-bottom: 1rem;
+}
+
+.codeEditor {
+  background-color: #1e1e1e;
+  color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  font-family: "Courier New", monospace;
+  font-size: 1rem;
+  overflow-x: auto;
+  border: 1px solid #444;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.codeEditor::before {
+  content: '     ';
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  width: 65px;
+  height: 12px;
+  background: linear-gradient(to right, #ff5f56 0 12px, transparent 12px 25px, #ffbd2e 25px 37px, transparent 37px 50px, #27c93f 50px 62px);
+  border-radius: 6px;
+}
+
+.codeEditor pre {
+  margin: 0;
+  padding-top: 1rem;
+  line-height: 1.6;
+}
+
+/* コードエディタタイトル */
+.codeEditor::after {
+  content: 'conflict.js';
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.conflictEditor {
+  width: 100%;
+  height: 700px; /* 高さをさらに増やして表示を改善 */
+  background-color: #1e1e1e;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 1.1rem; /* フォントサイズをさらに大きく */
+  resize: vertical;
+  white-space: pre;
+  tab-size: 2;
+  line-height: 1.6; /* 行間をさらに広く */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* シャドウを強調 */
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* エディタの装飾要素 */
+.conflictEditor::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 50px;
+  height: 10px;
+  background: linear-gradient(to right, #ff5f56 0 10px, transparent 10px 20px, #ffbd2e 20px 30px, transparent 30px 40px, #27c93f 40px 50px);
+  border-radius: 5px;
+  z-index: 1;
+}
+
+/* 行番号風装飾を擬似的に表現 */
+.conflictEditor::after {
+  content: '1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9\A 10';
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.2);
+  width: 30px;
+  height: 100%;
+  padding: 1rem 0.5rem;
+  text-align: right;
+  color: #6c7280;
+  font-size: 0.8rem;
+  white-space: pre;
+  border-right: 1px solid #444;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* エディタの内容 */
+.conflictEditor {
+  padding-left: 50px; /* 行番号用のスペースをさらに確保 */
+}
+
+.conflictEditor:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
+
+/* コンフリクトマーカー表示スタイル */
+.conflictMarker {
+  background-color: rgba(255, 0, 0, 0.2);
+  padding: 2px;
+  border-radius: 2px;
+  position: relative;
+}
+
+/* カスタムカーソルとフォーカスエフェクト */
+.conflictEditor:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
+}
+
+.conflictResolution {
+  margin-top: 1.5rem;
+}
+
+.conflictResolution p {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.conflictResolution ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.conflictResolution li {
+  margin-bottom: 1.5rem;
+  position: relative;
+  padding-left: 2.5rem;
+  padding-bottom: 1rem;
+}
+
+/* 進行状況を表すライン */
+.conflictResolution li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  top: 2rem;
+  height: calc(100% - 1rem);
+  width: 3px;
+  background: linear-gradient(to bottom, var(--primary) 50%, #e0e0e0 50%);
+  background-size: 100% 20px;
+}
+
+/* 各ステップのアイコン */
+.conflictResolution li::before {
+  content: '\1F4A5'; /* 爆発アイコン */
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+/* ステップに応じたアイコン変更 */
+.conflictResolution li:nth-child(1)::before {
+  content: '\1F50D'; /* 視認アイコン */
+}
+
+.conflictResolution li:nth-child(2)::before {
+  content: '\270D'; /* 編集アイコン */
+}
+
+.conflictResolution li:nth-child(3)::before {
+  content: '\1F44D'; /* 確認アイコン */
+}
+
+.conflictResolution li:nth-child(4)::before {
+  content: '\1F4BE'; /* 保存アイコン */
+}
+
+.activeStep {
+  color: var(--success);
+  font-weight: 600;
+  animation: highlight 2s ease;
+}
+
+/* アクティブなステップのアイコンスタイル */
+.activeStep::before {
+  background-color: var(--success) !important;
+  color: white !important;
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(0, 200, 0, 0.5);
+}
+
+.currentStep {
+  color: var(--primary);
+  font-weight: bold;
+  animation: blink 1.5s infinite;
+  background-color: rgba(79, 70, 229, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.3);
+}
+
+@keyframes blink {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.conflictGuide {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.conflictGuide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, var(--primary), var(--accent), var(--success));
+}
+
+.conflictGuide h4 {
+  margin-top: 0;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.conflictGuide ol {
+  margin-bottom: 1rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.conflictTip {
+  background-color: rgba(255, 236, 189, 0.3);
+  border-left: 4px solid #ffdd57;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.tipIcon {
+  font-size: 1.3rem;
+  margin-right: 0.75rem;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--primary);
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  margin-right: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.stepTitle {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.stepDetail {
+  margin-top: 0.75rem;
+  margin-left: 2.75rem;
+  padding: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  animation: fadeIn 0.5s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.codeSection {
+  margin-bottom: 1rem;
+  animation: fadeIn 0.6s ease;
+  position: relative;
+}
+
+.codeLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--secondary);
+}
+
+.codeSample {
+  display: block;
+  background-color: #292929;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre;
+  color: #eee;
+  border-left: 3px solid #555;
+  overflow-x: auto;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.codeSample:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  border-left-width: 5px;
+}
+
+.codeMarker {
+  background-color: #3a3a3a;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+  color: #ff9800;
+  border: 1px solid #555;
+  position: relative;
+  display: inline-block;
+}
+
+.codeMarker::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #ff9800;
+  opacity: 0.5;
+}
+
+.inlineCode {
+  background-color: #3a3a3a;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+  color: #ff9800;
+}
+
+.optionBox {
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.optionBox:hover {
+  border-color: var(--primary);
+  transform: translateX(5px);
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+.option {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--secondary);
+}
+
+.codeSolution {
+  display: inline-block;
+  background-color: #292929;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid var(--accent);
+}
+
+.optionInstruction {
+  display: block;
+  font-style: italic;
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
+.warningBox {
+  background-color: rgba(244, 67, 54, 0.1);
+  border-left: 4px solid var(--danger);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.warningIcon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  color: var(--danger);
+}
+
+.cheerMessage {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 1.5rem;
+  text-align: center;
+  animation: pulse 2s infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(76, 175, 80, 0.5);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.1);
+  transform: rotate(-0.5deg);
+}
+
+.cheerIcon {
+  font-size: 1.3rem;
+  margin-right: 0.75rem;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes highlight {
+  0% { background-color: rgba(255, 255, 0, 0.3); }
+  100% { background-color: transparent; }
+}
+
+@keyframes confetti {
+  0% { transform: translateX(-100%) rotate(5deg); }
+  100% { transform: translateX(100%) rotate(5deg); }
+}
+
+.resolveButton {
+  background-color: var(--success);
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.resolveButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+}
+
+.resolveButton:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+}
+
+.resolveButton::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  top: 0;
+  left: -100%;
+  transition: all 0.4s ease;
+  z-index: -1;
+}
+
+.resolveButton:hover::after {
+  left: 0;
+}
+
+@media (max-width: 900px) {
+  .teamSimulator {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 
+      "members"
+      "chat"
+      "simulator";
+  }
+  
+  .members {
+    padding-bottom: 1rem;
+  }
+  
+  .memberList {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .member {
+    flex: 1;
+    min-width: 120px;
+  }
+}
