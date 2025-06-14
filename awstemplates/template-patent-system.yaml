@@ -36,6 +36,12 @@ Parameters:
     Description: GitHub public key from Parameter Store
     Default: "/adminOpe/github/publicKey" # 👈 Parameter Store のパラメータ名 (SecureString)
 
+  GithubShiftrepoPatParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub repository PAT from Parameter Store
+    Default: "/developOpe/mcp/GITHUB_SHIFTREPO_PAT" # 👈 Parameter Store のパラメータ名 (SecureString)
+
+
   InstanceType:
     Type: String
     Description: Select the instance type (t3 series only)
@@ -804,6 +810,7 @@ Resources:
           docker exec python-aws bash -c "echo 'export AWS_ACCESS_KEY_ID=${AccessKeyIdParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export AWS_SECRET_ACCESS_KEY=${SecretAccessKeyParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export AWS_DEFAULT_REGION=${RegionNameParam}' >> ~/.bashrc"
+          docker exec python-aws bash -c "echo 'export GITHUB_SHIFTREPO_PAT=${GithubShiftrepoPatParam}' >> ~/.bashrc"
 
           git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
 
