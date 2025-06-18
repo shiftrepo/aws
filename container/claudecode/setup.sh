@@ -15,6 +15,7 @@ nvm current # Should print "v22.16.0".
 npm -v # Should print "10.9.2".
 
 npm install -g @anthropic-ai/claude-code
+npm install -g @modelcontextprotocol/server-github
 
 # MCP設定ファイルをグローバル設定に移行し、環境変数を使うようにするスクリプト
 # 設定ディレクトリの確認
