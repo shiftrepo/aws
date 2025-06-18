@@ -17,28 +17,9 @@ npm -v # Should print "10.9.2".
 npm install -g @anthropic-ai/claude-code
 npm install -g @modelcontextprotocol/server-github
 
-# MCP設定ファイルをグローバル設定に移行し、環境変数を使うようにするスクリプト
-# 設定ディレクトリの確認
-CONFIG_DIR="$HOME/.config/mcp"
-if [ ! -d "$CONFIG_DIR" ]; then
-  mkdir -p "$CONFIG_DIR"
-  echo "Created config directory: $CONFIG_DIR"
-fi
-
-# .mcp.jsonテンプレートファイルを作成
-cat > "$CONFIG_DIR/config.json" <<EOL
-{
-  "mcpServers": {
-    "github-org": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "\${GITHUB_SHIFTREPO_PAT}"
-      }
-    }
-  }
-}
-EOL
 
 echo "=== Please source ==="
 echo ". /home/ec2-user/.nvm/nvm.sh"
+
+echo "envsubst < add_mcp.json > add_token_github_mcp.json#
+echo "mcp add-json github-org "$(cat add_token_github_mcp.json)" --verbose"
