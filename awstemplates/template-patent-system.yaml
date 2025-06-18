@@ -812,6 +812,21 @@ Resources:
           docker exec python-aws bash -c "echo 'export AWS_DEFAULT_REGION=${RegionNameParam}' >> ~/.bashrc"
           docker exec python-aws bash -c "echo 'export GITHUB_SHIFTREPO_PAT=${GithubShiftrepoPatParam}' >> ~/.bashrc"
 
+          mkdir -p /home/ec2-user/.config/mcp
+          cat <<EOF >> /home/ec2-user/.config/mcp/mcp.json
+          {
+            "mcpServers": {
+            "github-org": {
+              "command": "npx",
+              "args": ["-y", "@modelcontextprotocol/server-github"],
+                "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "$GITHUB_SHIFTREPO_PAT"
+                }
+              }
+            }
+          }
+          EOF
+
           git clone https://github.com/langfuse/langfuse.git /root/langfuse_latest.git
 
           rm -f /root/langfuse_latest.git/docker-compose.yml
