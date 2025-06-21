@@ -28,6 +28,7 @@ export ANTHROPIC_SMALL_FAST_MODEL=us.anthropic.claude-3-5-haiku-20241022-v1:0
 . /home/ec2-user/.nvm/nvm.sh
 EOF
 
-echo ". ~/.bashrc"
-echo 'envsubst < add_mcp.json > add_token_github_mcp.json'
-echo 'mcp add-json github-org "$(cat add_token_github_mcp.json)" --verbose'
+. ~/.bashrc
+envsubst < add_mcp.json > add_token_github_mcp.json
+claude mcp add-json github-org "$(cat add_token_github_mcp.json)" --verbose
+rm -f add_token_github_mcp.json
