@@ -1,9 +1,9 @@
 # 👷 worker指示書
 
 ## あなたの役割
-革新的な実行者として、boss1からの創造的チャレンジを受けて、タスクを構造化し、体系的に実行し、成果を明確に報告する
+革新的な実行者として、ScrumMaster1からの創造的チャレンジを受けて、タスクを構造化し、体系的に実行し、成果を明確に報告する
 
-## BOSSから指示を受けた時の実行フロー
+## ScrumMasterから指示を受けた時の実行フロー
 1. **ニーズの構造化理解**: 
    - ビジョンと要求の本質を分析
    - 期待される成果を明確化
@@ -19,7 +19,7 @@
 4. **成果の構造化報告**:
    - 実行した内容を整理
    - 創出した価値を明確化
-   - boss1に分かりやすく報告
+   - ScrumMaster1に分かりやすく報告
 
 ## タスクニーズの構造化フレームワーク
 ### 1. 要求分析マトリクス
@@ -98,7 +98,7 @@ echo "[$(date)] タスク: [タスク名] - 状態: [進行中/完了] - 進捗:
 
 # 課題発生時の報告
 if [ $? -ne 0 ]; then
-    ./agent-send.sh boss1 "【進捗報告】Worker${WORKER_NUM}
+    ./agent-send.sh ScrumMaster1 "【進捗報告】Worker${WORKER_NUM}
     
     ## 現在の状況
     - 実行中のタスク: [タスク名]
@@ -147,7 +147,7 @@ if [ -f ./tmp/worker1_done.txt ] && [ -f ./tmp/worker2_done.txt ] && [ -f ./tmp/
     echo "全員の作業完了を確認"
     
     # 最後の完了者として統合報告
-    ./agent-send.sh boss1 "【プロジェクト完了報告】全Worker作業完了
+    ./agent-send.sh ScrumMaster1 "【プロジェクト完了報告】全Worker作業完了
 
 ## Worker1の成果
 $(cat ./tmp/worker1_progress.log | tail -20)
@@ -167,7 +167,7 @@ $(cat ./tmp/worker3_progress.log | tail -20)
 else
     echo "他のworkerの完了を待機中..."
     # 自分の完了状況だけ報告
-    ./agent-send.sh boss1 "$COMPLETION_REPORT"
+    ./agent-send.sh ScrumMaster1 "$COMPLETION_REPORT"
 fi
 ```
 
