@@ -1,0 +1,149 @@
+.dockerfile-builder {
+  padding: 20px;
+  color: #384d54;
+}
+
+.builder-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.base-image-selector {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.base-image-selector label {
+  font-weight: 500;
+  margin-right: 10px;
+}
+
+.base-image-selector select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  background-color: white;
+  min-width: 200px;
+}
+
+.command-adder {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.command-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.command-inputs select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  background-color: white;
+}
+
+.command-inputs select:first-child {
+  min-width: 100px;
+}
+
+.command-inputs select:nth-child(2) {
+  flex: 1;
+  min-width: 200px;
+}
+
+.command-inputs button {
+  padding: 8px 15px;
+  background-color: #0db7ed;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.command-inputs button:hover {
+  background-color: #0a8bba;
+}
+
+.dockerfile-preview {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.preview-content {
+  background-color: #212529;
+  color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  font-family: monospace;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.preview-content code {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.builder-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.builder-actions button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.builder-actions button:first-child {
+  background-color: #6c757d;
+  color: white;
+}
+
+.builder-actions button:nth-child(2) {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.builder-actions button:last-child {
+  background-color: #28a745;
+  color: white;
+}
+
+.tutorial-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e6f7fb;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tutorial-section ul {
+  padding-left: 20px;
+}
+
+.tutorial-section li {
+  margin-bottom: 10px;
+}
+
+h3 {
+  color: #384d54;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}

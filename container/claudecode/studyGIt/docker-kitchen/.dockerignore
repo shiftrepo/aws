@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+build
+.git
+.github
+.gitignore
+README.md
+QUICKSTART.md
+RELEASE.md
+DEPLOY.md
+screenshots

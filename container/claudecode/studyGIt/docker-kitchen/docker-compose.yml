@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Docker Kitchen web application container
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docker-kitchen:latest
+    container_name: docker-kitchen
+    ports:
+      - "3000:80" # Map host port 3000 to container port 80
+    restart: unless-stopped
+    
+    # Development mode settings
+    # Uncomment these for development with hot-reload
+    # volumes:
+    #   - ./:/app:z,U
+    #   - /app/node_modules
+    # command: npm start
+
+  # Optional: Add a simple analytics container to demonstrate multi-container setup
+  # analytics:
+  #   image: prom/prometheus:latest
+  #   container_name: docker-kitchen-analytics
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #   depends_on:
+  #     - app
+
+# For educational purposes - define named volumes
+volumes:
+  node_modules:
+
+# For educational purposes - define custom network
+networks:
+  default:
+    name: docker-kitchen-network
+    driver: bridge
