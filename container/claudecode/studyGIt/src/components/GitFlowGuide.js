@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
 
@@ -6,6 +6,8 @@ const GitFlowGuide = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [viewMode, setViewMode] = useState('graphic'); // 'ascii' または 'graphic'
   const [animationEnabled, setAnimationEnabled] = useState(true);
+  // SVGコンテナの参照
+  const graphContainerRef = useRef(null);
   
   const steps = [
     {
@@ -72,7 +74,7 @@ module.exports = app;`}
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -80,11 +82,17 @@ module.exports = app;`}
                     <div className={styles.graphCommit} style={{ left: '200px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '16px', height: '40px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #3498db transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* main から develop へのブランチ矢印 */}
+              {(() => {
+                // main-commit の位置: left: 200px, top: 16px (8px + 8px)
+                // develop-commit の位置: left: 200px, top: 56px (48px + 8px)
+                const arrow = calculateArrow(200, 16, 200, 56, '#3498db');
+                return (
+                  <div className={styles.graphArrow} style={arrow.style}>
+                    <div className={styles.arrowHead} style={arrow.arrowHeadStyle} />
+                  </div>
+                );
+              })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -172,7 +180,7 @@ module.exports = {
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -187,11 +195,17 @@ module.exports = {
                     <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '180px', fontSize: '10px', color: '#666' }}>初期化</div>
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '76px', height: '30px', width: '2px', backgroundColor: '#2ecc71' }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* develop から feature へのブランチ矢印 */}
+              {(() => {
+                // develop-commit の位置: left: 200px, top: 56px (48px + 8px)
+                // feature-commit の位置: left: 250px, top: 96px (88px + 8px)
+                const arrow = calculateArrow(200, 56, 250, 96, '#2ecc71');
+                return (
+                  <div className={styles.graphArrow} style={arrow.style}>
+                    <div className={styles.arrowHead} style={arrow.arrowHeadStyle} />
+                  </div>
+                );
+              })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '200px', left: '150px' }}>
@@ -281,7 +295,7 @@ module.exports = {
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -303,11 +317,31 @@ module.exports = {
                     <div className={styles.graphCommit} style={{ left: '100px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '280px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#2ecc71 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* feature から develop へのマージ矢印 */}
+                {(() => {
+                  // feature-commit の位置: left: 280px, top: 100px (92px + 8px)
+                  // develop-merge-commit の位置: left: 300px, top: 56px (48px + 8px)
+                  const arrow = calculateArrow(280, 100, 300, 56, '#2ecc71');
+                  const arrowStyle = {
+                    ...arrow.style,
+                    zIndex: 2
+                  };
+                  const arrowHeadStyle = {
+                    position: 'absolute',
+                    top: '0px',
+                    right: '-4px',
+                    borderWidth: '5px',
+                    borderStyle: 'solid',
+                    borderColor: '#2ecc71 transparent transparent transparent',
+                    transform: 'rotate(225deg)'
+                  };
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrowStyle}>
+                      <div className={styles.arrowHead} style={arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -395,7 +429,7 @@ module.exports = {
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -410,11 +444,18 @@ module.exports = {
                     <div className={styles.graphCommit} style={{ left: '300px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '310px', top: '56px', height: '40px', width: '2px', backgroundColor: '#2ecc71', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* develop から feature/user-profile へのブランチ矢印 */}
+                {(() => {
+                  // develop-commit の位置: left: 300px, top: 56px (48px + 8px)
+                  // feature-user-profile の位置: left: 300px, top: 96px (88px + 8px)
+                  const arrow = calculateArrow(300, 56, 300, 96, '#2ecc71');
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrow.style}>
+                      <div className={styles.arrowHead} style={arrow.arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '100px', left: '250px' }}>
@@ -511,7 +552,7 @@ module.exports = {
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -533,11 +574,31 @@ module.exports = {
                     <div className={styles.graphCommit} style={{ left: '100px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '360px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', right: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#2ecc71 transparent transparent transparent', transform: 'rotate(45deg)' }} />
-                </div>
+                {/* feature/user-profile から develop へのマージ矢印 */}
+                {(() => {
+                  // feature-user-profile の位置: left: 350px, top: 100px (92px + 8px)
+                  // develop-merge-commit の位置: left: 380px, top: 56px (48px + 8px)
+                  const arrow = calculateArrow(350, 100, 380, 56, '#2ecc71');
+                  const arrowStyle = {
+                    ...arrow.style,
+                    zIndex: 2
+                  };
+                  const arrowHeadStyle = {
+                    position: 'absolute',
+                    top: '0px',
+                    right: '-4px',
+                    borderWidth: '5px',
+                    borderStyle: 'solid',
+                    borderColor: '#2ecc71 transparent transparent transparent',
+                    transform: 'rotate(225deg)'
+                  };
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrowStyle}>
+                      <div className={styles.arrowHead} style={arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -618,7 +679,7 @@ module.exports = app;`}
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -634,11 +695,18 @@ module.exports = app;`}
                     <div className={styles.graphCommit} style={{ left: '380px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '390px', top: '56px', height: '40px', width: '2px', backgroundColor: '#f39c12', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #f39c12 transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* develop から release へのブランチ矢印 */}
+                {(() => {
+                  // develop-commit の位置: left: 380px, top: 56px (48px + 8px)
+                  // release-commit の位置: left: 400px, top: 96px (88px + 8px)
+                  const arrow = calculateArrow(380, 56, 400, 96, '#f39c12');
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrow.style}>
+                      <div className={styles.arrowHead} style={arrow.arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '50px', left: '360px' }}>
@@ -706,7 +774,7 @@ module.exports = {
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -827,7 +895,7 @@ module.exports = {
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -837,11 +905,31 @@ module.exports = {
                     <div className={styles.graphTag} style={{ left: '495px' }}>v1.0.0</div>
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '460px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#f39c12', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#f39c12 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* release から main へのマージ矢印 */}
+                {(() => {
+                  // release-commit (最後) の位置: left: 450px, top: 96px (88px + 8px)
+                  // main-merge-commit の位置: left: 480px, top: 16px (8px + 8px)
+                  const arrow = calculateArrow(450, 96, 480, 16, '#f39c12');
+                  const arrowStyle = {
+                    ...arrow.style,
+                    zIndex: 2
+                  };
+                  const arrowHeadStyle = {
+                    position: 'absolute',
+                    top: '0px',
+                    right: '-4px',
+                    borderWidth: '5px',
+                    borderStyle: 'solid',
+                    borderColor: '#f39c12 transparent transparent transparent',
+                    transform: 'rotate(135deg)'
+                  };
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrowStyle}>
+                      <div className={styles.arrowHead} style={arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -851,11 +939,31 @@ module.exports = {
                     <div className={styles.graphCommit} style={{ left: '520px' }} />
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '450px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#f39c12', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#f39c12 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* release から develop へのマージ矢印 */}
+                {(() => {
+                  // release-commit (最後) の位置: left: 450px, top: 96px (88px + 8px)
+                  // develop-merge-commit の位置: left: 520px, top: 56px (48px + 8px)
+                  const arrow = calculateArrow(450, 96, 520, 56, '#f39c12');
+                  const arrowStyle = {
+                    ...arrow.style,
+                    zIndex: 2
+                  };
+                  const arrowHeadStyle = {
+                    position: 'absolute',
+                    top: '0px',
+                    right: '-4px',
+                    borderWidth: '5px',
+                    borderStyle: 'solid',
+                    borderColor: '#f39c12 transparent transparent transparent',
+                    transform: 'rotate(225deg)'
+                  };
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrowStyle}>
+                      <div className={styles.arrowHead} style={arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '100px', left: '360px' }}>
@@ -948,7 +1056,7 @@ module.exports = app;`}
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -959,11 +1067,18 @@ module.exports = app;`}
                     <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '460px', fontSize: '10px', color: '#666' }}>releaseマージ</div>
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '490px', top: '16px', height: '40px', width: '2px', backgroundColor: '#9b59b6', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #9b59b6 transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* main から hotfix へのブランチ矢印 */}
+                {(() => {
+                  // main-commit の位置: left: 480px, top: 16px (8px + 8px)
+                  // hotfix-commit の位置: left: 510px, top: 56px (88px + 8px)
+                  const arrow = calculateArrow(480, 16, 510, 56, '#9b59b6');
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrow.style}>
+                      <div className={styles.arrowHead} style={arrow.arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -1060,7 +1175,7 @@ module.exports = app;`}
               </pre>
             </div>
           ) : (
-            <div className={styles.graphicView}>
+            <div className={styles.graphicView} ref={graphContainerRef}>
               <div className={styles.gitGraph}>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
@@ -1072,11 +1187,31 @@ module.exports = app;`}
                     <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '560px', fontSize: '10px', color: '#666' }}>hotfixマージ</div>
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '560px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#9b59b6', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#9b59b6 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* hotfix から main へのマージ矢印 */}
+                {(() => {
+                  // hotfix-commit の位置: left: 580px, top: 96px (88px + 8px)
+                  // main-merge-commit の位置: left: 580px, top: 16px (8px + 8px)
+                  const arrow = calculateArrow(580, 96, 580, 16, '#9b59b6');
+                  const arrowStyle = {
+                    ...arrow.style,
+                    zIndex: 2
+                  };
+                  const arrowHeadStyle = {
+                    position: 'absolute',
+                    top: '0px',
+                    right: '-4px',
+                    borderWidth: '5px',
+                    borderStyle: 'solid',
+                    borderColor: '#9b59b6 transparent transparent transparent',
+                    transform: 'rotate(180deg)'
+                  };
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrowStyle}>
+                      <div className={styles.arrowHead} style={arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
@@ -1088,11 +1223,31 @@ module.exports = app;`}
                     <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '600px', fontSize: '10px', color: '#666' }}>hotfixマージ</div>
                   </div>
                 </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '600px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#9b59b6', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#9b59b6 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
+                {/* hotfix から develop へのマージ矢印 */}
+                {(() => {
+                  // hotfix-commit の位置: left: 580px, top: 96px (88px + 8px)
+                  // develop-merge-commit の位置: left: 620px, top: 56px (48px + 8px)
+                  const arrow = calculateArrow(580, 96, 620, 56, '#9b59b6');
+                  const arrowStyle = {
+                    ...arrow.style,
+                    zIndex: 2
+                  };
+                  const arrowHeadStyle = {
+                    position: 'absolute',
+                    top: '0px',
+                    right: '-4px',
+                    borderWidth: '5px',
+                    borderStyle: 'solid',
+                    borderColor: '#9b59b6 transparent transparent transparent',
+                    transform: 'rotate(225deg)'
+                  };
+                  
+                  return (
+                    <div className={styles.graphArrow} style={arrowStyle}>
+                      <div className={styles.arrowHead} style={arrowHeadStyle} />
+                    </div>
+                  );
+                })()}
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
                   <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '110px', left: '480px' }}>
@@ -1142,6 +1297,42 @@ module.exports = app;`}
     }
   };
 
+  // 矢印位置を計算するヘルパー関数
+  const calculateArrow = (sourceX, sourceY, targetX, targetY, arrowColor) => {
+    // 点と点の間の角度を計算
+    const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
+    
+    // 矢印の長さを計算
+    const length = Math.sqrt(Math.pow(targetX - sourceX, 2) + Math.pow(targetY - sourceY, 2));
+    
+    // 矢印の中心点を計算
+    const centerX = sourceX;
+    const centerY = sourceY;
+    
+    return {
+      style: {
+        position: 'absolute',
+        left: `${centerX}px`,
+        top: `${centerY}px`,
+        height: `${length}px`,
+        width: '2px',
+        backgroundColor: arrowColor,
+        transform: `rotate(${angle}rad)`,
+        transformOrigin: 'top left',
+        zIndex: 1
+      },
+      arrowHeadStyle: {
+        position: 'absolute',
+        bottom: '-5px',
+        left: '-4px',
+        borderWidth: '5px',
+        borderStyle: 'solid',
+        borderColor: `transparent transparent ${arrowColor} transparent`,
+        transform: 'rotate(0deg)'
+      }
+    };
+  };
+  
   return (
     <motion.div 
       className={styles.gitFlowGuide}
