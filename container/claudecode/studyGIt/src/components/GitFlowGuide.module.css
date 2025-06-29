@@ -438,6 +438,7 @@
   width: 2px;
   background-color: inherit;
   z-index: 1;
+  transform-origin: top left;
   /* 矢印の両端に矢印ヘッドを表示する場合に備えて余白を確保 */
   margin: 5px 0;
 }
@@ -610,6 +611,22 @@
   /* 矢印ヘッドを明確に見えるようにする */
   z-index: 2;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.3));
+}
+
+/* 矢印クラスの追加 */
+.straightArrow {
+  position: absolute;
+  background-color: inherit;
+  z-index: 1;
+}
+
+.verticalArrow {
+  width: 2px;
+}
+
+.diagonalArrow {
+  height: 2px;
+  transform-origin: 0 0;
 }
 
 .tagLabel {
