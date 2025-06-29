@@ -162,6 +162,7 @@ interface Commit {
 - styled-components
 - framer-motion
 - isomorphic-git (for Git operations simulation)
+- reactflow (for Git Flow diagram visualization)
 
 ### Volume Mounting
 
@@ -176,19 +177,42 @@ user: "root:root" # Set user to root:root to resolve permission issues
 
 The `z,U` flags are used for SELinux compatibility, and the root user setting ensures proper file permissions when mounting between host and container.
 
+### Container Configuration Notes
+
+The docker-compose.yml configuration includes important volume mounts:
+
+```yaml
+volumes:
+  - .:/app:z,U    # Mount local directory with SELinux flags
+  - /app/node_modules
+```
+
+This configuration ensures:
+1. The first mount maps the current directory to /app with SELinux permissions
+2. The second mount preserves the container's node_modules directory even when the host directory is mounted
+3. This setup prevents the container's installed dependencies from being overwritten
+
 ### Tutorials and Educational Content
 
 The application includes several tutorial components:
 
 1. **GitFlowGuide** (`src/components/GitFlowGuide.js`)
    - Teaches Git Flow branching strategy
-   - Includes both ASCII art and graphical visualization modes
+   - Includes both ASCII art and graphical visualization modes using ReactFlow
    - Shows step-by-step progression through the Git Flow workflow
    - Demonstrates branch operations, merges, and versioning
+   - Uses ReactFlowGitGraph component for interactive diagrams
 
 2. **ConflictGuide** (`src/components/ConflictGuide.js`)
    - Teaches conflict resolution workflows
    - Shows examples of conflict markers and resolution methods
+
+### Known Issues
+
+Next.js Module Resolution:
+- Some versions of Next.js may encounter a "Cannot find module '../server/require-hook'" error
+- If this occurs, consider using an alternative Next.js version (12.3.4 recommended)
+- This issue affects the container startup but not the core functionality once running
 
 ### Best Development Practices
 
