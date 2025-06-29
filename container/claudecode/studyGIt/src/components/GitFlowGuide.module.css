@@ -312,6 +312,20 @@
   transform: translateY(-2px);
 }
 
+.mermaidGraph {
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mermaidGraph svg {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+}
+
 .gitGraph {
   position: relative;
   padding: 20px 0;

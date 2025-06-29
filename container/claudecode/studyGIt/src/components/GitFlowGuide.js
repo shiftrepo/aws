@@ -1,11 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
+import mermaid from 'mermaid';
 
 const GitFlowGuide = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [viewMode, setViewMode] = useState('graphic'); // 'ascii' または 'graphic'
   const [animationEnabled, setAnimationEnabled] = useState(true);
+  const mermaidRefs = useRef([]);
+
+  // Mermaidの初期化
+  useEffect(() => {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true
+      },
+      gitGraph: {
+        showBranches: true,
+        showCommitLabel: true,
+        mainBranchName: 'main'
+      }
+    });
+    
+    if (viewMode === 'graphic') {
+      renderMermaidDiagrams();
+    }
+  }, [currentStep, viewMode]);
+  
+  // Mermaid図の描画処理
+  const renderMermaidDiagrams = () => {
+    if (mermaidRefs.current && mermaidRefs.current.length > 0) {
+      const currentRef = mermaidRefs.current[currentStep];
+      if (currentRef && currentRef.innerHTML) {
+        try {
+          mermaid.render('mermaid-svg-' + currentStep, currentRef.innerHTML)
+            .then(({ svg }) => {
+              currentRef.innerHTML = svg;
+            });
+        } catch (error) {
+          console.error('Mermaid render error:', error);
+        }
+      }
+    }
+  };
   
   const steps = [
     {
@@ -73,25 +113,16 @@ module.exports = app;`}
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '16px', height: '40px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #3498db transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '180px', fontSize: '10px', color: '#666' }}>初期コミット</div>
-                  </div>
-                </div>
+              <div 
+                className={styles.mermaidGraph} 
+                ref={el => mermaidRefs.current[1] = el}
+              >
+                {`%%{init: {'theme': 'base', 'gitGraph': {'showBranches': true, 'showCommitLabel':true, 'mainBranchName': 'main'}}}%%
+gitGraph LR:
+  commit id: "初期コミット"
+  branch develop
+  checkout develop
+  commit id: "初期化"`}
               </div>
             </div>
           )}
@@ -1142,6 +1173,43 @@ module.exports = app;`}
     }
   };
 
+  // グラフィカル表示用のコンポーネント
+  const MermaidDiagram = ({ step }) => {
+    return (
+      <div className={styles.graphicView}>
+        <div 
+          className={styles.mermaidGraph} 
+          ref={el => mermaidRefs.current[step] = el}
+        >
+          {getMermaidDiagram(step)}
+        </div>
+      </div>
+    );
+  };
+
+  // ステップのコンテンツをレンダリングする際に、グラフィカル表示を修正
+  const renderStepContent = (step) => {
+    const content = steps[step].content;
+    
+    if (!React.isValidElement(content)) {
+      return content;
+    }
+    
+    // JSX要素の場合、クローンして子要素を確認
+    return React.Children.map(content.props.children, child => {
+      // viewMode === 'graphic'で、classNameにstyles.graphicViewを含む要素があれば置換
+      if (viewMode === 'graphic' && 
+          child && 
+          child.props && 
+          child.props.className && 
+          child.props.className.includes(styles.graphicView)) {
+        return <MermaidDiagram step={step} />;
+      }
+      // それ以外はそのまま返す
+      return child;
+    });
+  };
+
   return (
     <motion.div 
       className={styles.gitFlowGuide}
@@ -1212,7 +1280,13 @@ module.exports = app;`}
         animate={animationEnabled ? { opacity: 1 } : false}
         transition={animationEnabled ? { duration: 0.5 } : { duration: 0 }}
       >
-        {steps[currentStep].content}
+        {viewMode === 'graphic' && currentStep > 0 ? 
+          <>
+            {steps[currentStep].content}
+            <MermaidDiagram step={currentStep} />
+          </> : 
+          steps[currentStep].content
+        }
       </motion.div>
       
       <motion.div 
