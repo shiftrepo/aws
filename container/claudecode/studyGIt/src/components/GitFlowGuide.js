@@ -79,8 +79,7 @@ module.exports = app;`}
           ) : (
             <div className={styles.graphicView}>
               <div 
-                className={styles.mermaidGraph} 
-                ref={el => mermaidRefs.current[1] = el}
+                className={styles.mermaidGraph}
               >
                 {`%%{init: {'theme': 'base', 'gitGraph': {'showBranches': true, 'showCommitLabel':true, 'mainBranchName': 'main'}}}%%
 gitGraph LR:
