@@ -1,39 +1,6 @@
-"use client";
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
-import dynamic from 'next/dynamic';
-
-// mermaidはクライアントサイドでのみ動作するため、動的インポートを使用
-const Mermaid = dynamic(
-  () => import('mermaid').then(mod => {
-    mod.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      flowchart: {
-        useMaxWidth: true,
-        htmlLabels: true
-      },
-      gitGraph: {
-        showBranches: true,
-        showCommitLabel: true,
-        mainBranchName: 'main'
-      }
-    });
-    return ({ id, content }) => {
-      useEffect(() => {
-        try {
-          mod.contentLoaded();
-        } catch (e) {
-          console.error('Mermaid error:', e);
-        }
-      }, []);
-      return <div className="mermaid" id={id}>{content}</div>;
-    };
-  }),
-  { ssr: false }
-);
 
 const GitFlowGuide = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -41,10 +8,8 @@ const GitFlowGuide = () => {
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const mermaidRefs = useRef([]);
 
-  // 現在のステップが変わったときの処理
   useEffect(() => {
-    // グラフィカル表示モードの場合の処理は
-    // Mermaidコンポーネント自体が担当するように変更
+    // ステップが変わった時や表示モードが変わった時の処理
   }, [currentStep, viewMode]);
   
   
@@ -220,9 +185,9 @@ module.exports = {
                   </div>
                 </div>
                 <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '76px', height: '30px', width: '2px', backgroundColor: '#2ecc71' }}>
+                     style={{ position: 'absolute', left: '200px', top: '28px', height: '32px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }}>
                   <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent', transform: 'rotate(0deg)' }} />
+                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #3498db transparent', transform: 'rotate(0deg)' }} />
                 </div>
                 <div className={styles.branchRow}>
                   <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
