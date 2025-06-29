@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
 
@@ -6,7 +6,6 @@ const GitFlowGuide = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [viewMode, setViewMode] = useState('graphic'); // 'ascii' または 'graphic'
   const [animationEnabled, setAnimationEnabled] = useState(true);
-  const mermaidRefs = useRef([]);
 
   useEffect(() => {
     // ステップが変わった時や表示モードが変わった時の処理
@@ -1144,37 +1143,13 @@ module.exports = app;`}
     return (
       <div className={styles.graphicView}>
         <div className={styles.mermaidGraph}>
-          <Mermaid 
-            id={`mermaid-diagram-${step}`} 
-            content={getMermaidDiagram(step)} 
-          />
+          {/* コンテンツを静的に表示 */}
+          <div className={styles.staticDiagram}>Git Flow グラフィカル表示</div>
         </div>
       </div>
     );
   };
 
-  // ステップのコンテンツをレンダリングする際に、グラフィカル表示を修正
-  const renderStepContent = (step) => {
-    const content = steps[step].content;
-    
-    if (!React.isValidElement(content)) {
-      return content;
-    }
-    
-    // JSX要素の場合、クローンして子要素を確認
-    return React.Children.map(content.props.children, child => {
-      // viewMode === 'graphic'で、classNameにstyles.graphicViewを含む要素があれば置換
-      if (viewMode === 'graphic' && 
-          child && 
-          child.props && 
-          child.props.className && 
-          child.props.className.includes(styles.graphicView)) {
-        return <MermaidDiagram step={step} />;
-      }
-      // それ以外はそのまま返す
-      return child;
-    });
-  };
 
   return (
     <motion.div 
@@ -1246,13 +1221,7 @@ module.exports = app;`}
         animate={animationEnabled ? { opacity: 1 } : false}
         transition={animationEnabled ? { duration: 0.5 } : { duration: 0 }}
       >
-        {viewMode === 'graphic' && currentStep > 0 ? 
-          <>
-            {steps[currentStep].content}
-            <MermaidDiagram step={currentStep} />
-          </> : 
-          steps[currentStep].content
-        }
+        {steps[currentStep].content}
       </motion.div>
       
       <motion.div 
