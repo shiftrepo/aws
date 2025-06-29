@@ -1,18 +1,15 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import styles from './GitFlowGuide.module.css';
-import mermaid from 'mermaid';
+import dynamic from 'next/dynamic';
 
-const GitFlowGuide = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [viewMode, setViewMode] = useState('graphic'); // 'ascii' または 'graphic'
-  const [animationEnabled, setAnimationEnabled] = useState(true);
-  const mermaidRefs = useRef([]);
-
-  // Mermaidの初期化
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: true,
+// mermaidはクライアントサイドでのみ動作するため、動的インポートを使用
+const Mermaid = dynamic(
+  () => import('mermaid').then(mod => {
+    mod.initialize({
+      startOnLoad: false,
       theme: 'default',
       flowchart: {
         useMaxWidth: true,
@@ -24,28 +21,32 @@ const GitFlowGuide = () => {
         mainBranchName: 'main'
       }
     });
-    
-    if (viewMode === 'graphic') {
-      renderMermaidDiagrams();
-    }
+    return ({ id, content }) => {
+      useEffect(() => {
+        try {
+          mod.contentLoaded();
+        } catch (e) {
+          console.error('Mermaid error:', e);
+        }
+      }, []);
+      return <div className="mermaid" id={id}>{content}</div>;
+    };
+  }),
+  { ssr: false }
+);
+
+const GitFlowGuide = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [viewMode, setViewMode] = useState('graphic'); // 'ascii' または 'graphic'
+  const [animationEnabled, setAnimationEnabled] = useState(true);
+  const mermaidRefs = useRef([]);
+
+  // 現在のステップが変わったときの処理
+  useEffect(() => {
+    // グラフィカル表示モードの場合の処理は
+    // Mermaidコンポーネント自体が担当するように変更
   }, [currentStep, viewMode]);
   
-  // Mermaid図の描画処理
-  const renderMermaidDiagrams = () => {
-    if (mermaidRefs.current && mermaidRefs.current.length > 0) {
-      const currentRef = mermaidRefs.current[currentStep];
-      if (currentRef && currentRef.innerHTML) {
-        try {
-          mermaid.render('mermaid-svg-' + currentStep, currentRef.innerHTML)
-            .then(({ svg }) => {
-              currentRef.innerHTML = svg;
-            });
-        } catch (error) {
-          console.error('Mermaid render error:', error);
-        }
-      }
-    }
-  };
   
   const steps = [
     {
@@ -1177,11 +1178,11 @@ module.exports = app;`}
   const MermaidDiagram = ({ step }) => {
     return (
       <div className={styles.graphicView}>
-        <div 
-          className={styles.mermaidGraph} 
-          ref={el => mermaidRefs.current[step] = el}
-        >
-          {getMermaidDiagram(step)}
+        <div className={styles.mermaidGraph}>
+          <Mermaid 
+            id={`mermaid-diagram-${step}`} 
+            content={getMermaidDiagram(step)} 
+          />
         </div>
       </div>
     );
