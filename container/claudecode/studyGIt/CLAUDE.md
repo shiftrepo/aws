@@ -10,7 +10,7 @@ GitPlayground ("Git学習プレイグラウンド") is an interactive web applic
 
 The application follows these interaction patterns:
 
-1. User enters their name on the homepage (page.tsx)
+1. User enters their name on the homepage (index.js/page.tsx)
 2. User is directed to the playground with their name as a URL parameter
 3. The playground renders the core components in this order:
    - File Explorer for file operations
@@ -82,7 +82,7 @@ Verification requirements:
 
 ## Architecture
 
-GitPlayground is built with Next.js using the App Router pattern and TypeScript. The application simulates Git operations without actually performing them on a real Git repository.
+GitPlayground is built with Next.js 12.3.4 using a hybrid approach that supports both App Router pattern and Pages directory structure. The codebase is primarily written in TypeScript with some JavaScript files in the Pages directory. The application simulates Git operations without actually performing them on a real Git repository.
 
 ### Key Components
 
@@ -92,7 +92,7 @@ GitPlayground is built with Next.js using the App Router pattern and TypeScript.
 
 2. **GitVisualizer** (`src/components/GitVisualizer.tsx`) 
    - Visualizes Git commit history
-   - Displays branches, commits, and HEAD position
+   - Displays branches, commits, and HEAD position (always positioned at the latest commit of the current branch)
    - Shows conflict status in the commit history
 
 3. **CommandTerminal** (`src/components/CommandTerminal.tsx`)
@@ -142,8 +142,12 @@ interface Commit {
 
 ### Page Structure
 
-1. **Home** (`src/app/page.tsx`) - Landing page with username input
-2. **Playground** (`src/app/playground/page.tsx`) - Main interactive Git learning environment
+1. **Home** - Landing page with username input
+   - App Router: `src/app/page.tsx` 
+   - Pages Router: `src/pages/index.js`
+2. **Playground** - Main interactive Git learning environment
+   - App Router: `src/app/playground/page.tsx`
+   - Pages Router: `src/pages/playground.js`
 
 ### Flow
 
@@ -152,14 +156,15 @@ interface Commit {
 3. User can perform file operations, commits, and interact with simulated team members
 4. A tutorial guides new users through basic operations
 5. User can simulate and resolve Git conflicts with teammate changes
-6. Git history is visualized to help users understand operations
+6. Git history is visualized to help users understand operations, with the HEAD pointer correctly tracking the latest commit on the current branch
 
 ### Technologies
 
-- Next.js (App Router)
-- TypeScript
+- Next.js 12.3.4 (hybrid App Router/Pages Router)
+- TypeScript/JavaScript
 - React
 - styled-components
+- CSS Modules
 - framer-motion
 - isomorphic-git (for Git operations simulation)
 - reactflow (for Git Flow diagram visualization)
@@ -210,9 +215,9 @@ The application includes several tutorial components:
 ### Known Issues
 
 Next.js Module Resolution:
-- Some versions of Next.js may encounter a "Cannot find module '../server/require-hook'" error
-- If this occurs, consider using an alternative Next.js version (12.3.4 recommended)
-- This issue affects the container startup but not the core functionality once running
+- This project uses Next.js 12.3.4 to avoid the "Cannot find module '../server/require-hook'" error that occurs with newer versions
+- The project has been configured to work with both App Router pattern and Pages directory structure
+- This compatibility solution allows the app to run without errors while maintaining the modern App Router structure
 
 ### Best Development Practices
 
