@@ -7,6 +7,7 @@ import CommandTerminal from '../components/CommandTerminal';
 import TeamSimulator from '../components/TeamSimulator';
 import GitFlowGuide from '../components/GitFlowGuide';
 import TeamGitFlow from '../components/TeamGitFlow';
+import styles from './playground.module.css';
 
 export default function Playground() {
   const router = useRouter();
@@ -131,162 +132,79 @@ export default function Playground() {
     }
   };
   
-  // スタイル
-  const containerStyle = {
-    fontFamily: 'Arial, sans-serif',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '1rem'
-  };
-  
-  const headerStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1rem',
-    padding: '0.5rem',
-    backgroundColor: '#f0f0f0',
-    borderRadius: '8px'
-  };
-  
-  const tutorialStyle = {
-    backgroundColor: '#e6f7ff',
-    border: '1px solid #91d5ff',
-    borderRadius: '8px',
-    padding: '1rem',
-    marginBottom: '1rem'
-  };
-  
-  const progressStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    marginTop: '0.5rem'
-  };
-  
-  const progressDotStyle = {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    backgroundColor: '#d9d9d9',
-    margin: '0 5px'
-  };
-  
-  const activeDotStyle = {
-    ...progressDotStyle,
-    backgroundColor: '#1890ff'
-  };
-  
-  const tabsStyle = {
-    display: 'flex',
-    marginBottom: '1rem',
-    borderBottom: '1px solid #d9d9d9'
-  };
-  
-  const tabStyle = {
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    backgroundColor: '#f9f9f9',
-    border: '1px solid #d9d9d9',
-    borderBottom: 'none',
-    borderRadius: '4px 4px 0 0',
-    marginRight: '0.5rem'
-  };
-  
-  const activeTabStyle = {
-    ...tabStyle,
-    backgroundColor: '#fff',
-    borderBottom: '1px solid #fff',
-    marginBottom: '-1px',
-    fontWeight: 'bold'
-  };
-  
-  const contentStyle = {
-    border: '1px solid #d9d9d9',
-    borderRadius: '0 4px 4px 4px',
-    padding: '1rem',
-    minHeight: '500px'
-  };
-  
   if (!router.isReady) {
-    return <div style={containerStyle}>Loading...</div>;
+    return <div className={styles.playground}>Loading...</div>;
   }
   
   return (
-    <div style={containerStyle}>
-      <header style={headerStyle}>
+    <div className={styles.playground}>
+      <header className={styles.header}>
         <h1>GitPlayground</h1>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ marginRight: '0.5rem' }}>👤</span>
+        <div className={styles.userInfo}>
+          <span className={styles.avatar}>👤</span>
           <span>{username || 'ユーザー'}</span>
         </div>
       </header>
       
       {tutorial.active && (
-        <div style={tutorialStyle}>
-          <div>
+        <div className={styles.tutorial}>
+          <div className={styles.tutorialContent}>
             <h3>チュートリアル</h3>
             <p>{tutorial.steps[tutorial.step]}</p>
             {tutorial.step === tutorial.steps.length - 1 && (
               <button 
                 onClick={() => setTutorial(prev => ({ ...prev, active: false }))}
-                style={{
-                  backgroundColor: '#1890ff',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className={styles.tutorialButton}
               >
                 チュートリアルを終了
               </button>
             )}
           </div>
-          <div style={progressStyle}>
+          <div className={styles.progress}>
             {tutorial.steps.map((_, idx) => (
               <div 
                 key={idx} 
-                style={idx <= tutorial.step ? activeDotStyle : progressDotStyle}
+                className={`${styles.progressDot} ${idx <= tutorial.step ? styles.active : ''}`}
               />
             ))}
           </div>
         </div>
       )}
       
-      <div style={tabsStyle}>
+      <div className={styles.tabs}>
         <button 
-          style={activeTab === 'files' ? activeTabStyle : tabStyle}
+          className={`${styles.tab} ${activeTab === 'files' ? styles.active : ''}`}
           onClick={() => handleTabChange('files')}
         >
           ファイル操作
         </button>
         <button 
-          style={activeTab === 'commit' ? activeTabStyle : tabStyle}
+          className={`${styles.tab} ${activeTab === 'commit' ? styles.active : ''}`}
           onClick={() => handleTabChange('commit')}
         >
           コミット
         </button>
         <button 
-          style={activeTab === 'team' ? activeTabStyle : tabStyle}
+          className={`${styles.tab} ${activeTab === 'team' ? styles.active : ''}`}
           onClick={() => handleTabChange('team')}
         >
           チーム
         </button>
         <button 
-          style={activeTab === 'visualize' ? activeTabStyle : tabStyle}
+          className={`${styles.tab} ${activeTab === 'visualize' ? styles.active : ''}`}
           onClick={() => handleTabChange('visualize')}
         >
           可視化
         </button>
         <button 
-          style={activeTab === 'gitflow' ? activeTabStyle : tabStyle}
+          className={`${styles.tab} ${activeTab === 'gitflow' ? styles.active : ''}`}
           onClick={() => handleTabChange('gitflow')}
         >
           Git Flow
         </button>
       </div>
       
-      <div style={contentStyle}>
+      <div className={styles.content}>
         {activeTab === 'files' && (
           <FileExplorer 
             files={repository.files}
@@ -319,31 +237,16 @@ export default function Playground() {
         )}
         
         {activeTab === 'gitflow' && (
-          <div>
-            <div style={{ marginBottom: '1rem' }}>
+          <div className={styles.gitFlowSelector}>
+            <div className={styles.viewOptions}>
               <button 
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: gitFlowView === 'standard' ? '#1890ff' : '#f0f0f0',
-                  color: gitFlowView === 'standard' ? 'white' : 'black',
-                  border: '1px solid #d9d9d9',
-                  borderRadius: '4px',
-                  marginRight: '0.5rem',
-                  cursor: 'pointer'
-                }}
+                className={`${styles.viewOption} ${gitFlowView === 'standard' ? styles.active : ''}`}
                 onClick={() => setGitFlowView('standard')}
               >
                 標準 Git Flow
               </button>
               <button 
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: gitFlowView === 'team' ? '#1890ff' : '#f0f0f0',
-                  color: gitFlowView === 'team' ? 'white' : 'black',
-                  border: '1px solid #d9d9d9',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className={`${styles.viewOption} ${gitFlowView === 'team' ? styles.active : ''}`}
                 onClick={() => setGitFlowView('team')}
               >
                 チーム Git Flow
