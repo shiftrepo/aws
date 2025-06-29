@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import ReactFlowGitGraph from './ReactFlowGitGraph';
 import styles from './GitFlowGuide.module.css';
 
 const GitFlowGuide = () => {
@@ -73,26 +74,7 @@ module.exports = app;`}
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '16px', height: '40px', width: '2px', backgroundColor: '#3498db', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #3498db transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '180px', fontSize: '10px', color: '#666' }}>初期コミット</div>
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={1} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -173,33 +155,7 @@ module.exports = {
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '180px', fontSize: '10px', color: '#666' }}>初期化</div>
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '210px', top: '76px', height: '30px', width: '2px', backgroundColor: '#2ecc71' }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '200px', left: '150px' }}>
-                    <div className={styles.graphCommit} style={{ left: '50px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '30px', fontSize: '10px', color: '#666' }}>ログイン機能実装</div>
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={2} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -282,33 +238,7 @@ module.exports = {
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '300px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '280px', fontSize: '10px', color: '#666' }}>feature/login-systemをマージ</div>
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>login-system</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '110px', left: '180px' }}>
-                    <div className={styles.graphCommit} style={{ left: '100px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '280px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#2ecc71 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
-              </div>
+              <ReactFlowGitGraph step={3} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -396,33 +326,7 @@ module.exports = {
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '300px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '310px', top: '56px', height: '40px', width: '2px', backgroundColor: '#2ecc71', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #2ecc71 transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '100px', left: '250px' }}>
-                    <div className={styles.graphCommit} style={{ left: '50px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '30px', fontSize: '10px', color: '#666' }}>プロファイル機能実装</div>
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={4} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -512,33 +416,7 @@ module.exports = {
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '280px' }} />
-                    <div className={styles.graphCommit} style={{ left: '380px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameFeature}>feature/<br/>user-profile</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchFeature} style={{ width: '110px', left: '260px' }}>
-                    <div className={styles.graphCommit} style={{ left: '100px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '360px', top: '100px', height: '60px', width: '2px', transform: 'rotate(-45deg)', backgroundColor: '#2ecc71', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', right: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#2ecc71 transparent transparent transparent', transform: 'rotate(45deg)' }} />
-                </div>
-              </div>
+              <ReactFlowGitGraph step={5} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -619,33 +497,7 @@ module.exports = app;`}
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '280px' }} />
-                    <div className={styles.graphCommit} style={{ left: '380px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '390px', top: '56px', height: '40px', width: '2px', backgroundColor: '#f39c12', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #f39c12 transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '50px', left: '360px' }}>
-                    <div className={styles.graphCommit} style={{ left: '40px' }} />
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={6} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -707,29 +559,7 @@ module.exports = {
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '280px' }} />
-                    <div className={styles.graphCommit} style={{ left: '380px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '100px', left: '360px' }}>
-                    <div className={styles.graphCommit} style={{ left: '40px' }} />
-                    <div className={styles.graphCommit} style={{ left: '90px' }} />
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={7} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -828,42 +658,7 @@ module.exports = {
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '480px' }} />
-                    <div className={styles.graphTag} style={{ left: '495px' }}>v1.0.0</div>
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '460px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#f39c12', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#f39c12 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '280px' }} />
-                    <div className={styles.graphCommit} style={{ left: '380px' }} />
-                    <div className={styles.graphCommit} style={{ left: '520px' }} />
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '450px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#f39c12', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#f39c12 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameRelease}>release/<br/>1.0.0</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchRelease} style={{ width: '100px', left: '360px' }}>
-                    <div className={styles.graphCommit} style={{ left: '40px' }} />
-                    <div className={styles.graphCommit} style={{ left: '90px' }} />
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={8} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -949,38 +744,7 @@ module.exports = app;`}
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '480px' }} />
-                    <div className={styles.graphTag} style={{ left: '495px' }}>v1.0.0</div>
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '460px', fontSize: '10px', color: '#666' }}>releaseマージ</div>
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '490px', top: '16px', height: '40px', width: '2px', backgroundColor: '#9b59b6', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', bottom: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: 'transparent transparent #9b59b6 transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '280px' }} />
-                    <div className={styles.graphCommit} style={{ left: '380px' }} />
-                    <div className={styles.graphCommit} style={{ left: '480px' }} />
-                  </div>
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '40px', left: '480px' }}>
-                    <div className={styles.graphCommit} style={{ left: '30px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '10px', fontSize: '10px', color: '#666' }}>初期化例外処理追加</div>
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={9} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
@@ -1061,46 +825,7 @@ module.exports = app;`}
             </div>
           ) : (
             <div className={styles.graphicView}>
-              <div className={styles.gitGraph}>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameMain}>main/master<br/>(本番B面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchMain}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '480px' }} />
-                    <div className={styles.graphCommit} style={{ left: '580px' }} />
-                    <div className={styles.graphTag} style={{ left: '595px' }}>v1.0.1</div>
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '560px', fontSize: '10px', color: '#666' }}>hotfixマージ</div>
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '560px', top: '16px', height: '100px', width: '2px', transform: 'rotate(45deg)', backgroundColor: '#9b59b6', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#9b59b6 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameDevelop}>develop<br/>(開発A面)</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchDevelop}>
-                    <div className={styles.graphCommit} style={{ left: '200px' }} />
-                    <div className={styles.graphCommit} style={{ left: '280px' }} />
-                    <div className={styles.graphCommit} style={{ left: '380px' }} />
-                    <div className={styles.graphCommit} style={{ left: '480px' }} />
-                    <div className={styles.graphCommit} style={{ left: '620px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '600px', fontSize: '10px', color: '#666' }}>hotfixマージ</div>
-                  </div>
-                </div>
-                <div className={styles.graphArrow} 
-                     style={{ position: 'absolute', left: '600px', top: '56px', height: '60px', width: '2px', transform: 'rotate(125deg)', backgroundColor: '#9b59b6', zIndex: 1 }}>
-                  <div className={styles.arrowHead} 
-                       style={{ position: 'absolute', top: '-5px', left: '-4px', borderWidth: '5px', borderStyle: 'solid', borderColor: '#9b59b6 transparent transparent transparent', transform: 'rotate(0deg)' }} />
-                </div>
-                <div className={styles.branchRow}>
-                  <div className={styles.branchName + ' ' + styles.branchNameHotfix}>hotfix/<br/>1.0.1</div>
-                  <div className={styles.graphBranch + ' ' + styles.graphBranchHotfix} style={{ width: '110px', left: '480px' }}>
-                    <div className={styles.graphCommit} style={{ left: '100px' }} />
-                    <div className={styles.graphCommitLabel} style={{ position: 'absolute', top: '-30px', left: '80px', fontSize: '10px', color: '#666' }}>緊急修正</div>
-                  </div>
-                </div>
-              </div>
+              <ReactFlowGitGraph step={10} animationEnabled={animationEnabled} />
             </div>
           )}
         </div>
