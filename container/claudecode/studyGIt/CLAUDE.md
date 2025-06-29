@@ -44,17 +44,13 @@ npm run lint
 npm run install:clean
 ```
 
-### Docker and Podman
+### Podman
 
 ```bash
-# Start with Docker
-docker-compose up
-
-# Build and start Docker container
-docker-compose up --build
-
-# If using Podman instead of Docker
+# Start the container
 podman-compose up
+
+# Build and start container
 podman-compose up --build
 
 # Check container status
@@ -63,6 +59,26 @@ podman ps
 # View container logs
 podman logs git-playground
 ```
+
+> **IMPORTANT**: Only use podman-compose for running the application. Do not use docker-compose, docker run, podman run, or any other method to start containers.
+
+### Verification Process
+
+```bash
+# Start the container with podman-compose
+podman-compose up --build
+
+# Verify the application is running (in a separate terminal)
+curl http://localhost:3000
+
+# Test with browser by opening http://localhost:3000
+```
+
+Verification requirements:
+- Always verify changes using podman-compose (never docker-compose)
+- Test by connecting from the host via localhost (not from inside the container)
+- After making changes, repeat the verification process until no errors appear
+- Document any persistent issues in GitHub issues
 
 ## Architecture
 
@@ -149,7 +165,7 @@ interface Commit {
 
 ### Volume Mounting
 
-When running with Docker or Podman in development mode, the repository is configured to mount local files into the container for hot-reload capability:
+When running with Podman in development mode, the repository is configured to mount local files into the container for hot-reload capability:
 
 ```yaml
 volumes:
@@ -178,7 +194,7 @@ The application includes several tutorial components:
 
 1. **Container-First Development**
    - Prefer running the application in a container for consistent environment
-   - Use `podman-compose up --build` (or docker-compose) after code changes
+   - Use `podman-compose up --build` after code changes
    - Use volume mounting for hot-reload development
 
 2. **UI/UX Considerations**
@@ -199,6 +215,29 @@ The application includes several tutorial components:
    - All pull requests require at least one code review before merging
    - Resolve merge conflicts by communicating with the team member who wrote the conflicting code
    - Use GitHub issues for tracking bugs and feature requests
+
+> **CRITICAL REQUIREMENT**: All GitHub repository operations MUST use the mcp's github-org tools. Direct GitHub CLI commands, GitHub web interface, or other GitHub access methods are prohibited.
+
+### GitHub Operations
+
+```bash
+# Use these tools for all GitHub operations
+mcp__github-org__search_repositories
+mcp__github-org__create_repository
+mcp__github-org__get_file_contents
+mcp__github-org__create_or_update_file
+mcp__github-org__push_files
+mcp__github-org__create_issue
+mcp__github-org__create_pull_request
+mcp__github-org__search_code
+mcp__github-org__search_issues
+# ... and other mcp__github-org tools as needed
+```
+
+Examples:
+- For creating issues: Use mcp__github-org__create_issue instead of GitHub web interface
+- For checking repositories: Use mcp__github-org__search_repositories instead of browsing GitHub
+- For all code changes: Use mcp__github-org__push_files or mcp__github-org__create_or_update_file
 
 5. **Code Review Process**
    - Review for functionality, code quality, and adherence to project patterns
