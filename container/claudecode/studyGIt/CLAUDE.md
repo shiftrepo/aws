@@ -189,7 +189,25 @@ The application includes several tutorial components:
 3. **Testing the Application**
    - Test all Git simulation operations with various scenarios
    - Ensure conflict resolution guides work correctly
-   - Verify all tutorial steps are clear and accurate# Agent Communication System
+   - Verify all tutorial steps are clear and accurate
+
+4. **Git Collaboration Guidelines**
+   - Use feature branches for all new developments (`feature/feature-name`)
+   - Create descriptive commit messages with prefix format: `[component]: action description`
+   - Rebase feature branches on main before submitting pull requests
+   - Pull requests should include testing instructions and screenshots
+   - All pull requests require at least one code review before merging
+   - Resolve merge conflicts by communicating with the team member who wrote the conflicting code
+   - Use GitHub issues for tracking bugs and feature requests
+
+5. **Code Review Process**
+   - Review for functionality, code quality, and adherence to project patterns
+   - Use constructive comments and suggestions for improvements
+   - Address all review comments before merging
+   - Acknowledge good practices and innovative solutions
+   - Ensure proper test coverage for all new code
+
+# Agent Communication System
 
 # Agent Communication System
 
