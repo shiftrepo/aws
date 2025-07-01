@@ -224,9 +224,9 @@ const gitFlowStepsData = {
       }
     ]
   },
-  4: {
-    title: "別の機能開発 - 2つ目のfeatureブランチ",
-    description: "別の機能を並行して開発するために、新たなfeatureブランチを作成します。",
+  3.5: {
+    title: "並行開発 - 複数のfeatureブランチ",
+    description: "複数の機能を同時に開発するため、developブランチから複数のfeatureブランチを同時に作成します。各チームは並行して独立した機能開発を進めます。",
     nodes: [
       { 
         id: 'main-1', 
@@ -236,17 +236,38 @@ const gitFlowStepsData = {
         style: nodeStyles.main
       },
       { 
-        id: 'develop-2', 
+        id: 'develop-1', 
         type: 'default',
-        data: { label: 'develop' }, 
-        position: { x: 350, y: 150 },
+        data: { label: 'develop\n(開発A面)' }, 
+        position: { x: 250, y: 150 },
         style: nodeStyles.develop
+      },
+      { 
+        id: 'feature-login', 
+        type: 'default',
+        data: { label: 'feature/login-system\n(チームA:開発中)' }, 
+        position: { x: 150, y: 250 },
+        style: nodeStyles.feature
       },
       { 
         id: 'feature-profile', 
         type: 'default',
-        data: { label: 'feature/user-profile' }, 
+        data: { label: 'feature/user-profile\n(チームB:開発中)' }, 
+        position: { x: 350, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(チームC:未着手)' }, 
         position: { x: 450, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(チームD:未着手)' }, 
+        position: { x: 550, y: 250 },
         style: nodeStyles.feature
       }
     ],
@@ -254,25 +275,52 @@ const gitFlowStepsData = {
       {
         id: 'main-develop',
         source: 'main-1',
-        target: 'develop-2',
+        target: 'develop-1',
         style: edgeStyles.develop,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
       },
       {
-        id: 'develop-feature2',
-        source: 'develop-2',
+        id: 'develop-feature-login',
+        source: 'develop-1',
+        target: 'feature-login',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      },
+      {
+        id: 'develop-feature-profile',
+        source: 'develop-1',
         target: 'feature-profile',
         animated: true,
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-1',
+        target: 'feature-search',
+        animated: false,
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-1',
+        target: 'feature-notification',
+        animated: false,
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
       }
     ]
   },
-  5: {
-    title: "2つ目のfeatureブランチをdevelopにマージ",
-    description: "ユーザープロファイル機能の開発とテストが完了したら、featureブランチをdevelopブランチにマージします。",
+  4: {
+    title: "ログイン機能の開発進行",
+    description: "チームAはログイン機能の開発を進めています。同時に他のチームも並行して開発を進めており、マージせずに各ブランチで作業することが並行開発の強みです。",
     nodes: [
       { 
         id: 'main-1', 
@@ -282,24 +330,38 @@ const gitFlowStepsData = {
         style: nodeStyles.main
       },
       { 
-        id: 'develop-2', 
+        id: 'develop-1', 
         type: 'default',
-        data: { label: 'develop' }, 
-        position: { x: 350, y: 150 },
+        data: { label: 'develop\n(開発A面)' }, 
+        position: { x: 250, y: 150 },
         style: nodeStyles.develop
       },
       { 
-        id: 'develop-3', 
+        id: 'feature-login', 
         type: 'default',
-        data: { label: 'develop\n(マージ後)' }, 
-        position: { x: 450, y: 150 },
-        style: nodeStyles.develop
+        data: { label: 'feature/login-system\n(チームA:開発進行中)' }, 
+        position: { x: 150, y: 250 },
+        style: nodeStyles.feature
       },
       { 
         id: 'feature-profile', 
         type: 'default',
-        data: { label: 'feature/user-profile' }, 
+        data: { label: 'feature/user-profile\n(チームB:開発中)' }, 
         position: { x: 350, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(チームC:開発中)' }, 
+        position: { x: 450, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(チームD:開発中)' }, 
+        position: { x: 550, y: 250 },
         style: nodeStyles.feature
       }
     ],
@@ -307,18 +369,125 @@ const gitFlowStepsData = {
       {
         id: 'main-develop',
         source: 'main-1',
-        target: 'develop-2',
+        target: 'develop-1',
         style: edgeStyles.develop,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
       },
       {
-        id: 'develop-feature2',
-        source: 'develop-2',
+        id: 'develop-feature-login',
+        source: 'develop-1',
+        target: 'feature-login',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      },
+      {
+        id: 'develop-feature-profile',
+        source: 'develop-1',
         target: 'feature-profile',
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-1',
+        target: 'feature-search',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-1',
+        target: 'feature-notification',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      }
+    ]
+  },
+  5: {
+    title: "ユーザープロファイル機能の完了とマージ",
+    description: "並行開発の成果として、チームBのユーザープロファイル機能の開発とテストが完了したため、feature/user-profileブランチを既にログイン機能を含むdevelopブランチにマージします。",
+    nodes: [
+      { 
+        id: 'main-1', 
+        type: 'default',
+        data: { label: 'main/master\n(本番B面)' }, 
+        position: { x: 250, y: 50 },
+        style: nodeStyles.main
+      },
+      { 
+        id: 'develop-1', 
+        type: 'default',
+        data: { label: 'develop\n(当初)' }, 
+        position: { x: 250, y: 150 },
+        style: nodeStyles.develop
+      },
+      { 
+        id: 'develop-2', 
+        type: 'default',
+        data: { label: 'develop\n(login機能統合済)' }, 
+        position: { x: 350, y: 150 },
+        style: nodeStyles.develop
+      },
+      { 
+        id: 'develop-3', 
+        type: 'default',
+        data: { label: 'develop\n(login+profile機能統合済)' }, 
+        position: { x: 450, y: 150 },
+        style: nodeStyles.develop
+      },
+      { 
+        id: 'feature-login', 
+        type: 'default',
+        data: { label: 'feature/login-system\n(完了)' }, 
+        position: { x: 150, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-profile', 
+        type: 'default',
+        data: { label: 'feature/user-profile\n(完了)' }, 
+        position: { x: 350, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(開発中)' }, 
+        position: { x: 450, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(開発中)' }, 
+        position: { x: 550, y: 250 },
+        style: nodeStyles.feature
+      }
+    ],
+    edges: [
+      {
+        id: 'main-develop',
+        source: 'main-1',
+        target: 'develop-1',
+        style: edgeStyles.develop,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-flow-1',
+        source: 'develop-1',
+        target: 'develop-2',
+        style: edgeStyles.develop,
+        type: 'smoothstep',
       },
       {
         id: 'develop-flow-2',
@@ -328,19 +497,61 @@ const gitFlowStepsData = {
         type: 'smoothstep',
       },
       {
-        id: 'feature-develop-2',
+        id: 'develop-feature-login',
+        source: 'develop-1',
+        target: 'feature-login',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'feature-login-develop',
+        source: 'feature-login',
+        target: 'develop-2',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-profile',
+        source: 'develop-1',
+        target: 'feature-profile',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'feature-profile-develop',
         source: 'feature-profile',
         target: 'develop-3',
         animated: true,
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-1',
+        target: 'feature-search',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-1',
+        target: 'feature-notification',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
       }
     ]
   },
   6: {
     title: "リリース準備 - releaseブランチの作成",
-    description: "機能開発が完了し、リリース準備を始める段階でreleaseブランチを作成します。",
+    description: "並行開発の成果であるログイン機能とユーザープロファイル機能が統合された後、リリース準備を始める段階でdevelopブランチからreleaseブランチを作成します。残りの機能開発は次回リリースに向けて継続します。",
     nodes: [
       { 
         id: 'main-1', 
@@ -350,9 +561,16 @@ const gitFlowStepsData = {
         style: nodeStyles.main
       },
       { 
+        id: 'develop-1', 
+        type: 'default',
+        data: { label: 'develop\n(当初)' }, 
+        position: { x: 250, y: 150 },
+        style: nodeStyles.develop
+      },
+      { 
         id: 'develop-3', 
         type: 'default',
-        data: { label: 'develop' }, 
+        data: { label: 'develop\n(login+profile機能統合済)' }, 
         position: { x: 450, y: 150 },
         style: nodeStyles.develop
       },
@@ -362,14 +580,81 @@ const gitFlowStepsData = {
         data: { label: 'release/1.0.0' }, 
         position: { x: 550, y: 250 },
         style: nodeStyles.release
+      },
+      { 
+        id: 'feature-login', 
+        type: 'default',
+        data: { label: 'feature/login-system\n(完了)' }, 
+        position: { x: 150, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-profile', 
+        type: 'default',
+        data: { label: 'feature/user-profile\n(完了)' }, 
+        position: { x: 350, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(次回リリースへ)' }, 
+        position: { x: 450, y: 350 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(次回リリースへ)' }, 
+        position: { x: 550, y: 350 },
+        style: nodeStyles.feature
       }
     ],
     edges: [
       {
         id: 'main-develop',
         source: 'main-1',
+        target: 'develop-1',
+        style: edgeStyles.develop,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-flow-combined',
+        source: 'develop-1',
         target: 'develop-3',
         style: edgeStyles.develop,
+        type: 'smoothstep',
+      },
+      {
+        id: 'develop-feature-login',
+        source: 'develop-1',
+        target: 'feature-login',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-profile',
+        source: 'develop-1',
+        target: 'feature-profile',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'feature-login-develop',
+        source: 'feature-login',
+        target: 'develop-3',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'feature-profile-develop',
+        source: 'feature-profile',
+        target: 'develop-3',
+        style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
       },
@@ -381,6 +666,24 @@ const gitFlowStepsData = {
         style: edgeStyles.release,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-3',
+        target: 'feature-search',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-3',
+        target: 'feature-notification',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+        animated: true,
       }
     ]
   },
@@ -398,7 +701,7 @@ const gitFlowStepsData = {
       { 
         id: 'develop-3', 
         type: 'default',
-        data: { label: 'develop' }, 
+        data: { label: 'develop\n(login+profile機能統合済)' }, 
         position: { x: 450, y: 150 },
         style: nodeStyles.develop
       },
@@ -665,7 +968,29 @@ const gitFlowStepsData = {
 };
 
 const ReactFlowGitGraph = ({ step = 1, animationEnabled = true }) => {
-  const currentStep = Math.min(Math.max(1, step), Object.keys(gitFlowStepsData).length);
+  // Support for fractional steps like 3.5
+  const availableSteps = Object.keys(gitFlowStepsData).map(Number).sort((a, b) => a - b);
+  const maxStep = Math.max(...availableSteps);
+  const minStep = Math.min(...availableSteps);
+  
+  // Find the closest step in our available steps
+  let currentStep = step;
+  
+  // If the exact step doesn't exist, find the closest match
+  if (!availableSteps.includes(step)) {
+    // First, clamp the step between min and max values
+    currentStep = Math.min(Math.max(minStep, step), maxStep);
+    
+    // If it's still not an exact match (like 3.5), find the closest available step
+    if (!availableSteps.includes(currentStep)) {
+      // For steps like 3.5, we want to find the exact match or the closest one
+      const closestStep = availableSteps.reduce((prev, curr) => 
+        Math.abs(curr - currentStep) < Math.abs(prev - currentStep) ? curr : prev
+      );
+      currentStep = closestStep;
+    }
+  }
+  
   const stepData = gitFlowStepsData[currentStep] || gitFlowStepsData[1];
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
