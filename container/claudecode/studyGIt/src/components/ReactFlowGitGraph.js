@@ -224,9 +224,94 @@ const gitFlowStepsData = {
       }
     ]
   },
+  3.5: {
+    title: "並行開発 - 複数のfeatureブランチ",
+    description: "複数の機能を同時に開発するため、developブランチから複数のfeatureブランチを作成します。",
+    nodes: [
+      { 
+        id: 'main-1', 
+        type: 'default',
+        data: { label: 'main/master\n(本番B面)' }, 
+        position: { x: 250, y: 50 },
+        style: nodeStyles.main
+      },
+      { 
+        id: 'develop-2', 
+        type: 'default',
+        data: { label: 'develop' }, 
+        position: { x: 350, y: 150 },
+        style: nodeStyles.develop
+      },
+      { 
+        id: 'feature-login', 
+        type: 'default',
+        data: { label: 'feature/login-system\n(完了)' }, 
+        position: { x: 150, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-profile', 
+        type: 'default',
+        data: { label: 'feature/user-profile' }, 
+        position: { x: 350, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search' }, 
+        position: { x: 450, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification' }, 
+        position: { x: 550, y: 250 },
+        style: nodeStyles.feature
+      }
+    ],
+    edges: [
+      {
+        id: 'main-develop',
+        source: 'main-1',
+        target: 'develop-2',
+        style: edgeStyles.develop,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-profile',
+        source: 'develop-2',
+        target: 'feature-profile',
+        animated: true,
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-2',
+        target: 'feature-search',
+        animated: true,
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-2',
+        target: 'feature-notification',
+        animated: true,
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      }
+    ]
+  },
   4: {
-    title: "別の機能開発 - 2つ目のfeatureブランチ",
-    description: "別の機能を並行して開発するために、新たなfeatureブランチを作成します。",
+    title: "機能の完了 - feature/user-profileブランチの完成",
+    description: "複数の機能開発のうち、ユーザープロファイル機能の開発が完了します。",
     nodes: [
       { 
         id: 'main-1', 
@@ -245,8 +330,22 @@ const gitFlowStepsData = {
       { 
         id: 'feature-profile', 
         type: 'default',
-        data: { label: 'feature/user-profile' }, 
+        data: { label: 'feature/user-profile\n(開発完了)' }, 
+        position: { x: 350, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(開発中)' }, 
         position: { x: 450, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(開発中)' }, 
+        position: { x: 550, y: 250 },
         style: nodeStyles.feature
       }
     ],
@@ -260,10 +359,25 @@ const gitFlowStepsData = {
         markerEnd: { type: 'arrowclosed' },
       },
       {
-        id: 'develop-feature2',
+        id: 'develop-feature-profile',
         source: 'develop-2',
         target: 'feature-profile',
-        animated: true,
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-2',
+        target: 'feature-search',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-2',
+        target: 'feature-notification',
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
@@ -271,8 +385,8 @@ const gitFlowStepsData = {
     ]
   },
   5: {
-    title: "2つ目のfeatureブランチをdevelopにマージ",
-    description: "ユーザープロファイル機能の開発とテストが完了したら、featureブランチをdevelopブランチにマージします。",
+    title: "完了した機能をdevelopにマージ",
+    description: "ユーザープロファイル機能の開発とテストが完了したら、featureブランチをdevelopブランチにマージします。他の機能開発は継続します。",
     nodes: [
       { 
         id: 'main-1', 
@@ -301,6 +415,20 @@ const gitFlowStepsData = {
         data: { label: 'feature/user-profile' }, 
         position: { x: 350, y: 250 },
         style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(開発中)' }, 
+        position: { x: 450, y: 250 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(開発中)' }, 
+        position: { x: 550, y: 250 },
+        style: nodeStyles.feature
       }
     ],
     edges: [
@@ -313,9 +441,25 @@ const gitFlowStepsData = {
         markerEnd: { type: 'arrowclosed' },
       },
       {
-        id: 'develop-feature2',
+        id: 'develop-feature-profile',
         source: 'develop-2',
         target: 'feature-profile',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-2',
+        target: 'feature-search',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-2',
+        target: 'feature-notification',
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
@@ -340,7 +484,7 @@ const gitFlowStepsData = {
   },
   6: {
     title: "リリース準備 - releaseブランチの作成",
-    description: "機能開発が完了し、リリース準備を始める段階でreleaseブランチを作成します。",
+    description: "複数の機能開発が十分に完了したら、リリース準備を始める段階でdevelopブランチからreleaseブランチを作成します。",
     nodes: [
       { 
         id: 'main-1', 
@@ -362,6 +506,20 @@ const gitFlowStepsData = {
         data: { label: 'release/1.0.0' }, 
         position: { x: 550, y: 250 },
         style: nodeStyles.release
+      },
+      { 
+        id: 'feature-search', 
+        type: 'default',
+        data: { label: 'feature/search\n(次回リリースへ)' }, 
+        position: { x: 450, y: 350 },
+        style: nodeStyles.feature
+      },
+      { 
+        id: 'feature-notification', 
+        type: 'default',
+        data: { label: 'feature/notification\n(次回リリースへ)' }, 
+        position: { x: 550, y: 350 },
+        style: nodeStyles.feature
       }
     ],
     edges: [
@@ -379,6 +537,22 @@ const gitFlowStepsData = {
         target: 'release-1',
         animated: true,
         style: edgeStyles.release,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-search',
+        source: 'develop-3',
+        target: 'feature-search',
+        style: edgeStyles.feature,
+        type: 'smoothstep',
+        markerEnd: { type: 'arrowclosed' },
+      },
+      {
+        id: 'develop-feature-notification',
+        source: 'develop-3',
+        target: 'feature-notification',
+        style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
       }
@@ -665,7 +839,11 @@ const gitFlowStepsData = {
 };
 
 const ReactFlowGitGraph = ({ step = 1, animationEnabled = true }) => {
-  const currentStep = Math.min(Math.max(1, step), Object.keys(gitFlowStepsData).length);
+  // Support for fractional steps like 3.5
+  const availableSteps = Object.keys(gitFlowStepsData).map(Number).sort((a, b) => a - b);
+  const maxStep = Math.max(...availableSteps);
+  const minStep = Math.min(...availableSteps);
+  const currentStep = Math.min(Math.max(minStep, step), maxStep);
   const stepData = gitFlowStepsData[currentStep] || gitFlowStepsData[1];
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
