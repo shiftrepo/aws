@@ -319,8 +319,8 @@ const gitFlowStepsData = {
     ]
   },
   4: {
-    title: "ログイン機能の完了とマージ",
-    description: "並行開発の最初の成果として、チームAのfeature/login-systemブランチが開発完了し、developブランチにマージされました。他の機能開発はまだ進行中です。",
+    title: "ログイン機能の開発進行",
+    description: "チームAはログイン機能の開発を進めています。同時に他のチームも並行して開発を進めており、これが並行開発の強みです。",
     nodes: [
       { 
         id: 'main-1', 
@@ -337,37 +337,30 @@ const gitFlowStepsData = {
         style: nodeStyles.develop
       },
       { 
-        id: 'develop-2', 
-        type: 'default',
-        data: { label: 'develop\n(login機能統合済)' }, 
-        position: { x: 350, y: 150 },
-        style: nodeStyles.develop
-      },
-      { 
         id: 'feature-login', 
         type: 'default',
-        data: { label: 'feature/login-system\n(開発完了)' }, 
+        data: { label: 'feature/login-system\n(チームA:開発中)' }, 
         position: { x: 150, y: 250 },
         style: nodeStyles.feature
       },
       { 
         id: 'feature-profile', 
         type: 'default',
-        data: { label: 'feature/user-profile\n(開発中)' }, 
+        data: { label: 'feature/user-profile\n(チームB:開発中)' }, 
         position: { x: 350, y: 250 },
         style: nodeStyles.feature
       },
       { 
         id: 'feature-search', 
         type: 'default',
-        data: { label: 'feature/search\n(開発中)' }, 
+        data: { label: 'feature/search\n(チームC:開発中)' }, 
         position: { x: 450, y: 250 },
         style: nodeStyles.feature
       },
       { 
         id: 'feature-notification', 
         type: 'default',
-        data: { label: 'feature/notification\n(開発中)' }, 
+        data: { label: 'feature/notification\n(チームD:開発中)' }, 
         position: { x: 550, y: 250 },
         style: nodeStyles.feature
       }
@@ -382,24 +375,9 @@ const gitFlowStepsData = {
         markerEnd: { type: 'arrowclosed' },
       },
       {
-        id: 'develop-flow',
-        source: 'develop-1',
-        target: 'develop-2',
-        style: edgeStyles.develop,
-        type: 'smoothstep',
-      },
-      {
         id: 'develop-feature-login',
         source: 'develop-1',
         target: 'feature-login',
-        style: edgeStyles.feature,
-        type: 'smoothstep',
-        markerEnd: { type: 'arrowclosed' },
-      },
-      {
-        id: 'feature-login-develop',
-        source: 'feature-login',
-        target: 'develop-2',
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
