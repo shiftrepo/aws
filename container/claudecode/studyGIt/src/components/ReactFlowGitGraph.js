@@ -339,7 +339,7 @@ const gitFlowStepsData = {
       { 
         id: 'feature-login', 
         type: 'default',
-        data: { label: 'feature/login-system\n(チームA:開発中)' }, 
+        data: { label: 'feature/login-system\n(チームA:開発進行中)' }, 
         position: { x: 150, y: 250 },
         style: nodeStyles.feature
       },
