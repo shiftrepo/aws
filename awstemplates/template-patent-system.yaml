@@ -751,7 +751,10 @@ Resources:
           systemctl start amazon-ssm-agent
 
           # Install Docker etc...
-          dnf install -y docker awscli git bash-completion python3-pip unzip tmux
+          dnf install -y docker awscli git bash-completion python3-pip unzip tmux zsh util-linux-user
+          #subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+          #dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+          #dnf install -y neovim
           systemctl start docker
           systemctl enable docker
           pip install podman-compose
