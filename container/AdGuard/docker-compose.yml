@@ -1,0 +1,14 @@
+version: "3"
+services:
+  adguardhome:
+    image: adguard/adguardhome
+    container_name: adguardhome
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8082:80/tcp"      # Web UI用のポート（例: 8080）
+      - "8083:3000/tcp"    # 初期設定用のポート
+    volumes:
+      - ./adguard_work:/opt/adguardhome/work
+      - ./adguard_conf:/opt/adguardhome/conf
+    restart: unless-stopped
