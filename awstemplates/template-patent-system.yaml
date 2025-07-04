@@ -318,12 +318,26 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 8081
           ToPort: 8081
+        - IpProtocol: tcp
+          FromPort: 8082
+          ToPort: 8082
+        - IpProtocol: tcp
+          FromPort: 8083
+          ToPort: 8083
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 8080
@@ -752,9 +766,9 @@ Resources:
 
           # Install Docker etc...
           dnf install -y docker awscli git bash-completion python3-pip unzip tmux zsh util-linux-user
-          #subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
-          #dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-          #dnf install -y neovim
+          subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+          dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+          dnf install -y neovim
           systemctl start docker
           systemctl enable docker
           pip install podman-compose
