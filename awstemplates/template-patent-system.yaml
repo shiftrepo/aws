@@ -840,6 +840,8 @@ Resources:
           chsh -s $(which zsh) ec2-user
           git clone https://github.com/olivierverdier/zsh-git-prompt.git ~/.zsh-git-prompt
           git clone https://github.com/olivierverdier/zsh-git-prompt.git /home/ec2-user/.zsh-git-prompt
+          cp -p /root/aws.git/zshenv/zshrc.org /home/ec2-user/.zshrc
+          cp -p /root/aws.git/zshenv/zshrc.org /root/.zshrc
 
           # BigQueryAPI用のキーファイルをダウンロード
           #aws s3 cp s3://ndi-3supervision/MIT/GCPServiceKey/tosapi-bd19ecc6f5bb.json tosapi-bd19ecc6f5bb.json
