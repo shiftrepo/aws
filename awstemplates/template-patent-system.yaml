@@ -834,7 +834,13 @@ Resources:
 
           chown -R ec2-user:ec2-user /root/aws.git/ /root/langfuse_latest.git/ /root/Claude-Code-Communication.git
           chmod 777 /root
-          
+
+          # zshのインストールと設定
+          chsh -s $(which zsh)
+          chsh -s $(which zsh) ec2-user
+          git clone https://github.com/olivierverdier/zsh-git-prompt.git ~/.zsh-git-prompt
+          git clone https://github.com/olivierverdier/zsh-git-prompt.git /home/ec2-user/.zsh-git-prompt
+
           # BigQueryAPI用のキーファイルをダウンロード
           #aws s3 cp s3://ndi-3supervision/MIT/GCPServiceKey/tosapi-bd19ecc6f5bb.json tosapi-bd19ecc6f5bb.json
 
