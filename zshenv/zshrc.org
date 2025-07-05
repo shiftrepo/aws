@@ -67,8 +67,8 @@ source ~/.zsh-git-prompt/zshrc.sh
 source /usr/share/git-core/contrib/completion/git-prompt.sh
 
 # プロンプト定義（例）
-#PROMPT='%F{cyan}%~%f $(git_super_status) %# '
-PROMPT='%F{green}%~%f %F{yellow}$(git_super_status)%f %# '
+#PROMPT='%F{green}%~%f %F{yellow}$(git_super_status)%f %# '
+PROMPT='%F{blue}%n@%m%f:%F{green}%~%f %F{yellow}$(git_super_status)%f %# '
 
 # プロンプト定義
 #PROMPT="%F{244}%~%f \$vcs_info_msg_0_ %F{black}%#%f "
