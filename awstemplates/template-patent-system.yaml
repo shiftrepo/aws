@@ -843,8 +843,6 @@ Resources:
           cp -p /root/aws.git/zshenv/zshrc.org /home/ec2-user/.zshrc
           cp -p /root/aws.git/zshenv/zshrc.org /root/.zshrc
 
-          echo ". /usr/share/bash-completion/bash_completion" >> /home/ec2-user/.zshrc
-          echo ". /etc/bash_completion.d/docker" >> /home/ec2-user/.zshrc
           echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /home/ec2-user/.zshrc
           echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /home/ec2-user/.zshrc
           echo "export AWS_DEFAULT_REGION='${RegionNameParam}'" >> /home/ec2-user/.zshrc
