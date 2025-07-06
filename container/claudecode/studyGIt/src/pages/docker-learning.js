@@ -112,22 +112,22 @@ export default function DockerLearning() {
                 <div className={styles.vmStack}>
                   <div className={styles.vmBox}>
                     <div className={styles.app}>App A</div>
-                    <div className={styles.guestOs}>ゲストOS</div>
+                    <div className={styles.guestOs}>ゲストOS（スーパーバイザ）</div>
                   </div>
                   <div className={styles.vmBox}>
                     <div className={styles.app}>App B</div>
-                    <div className={styles.guestOs}>ゲストOS</div>
+                    <div className={styles.guestOs}>ゲストOS（スーパーバイザ）</div>
                   </div>
                   <div className={styles.vmBox}>
                     <div className={styles.app}>App C</div>
-                    <div className={styles.guestOs}>ゲストOS</div>
+                    <div className={styles.guestOs}>ゲストOS（スーパーバイザ）</div>
                   </div>
-                  <div className={styles.hypervisor}>ハイパーバイザー</div>
                   <div className={styles.os}>ホストOS</div>
+                  <div className={styles.hypervisor}>ハイパーバイザー</div>
                   <div className={styles.hardware}>ハードウェア</div>
                 </div>
                 <ul className={styles.featureList}>
-                  <li>完全なOS（カーネル含む）</li>
+                  <li>完全なOS（スーパーバイザとして動作）</li>
                   <li>重量級（数GB）</li>
                   <li>起動時間: 数分</li>
                   <li>完全な分離と互換性</li>
@@ -137,9 +137,9 @@ export default function DockerLearning() {
             <div className={styles.keyDifference}>
               <p>
                 <strong>主な違い</strong>: コンテナは<em>アプリケーションの実行環境</em>を分離するのに対し、
-                仮想マシンは<em>ハードウェアレベルからOSまで</em>を仮想化します。
+                仮想マシンは<em>ハードウェアレベルから仮想化</em>します。
                 コンテナはホストOSのカーネルを共有するため軽量で高速ですが、
-                仮想マシンは独自のOSを持ち完全に分離されています。
+                仮想マシンではゲストOSがスーパーバイザとして動作し、ハイパーバイザーを介してハードウェアリソースを仮想化するため、完全な分離が実現されます。
               </p>
             </div>
           </div>
