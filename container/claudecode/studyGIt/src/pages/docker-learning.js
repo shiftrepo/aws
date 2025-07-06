@@ -93,18 +93,18 @@ export default function DockerLearning() {
               <div className={styles.comparisonItem}>
                 <h3>コンテナ</h3>
                 <div className={styles.containerStack}>
-                  <div className={styles.app}>App A</div>
-                  <div className={styles.app}>App B</div>
-                  <div className={styles.app}>App C</div>
-                  <div className={styles.containerEngine}>コンテナエンジン</div>
-                  <div className={styles.os}>ホストOS</div>
+                  <div className={styles.app}>App A + 必要なライブラリ</div>
+                  <div className={styles.app}>App B + 必要なライブラリ</div>
+                  <div className={styles.app}>App C + 必要なライブラリ</div>
+                  <div className={styles.containerEngine}>コンテナエンジン/ランタイム</div>
+                  <div className={styles.os}>ホストOS（カーネル共有）</div>
                   <div className={styles.hardware}>ハードウェア</div>
                 </div>
                 <ul className={styles.featureList}>
                   <li>OSカーネルを共有</li>
-                  <li>軽量（数MB〜数百MB）</li>
+                  <li>軽量（MBレベル）</li>
                   <li>起動時間: 数秒</li>
-                  <li>アプリケーション実行に必要な部分のみ</li>
+                  <li>OSレベルの仮想化</li>
                 </ul>
               </div>
               <div className={styles.comparisonItem}>
@@ -122,24 +122,23 @@ export default function DockerLearning() {
                     <div className={styles.app}>App C</div>
                     <div className={styles.guestOs}>ゲストOS</div>
                   </div>
-                  <div className={styles.os}>ホストOS</div>
                   <div className={styles.hypervisor}>ハイパーバイザー</div>
                   <div className={styles.hardware}>ハードウェア</div>
                 </div>
                 <ul className={styles.featureList}>
                   <li>完全なOS（各VMに専用）</li>
-                  <li>重量級（数GB）</li>
+                  <li>ハードウェアを仮想化</li>
+                  <li>重量級（GBレベル）</li>
                   <li>起動時間: 数分</li>
-                  <li>完全な分離と互換性</li>
                 </ul>
               </div>
             </div>
             <div className={styles.keyDifference}>
               <p>
-                <strong>主な違い</strong>: コンテナは<em>アプリケーションの実行環境</em>を分離するのに対し、
-                仮想マシンは<em>ハードウェアレベルから仮想化</em>します。
-                コンテナはホストOSのカーネルを共有するため軽量で高速ですが、
-                仮想マシンではハイパーバイザーがハードウェアを仮想化し、各ゲストOSに対して分離された環境を提供するため、完全な分離が実現されます。
+                <strong>主な違い</strong>: コンテナは<em>OSレベルを仮想化</em>し、カーネルを共有するのに対し、
+                仮想マシンは<em>ハードウェアレベルから完全に仮想化</em>します。
+                コンテナは軽量（MBレベル）で高速起動が可能で、複数のコンテナが同一ホスト上で動作します。
+                仮想マシンはハイパーバイザーが物理ハードウェアを仮想化し、各VMが独自の完全なオペレーティングシステムを持っています。
               </p>
             </div>
           </div>
