@@ -177,3 +177,5 @@ data-*/
 *.db
 ~/.aws/
 .mcp.json
+tmp/
+logs/
