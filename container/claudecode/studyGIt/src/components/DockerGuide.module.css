@@ -1,0 +1,420 @@
+.dockerGuide {
+  display: flex;
+  flex-direction: column;
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.title {
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.title::after {
+  content: attr(data-version);
+  position: absolute;
+  top: 5px;
+  right: -40px;
+  font-size: 0.7rem;
+  background-color: #0db7ed;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  transform: rotate(15deg);
+}
+
+.progressBar {
+  display: flex;
+  justify-content: space-between;
+  margin: 2rem 0;
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+/* 適応学習コンテンツ用のスタイル */
+.adaptiveLearning {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-left: 4px solid #0db7ed;
+  border-radius: 4px;
+}
+
+.previousKnowledge {
+  font-size: 0.95em;
+}
+
+.previousKnowledge h4 {
+  color: #0077aa;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* 上級者向け追加コンテンツ */
+.advancedContent {
+  margin-top: 25px;
+  padding: 15px;
+  background-color: #f0f7fa;
+  border-left: 4px solid #ff3860;
+  border-radius: 4px;
+}
+
+.advancedContent h4 {
+  color: #d14;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* ユーザーレベル表示 */
+.userLevel {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* バッジ表示 */
+.badges {
+  display: flex;
+  margin-left: 10px;
+}
+
+.badge {
+  font-size: 1.2em;
+  margin-left: 5px;
+  cursor: help;
+}
+
+/* 言語セレクター */
+.languageSelector {
+  margin-left: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.progressBar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #e0e0e0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.progressStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+  min-width: 100px;
+  user-select: none;
+}
+
+.stepNumber {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.stepTitle {
+  font-size: 0.75rem;
+  text-align: center;
+  color: #666;
+  transition: all 0.3s ease;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progressStep.active .stepNumber {
+  background-color: var(--primary);
+  color: white;
+  transform: scale(1.2);
+}
+
+.progressStep.active .stepTitle {
+  color: var(--primary);
+  font-weight: bold;
+}
+
+.progressStep.completed .stepNumber {
+  background-color: var(--primary);
+  color: white;
+}
+
+.developmentPhase {
+  background-color: #f5f5f5;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.viewToggleButton {
+  background-color: #e0e0e0;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.viewToggleButton:hover {
+  background-color: #d0d0d0;
+}
+
+.viewToggleButton.active {
+  background-color: var(--primary);
+  color: white;
+}
+
+.content {
+  margin-bottom: 2rem;
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.section h3 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.codeBlock {
+  background-color: #282c34;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+
+.codeBlock pre {
+  margin: 0;
+  padding: 1.5rem;
+  overflow-x: auto;
+  color: #abb2bf;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.keyPoints {
+  background-color: #f0f7ff;
+  border: 1px solid #cce5ff;
+  border-left: 4px solid #0078d7;
+  border-radius: var(--border-radius);
+  padding: 1.2rem;
+  margin: 1.5rem 0;
+}
+
+.keyPoints h4 {
+  color: #0078d7;
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+}
+
+.keyPoints ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.keyPoints li {
+  margin-bottom: 0.5rem;
+}
+
+.file {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.fileName {
+  background-color: #e0e0e0;
+  padding: 0.5rem 1rem;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.file pre {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.file code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9rem;
+}
+
+.newCode {
+  background-color: #e6ffed;
+  display: block;
+}
+
+.oldCode {
+  background-color: #ffeef0;
+  display: block;
+  text-decoration: line-through;
+}
+
+.highlightedCode {
+  background-color: #fffbdd;
+}
+
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.navButton {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.navButton:hover {
+  background-color: var(--primary-darker);
+}
+
+.navButton:disabled {
+  background-color: #e0e0e0;
+  color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.diagram {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  display: block;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.diagramCaption {
+  text-align: center;
+  color: #666;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.dockerExample {
+  display: flex;
+  flex-direction: column;
+  margin: 2rem 0;
+}
+
+.dockerExampleImg {
+  max-width: 100%;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  align-self: center;
+}
+
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.compareTable th,
+.compareTable td {
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.compareTable th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.compareTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.iconRow {
+  display: flex;
+  justify-content: space-around;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.iconBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  text-align: center;
+}
+
+.iconBox .icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.iconBox .label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .progressBar {
+    justify-content: flex-start;
+    gap: 1.5rem;
+  }
+  
+  .developmentPhase {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .iconRow {
+    justify-content: center;
+  }
+}
