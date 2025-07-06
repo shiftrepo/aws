@@ -225,7 +225,7 @@ export default function DockerLearning() {
                 <p>$ docker ps</p>
                 <p className={styles.terminalOutput}>
                 CONTAINER ID   IMAGE   COMMAND                  CREATED         STATUS         PORTS                NAMES<br/>
-                a7f3s9d8       nginx   "/docker-entrypoint.…"   5 seconds ago   Up 4 seconds   0.0.0.0:80->80/tcp   inspiring_edison
+                a7f3s9d8       nginx   "/docker-entrypoint.…"   5 seconds ago   Up 4 seconds   0.0.0.0:80{'->'}80/tcp   inspiring_edison
                 </p>
                 <p>$ docker exec -it a7f3s9d8 /bin/bash</p>
                 <p>root@a7f3s9d8:/# ls</p>
