@@ -157,8 +157,8 @@ const gitFlowStepsData = {
     ]
   },
   3: {
-    title: "featureブランチをdevelopにマージ",
-    description: "機能の開発とテストが完了したら、featureブランチをdevelopブランチにマージします。",
+    title: "featureブランチでの開発",
+    description: "featureブランチで機能開発を進めます。各機能は独立したブランチで開発することで、並行開発が可能になります。",
     nodes: [
       { 
         id: 'main-1', 
@@ -175,16 +175,9 @@ const gitFlowStepsData = {
         style: nodeStyles.develop
       },
       { 
-        id: 'develop-2', 
-        type: 'default',
-        data: { label: 'develop\n(マージ後)' }, 
-        position: { x: 350, y: 150 },
-        style: nodeStyles.develop
-      },
-      { 
         id: 'feature-login', 
         type: 'default',
-        data: { label: 'feature/login-system' }, 
+        data: { label: 'feature/login-system\n(開発中)' }, 
         position: { x: 150, y: 250 },
         style: nodeStyles.feature
       }
@@ -205,22 +198,7 @@ const gitFlowStepsData = {
         style: edgeStyles.feature,
         type: 'smoothstep',
         markerEnd: { type: 'arrowclosed' },
-      },
-      {
-        id: 'develop-flow',
-        source: 'develop-1',
-        target: 'develop-2',
-        style: edgeStyles.develop,
-        type: 'smoothstep',
-      },
-      {
-        id: 'feature-develop',
-        source: 'feature-login',
-        target: 'develop-2',
         animated: true,
-        style: edgeStyles.feature,
-        type: 'smoothstep',
-        markerEnd: { type: 'arrowclosed' },
       }
     ]
   },
@@ -319,8 +297,8 @@ const gitFlowStepsData = {
     ]
   },
   4: {
-    title: "ログイン機能の開発進行",
-    description: "チームAはログイン機能の開発を進めています。同時に他のチームも並行して開発を進めており、マージせずに各ブランチで作業することが並行開発の強みです。",
+    title: "並行開発 - 複数のfeatureブランチ",
+    description: "Git Flowの強みは並行開発です。複数のチームが各々のfeatureブランチで同時に異なる機能を開発できます。各機能は開発完了まで独立して進められます。",
     nodes: [
       { 
         id: 'main-1', 
@@ -413,8 +391,8 @@ const gitFlowStepsData = {
     ]
   },
   5: {
-    title: "ユーザープロファイル機能の完了とマージ",
-    description: "並行開発の成果として、チームBのユーザープロファイル機能の開発とテストが完了したため、feature/user-profileブランチを既にログイン機能を含むdevelopブランチにマージします。",
+    title: "機能開発の完了とマージ",
+    description: "並行開発の成果として、チームAのログイン機能とチームBのユーザープロファイル機能の開発とテストが完了したため、両方のfeatureブランチをdevelopブランチにマージします。",
     nodes: [
       { 
         id: 'main-1', 
