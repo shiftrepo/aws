@@ -1,0 +1,140 @@
+# Claude Code用Dockerfileベースイメージ分析
+
+## 調査目的
+Claude Codeに最適なDockerfileのベースイメージを選定するための分析を行う。要件として、Node.jsとnvmのサポート、およびGitLab連携の対応が必要。
+
+## 調査対象ベースイメージ
+1. Amazon Linux 2023
+2. Ubuntu
+3. Debian
+4. Node.js公式イメージ（各ディストリビューションベース）
+
+## 各ベースイメージの分析
+
+### 1. Amazon Linux 2023
+- **特徴**：
+  - AWSが開発・サポートする軽量Linuxディストリビューション
+  - RPMベースのパッケージ管理（dnf）
+  - AWSサービスとの親和性が高い
+  - セキュリティアップデートとパッチの定期提供（2029年6月30日までサポート）
+- **Node.js/nvm対応**：
+  - 標準リポジトリからNode.jsインストール可能
+  - nvmは公式リポジトリにないため、スクリプトからインストール必要
+  - DNFによるパッケージ管理が容易
+- **GitLab対応**：
+  - Git: 公式リポジトリから最新バージョン入手可能
+  - GitLabインテグレーション: GitLab Runner等の連携ツールが利用可能
+- **サイズ**：他のベースイメージと比較して中程度
+- **その他**：
+  - AWSインフラ上で動作する場合との整合性が高い
+
+### 2. Ubuntu
+- **特徴**：
+  - 広く採用されている汎用Linuxディストリビューション
+  - Debianベースのパッケージ管理（apt）
+  - コミュニティサポートが充実
+  - LTSバージョンは長期サポート（5年間）
+- **Node.js/nvm対応**：
+  - 標準リポジトリ、PPAなど複数の入手方法
+  - nvmのインストールが容易
+  - aptによるパッケージ管理の利便性
+- **GitLab対応**：
+  - Git: 標準で提供、バージョンアップも容易
+  - GitLab連携ツールのドキュメントが充実
+- **サイズ**：標準イメージはAmazon Linuxより若干大きい
+- **その他**：
+  - 開発環境として広く利用されており、情報が豊富
+
+### 3. Debian
+- **特徴**：
+  - 安定性に定評のあるLinuxディストリビューション
+  - aptによるパッケージ管理
+  - 最小構成で構築可能（slim版）
+  - セキュリティアップデートの提供
+- **Node.js/nvm対応**：
+  - 標準リポジトリからNode.jsインストール可能
+  - nvmのインストールも容易
+  - バージョン管理の柔軟性
+- **GitLab対応**：
+  - Git: 安定版の提供
+  - GitLab連携のためのパッケージ対応
+- **サイズ**：slim版を使用すると最も小さい
+- **その他**：
+  - 多くのコンテナベースイメージの元になっている
+
+### 4. Node.js公式イメージ
+- **特徴**：
+  - Node.js実行環境が予めセットアップ済み
+  - 様々なNode.jsバージョンから選択可能
+  - 異なるベースイメージバリアントが存在（alpine, slim, bullseye等）
+- **Node.js/nvm対応**：
+  - Node.jsが既にインストール済み（nvmは不要）
+  - 特定バージョンの指定が容易
+- **GitLab対応**：
+  - 追加でGitのインストールが必要
+  - GitLab連携ツールを別途インストール必要
+- **サイズ**：
+  - フルバージョン: 比較的大きい
+  - Alpine版: 最小サイズ
+  - Slim版: 中間サイズ
+
+## 推奨ベースイメージの選定
+
+以下の観点から最適なベースイメージを選定します：
+
+1. **開発の容易さと安定性**: Ubuntuが最も情報が豊富で開発しやすい
+2. **サイズ効率**: Debian slimまたはAlpineベースが最も軽量
+3. **AWSとの親和性**: Amazon Linux 2023がAWSサービスとの連携が最も良い
+4. **Node.js対応**: Node.js公式イメージが最も設定が少なく済む
+
+### 最終推奨
+
+**1. 本番環境向け: Node.js公式イメージ（Alpine or Debian slim）**
+```dockerfile
+FROM node:18-slim
+
+# GitLab連携に必要なパッケージ
+RUN apt-get update && apt-get install -y git curl
+
+# 必要に応じてnvmをインストール
+# RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+
+WORKDIR /app
+# 以下アプリケーション依存の設定
+```
+
+**2. AWS環境との親和性重視: Amazon Linux 2023**
+```dockerfile
+FROM amazonlinux:2023
+
+# Node.jsとnvmのインストール
+RUN dnf install -y nodejs npm git
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+
+WORKDIR /app
+# 以下アプリケーション依存の設定
+```
+
+**3. 開発環境向け: Ubuntu**
+```dockerfile
+FROM ubuntu:22.04
+
+# 基本パッケージのインストール
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    nodejs \
+    npm
+
+# nvmのインストール
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+
+WORKDIR /app
+# 以下アプリケーション依存の設定
+```
+
+## 結論
+
+Claude Codeの要件を考慮すると、Node.js公式イメージの**Debian slim**または**Alpine**ベースを推奨します。特に本番環境では軽量で必要な機能が揃ったSlimイメージが適しています。開発環境では情報が豊富なUbuntuベースも選択肢になります。AWSサービスと深く連携する場合はAmazon Linux 2023も検討すべきです。
+
+いずれの選択においても、GitLab連携のためにGitは必ず含め、Node.jsのバージョン管理が必要な場合はnvmも追加することで要件を満たせます。
