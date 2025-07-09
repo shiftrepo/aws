@@ -46,3 +46,4 @@ forpasipde/
 - `AWS_SECRET_ACCESS_KEY` - AWSシークレットキー
 - `AWS_REGION` - AWSリージョン
 - `GITLAB_API_TOKEN` - GitLab APIトークン
+
