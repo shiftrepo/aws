@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  claudecode-debian:
+    build:
+      context: .
+      dockerfile: debian.Dockerfile
+    container_name: claude-code-debian
+    volumes:
+      - ./.env:/.env:ro  # 環境変数ファイルをマウント（読み取り専用）
+      - ./workdir:/app/workdir:z  # 作業ディレクトリをマウント（SELinuxラベル共有モード）
+      - ./add_gitlab_mcp.json:/app/add_gitlab_mcp.json:z  # GitLab MCP設定ファイル
+      - ./add_mcp.json:/app/add_mcp.json:z  # MCP設定ファイル
+    environment:
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-us.anthropic.claude-sonnet-4-20250514-v1:0}
+      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-us.anthropic.claude-3-5-haiku-20241022-v1:0}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - GITLAB_API_TOKEN=${GITLAB_API_TOKEN}
+      - GITLAB_PERSONAL_ACCESS_TOKEN=${GITLAB_API_TOKEN}
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    depends_on:
+      - gitlab-debian
+    networks:
+      - gitlab-network-debian
+
+  gitlab-debian:
+    image: 'gitlab/gitlab-ce:latest'
+    container_name: gitlab-debian
+    restart: always
+    hostname: 'gitlab.local'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        # APIレート制限の設定
+        gitlab_rails['rate_limit_requests_per_period'] = 300
+        gitlab_rails['rate_limit_period'] = 3600  # 1時間
+        # Debian環境用の最適化
+        gitlab_rails['max_request_duration_seconds'] = 55
+    ports:
+      - '8081:80'  # Debian版は8081ポートを使用
+      - '8444:443'
+      - '2224:22'  # SSH用ポートも変更
+    volumes:
+      - 'gitlab-config-debian:/etc/gitlab:z'
+      - 'gitlab-logs-debian:/var/log/gitlab:z'
+      - 'gitlab-data-debian:/var/opt/gitlab:z'
+    shm_size: '256m'
+    networks:
+      - gitlab-network-debian
+
+volumes:
+  gitlab-config-debian:
+  gitlab-logs-debian:
+  gitlab-data-debian:
+
+networks:
+  gitlab-network-debian:
+    driver: bridge
