@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  claudecode-node:
+    build:
+      context: .
+      dockerfile: node-slim.Dockerfile
+    container_name: claude-code-node
+    volumes:
+      - ./.env:/.env:ro  # 環境変数ファイルをマウント（読み取り専用）
+      - ./workdir:/app/workdir:z  # 作業ディレクトリをマウント（SELinuxラベル共有モード）
+      - ./add_gitlab_mcp.json:/app/add_gitlab_mcp.json:z  # GitLab MCP設定ファイル
+      - ./add_mcp.json:/app/add_mcp.json:z  # MCP設定ファイル
+    environment:
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-us.anthropic.claude-sonnet-4-20250514-v1:0}
+      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-us.anthropic.claude-3-5-haiku-20241022-v1:0}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - GITLAB_API_TOKEN=${GITLAB_API_TOKEN}
+      - GITLAB_PERSONAL_ACCESS_TOKEN=${GITLAB_API_TOKEN}
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    networks:
+      - gitlab-network
+
+  gitlab:
+    image: 'gitlab/gitlab-ce:latest'
+    container_name: gitlab-node
+    restart: always
+    hostname: 'gitlab.local'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        # APIレート制限の設定
+        gitlab_rails['rate_limit_requests_per_period'] = 300
+        gitlab_rails['rate_limit_period'] = 3600  # 1時間
+        # Node.js環境用の最適化（ワーカータイムアウト60秒未満に設定）
+        gitlab_rails['max_request_duration_seconds'] = 50
+    ports:
+      - '8080:80'  # Node.js版は8080ポートを使用
+      - '8443:443'
+      - '2223:22'  # SSH用ポートも変更
+    volumes:
+      - 'gitlab-config-node:/etc/gitlab:z'
+      - 'gitlab-logs-node:/var/log/gitlab:z'
+      - 'gitlab-data-node:/var/opt/gitlab:z'
+    shm_size: '256m'
+    networks:
+      - gitlab-network
+
+volumes:
+  gitlab-config-node:
+  gitlab-logs-node:
+  gitlab-data-node:
+
+networks:
+  gitlab-network:
+    driver: bridge
