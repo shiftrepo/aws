@@ -1,11 +1,31 @@
 #!/bin/bash
 
-# Node.js版Claude Code環境セットアップスクリプト
-echo "=== Node.js slim版 Claude Code セットアップ開始 ==="
+# Amazon Linux版Claude Code環境セットアップスクリプト
+echo "=== Amazon Linux版 Claude Code セットアップ開始 ==="
 
-# Node.jsとnpmのバージョン確認
-echo "Node.js version: $(node --version)"
-echo "npm version: $(npm --version)"
+# nvmとNode.jsのインストール確認
+if command -v node &> /dev/null; then
+    echo "Node.js version: $(node --version)"
+    echo "npm version: $(npm --version)"
+else
+    echo "Node.jsがインストールされていません。インストールを実行します..."
+    
+    # Amazon Linuxの場合はDNFを使用
+    echo "Node.js 22をインストールしています..."
+    dnf module install -y nodejs:22
+    
+    # npmの確認
+    echo "Node.js version: $(node --version)"
+    echo "npm version: $(npm --version)"
+    
+    # nvmのインストール（オプション）
+    echo "nvmをインストールしています..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+    
+    # nvmを現在のセッションで使用可能に
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+fi
 
 # Claude Codeの確認
 if command -v claude &> /dev/null; then
@@ -77,12 +97,12 @@ fi
 echo "=== MCP設定確認 ==="
 claude mcp list
 
-# bashrcに環境設定を追加（Node.js版専用）
+# bashrcに環境設定を追加（Amazon Linux版専用）
 echo "=== bashrc設定の追加 ==="
 cat <<EOF >> ~/.bashrc
-# Node.js Claude Code環境設定
-export PATH=\$PATH:/usr/local/bin
-export NODE_ENV=production
+# Amazon Linux Claude Code環境設定
+export NVM_DIR="\$HOME/.nvm"
+[ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
 
 # Claude Code設定
 export CLAUDE_CODE_USE_BEDROCK=\${CLAUDE_CODE_USE_BEDROCK:-1}
@@ -98,7 +118,7 @@ echo "✅ bashrc設定を追加しました"
 # 設定の反映
 source ~/.bashrc
 
-echo "=== Node.js slim版 Claude Code セットアップ完了 ==="
+echo "=== Amazon Linux版 Claude Code セットアップ完了 ==="
 echo ""
 echo "次のステップ:"
 echo "1. 'claude code' コマンドでClaude Codeを起動"

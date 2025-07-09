@@ -27,6 +27,13 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# workdirディレクトリの確認と作成
+if [ ! -d ./workdir ]; then
+    echo "workdirディレクトリが存在しません。作成します..."
+    mkdir -p ./workdir
+    echo "✅ workdirディレクトリを作成しました。"
+fi
+
 # 引数の処理
 BASE_IMAGE=${1:-node}  # デフォルトはNode.js slim版
 
