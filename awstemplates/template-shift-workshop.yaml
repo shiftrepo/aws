@@ -1,0 +1,299 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  CloudFormation Template to launch the SHIFTWorkShop EC2 instance with Docker, Zsh, and enhanced security logging to CloudWatch.
+  This template requires an existing VPC and a public subnet to be selected.
+
+Parameters:
+  # ネットワーク選択用のパラメータ
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select the VPC where the EC2 instance will be deployed. Default is intended to be 'SHIFT-VPC'.
+
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select the public subnet for the EC2 instance. Must be a subnet within the selected VPC.
+
+  # EC2インスタンスに必要なパラメータ
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Select an existing EC2 KeyPair for SSH access.
+    Default: "SHIFT-main"
+
+  InstanceType:
+    Type: String
+    Description: Select the instance type for SHIFTWorkShop.
+    Default: t3.medium
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+
+  AmazonLinuxAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+
+  GithubPrivateKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub private key from Parameter Store (for UserData script).
+    Default: "/adminOpe/github/privateKey"
+
+  GithubPublicKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub public key from Parameter Store (for IAM Role).
+    Default: "/adminOpe/github/publicKey"
+
+  # IAMロールに必要なパラメータ
+  AccessKeyIdParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Access Key ID from Parameter Store (for IAM Role).
+    Default: "/adminOpe/accessKey/aws_access_key_id"
+
+  SecretAccessKeyParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Secret Access Key from Parameter Store (for IAM Role).
+    Default: "/adminOpe/accessKey/aws_secret_access_key"
+
+  RegionNameParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Region Name from Parameter Store (for IAM Role).
+    Default: "/adminOpe/accessKey/aws_region_name"
+
+  # GITHUB_SHIFTREPO_PAT は UserData 内でのみ使用
+  GithubShiftrepoPatParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub repository PAT from Parameter Store (for UserData script).
+    Default: "/developOpe/mcp/GITHUB_SHIFTREPO_PAT"
+
+Conditions:
+  UseKeyPairParameter: !Not [!Equals [!Ref KeyName, ""]]
+
+Resources:
+  # IAM Role and Instance Profile (インスタンスに必要)
+  EC2InstanceRoleSHIFTgraphRAG:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
+      Policies:
+        - PolicyName: ParameterStoreAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AccessKeyIdParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretAccessKeyParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${RegionNameParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubPrivateKey}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubPublicKey}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubShiftrepoPatParam}"
+
+
+  EC2InstanceProfileSHIFTgraphRAG:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRoleSHIFTgraphRAG
+
+  # Security Group for SHIFTWorkShop
+  SHIFTWorkShopSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group for SHIFTWorkShop EC2 instance allowing SSH, HTTP and HTTPS."
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SHIFTWorkShop-SG
+
+  # SHIFTWorkShop EC2 Instance
+  SHIFTWorkShopInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmazonLinuxAMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SHIFTWorkShopSecurityGroup
+          SubnetId: !Ref SubnetId
+      IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG
+      KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3      # <== 改善点: gp2からgp3に変更
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: SHIFTWorkShop
+        - Key: author
+          Value: kentaro.mitsui
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -x
+          # Install CloudWatch Agent
+          curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+          dnf install -y ./amazon-cloudwatch-agent.rpm
+          
+          # Configure CloudWatch Agent to collect system messages and security logs
+          cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "SHIFT-WorkShop-System-Messages",
+                      "log_stream_name": "{instance_id}-messages"
+                    },
+                    {
+                      "file_path": "/var/log/secure",
+                      "log_group_name": "SHIFTWorkShop-Auth-Logs",
+                      "log_stream_name": "{instance_id}-secure-%Y-%m",
+                      "timestamp_format": "%b %d %H:%M:%S"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+          
+          # Start CloudWatch Agent
+          systemctl enable amazon-cloudwatch-agent
+          systemctl start amazon-cloudwatch-agent
+
+          # Install Git, Docker, and Zsh
+          max_attempts=5
+          attempt_num=1
+          success=false
+          while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
+            sudo dnf install -y git docker zsh
+            if [ $? -eq 0 ]; then
+              echo "dnf install succeeded"
+              success=true
+            else
+              echo "dnf install $attempt_num failed. trying again..."
+              sleep 3
+              ((attempt_num++))
+            fi
+          done
+          
+          # Docker setup
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo gpasswd -a ec2-user docker
+          sudo chgrp docker /var/run/docker.sock
+          sudo service docker restart
+          
+          # Docker Compose setup
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+          # GitHub SSH setup
+          mkdir -p /root/.ssh
+          echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
+          chmod 400 /root/.ssh/id_ed25519
+          cat <<EOF > /root/.ssh/config
+          Host github.com
+            IdentityFile ~/.ssh/id_ed25519
+            User git
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
+          EOF
+          
+          # Clone repository needed for zshrc. Add error handling for robustness.
+          if ! git clone git@github.com:shiftrepo/aws.git /root/aws.git; then
+            echo "Failed to clone repository git@github.com:shiftrepo/aws.git. Zsh configuration will be incomplete."
+            # Exit or continue with basic zsh setup if preferred
+          fi
+
+          # --- zshのインストールと全ユーザーへの適用 (統合・修正版) ---
+          
+          # 1. 今後作成される新規ユーザーのデフォルトシェルをzshに設定
+          echo "Setting zsh as default shell for new users..."
+          ZSH_PATH=$(which zsh)
+          useradd -D -s $ZSH_PATH
+
+          # 2. 既存の全一般ユーザー（UID >= 1000）のシェルと設定を変更
+          echo "Configuring zsh for all existing non-system users..."
+          getent passwd | awk -F: '$3 >= 1000 {print $1}' | while read user; do
+            HOMEDIR=$(getent passwd $user | cut -d: -f6)
+            echo "Processing user: $user in home: $HOMEDIR"
+
+            # シェルをzshに変更
+            usermod -s $ZSH_PATH $user
+
+            # zsh-git-promptをクローン
+            git clone https://github.com/olivierverdier/zsh-git-prompt.git $HOMEDIR/.zsh-git-prompt
+
+            # 設定ファイルをコピー (リポジトリが存在する場合のみ)
+            if [ -f /root/aws.git/zshenv/zshrc.org ]; then
+                cp -p /root/aws.git/zshenv/zshrc.org $HOMEDIR/.zshrc
+            fi
+            
+            # ec2-userの場合のみGitHub PATを追記
+            # <== 改善点1: AWS認証情報はIAMロールに任せるため削除
+            if [ "$user" = "ec2-user" ]; then
+              echo "export GITHUB_SHIFTREPO_PAT='${GithubShiftrepoPatParam}'" >> $HOMEDIR/.zshrc
+            fi
+
+            # ファイルの所有者をユーザー本人に変更
+            chown -R $user:$user $HOMEDIR/.zsh-git-prompt $HOMEDIR/.zshrc
+          done
+
+          # 3. rootユーザーのシェルと設定も変更
+          echo "Configuring zsh for root user..."
+          usermod -s $ZSH_PATH root
+          git clone https://github.com/olivierverdier/zsh-git-prompt.git /root/.zsh-git-prompt
+          if [ -f /root/aws.git/zshenv/zshrc.org ]; then
+            cp -p /root/aws.git/zshenv/zshrc.org /root/.zshrc
+          fi
+          chown -R root:root /root/.zsh-git-prompt /root/.zshrc
+
+Outputs:
+  SHIFTWorkShopInstanceId:
+    Description: Launched SHIFTWorkShop EC2 Instance ID
+    Value: !Ref SHIFTWorkShopInstance
+
+  SHIFTWorkShopInstancePublicIP:
+    Description: Public IP of the SHIFTWorkShop EC2 Instance
+    Value: !GetAtt SHIFTWorkShopInstance.PublicIp
+
+  SHIFTWorkShopSecurityGroupId:
+    Description: ID of the SHIFTWorkShop Security Group
+    Value: !Ref SHIFTWorkShopSecurityGroup
