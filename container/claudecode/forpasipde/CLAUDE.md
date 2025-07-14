@@ -144,3 +144,10 @@ current issue #72の要件により、以下の順序で実装：
 3. `./setup_gitlab_mcp.sh`でGitLab MCPをセットアップ
 
 詳細は`github_to_gitlab_mcp_migration.md`と`gitlab_mcp_implementation_plan.md`を参照してください。
+
+## Issue #72 対応メモ
+
+- Issue #72に関連する実装要件の追加
+- Node.js slim版を最優先で対応
+- コンテナ環境の優先順位を明確化
+- 実装詳細は各コンポーネントの設定に反映

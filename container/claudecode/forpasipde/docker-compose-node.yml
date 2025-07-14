@@ -11,6 +11,9 @@ services:
       - ./workdir:/app/workdir:z  # 作業ディレクトリをマウント（SELinuxラベル共有モード）
       - ./add_gitlab_mcp.json:/app/add_gitlab_mcp.json:z  # GitLab MCP設定ファイル
       - ./add_mcp.json:/app/add_mcp.json:z  # MCP設定ファイル
+      - ./setup_gitlab_mcp.sh:/app/setup_gitlab_mcp.sh:z  # GitLab MCP セットアップスクリプト
+      - ./install_glab.sh:/app/install_glab.sh:z  # GitLab CLI インストールスクリプト
+      - ./setup-gitlab-and-glab.sh:/app/setup-gitlab-and-glab.sh:z  # 統合セットアップスクリプト
     environment:
       - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-us.anthropic.claude-sonnet-4-20250514-v1:0}
