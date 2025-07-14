@@ -17,6 +17,9 @@ show_usage() {
     echo "  $0 debian    # Debian slim版を起動"
     echo "  $0 amazonlinux # Amazon Linux版を起動"
     echo ""
+    echo "起動後の追加設定:"
+    echo "  docker-compose -f <COMPOSE_FILE> exec claudecode-<BASE_IMAGE> bash -c './setup-gitlab-and-glab.sh' # GitLab MCPとglabをセットアップ"
+    echo ""
 }
 
 # .envファイルが存在するか確認
@@ -32,6 +35,12 @@ if [ ! -d ./workdir ]; then
     echo "workdirディレクトリが存在しません。作成します..."
     mkdir -p ./workdir
     echo "✅ workdirディレクトリを作成しました。"
+fi
+
+# 必要な環境変数の確認
+if [ -z "$GITLAB_API_TOKEN" ]; then
+    echo "警告: GITLAB_API_TOKEN環境変数が設定されていません。"
+    echo "GitLab MCPの機能を使用する場合は、GitLabからパーソナルアクセストークンを取得し、環境変数に設定してください。"
 fi
 
 # 引数の処理
@@ -106,8 +115,9 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "次のステップ:"
     echo "1. コンテナに接続: docker-compose -f $COMPOSE_FILE exec claudecode-$BASE_IMAGE bash"
-    echo "2. ログ確認: docker-compose -f $COMPOSE_FILE logs -f"
-    echo "3. 停止: docker-compose -f $COMPOSE_FILE down"
+    echo "2. GitLab MCPとglabのセットアップ: docker-compose -f $COMPOSE_FILE exec claudecode-$BASE_IMAGE bash -c './setup-gitlab-and-glab.sh'"
+    echo "3. ログ確認: docker-compose -f $COMPOSE_FILE logs -f"
+    echo "4. 停止: docker-compose -f $COMPOSE_FILE down"
     echo ""
     echo "GitLab管理画面:"
     case $BASE_IMAGE in
