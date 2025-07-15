@@ -89,24 +89,32 @@ echo "  Composeファイル: $COMPOSE_FILE"
 echo "  環境設定ファイル: .env"
 echo ""
 
-# DockerとDocker Composeの確認
-if ! command -v docker &> /dev/null; then
-    echo "エラー: Dockerがインストールされていません。"
+# DockerとDocker Compose/Podman Composeの確認
+if command -v docker &> /dev/null; then
+    DOCKER_CMD="docker"
+elif command -v podman &> /dev/null; then
+    DOCKER_CMD="podman"
+else
+    echo "エラー: DockerまたはPodmanがインストールされていません。"
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "エラー: Docker Composeがインストールされていません。"
+if command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+elif command -v podman-compose &> /dev/null; then
+    COMPOSE_CMD="podman-compose"
+else
+    echo "エラー: Docker ComposeまたはPodman Composeがインストールされていません。"
     exit 1
 fi
 
 # 既存のコンテナを停止（クリーンアップ）
 echo "既存のコンテナを停止しています..."
-docker-compose -f "$COMPOSE_FILE" down 2>/dev/null || true
+$COMPOSE_CMD -f "$COMPOSE_FILE" down 2>/dev/null || true
 
 # コンテナの起動
 echo "コンテナを起動しています..."
-docker-compose -f "$COMPOSE_FILE" up -d
+$COMPOSE_CMD -f "$COMPOSE_FILE" up -d
 
 # 起動確認
 if [ $? -eq 0 ]; then
@@ -114,10 +122,10 @@ if [ $? -eq 0 ]; then
     echo "✅ Claude Code環境が正常に起動しました！"
     echo ""
     echo "次のステップ:"
-    echo "1. コンテナに接続: docker-compose -f $COMPOSE_FILE exec claudecode-$BASE_IMAGE bash"
-    echo "2. GitLab MCPとglabのセットアップ: docker-compose -f $COMPOSE_FILE exec claudecode-$BASE_IMAGE bash -c './setup-gitlab-and-glab.sh'"
-    echo "3. ログ確認: docker-compose -f $COMPOSE_FILE logs -f"
-    echo "4. 停止: docker-compose -f $COMPOSE_FILE down"
+    echo "1. コンテナに接続: $COMPOSE_CMD -f $COMPOSE_FILE exec claude-code-$BASE_IMAGE bash"
+    echo "2. MCPサーバーのセットアップ: $COMPOSE_CMD -f $COMPOSE_FILE exec claude-code-$BASE_IMAGE bash -c '/app/setup_mcp_servers.sh'"
+    echo "3. ログ確認: $COMPOSE_CMD -f $COMPOSE_FILE logs -f"
+    echo "4. 停止: $COMPOSE_CMD -f $COMPOSE_FILE down"
     echo ""
     echo "GitLab管理画面:"
     case $BASE_IMAGE in
@@ -134,6 +142,6 @@ if [ $? -eq 0 ]; then
     echo ""
 else
     echo "❌ コンテナの起動に失敗しました。"
-    echo "ログを確認してください: docker-compose -f $COMPOSE_FILE logs"
+    echo "ログを確認してください: $COMPOSE_CMD -f $COMPOSE_FILE logs"
     exit 1
 fi
