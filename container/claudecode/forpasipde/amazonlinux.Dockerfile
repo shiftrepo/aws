@@ -65,6 +65,7 @@ ENV GITLAB_PERSONAL_ACCESS_TOKEN=""
 ENV MCP_FILESYSTEM_ENABLED=1
 ENV MCP_SEQUENTIAL_THINKING_ENABLED=1
 ENV MCP_SQLITE_ENABLED=1
+ENV MCP_GIT_ENABLED=1
 
 # Node.jsバージョン確認（デバッグ用）
 RUN node --version && npm --version
@@ -86,13 +87,15 @@ RUN npm install -g @anthropic-ai/claude-code \
     && npm install -g @modelcontextprotocol/server-gitlab \
     && npm install -g @modelcontextprotocol/server-filesystem \
     && npm install -g @modelcontextprotocol/server-sequential-thinking \
-    && npm install -g mcp-server-sqlite-npx
+    && npm install -g mcp-server-sqlite-npx \
+    && npm install -g @cyanheads/git-mcp-server
     
 # MCPサーバーパッケージが正しくインストールされたか確認
 RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server package installed" && \
     npx @modelcontextprotocol/server-filesystem --version || echo "Filesystem MCP server package installed" && \
     npx @modelcontextprotocol/server-sequential-thinking --version || echo "Sequential Thinking MCP server package installed" && \
-    npx mcp-server-sqlite-npx --version || echo "SQLite MCP server package installed"
+    npx mcp-server-sqlite-npx --version || echo "SQLite MCP server package installed" && \
+    npx @cyanheads/git-mcp-server --version || echo "Git MCP server package installed"
 
 # Claudeユーザーのホームディレクトリに環境設定を追加
 RUN echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc

@@ -69,6 +69,21 @@ else
     echo "4. SQLite MCPサーバーはスキップします（MCP_SQLITE_ENABLED=1を設定してください）"
 fi
 
+# Git MCPの登録
+if [ "${MCP_GIT_ENABLED:-0}" = "1" ]; then
+    echo "5. Git MCPサーバーを登録します..."
+    claude mcp add-json git "$(cat <<EOF
+{
+  "command": "npx",
+  "args": ["-y", "@cyanheads/git-mcp-server"],
+  "env": {}
+}
+EOF
+)" --verbose || echo "Git MCPの登録に失敗しました"
+else
+    echo "5. Git MCPサーバーはスキップします（MCP_GIT_ENABLED=1を設定してください）"
+fi
+
 # 登録確認
 echo "====================================================="
 echo "MCPサーバーの登録状況を確認します:"

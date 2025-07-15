@@ -50,13 +50,15 @@ RUN npm install -g @anthropic-ai/claude-code \
     && npm install -g @modelcontextprotocol/server-gitlab \
     && npm install -g @modelcontextprotocol/server-filesystem \
     && npm install -g @modelcontextprotocol/server-sequential-thinking \
-    && npm install -g mcp-server-sqlite-npx
+    && npm install -g mcp-server-sqlite-npx \
+    && npm install -g @cyanheads/git-mcp-server
 
 # MCPサーバーパッケージが正しくインストールされたか確認
 RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server package installed" && \
     npx @modelcontextprotocol/server-filesystem --version || echo "Filesystem MCP server package installed" && \
     npx @modelcontextprotocol/server-sequential-thinking --version || echo "Sequential Thinking MCP server package installed" && \
-    npx mcp-server-sqlite-npx --version || echo "SQLite MCP server package installed"
+    npx mcp-server-sqlite-npx --version || echo "SQLite MCP server package installed" && \
+    npx @cyanheads/git-mcp-server --version || echo "Git MCP server package installed"
 
 # MCPサーバー登録スクリプトをコンテナ内にコピー
 COPY setup_mcp_servers.sh /app/setup_mcp_servers.sh
@@ -80,6 +82,7 @@ ENV GITLAB_PERSONAL_ACCESS_TOKEN=""
 ENV MCP_FILESYSTEM_ENABLED=1
 ENV MCP_SEQUENTIAL_THINKING_ENABLED=1
 ENV MCP_SQLITE_ENABLED=1
+ENV MCP_GIT_ENABLED=1
 ENV TZ=Asia/Tokyo
 
 # 永続化のためにボリュームマウントポイントを作成
