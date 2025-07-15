@@ -41,10 +41,14 @@ RUN node --version && npm --version
 
 # Claude Codeと必要なMCPサーバーパッケージをグローバルインストール
 RUN npm install -g @anthropic-ai/claude-code \
-    && npm install -g @modelcontextprotocol/server-gitlab
+    && npm install -g @modelcontextprotocol/server-gitlab \
+    && npm install -g @modelcontextprotocol/server-filesystem \
+    && npm install -g @modelcontextprotocol/server-sequential-thinking
 
-# GitLab MCPサーバーパッケージが正しくインストールされたか確認
-RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server package installed"
+# MCPサーバーパッケージが正しくインストールされたか確認
+RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server package installed" && \
+    npx @modelcontextprotocol/server-filesystem --version || echo "Filesystem MCP server package installed" && \
+    npx @modelcontextprotocol/server-sequential-thinking --version || echo "Sequential Thinking MCP server package installed"
 
 # ディレクトリの所有者を変更
 RUN chown -R claudeuser:claudeuser /app
@@ -59,9 +63,11 @@ ENV CLAUDE_CODE_USE_BEDROCK=1
 # ホスト名設定（GitLab連携用）
 ENV GITLAB_HOST=gitlab.local
 
-# GitLabへのアクセスキー用の環境変数（実行時に上書き可能）
+# MCPサーバー関連の環境変数設定（実行時に上書き可能）
 ENV GITLAB_API_TOKEN=""
 ENV GITLAB_PERSONAL_ACCESS_TOKEN=""
+ENV MCP_FILESYSTEM_ENABLED=1
+ENV MCP_SEQUENTIAL_THINKING_ENABLED=1
 
 # 永続化のためにボリュームマウントポイントを作成
 VOLUME ["/app/workdir"]
