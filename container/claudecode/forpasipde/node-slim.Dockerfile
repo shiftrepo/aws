@@ -16,16 +16,22 @@ RUN apt-get update && apt-get install -y \
     ruby \
     ruby-dev \
     build-essential \
+    python3 \
+    python3-pip \
+    vim \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# tmuxinatorのインストール
-RUN gem install tmuxinator --no-document
+# 必要なツールのインストール
+RUN gem install tmuxinator --no-document && \
+    python3 -m pip install --break-system-packages pytest black flake8 mypy
 
 # GitLab CLI (glab)のインストール
 RUN curl -s https://raw.githubusercontent.com/profclems/glab/trunk/scripts/install.sh | bash
 
-# 専用ユーザーの作成
-RUN useradd -ms /bin/bash claudeuser
+# 専用ユーザーの作成とsudo権限付与
+RUN useradd -ms /bin/bash claudeuser && \
+    echo "claudeuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # 作業ディレクトリの設定
 WORKDIR /app
