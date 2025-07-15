@@ -26,7 +26,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
     echo "Asia/Tokyo" > /etc/timezone
     
 # 必要なツールのインストール
-RUN python3 -m pip install pytest black flake8 mypy && \
+RUN python3 -m pip install pytest black flake8 mypy mcp-server-git && \
     npm install -g uv
 
 # nvmのインストール
@@ -87,15 +87,14 @@ RUN npm install -g @anthropic-ai/claude-code \
     && npm install -g @modelcontextprotocol/server-gitlab \
     && npm install -g @modelcontextprotocol/server-filesystem \
     && npm install -g @modelcontextprotocol/server-sequential-thinking \
-    && npm install -g mcp-server-sqlite-npx \
-    && npm install -g @cyanheads/git-mcp-server
+    && npm install -g mcp-server-sqlite-npx
     
 # MCPサーバーパッケージが正しくインストールされたか確認
 RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server package installed" && \
     npx @modelcontextprotocol/server-filesystem --version || echo "Filesystem MCP server package installed" && \
     npx @modelcontextprotocol/server-sequential-thinking --version || echo "Sequential Thinking MCP server package installed" && \
     npx mcp-server-sqlite-npx --version || echo "SQLite MCP server package installed" && \
-    npx @cyanheads/git-mcp-server --version || echo "Git MCP server package installed"
+    python3 -m mcp_server_git --version || echo "Git MCP server package installed"
 
 # Claudeユーザーのホームディレクトリに環境設定を追加
 RUN echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc

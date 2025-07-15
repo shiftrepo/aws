@@ -74,8 +74,8 @@ if [ "${MCP_GIT_ENABLED:-0}" = "1" ]; then
     echo "5. Git MCPサーバーを登録します..."
     claude mcp add-json git "$(cat <<EOF
 {
-  "command": "npx",
-  "args": ["-y", "@cyanheads/git-mcp-server"],
+  "command": "python3",
+  "args": ["-m", "mcp_server_git"],
   "env": {}
 }
 EOF
