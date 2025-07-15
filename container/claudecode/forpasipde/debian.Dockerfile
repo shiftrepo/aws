@@ -41,7 +41,7 @@ RUN apt-get update && apt-get install -y \
     tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --break-system-packages pytest black flake8 mypy && \
+RUN python3 -m pip install --break-system-packages pytest black flake8 mypy mcp-server-git && \
     npm install -g uv
 
 # タイムゾーンのAsia/Tokyo設定
@@ -57,15 +57,14 @@ RUN npm install -g @anthropic-ai/claude-code \
     && npm install -g @modelcontextprotocol/server-gitlab \
     && npm install -g @modelcontextprotocol/server-filesystem \
     && npm install -g @modelcontextprotocol/server-sequential-thinking \
-    && npm install -g mcp-server-sqlite-npx \
-    && npm install -g @cyanheads/git-mcp-server
+    && npm install -g mcp-server-sqlite-npx
 
 # MCPサーバーパッケージが正しくインストールされたか確認
 RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server package installed" && \
     npx @modelcontextprotocol/server-filesystem --version || echo "Filesystem MCP server package installed" && \
     npx @modelcontextprotocol/server-sequential-thinking --version || echo "Sequential Thinking MCP server package installed" && \
     npx mcp-server-sqlite-npx --version || echo "SQLite MCP server package installed" && \
-    npx @cyanheads/git-mcp-server --version || echo "Git MCP server package installed"
+    python3 -m mcp_server_git --version || echo "Git MCP server package installed"
 
 # MCPサーバー登録スクリプトをコンテナ内にコピー
 COPY setup_mcp_servers.sh /app/setup_mcp_servers.sh
