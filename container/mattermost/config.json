@@ -1,0 +1,87 @@
+{
+  "ServiceSettings": {
+    "SiteURL": "http://localhost:8001",
+    "ListenAddress": ":8065",
+    "ConnectionSecurity": "",
+    "TLSCertFile": "",
+    "TLSKeyFile": "",
+    "UseLetsEncrypt": false,
+    "EnableDeveloper": false,
+    "EnableSecurityFixAlert": true,
+    "EnableInsecureOutgoingConnections": false
+  },
+  "TeamSettings": {
+    "SiteName": "Mattermost",
+    "MaxUsersPerTeam": 100,
+    "EnableUserCreation": true,
+    "EnableOpenServer": true,
+    "RestrictDirectMessage": "any"
+  },
+  "SqlSettings": {
+    "DriverName": "postgres",
+    "DataSource": "postgres://mmuser:mmuser_password@postgres:5432/mattermost?sslmode=disable&connect_timeout=10",
+    "MaxIdleConns": 20,
+    "MaxOpenConns": 300,
+    "Trace": false,
+    "AtRestEncryptKey": "7rAh6iwQCkV4cA1Gsg3fgGOXJAQ43QVg"
+  },
+  "LogSettings": {
+    "EnableConsole": true,
+    "ConsoleLevel": "INFO",
+    "EnableFile": true,
+    "FileLevel": "INFO",
+    "FileFormat": "json",
+    "FileLocation": "/opt/mattermost/logs"
+  },
+  "FileSettings": {
+    "EnableFileAttachments": true,
+    "EnableMobileUpload": true,
+    "EnableMobileDownload": true,
+    "MaxFileSize": 52428800,
+    "DriverName": "local",
+    "Directory": "/opt/mattermost/data",
+    "EnablePublicLink": false,
+    "PublicLinkSalt": "A705AklYF8MFDOfcwh3I488G8vtLlVip"
+  },
+  "EmailSettings": {
+    "EnableSignUpWithEmail": true,
+    "EnableSignInWithEmail": true,
+    "EnableSignInWithUsername": true,
+    "SendEmailNotifications": false,
+    "RequireEmailVerification": false,
+    "SMTPUsername": "",
+    "SMTPPassword": "",
+    "SMTPServer": "",
+    "SMTPPort": "",
+    "ConnectionSecurity": "",
+    "InviteSalt": "bjlSR4QqkXFBr7TP4oDzlfZmcNuH9YoS",
+    "PasswordResetSalt": "vZ4DcKyVVRlKHHJpexcuXzojkE5PZ5eL",
+    "SendPushNotifications": false,
+    "PushNotificationContents": "generic",
+    "EnableEmailBatching": false
+  },
+  "RateLimitSettings": {
+    "Enable": false,
+    "PerSec": 10,
+    "MaxBurst": 100,
+    "MemoryStoreSize": 10000,
+    "VaryByRemoteAddr": true,
+    "VaryByUser": false
+  },
+  "PluginSettings": {
+    "Enable": true,
+    "EnableUploads": true,
+    "Directory": "/opt/mattermost/plugins",
+    "ClientDirectory": "/opt/mattermost/client/plugins"
+  },
+  "GitLabSettings": {
+    "Enable": true,
+    "Secret": "generate_a_secure_token_here",
+    "Id": "your_gitlab_application_id",
+    "Scope": "api read_user",
+    "AuthEndpoint": "http://gitlab:3000/oauth/authorize",
+    "TokenEndpoint": "http://gitlab:3000/oauth/token",
+    "UserApiEndpoint": "http://gitlab:3000/api/v4/user",
+    "DiscoveryEndpoint": ""
+  }
+}
