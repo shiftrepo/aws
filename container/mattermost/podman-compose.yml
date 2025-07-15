@@ -1,0 +1,53 @@
+version: '3'
+
+networks:
+  mattermost-network:
+    external: true
+  gitlab-network:
+    external: true
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: mattermost-postgres
+    environment:
+      - POSTGRES_USER=mmuser
+      - POSTGRES_PASSWORD=mmuser_password
+      - POSTGRES_DB=mattermost
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - mattermost-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mmuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  mattermost:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mattermost-app
+    depends_on:
+      - postgres
+    environment:
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://mmuser:mmuser_password@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
+    volumes:
+      - mattermost-data:/opt/mattermost/data
+      - mattermost-logs:/opt/mattermost/logs
+      - mattermost-config:/opt/mattermost/config
+    ports:
+      - "8001:8065"
+    restart: unless-stopped
+    networks:
+      - mattermost-network
+      - gitlab-network
+
+volumes:
+  postgres-data:
+  mattermost-data:
+  mattermost-logs:
+  mattermost-config:
