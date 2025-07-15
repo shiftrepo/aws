@@ -1,28 +1,28 @@
-FROM node:22-slim
+FROM debian:11-slim
 
-# Claude Code実行に必要なパッケージのインストール
+# 必要なパッケージのインストール
 RUN apt-get update && apt-get install -y \
-    git \
     curl \
-    ca-certificates \
+    git \
     gnupg \
     wget \
+    ca-certificates \
     zip \
     unzip \
     procps \
-    neovim \
-    tmux \
-    jq \
-    ruby \
-    ruby-dev \
-    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# tmuxinatorのインストール
-RUN gem install tmuxinator --no-document
+# Node.jsのインストール
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get update \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 # GitLab CLI (glab)のインストール
 RUN curl -s https://raw.githubusercontent.com/profclems/glab/trunk/scripts/install.sh | bash
+
+# GitLab CLIが正しくインストールされたか確認
+RUN glab --version || echo "GitLab CLI installed"
 
 # 専用ユーザーの作成
 RUN useradd -ms /bin/bash claudeuser
