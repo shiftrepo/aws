@@ -1,67 +1,64 @@
 version: '3.8'
 
 services:
-  claudecode-node:
+  claudecode:
+    image: claudecode-node-slim:latest
+    container_name: claude-code-node
     build:
       context: .
       dockerfile: node-slim.Dockerfile
-    container_name: claude-code-node
     volumes:
-      - ./.env:/.env:ro  # 環境変数ファイルをマウント（読み取り専用）
-      - ./workdir:/app/workdir:z  # 作業ディレクトリをマウント（SELinuxラベル共有モード）
-      - ./add_gitlab_mcp.json:/app/add_gitlab_mcp.json:z  # GitLab MCP設定ファイル
-      - ./add_mcp.json:/app/add_mcp.json:z  # MCP設定ファイル
-      - ./setup_gitlab_mcp.sh:/app/setup_gitlab_mcp.sh:z  # GitLab MCP セットアップスクリプト
-      - ./install_glab.sh:/app/install_glab.sh:z  # GitLab CLI インストールスクリプト
-      - ./setup-gitlab-and-glab.sh:/app/setup-gitlab-and-glab.sh:z  # 統合セットアップスクリプト
+      - ./workdir:/app/workdir:z
     environment:
+      - GITLAB_HOST=gitlab
+      - GITLAB_API_TOKEN=${GITLAB_API_TOKEN:-}
+      - GITLAB_PERSONAL_ACCESS_TOKEN=${GITLAB_PERSONAL_ACCESS_TOKEN:-}
+      - MCP_FILESYSTEM_ENABLED=1
+      - MCP_SEQUENTIAL_THINKING_ENABLED=1
+      - MCP_SQLITE_ENABLED=1
+      - TZ=Asia/Tokyo
       - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-us.anthropic.claude-sonnet-4-20250514-v1:0}
-      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-us.anthropic.claude-3-5-haiku-20241022-v1:0}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - GITLAB_API_TOKEN=${GITLAB_API_TOKEN}
-      - GITLAB_PERSONAL_ACCESS_TOKEN=${GITLAB_API_TOKEN}
-    tty: true
-    stdin_open: true
-    restart: unless-stopped
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-}
+      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-}
+    networks:
+      - gitlab-network
     depends_on:
       - gitlab
-    networks:
-      - gitlab-network
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
 
   gitlab:
-    image: 'gitlab/gitlab-ce:latest'
+    image: gitlab/gitlab-ce:latest
     container_name: gitlab-node
     restart: always
-    hostname: 'gitlab.local'
-    environment:
-      GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://mcp.shift-terminus.com'
-        gitlab_rails['gitlab_shell_ssh_port'] = 2222
-        # APIレート制限の設定
-        gitlab_rails['rate_limit_requests_per_period'] = 300
-        gitlab_rails['rate_limit_period'] = 3600  # 1時間
-        # Node.js環境用の最適化（ワーカータイムアウト60秒未満に設定）
-        gitlab_rails['max_request_duration_seconds'] = 50
+    hostname: gitlab
     ports:
-      - '8080:80'  # Node.js版は8080ポートを使用
-      - '8443:443'
-      - '2223:22'  # SSH用ポートも変更
+      - "8080:80"
+      - "8443:443"
+      - "2223:22"
     volumes:
-      - 'gitlab-config-node:/etc/gitlab:z'
-      - 'gitlab-logs-node:/var/log/gitlab:z'
-      - 'gitlab-data-node:/var/opt/gitlab:z'
-    shm_size: '256m'
+      - gitlab-config:/etc/gitlab:z
+      - gitlab-logs:/var/log/gitlab:z
+      - gitlab-data:/var/opt/gitlab:z
+    shm_size: 256m
     networks:
       - gitlab-network
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab'
+        gitlab_rails['initial_root_password'] = 'password123!'
+        gitlab_rails['rate_limit_requests_per_period'] = 300
+        gitlab_rails['rate_limit_period'] = 60
 
 volumes:
-  gitlab-config-node:
-  gitlab-logs-node:
-  gitlab-data-node:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
 
 networks:
   gitlab-network:
-    driver: bridge
+    name: gitlab-network
