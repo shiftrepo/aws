@@ -43,5 +43,5 @@ EOF
 
 . ~/.bashrc
 envsubst < add_mcp.json > add_token_github_mcp.json
-claude mcp add-json github-org "$(cat add_token_github_mcp.json)" --verbose
+claude mcp add-json github-org -s user "$(cat add_token_github_mcp.json)" --verbose
 rm -f add_token_github_mcp.json
