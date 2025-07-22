@@ -1,6 +1,6 @@
 :root {
-  /* mainでは #ffebee でしたが、issue #81に従い淡い青色に変更 */
-  --background: #e6f0ff; /* 淡い青色 */
+  /* mainでは #ffebee でしたが、issue #86に従い紫色に変更 */
+  --background: #f3e5f5; /* 紫色 */
   --foreground: #333;
   --primary: #6366f1;
   --secondary: #f59e0b;
