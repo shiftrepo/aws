@@ -816,7 +816,7 @@ Resources:
 
           git clone git@github.com:Akira-Papa/Claude-Code-Communication.git /root/Claude-Code-Communication.git
 
-          podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
+          podman-compose --file /root/aws.git/container/graphRAG/docker-compose.yml up --build -d
 
           #podman exec python-aws pip install -r /root/app/graphRAG/langfuse/requierment.txt
 

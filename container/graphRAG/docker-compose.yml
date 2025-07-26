@@ -14,7 +14,7 @@ services:
     image: docker.io/mitlabo/shift4aws:latest
     container_name: python-aws
     volumes:
-      - ../app:/root/app:Z
+      - .app:/root/app:Z
     ports:
       - "8501:8501"
     networks:
