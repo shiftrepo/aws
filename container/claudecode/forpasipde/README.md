@@ -47,3 +47,8 @@ forpasipde/
 - `AWS_REGION` - AWSリージョン
 - `GITLAB_API_TOKEN` - GitLab APIトークン
 
+## 環境変数
+
+- 1.0.1 MCPサーバの追加
+- 1.0.2 Agentsの追加
+
