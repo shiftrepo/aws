@@ -1,28 +1,28 @@
-# ベースイメージとして軽量なDebian 12 Slimを選択
+# Dockerfile (True Final Version)
+
 FROM debian:12-slim
 
-# セキュリティアップデートを含めてパッケージを最新化
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-    wget \
-    libfuse2 \
-    vim \
-    ca-certificates && \
+    wget libfuse2 ca-certificates libglib2.0-0 libnspr4 libnss3 \
+    libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 libgtk-3-0 \
+    libasound2 libxss1 libxtst6 libxshmfence1 xvfb xauth net-tools curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# アプリケーションを格納するディレクトリを作成
 WORKDIR /app
 
-# LM Studioの公式AppImageをダウンロードして実行権限を付与
-# 注意: このURLは将来変更される可能性があります
-RUN wget "https://releases.lmstudio.ai/linux/latest/LM-Studio-0.2.29-x86_64.AppImage" -O lmstudio.AppImage && \
+RUN wget "https://installers.lmstudio.ai/linux/x64/0.3.20-4/LM-Studio-0.3.20-4-x64.AppImage" -O lmstudio.AppImage && \
     chmod +x lmstudio.AppImage
 
-# コンテナ起動時にLM Studioのサーバーを起動
-# 0.0.0.0で待ち受けることで、コンテナ外部からのアクセスを許可
-CMD ["/app/lmstudio.AppImage", "lms", "server", "start", "--host", "0.0.0.0", "--port", "1234"]
+RUN ./lmstudio.AppImage --appimage-extract
 
-# サーバーが使用するポートを公開
+# 起動スクリプトをコンテナにコピーして実行権限を付与
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# 起動スクリプトを実行する
+ENTRYPOINT ["/app/entrypoint.sh"]
+
 EXPOSE 1234

@@ -1,0 +1,23 @@
+services:
+  lmstudio:
+    build: .
+    container_name: lmstudio-server
+    ports:
+      - "8080:1234"
+    volumes:
+      - ./lmstudio-models:/root/.cache/lm-studio/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "netstat", "-tulpn", "|", "grep", ":1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
