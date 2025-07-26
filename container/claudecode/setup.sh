@@ -48,4 +48,4 @@ rm -f add_token_github_mcp.json
 
 # Create the directory for Claude codee
 mkdir -p ~/.claude
-cp -p ./agent ~/.claude/
+cp -pR ./agents ~/.claude/
