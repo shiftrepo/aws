@@ -100,3 +100,67 @@ export AWS_DEFAULT_REGION="us-east-1"
 - `app/langfuse/`: Streamlit UI and conversation tracking
 - `app/prototype/`: Experimental and development versions
 - `doc/`: Sample documents for testing
+
+## MCP Server Integration (Issue #96)
+
+### MCP Server Setup
+```bash
+# Install MCP server dependencies
+pip install -r mcp_server/requirements.txt
+
+# Test MCP server functionality
+cd mcp_server
+python test_mcp_standalone.py
+
+# Expected output:
+# ✅ Neo4j RAG Health Check PASSED
+# ✅ Statistics Test PASSED  
+# ✅ RAG Query Test PASSED
+```
+
+### Claude Code MCP Configuration
+```bash
+# Configure Claude Code MCP settings
+# Location: ~/.claude-code/claude-code-config.json
+{
+  "mcpServers": {
+    "neo4j-rag": {
+      "command": "python",
+      "args": ["/root/aws.git/container/graphRAG/mcp_server/neo4j_rag_mcp.py"],
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7587",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "password",
+        "AWS_DEFAULT_REGION": "us-east-1",
+        "PYTHONPATH": "/root/aws.git/container/graphRAG/app"
+      }
+    }
+  }
+}
+```
+
+### MCP Server Components
+- `mcp_server/neo4j_rag_mcp.py`: Main MCP server with JSON-RPC protocol support
+- `mcp_server/requirements.txt`: MCP-specific dependencies (mcp, neo4j, langchain-aws)
+- `mcp_server/test_mcp_standalone.py`: Standalone testing framework
+- `app/config/neo4j_rag_config.py`: Configuration for neo4jRAG container connection
+- `app/services/neo4j_rag_connector.py`: RAG processing core logic
+
+### MCP Tools Available
+1. **neo4j_rag_query**: Execute natural language queries against Neo4j RAG database
+2. **neo4j_rag_health**: System health check and connectivity verification
+3. **neo4j_rag_stats**: Database statistics and node/chunk counts
+
+### Usage Examples
+```bash
+# In Claude Code session:
+# "neo4j_rag_query ツールを使用して「ラオウの兄弟は誰ですか？」という質問に答えてください"
+# "neo4j_rag_health ツールでシステムの状態を確認してください"
+# "neo4j_rag_stats ツールでデータベースの統計情報を表示してください"
+```
+
+### Database Connection Details
+- **neo4jRAG Container**: Port 7575 (HTTP) / 7587 (Bolt)
+- **Authentication**: neo4j/password
+- **Vector Index**: `entity` on `Chunk` nodes
+- **Content**: 193 total nodes, 15 valid text chunks with embeddings

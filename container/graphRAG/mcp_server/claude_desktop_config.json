@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "neo4j-rag": {
+      "command": "python",
+      "args": ["/root/aws.git/container/graphRAG/mcp_server/neo4j_rag_mcp.py"],
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7587",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "password",
+        "AWS_DEFAULT_REGION": "us-east-1",
+        "PYTHONPATH": "/root/aws.git/container/graphRAG/app"
+      }
+    }
+  }
+}
