@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab-node
+    restart: always
+    hostname: gitlab
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "2223:22"
+    volumes:
+      - gitlab-config:/etc/gitlab:z
+      - gitlab-logs:/var/log/gitlab:z
+      - gitlab-data:/var/opt/gitlab:z
+    shm_size: 256m
+    networks:
+      - gitlab-network
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab'
+        gitlab_rails['initial_root_password'] = 'password123!'
+        gitlab_rails['rate_limit_requests_per_period'] = 300
+        gitlab_rails['rate_limit_period'] = 60
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+
+networks:
+  gitlab-network:
+    name: gitlab-network

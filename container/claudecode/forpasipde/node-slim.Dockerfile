@@ -60,12 +60,20 @@ RUN npx @modelcontextprotocol/server-gitlab --version || echo "GitLab MCP server
     python3 -m mcp_server_git --version || echo "Git MCP server package installed"
 
 # MCPサーバー登録スクリプトをコンテナ内にコピー
-COPY setup_mcp_servers.sh /app/setup_mcp_servers.sh
-
-# ディレクトリの所有者を変更
-RUN chown -R claudeuser:claudeuser /app && chmod +x /app/setup_mcp_servers.sh
+COPY forpasipde/setup_mcp_servers.sh /app/setup_mcp_servers.sh
 
 # Claude Code用のユーザーに切り替え
+USER claudeuser
+
+# ~/.claudeディレクトリを作成
+RUN mkdir -p ~/.claude
+
+# agentsディレクトリを~/.claudeにコピー
+COPY --chown=claudeuser:claudeuser agents /home/claudeuser/.claude/agents
+
+# /appディレクトリの所有者を変更
+USER root
+RUN chown -R claudeuser:claudeuser /app && chmod +x /app/setup_mcp_servers.sh
 USER claudeuser
 
 # 環境変数の設定
