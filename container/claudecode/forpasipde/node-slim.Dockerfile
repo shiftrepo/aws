@@ -69,7 +69,7 @@ USER claudeuser
 RUN mkdir -p ~/.claude
 
 # agentsディレクトリを~/.claudeにコピー
-COPY --chown=claudeuser:claudeuser agents /home/claudeuser/.claude/agents
+COPY --chown=claudeuser:claudeuser ../agents /home/claudeuser/.claude/agents
 
 # /appディレクトリの所有者を変更
 USER root
