@@ -2,11 +2,12 @@ version: '3.8'
 
 services:
   claudecode:
-    image: claudecode-node-slim:latest
+    image: claudecode-node-slim-latest-final:latest
     container_name: claude-code-node
     build:
       context: .
-      dockerfile: forpasipde/node-slim.Dockerfile
+      dockerfile: node-slim.Dockerfile
+    privileged: true
     volumes:
       - ./workdir:/app/workdir:z
     environment:
@@ -26,7 +27,7 @@ services:
       - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-}
     networks:
       - gitlab-network
-    command: ["/bin/bash"]
+    command: ["/start-docker.sh"]
     stdin_open: true
     tty: true
 

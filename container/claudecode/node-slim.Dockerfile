@@ -1,6 +1,6 @@
 FROM node:22-slim
 
-# Claude Code実行に必要なパッケージのインストール
+# Claude Code実行に必要なパッケージのインストール（Docker.io除外）
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -20,7 +20,17 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     vim \
     sudo \
+    lsb-release \
     && rm -rf /var/lib/apt/lists/*
+
+# Docker公式リポジトリから最新版Dockerをインストール（stable + test リポジトリ）
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    chmod a+r /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable test" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/*
 
 # 必要なツールのインストール
 RUN gem install tmuxinator --no-document && \
@@ -35,9 +45,14 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
 # GitLab CLI (glab)のインストール
 RUN curl -s https://raw.githubusercontent.com/profclems/glab/trunk/scripts/install.sh | bash
 
+# Docker-in-Docker対応のための設定
+RUN mkdir -p /var/run/docker && \
+    mkdir -p /var/lib/docker
+
 # 専用ユーザーの作成とsudo権限付与
 RUN useradd -ms /bin/bash claudeuser && \
-    echo "claudeuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "claudeuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    usermod -aG docker claudeuser
 
 # 作業ディレクトリの設定
 WORKDIR /app
@@ -102,5 +117,25 @@ RUN echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
 RUN echo '#!/bin/bash\necho "GitLab CLI (glab) version:"\nglab --version\necho "\nTo configure GitLab CLI with your token, run:\nglab auth login --token YOUR_GITLAB_TOKEN"' > /app/check_glab.sh \
     && chmod +x /app/check_glab.sh
 
-# 起動時にインタラクティブシェルを維持
-CMD ["/bin/bash"]
+# rootユーザーでDocker起動スクリプトを作成
+USER root
+RUN echo '#!/bin/bash\n\
+# Dockerデーモンをバックグラウンドで起動\n\
+if [ ! -S /var/run/docker.sock ]; then\n\
+    echo "Starting Docker daemon..."\n\
+    dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --tls=false &\n\
+    sleep 10\n\
+fi\n\
+\n\
+# 引数があれば実行、なければbashを起動\n\
+if [ "$#" -eq 0 ]; then\n\
+    tail -f /dev/null\n\
+else\n\
+    exec "$@"\n\
+fi\n' > /start-docker.sh && chmod +x /start-docker.sh
+
+USER claudeuser
+
+# 起動時にDockerデーモンを開始（rootユーザーで実行）
+USER root
+CMD ["/start-docker.sh"]
