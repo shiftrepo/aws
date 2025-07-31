@@ -1,0 +1,241 @@
+{
+  "schema": {
+    "node_labels": [
+      "Application",
+      "Table",
+      "CRUDOperation",
+      "Column"
+    ],
+    "relationship_types": [
+      "CONTAINS",
+      "IMPLEMENTS",
+      "REFERENCES",
+      "REFERENCES_BILLING",
+      "USES",
+      "TARGETS"
+    ],
+    "constraints": [
+      {
+        "name": "app_name_unique",
+        "type": "UNIQUENESS",
+        "labelsOrTypes": [
+          "Application"
+        ],
+        "properties": [
+          "name"
+        ]
+      },
+      {
+        "name": "crud_id_unique",
+        "type": "UNIQUENESS",
+        "labelsOrTypes": [
+          "CRUDOperation"
+        ],
+        "properties": [
+          "function_name"
+        ]
+      },
+      {
+        "name": "table_name_unique",
+        "type": "UNIQUENESS",
+        "labelsOrTypes": [
+          "Table"
+        ],
+        "properties": [
+          "name"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "app_language",
+        "type": "RANGE",
+        "labelsOrTypes": [
+          "Application"
+        ],
+        "properties": [
+          "language"
+        ]
+      },
+      {
+        "name": "app_name_unique",
+        "type": "RANGE",
+        "labelsOrTypes": [
+          "Application"
+        ],
+        "properties": [
+          "name"
+        ]
+      },
+      {
+        "name": "crud_id_unique",
+        "type": "RANGE",
+        "labelsOrTypes": [
+          "CRUDOperation"
+        ],
+        "properties": [
+          "function_name"
+        ]
+      },
+      {
+        "name": "crud_operation_type",
+        "type": "RANGE",
+        "labelsOrTypes": [
+          "CRUDOperation"
+        ],
+        "properties": [
+          "operation_type"
+        ]
+      },
+      {
+        "name": "index_343aff4e",
+        "type": "LOOKUP",
+        "labelsOrTypes": null,
+        "properties": null
+      },
+      {
+        "name": "index_f7700477",
+        "type": "LOOKUP",
+        "labelsOrTypes": null,
+        "properties": null
+      },
+      {
+        "name": "table_name_unique",
+        "type": "RANGE",
+        "labelsOrTypes": [
+          "Table"
+        ],
+        "properties": [
+          "name"
+        ]
+      },
+      {
+        "name": "table_type",
+        "type": "RANGE",
+        "labelsOrTypes": [
+          "Table"
+        ],
+        "properties": [
+          "table_type"
+        ]
+      }
+    ]
+  },
+  "references": {
+    "category_columns": [
+      {
+        "column_name": "category_id",
+        "data_type": "NUMBER",
+        "is_pk": true,
+        "is_fk": false,
+        "nullable": false,
+        "table_name": "categories",
+        "business_meaning": null
+      },
+      {
+        "column_name": "category_name",
+        "data_type": "VARCHAR2",
+        "is_pk": false,
+        "is_fk": false,
+        "nullable": false,
+        "table_name": "categories",
+        "business_meaning": null
+      },
+      {
+        "column_name": "parent_category_id",
+        "data_type": "NUMBER",
+        "is_pk": false,
+        "is_fk": true,
+        "nullable": true,
+        "table_name": "categories",
+        "business_meaning": null
+      },
+      {
+        "column_name": "category_id",
+        "data_type": "NUMBER",
+        "is_pk": false,
+        "is_fk": true,
+        "nullable": true,
+        "table_name": "products",
+        "business_meaning": null
+      }
+    ],
+    "category_tables": [
+      {
+        "table_name": "categories",
+        "schema": "ec_site",
+        "table_type": null,
+        "criticality": "medium"
+      }
+    ],
+    "crud_operations": []
+  },
+  "dependencies": {
+    "tables_with_column": [
+      {
+        "table_name": "categories",
+        "schema": "ec_site",
+        "criticality": "medium",
+        "data_type": "VARCHAR2",
+        "is_pk": false,
+        "is_fk": false,
+        "nullable": false
+      }
+    ],
+    "crud_targeting_tables": [],
+    "apps_using_tables": [
+      {
+        "app_name": "product_operations",
+        "app_type": "module",
+        "language": "C",
+        "framework": "MySQL/C",
+        "table_name": "categories"
+      }
+    ],
+    "fk_relationships": [
+      {
+        "source_table": "categories",
+        "target_table": "categories",
+        "constraint_name": "fk_categories_parent",
+        "cascade_type": "RESTRICT",
+        "relationship_type": "one-to-many"
+      },
+      {
+        "source_table": "products",
+        "target_table": "categories",
+        "constraint_name": "fk_products_category",
+        "cascade_type": "RESTRICT",
+        "relationship_type": "many-to-one"
+      }
+    ]
+  },
+  "severity": {
+    "application_impact": "LOW",
+    "crud_impact": "LOW",
+    "relationship_impact": "MEDIUM",
+    "overall": "MEDIUM"
+  },
+  "test_scenarios": [
+    {
+      "scenario_type": "Foreign Key Constraint Test",
+      "description": "Relationship between categories and categories",
+      "test_focus": "Verify referential integrity after column change",
+      "constraint_name": "fk_categories_parent",
+      "risk_level": "HIGH"
+    },
+    {
+      "scenario_type": "Foreign Key Constraint Test",
+      "description": "Relationship between products and categories",
+      "test_focus": "Verify referential integrity after column change",
+      "constraint_name": "fk_products_category",
+      "risk_level": "HIGH"
+    },
+    {
+      "scenario_type": "Application Integration Test",
+      "description": "Application product_operations accessing categories",
+      "test_focus": "Verify application functionality after column change",
+      "app_type": "module",
+      "risk_level": "HIGH"
+    }
+  ]
+}
