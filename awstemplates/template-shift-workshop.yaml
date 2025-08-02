@@ -406,9 +406,9 @@ Resources:
               "git clone https://github.com/olivierverdier/zsh-git-prompt.git $HOMEDIR/.zsh-git-prompt"
             
             # Copy configuration
-            if [ -f /root/aws.git/zshenv/zshrc.org ]; then
+            if [ -f /root/aws.git/zshenv/amazonlinux/zshrc.org ]; then
               execute_with_log "Copy zshrc for user $user" \
-                "cp -p /root/aws.git/zshenv/zshrc.org $HOMEDIR/.zshrc"
+                "cp -p /root/aws.git/zshenv/amazonlinux/zshrc.org $HOMEDIR/.zshrc"
             else
               log_error "zshrc.org not found, skipping for user $user"
             fi
@@ -432,9 +432,9 @@ Resources:
           execute_with_log "Clone zsh-git-prompt for root" \
             "git clone https://github.com/olivierverdier/zsh-git-prompt.git /root/.zsh-git-prompt"
           
-          if [ -f /root/aws.git/zshenv/zshrc.org ]; then
+          if [ -f /root/aws.git/zshenv/amazonlinux/zshrc.org ]; then
             execute_with_log "Copy zshrc for root" \
-              "cp -p /root/aws.git/zshenv/zshrc.org /root/.zshrc"
+              "cp -p /root/aws.git/zshenv/amazonlinux/zshrc.org /root/.zshrc"
           else
             log_error "zshrc.org not found for root user"
           fi
