@@ -1,0 +1,82 @@
+# ==================================================================
+#  基本設定
+# ==================================================================
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_VERIFY
+setopt SHARE_HISTORY
+
+# 補完
+autoload -U compinit
+compinit
+setopt AUTO_LIST
+zstyle ':completion:*' menu select
+
+# エイリアス
+alias ls='ls --color=auto'
+alias la='ls -a'
+alias ll='ls -l'
+alias lla='ls -la'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias g='git'
+alias ga='git add'
+alias gaa='git add .'
+alias gb='git branch'
+alias gc='git commit -v'
+alias gca='git commit -v -a'
+alias gco='git checkout'
+alias gd='git diff'
+alias gs='git status'
+alias gl='git log --oneline --graph --decorate'
+alias c='clear'
+alias grep='grep --color=auto'
+
+# キーバインド
+bindkey -e
+stty -ixon
+
+# ==================================================================
+#  プロンプトと Git 情報
+# ==================================================================
+setopt PROMPT_SUBST
+
+# vcs_info を読み込む
+autoload -Uz vcs_info
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:git:*' formats 'on %F{blue}(%b)%f'
+zstyle ':vcs_info:git:*' actionformats 'on %F{blue}(%b|%a)%f'
+
+# precmd に vcs_info を登録
+precmd() {
+  vcs_info
+}
+
+# 表示の細かい制御（必要に応じて）
+export GIT_PROMPT_SHOW_UPSTREAM=1
+export GIT_PROMPT_SHOW_UNTRACKED_FILES=all
+export GIT_PROMPT_SHOW_CHANGED_FILES_COUNT=1
+export GIT_PROMPT_ONLY_IN_REPO=1  # Git リポジトリ内だけ表示
+
+
+# zsh-git-prompt を読み込む
+source ~/.zsh-git-prompt/zshrc.sh
+source /usr/share/git-core/contrib/completion/git-prompt.sh
+
+# プロンプト定義（例）
+#PROMPT='%F{green}%~%f %F{yellow}$(git_super_status)%f %# '
+PROMPT='%F{blue}%n@%m%f:%F{green}%~%f %F{yellow}$(git_super_status)%f %# '
+
+# プロンプト定義
+#PROMPT="%F{244}%~%f \$vcs_info_msg_0_ %F{black}%#%f "
+
+# ==================================================================
+#  便利な関数
+# ==================================================================
+function mkcd() {
+  mkdir -p "$@" && cd "$@"
+}
+
