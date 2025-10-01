@@ -177,3 +177,6 @@ data-*/
 *.db
 ~/.aws/
 .mcp.json
+
+# claude
+.claude/
