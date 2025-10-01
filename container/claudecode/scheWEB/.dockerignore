@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+npm-debug.log
+package-lock.json
+yarn.lock
+
+# Tests
+tests/
+coverage/
+*.test.js
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# Data (will be mounted as volume)
+data/
+backups/
+
+# DevOps (not needed in image)
+devops/
+.github/
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
