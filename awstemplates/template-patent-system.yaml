@@ -239,6 +239,14 @@ Resources:
           ToPort: 8000
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          FromPort: 8082
+          ToPort: 8082
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8083
+          ToPort: 8083
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 5001
           ToPort: 5001
           CidrIp: 0.0.0.0/0
@@ -751,7 +759,10 @@ Resources:
           systemctl start amazon-ssm-agent
 
           # Install Docker etc...
-          dnf install -y docker awscli git bash-completion python3-pip unzip tmux
+          dnf install -y docker awscli git bash-completion python3-pip unzip tmux zsh util-linux-user
+          subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+          dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+          dnf install -y neovim
           systemctl start docker
           systemctl enable docker
           pip install podman-compose
@@ -805,7 +816,7 @@ Resources:
 
           git clone git@github.com:Akira-Papa/Claude-Code-Communication.git /root/Claude-Code-Communication.git
 
-          podman-compose --file /root/aws.git/container/docker-compose.yml up --build -d
+          #podman-compose --file /root/aws.git/container/graphRAG/docker-compose.yml up --build -d
 
           #podman exec python-aws pip install -r /root/app/graphRAG/langfuse/requierment.txt
 
@@ -823,7 +834,20 @@ Resources:
 
           chown -R ec2-user:ec2-user /root/aws.git/ /root/langfuse_latest.git/ /root/Claude-Code-Communication.git
           chmod 777 /root
-          
+
+          # zshのインストールと設定
+          chsh -s $(which zsh)
+          chsh -s $(which zsh) ec2-user
+          git clone https://github.com/olivierverdier/zsh-git-prompt.git ~/.zsh-git-prompt
+          git clone https://github.com/olivierverdier/zsh-git-prompt.git /home/ec2-user/.zsh-git-prompt
+          cp -p /root/aws.git/zshenv/zshrc.org /home/ec2-user/.zshrc
+          cp -p /root/aws.git/zshenv/zshrc.org /root/.zshrc
+
+          echo "export AWS_ACCESS_KEY_ID='${AccessKeyIdParam}'" >> /home/ec2-user/.zshrc
+          echo "export AWS_SECRET_ACCESS_KEY='${SecretAccessKeyParam}'" >> /home/ec2-user/.zshrc
+          echo "export AWS_DEFAULT_REGION='${RegionNameParam}'" >> /home/ec2-user/.zshrc
+          echo "export GITHUB_SHIFTREPO_PAT='${GithubShiftrepoPatParam}'" >> /home/ec2-user/.zshrc
+
           # BigQueryAPI用のキーファイルをダウンロード
           #aws s3 cp s3://ndi-3supervision/MIT/GCPServiceKey/tosapi-bd19ecc6f5bb.json tosapi-bd19ecc6f5bb.json
 

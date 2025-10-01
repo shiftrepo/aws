@@ -1,0 +1,195 @@
+.playground {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 80vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  background-color: white;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+  color: var(--primary);
+  margin: 0;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.avatar {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.tutorial {
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.5); }
+  100% { box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); }
+}
+
+.tutorialContent {
+  margin-bottom: 1rem;
+}
+
+.tutorialContent h3 {
+  margin-bottom: 0.5rem;
+}
+
+.tutorialButton {
+  margin-top: 1rem;
+  background-color: white;
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.progress {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.progressDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.progressDot.active {
+  background-color: white;
+  transform: scale(1.2);
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  gap: 0.5rem;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background-color: white;
+  color: var(--foreground);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+.tab.active {
+  background-color: var(--primary);
+  color: white;
+}
+
+.content {
+  flex: 1;
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-height: 500px;
+}
+
+.gitFlowContainer {
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.gitFlowContainer h2 {
+  color: #3498db;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.gitFlowContainer ul {
+  list-style-type: none;
+  padding-left: 20px;
+}
+
+.gitFlowContainer li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 8px;
+}
+
+.gitFlowContainer strong {
+  font-weight: bold;
+  color: #333;
+  margin-right: 8px;
+}
+
+/* TeamGitFlow component integration styles */
+.gitFlowSelector {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.viewOptions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.viewOption {
+  padding: 0.75rem 1.5rem;
+  background-color: #f0f0f0;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+}
+
+.viewOption:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.viewOption.active {
+  background-color: var(--primary);
+  color: white;
+}

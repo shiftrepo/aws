@@ -178,5 +178,8 @@ data-*/
 ~/.aws/
 .mcp.json
 
+tmp/
+logs/
+
 # claude
 .claude/

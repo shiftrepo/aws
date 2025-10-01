@@ -111,14 +111,32 @@ export default function GitVisualizer({ repository }: GitVisualizerProps) {
       timeline.appendChild(commitEl);
     });
     
-    // HEAD表示
+    // HEAD表示 - 現在のブランチの最新コミットに追加
     const head = document.createElement('div');
     head.className = styles.head;
     head.textContent = 'HEAD';
     
-    // タイムラインの先頭に追加
-    if (timeline.firstChild) {
-      timeline.firstChild.appendChild(head);
+    // 現在のブランチの最新コミットを探す
+    // timeline内の子要素（commitEl）は古い順に追加されているため、逆順でループ
+    const timelineChildren = Array.from(timeline.children);
+    let headAdded = false;
+    
+    for (let i = timelineChildren.length - 1; i >= 0; i--) {
+      const commitIndex = timelineChildren.length - 1 - i;
+      const commit = repository.commits[commitIndex];
+      
+      // 現在のブランチに属するコミットか確認
+      if (commit.branch === repository.currentBranch) {
+        // そのコミットにHEADを追加
+        timelineChildren[i].appendChild(head);
+        headAdded = true;
+        break;
+      }
+    }
+    
+    // 万が一一致するコミットが見つからなかった場合は、最新コミットにHEADを追加
+    if (!headAdded && timeline.lastChild) {
+      timeline.lastChild.appendChild(head);
     }
     
     canvasRef.current.appendChild(timeline);

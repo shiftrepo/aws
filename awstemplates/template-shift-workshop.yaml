@@ -1,0 +1,466 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  CloudFormation Template to launch the SHIFTWorkShop EC2 instance with Docker, Zsh, and enhanced security logging to CloudWatch.
+  This template requires an existing VPC and a public subnet to be selected.
+
+Parameters:
+  # ネットワーク選択用のパラメータ
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select the VPC where the EC2 instance will be deployed. Default is intended to be 'SHIFT-VPC'.
+
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select the public subnet for the EC2 instance. Must be a subnet within the selected VPC.
+
+  # EC2インスタンスに必要なパラメータ
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Select an existing EC2 KeyPair for SSH access.
+    Default: "SHIFT-main"
+
+  InstanceType:
+    Type: String
+    Description: Select the instance type for SHIFTWorkShop.
+    Default: t3.medium
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+
+  AmazonLinuxAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+
+  GithubPrivateKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub private key from Parameter Store (for UserData script).
+    Default: "/adminOpe/github/privateKey"
+
+  GithubPublicKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub public key from Parameter Store (for IAM Role).
+    Default: "/adminOpe/github/publicKey"
+
+  # IAMロールに必要なパラメータ
+  AccessKeyIdParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Access Key ID from Parameter Store (for IAM Role).
+    Default: "/adminOpe/accessKey/aws_access_key_id"
+
+  SecretAccessKeyParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Secret Access Key from Parameter Store (for IAM Role).
+    Default: "/adminOpe/accessKey/aws_secret_access_key"
+
+  RegionNameParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Region Name from Parameter Store (for IAM Role).
+    Default: "/adminOpe/accessKey/aws_region_name"
+
+  # GITHUB_SHIFTREPO_PAT は UserData 内でのみ使用
+  GithubShiftrepoPatParam:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: GitHub repository PAT from Parameter Store (for UserData script).
+    Default: "/developOpe/mcp/GITHUB_SHIFTREPO_PAT"
+
+Conditions:
+  UseKeyPairParameter: !Not [!Equals [!Ref KeyName, ""]]
+
+Resources:
+  # CloudWatch Log Groups for UserData execution
+  UserDataLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/userdata/${AWS::StackName}"
+      RetentionInDays: 30
+
+  UserDataErrorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/userdata/${AWS::StackName}/errors"
+      RetentionInDays: 30
+
+  # IAM Role and Instance Profile (インスタンスに必要)
+  EC2InstanceRoleSHIFTgraphRAG:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
+      Policies:
+        - PolicyName: ParameterStoreAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AccessKeyIdParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretAccessKeyParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${RegionNameParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubPrivateKey}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubPublicKey}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubShiftrepoPatParam}"
+        - PolicyName: UserDataLoggingPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource:
+                  - !GetAtt UserDataLogGroup.Arn
+                  - !GetAtt UserDataErrorLogGroup.Arn
+                  - !Sub "${UserDataLogGroup.Arn}:*"
+                  - !Sub "${UserDataErrorLogGroup.Arn}:*"
+
+  EC2InstanceProfileSHIFTgraphRAG:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRoleSHIFTgraphRAG
+
+  # Security Group for SHIFTWorkShop
+  SHIFTWorkShopSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group for SHIFTWorkShop EC2 instance allowing SSH, HTTP and HTTPS."
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SHIFTWorkShop-SG
+
+  # SHIFTWorkShop EC2 Instance
+  SHIFTWorkShopInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: 
+      - UserDataLogGroup
+      - UserDataErrorLogGroup
+    Properties:
+      ImageId: !Ref AmazonLinuxAMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SHIFTWorkShopSecurityGroup
+          SubnetId: !Ref SubnetId
+      IamInstanceProfile: !Ref EC2InstanceProfileSHIFTgraphRAG
+      KeyName: !If [UseKeyPairParameter, !Ref KeyName, !Ref "AWS::NoValue"]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: SHIFTWorkShop
+        - Key: author
+          Value: kentaro.mitsui
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          
+          # ログ設定
+          LOG_GROUP="/aws/ec2/userdata/${AWS::StackName}"
+          ERROR_LOG_GROUP="/aws/ec2/userdata/${AWS::StackName}/errors"
+          INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+          LOG_STREAM="$INSTANCE_ID-$(date +%Y%m%d_%H%M%S)"
+          ERROR_LOG_STREAM="$INSTANCE_ID-errors-$(date +%Y%m%d_%H%M%S)"
+          
+          # ログ出力関数
+          log_message() {
+            local message="$1"
+            local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+            echo "[$timestamp] $message" | tee -a /var/log/userdata.log
+            
+            # CloudWatch Logsにも送信
+            aws logs put-log-events \
+              --log-group-name "$LOG_GROUP" \
+              --log-stream-name "$LOG_STREAM" \
+              --log-events timestamp=$(date +%s000),message="$message" \
+              --region ${AWS::Region} 2>/dev/null || true
+          }
+          
+          # エラーログ出力関数
+          log_error() {
+            local message="$1"
+            local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+            echo "[$timestamp] ERROR: $message" | tee -a /var/log/userdata.log
+            
+            # CloudWatch Logsにも送信
+            aws logs put-log-events \
+              --log-group-name "$ERROR_LOG_GROUP" \
+              --log-stream-name "$ERROR_LOG_STREAM" \
+              --log-events timestamp=$(date +%s000),message="ERROR: $message" \
+              --region ${AWS::Region} 2>/dev/null || true
+          }
+          
+          # コマンド実行とログ出力
+          execute_with_log() {
+            local description="$1"
+            shift
+            local command="$@"
+            
+            log_message "Starting: $description"
+            if eval "$command"; then
+              log_message "Success: $description"
+              return 0
+            else
+              log_error "Failed: $description - Command: $command"
+              return 1
+            fi
+          }
+          
+          # ログストリーム作成
+          create_log_stream() {
+            local log_group="$1"
+            local log_stream="$2"
+            
+            aws logs create-log-stream \
+              --log-group-name "$log_group" \
+              --log-stream-name "$log_stream" \
+              --region ${AWS::Region} 2>/dev/null || true
+          }
+          
+          # 初期化
+          log_message "UserData script execution started"
+          create_log_stream "$LOG_GROUP" "$LOG_STREAM"
+          create_log_stream "$ERROR_LOG_GROUP" "$ERROR_LOG_STREAM"
+
+          # タイムゾーン設定
+          execute_with_log "Set timezone to Asia/Tokyo" \
+            "timedatectl set-timezone Asia/Tokyo"
+                    
+          # デバッグモード設定
+          set -x
+          
+          # CloudWatch Agent installation
+          execute_with_log "Download CloudWatch Agent" \
+            "curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm"
+          
+          execute_with_log "Install CloudWatch Agent" \
+            "dnf install -y ./amazon-cloudwatch-agent.rpm"
+          
+          # Configure CloudWatch Agent
+          log_message "Configuring CloudWatch Agent"
+          cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          {
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "SHIFT-WorkShop-System-Messages",
+                      "log_stream_name": "{instance_id}-messages"
+                    },
+                    {
+                      "file_path": "/var/log/secure",
+                      "log_group_name": "SHIFTWorkShop-Auth-Logs",
+                      "log_stream_name": "{instance_id}-secure-%Y-%m",
+                      "timestamp_format": "%b %d %H:%M:%S"
+                    },
+                    {
+                      "file_path": "/var/log/userdata.log",
+                      "log_group_name": "SHIFTWorkShop-UserData-Logs",
+                      "log_stream_name": "{instance_id}-userdata-%Y-%m-%d"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+          
+          # Start CloudWatch Agent
+          execute_with_log "Enable CloudWatch Agent" \
+            "systemctl enable amazon-cloudwatch-agent"
+          
+          execute_with_log "Start CloudWatch Agent" \
+            "systemctl start amazon-cloudwatch-agent"
+          
+          # Package installation with retry
+          log_message "Installing packages: Git, Docker, Zsh"
+          max_attempts=5
+          attempt_num=1
+          success=false
+          
+          while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
+            log_message "Package installation attempt $attempt_num/$max_attempts"
+            if sudo dnf install -y git docker zsh; then
+              log_message "Package installation succeeded"
+              success=true
+            else
+              log_error "Package installation attempt $attempt_num failed"
+              if [ $attempt_num -lt $max_attempts ]; then
+                log_message "Retrying in 5 seconds..."
+                sleep 5
+              fi
+              ((attempt_num++))
+            fi
+          done
+          
+          if [ $success = false ]; then
+            log_error "Package installation failed after $max_attempts attempts"
+            exit 1
+          fi
+          
+          # Docker setup
+          execute_with_log "Start Docker service" \
+            "sudo systemctl start docker"
+          
+          execute_with_log "Enable Docker service" \
+            "sudo systemctl enable docker"
+          
+          execute_with_log "Add ec2-user to docker group" \
+            "sudo gpasswd -a ec2-user docker"
+          
+          execute_with_log "Change docker socket group" \
+            "sudo chgrp docker /var/run/docker.sock"
+          
+          execute_with_log "Restart Docker service" \
+            "sudo service docker restart"
+          
+          # Docker Compose setup
+          execute_with_log "Download Docker Compose" \
+            'sudo curl -L "https://github.com/docker/compose/releases/download/v2.28.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose'
+          
+          execute_with_log "Make Docker Compose executable" \
+            "sudo chmod +x /usr/local/bin/docker-compose"
+          
+          execute_with_log "Create Docker Compose symlink" \
+            "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose"
+          
+          # GitHub SSH setup
+          log_message "Setting up GitHub SSH configuration"
+          mkdir -p /root/.ssh
+          echo "${GithubPrivateKey}" > /root/.ssh/id_ed25519
+          chmod 400 /root/.ssh/id_ed25519
+          
+          cat <<EOF > /root/.ssh/config
+          Host github.com
+            IdentityFile ~/.ssh/id_ed25519
+            User git
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
+          EOF
+          
+          # Clone repository
+          if execute_with_log "Clone AWS repository" \
+            "git clone git@github.com:shiftrepo/aws.git /root/aws.git"; then
+            log_message "Repository cloned successfully"
+          else
+            log_error "Failed to clone repository. Continuing with basic zsh setup..."
+          fi
+          
+          # Zsh configuration
+          log_message "Starting Zsh configuration for all users"
+          
+          # Set default shell for new users
+          execute_with_log "Set zsh as default shell for new users" \
+            "useradd -D -s $(which zsh)"
+          
+          # Configure existing users
+          getent passwd | awk -F: '$3 >= 1000 {print $1}' | while read user; do
+            HOMEDIR=$(getent passwd $user | cut -d: -f6)
+            log_message "Configuring zsh for user: $user in $HOMEDIR"
+            
+            # Change shell
+            execute_with_log "Change shell for user $user" \
+              "usermod -s $(which zsh) $user"
+            
+            # Clone zsh-git-prompt
+            execute_with_log "Clone zsh-git-prompt for user $user" \
+              "git clone https://github.com/olivierverdier/zsh-git-prompt.git $HOMEDIR/.zsh-git-prompt"
+            
+            # Copy configuration
+            if [ -f /root/aws.git/zshenv/amazonlinux/zshrc.org ]; then
+              execute_with_log "Copy zshrc for user $user" \
+                "cp -p /root/aws.git/zshenv/amazonlinux/zshrc.org $HOMEDIR/.zshrc"
+            else
+              log_error "zshrc.org not found, skipping for user $user"
+            fi
+            
+            # Add GitHub PAT for ec2-user
+            if [ "$user" = "ec2-user" ]; then
+              execute_with_log "Add GitHub PAT for ec2-user" \
+                "echo \"export GITHUB_SHIFTREPO_PAT='${GithubShiftrepoPatParam}'\" >> $HOMEDIR/.zshrc"
+            fi
+            
+            # Change ownership
+            execute_with_log "Change ownership for user $user files" \
+              "chown -R $user:$user $HOMEDIR/.zsh-git-prompt $HOMEDIR/.zshrc"
+          done
+          
+          # Configure root user
+          log_message "Configuring zsh for root user"
+          execute_with_log "Change shell for root" \
+            "usermod -s $(which zsh) root"
+          
+          execute_with_log "Clone zsh-git-prompt for root" \
+            "git clone https://github.com/olivierverdier/zsh-git-prompt.git /root/.zsh-git-prompt"
+          
+          if [ -f /root/aws.git/zshenv/amazonlinux/zshrc.org ]; then
+            execute_with_log "Copy zshrc for root" \
+              "cp -p /root/aws.git/zshenv/amazonlinux/zshrc.org /root/.zshrc"
+          else
+            log_error "zshrc.org not found for root user"
+          fi
+          
+          execute_with_log "Change ownership for root files" \
+            "chown -R root:root /root/.zsh-git-prompt /root/.zshrc"
+          
+          log_message "UserData script execution completed successfully"
+
+Outputs:
+  SHIFTWorkShopInstanceId:
+    Description: Launched SHIFTWorkShop EC2 Instance ID
+    Value: !Ref SHIFTWorkShopInstance
+
+  SHIFTWorkShopInstancePublicIP:
+    Description: Public IP of the SHIFTWorkShop EC2 Instance
+    Value: !GetAtt SHIFTWorkShopInstance.PublicIp
+
+  SHIFTWorkShopSecurityGroupId:
+    Description: ID of the SHIFTWorkShop Security Group
+    Value: !Ref SHIFTWorkShopSecurityGroup
+
+  UserDataLogGroupName:
+    Description: CloudWatch Log Group for UserData execution logs
+    Value: !Ref UserDataLogGroup
+
+  UserDataErrorLogGroupName:
+    Description: CloudWatch Log Group for UserData error logs
+    Value: !Ref UserDataErrorLogGroup

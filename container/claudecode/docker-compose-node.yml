@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  claudecode:
+    image: claudecode-node-slim:latest
+    container_name: claude-code-node
+    build:
+      context: .
+      dockerfile: forpasipde/node-slim.Dockerfile
+    volumes:
+      - ./workdir:/app/workdir:z
+    environment:
+      - GITLAB_HOST=gitlab
+      - GITLAB_API_TOKEN=${GITLAB_API_TOKEN:-}
+      - GITLAB_PERSONAL_ACCESS_TOKEN=${GITLAB_PERSONAL_ACCESS_TOKEN:-}
+      - MCP_FILESYSTEM_ENABLED=1
+      - MCP_SEQUENTIAL_THINKING_ENABLED=1
+      - MCP_SQLITE_ENABLED=1
+      - MCP_GIT_ENABLED=1
+      - TZ=Asia/Tokyo
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-}
+      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-}
+    networks:
+      - gitlab-network
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+
+
+networks:
+  gitlab-network:
+    name: gitlab-network

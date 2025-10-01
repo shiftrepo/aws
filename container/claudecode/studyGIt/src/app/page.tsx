@@ -57,6 +57,13 @@ export default function Home() {
           <h3>コンフリクト解決</h3>
           <p>競合の発生と解決方法を理解する</p>
         </div>
+        <div className={styles.featureCard}>
+          <h3>Docker入門</h3>
+          <p>コンテナの基本概念を視覚的に学ぶ</p>
+          <Link href="/docker-learning">
+            <button className={styles.miniButton}>学習する</button>
+          </Link>
+        </div>
       </div>
     </div>
   );

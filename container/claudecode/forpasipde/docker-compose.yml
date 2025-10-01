@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  claudecode:
+    build:
+      context: .
+      dockerfile: amazonlinux.Dockerfile
+    volumes:
+      - ./.env:/.env:ro  # 環境変数ファイルをマウント（読み取り専用）
+      - ./workdir:/app/workdir:z  # 作業ディレクトリをマウント（SELinuxラベル共有モード）
+      - ./setup.sh:/app/setup.sh:z  # setup.shをマウント
+    environment:
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-us.anthropic.claude-3-7-sonnet-20250219-v1:0}
+      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-us.anthropic.claude-3-5-haiku-20241022-v1:0}
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+
+  gitlab:
+    image: 'gitlab/gitlab-ce:latest'
+    container_name: gitlab
+    restart: always
+    hostname: 'gitlab.local'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        # APIレート制限の設定
+        gitlab_rails['rate_limit_requests_per_period'] = 300
+        gitlab_rails['rate_limit_period'] = 3600  # 1時間
+    ports:
+      - '80:80'
+      - '443:443'
+      - '2222:22'
+    volumes:
+      - 'gitlab-config:/etc/gitlab:z'
+      - 'gitlab-logs:/var/log/gitlab:z'
+      - 'gitlab-data:/var/opt/gitlab:z'
+    shm_size: '256m'
+    networks:
+      - gitlab-network
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+
+networks:
+  gitlab-network:
+    driver: bridge

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import DEFAULT_FILES from '@/components/DefaultFiles';
+import DEFAULT_DOCKER_STATE from '@/components/DefaultDocker';
 import { useSearchParams } from 'next/navigation';
 import styles from './playground.module.css';
 import FileExplorer from '@/components/FileExplorer';
@@ -10,6 +11,11 @@ import CommandTerminal from '@/components/CommandTerminal';
 import TeamSimulator from '@/components/TeamSimulator';
 import GitFlowGuide from '@/components/GitFlowGuide';
 import TeamGitFlow from '@/components/TeamGitFlow';
+import DockerVisualizer from '@/components/DockerVisualizer';
+import DockerGuide from '@/components/DockerGuide';
+import { DockerLearningProvider } from '@/components/DockerLearningContext';
+import DockerChallenges from '@/components/DockerChallenges';
+import DockerTerminal from '@/components/DockerTerminal';
 
 function PlaygroundContent() {
   const searchParams = useSearchParams();
@@ -17,6 +23,8 @@ function PlaygroundContent() {
   
   const [activeTab, setActiveTab] = useState('files');
   const [gitFlowView, setGitFlowView] = useState('standard'); // 'standard' or 'team'
+  const [dockerView, setDockerView] = useState('guide'); // 'guide' or 'visualizer'
+  const [dockerState, setDockerState] = useState(DEFAULT_DOCKER_STATE);
   // 初期コミット状態で開始するためのリポジトリ設定
   const [repository, setRepository] = useState<{files: Record<string, string>, commits: Array<{id: string, message: string, author: string, timestamp: string, branch: string, files: Record<string, string>, hasConflict?: boolean, resolvedConflict?: boolean}>, branches: string[], currentBranch: string}>({
     files: DEFAULT_FILES,
@@ -195,13 +203,19 @@ function PlaygroundContent() {
           className={`${styles.tab} ${activeTab === 'visualize' ? styles.active : ''}`}
           onClick={() => handleTabChange('visualize')}
         >
-          可視化
+          Git可視化
         </button>
         <button 
           className={`${styles.tab} ${activeTab === 'gitflow' ? styles.active : ''}`}
           onClick={() => handleTabChange('gitflow')}
         >
           Git Flow
+        </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'docker' ? styles.active : ''}`}
+          onClick={() => handleTabChange('docker')}
+        >
+          Docker
         </button>
       </div>
       
@@ -254,6 +268,43 @@ function PlaygroundContent() {
               </button>
             </div>
             {gitFlowView === 'standard' ? <GitFlowGuide /> : <TeamGitFlow />}
+          </div>
+        )}
+
+        {activeTab === 'docker' && (
+          <div className={styles.dockerSelector}>
+            <div className={styles.viewOptions}>
+              <button 
+                className={`${styles.viewOption} ${dockerView === 'guide' ? styles.active : ''}`}
+                onClick={() => setDockerView('guide')}
+              >
+                Docker学習ガイド
+              </button>
+              <button 
+                className={`${styles.viewOption} ${dockerView === 'challenges' ? styles.active : ''}`}
+                onClick={() => setDockerView('challenges')}
+              >
+                Dockerチャレンジ
+              </button>
+              <button 
+                className={`${styles.viewOption} ${dockerView === 'visualizer' ? styles.active : ''}`}
+                onClick={() => setDockerView('visualizer')}
+              >
+                Docker可視化
+              </button>
+              <button 
+                className={`${styles.viewOption} ${dockerView === 'terminal' ? styles.active : ''}`}
+                onClick={() => setDockerView('terminal')}
+              >
+                Dockerターミナル
+              </button>
+            </div>
+            <DockerLearningProvider>
+              {dockerView === 'guide' ? <DockerGuide /> : 
+               dockerView === 'visualizer' ? <DockerVisualizer dockerState={dockerState} /> : 
+               dockerView === 'challenges' ? <DockerChallenges currentLevel={1} onChallengeComplete={() => {}} onCommandExecute={(cmd) => console.log(cmd)} /> :
+               <DockerTerminal dockerState={dockerState} onDockerStateChange={setDockerState} />}
+            </DockerLearningProvider>
           </div>
         )}
       </div>

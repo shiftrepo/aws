@@ -138,3 +138,63 @@
   margin-right: 0.5rem;
   font-size: 0.8rem;
 }
+
+/* Learning hint styles */
+.learningHint {
+  background-color: #2a3d4e;
+  margin: 0.5rem 0;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.learningHintHeader {
+  background-color: #3a7ca5;
+  padding: 0.5rem 0.75rem;
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.learningHintHeader span {
+  margin-right: 0.5rem;
+}
+
+.learningHintContent {
+  padding: 0.75rem;
+  color: #ddd;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.levelUpButton {
+  background-color: #2a6b9f !important;
+  border-color: #3a7ca5 !important;
+}
+
+.levelUpButton:hover {
+  background-color: #3a7ca5 !important;
+  border-color: #4a8cb5 !important;
+}
+
+.levelUpHint {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #2a3d4e;
+  border-left: 4px solid #4a8cb5;
+  border-radius: 0 4px 4px 0;
+}
+
+.levelUpHint p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #bbb;
+}

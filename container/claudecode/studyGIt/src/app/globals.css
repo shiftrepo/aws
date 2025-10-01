@@ -1,5 +1,6 @@
 :root {
-  --background: #f5f5f5;
+  /* mainでは #ffebee でしたが、issue #86で紫色に、issue #87で黄色に、issue #90で赤色になりましたが、issue #91に従い緑色に変更 */
+  --background: #E8F5E9; /* 淡い緑色 */
   --foreground: #333;
   --primary: #6366f1;
   --secondary: #f59e0b;

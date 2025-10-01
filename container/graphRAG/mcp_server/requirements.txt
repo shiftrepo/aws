@@ -1,0 +1,16 @@
+# MCP Server Requirements for Neo4j RAG
+
+# Core MCP
+mcp>=1.0.0
+
+# Database
+neo4j>=5.25.0
+
+# LangChain and AWS
+langchain-aws>=0.2.0
+langchain-core>=0.3.0
+boto3>=1.39.0
+botocore>=1.39.0
+
+# Async support
+asyncio-dgram>=2.0.0

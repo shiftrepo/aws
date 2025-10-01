@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  claudecode-amazonlinux:
+    build:
+      context: .
+      dockerfile: amazonlinux.Dockerfile
+    container_name: claude-code-amazonlinux
+    volumes:
+      - ./.env:/.env:ro  # 環境変数ファイルをマウント（読み取り専用）
+      - ./workdir:/app/workdir:z  # 作業ディレクトリをマウント（SELinuxラベル共有モード）
+      - ./add_gitlab_mcp.json:/app/add_gitlab_mcp.json:z  # GitLab MCP設定ファイル
+      - ./add_mcp.json:/app/add_mcp.json:z  # MCP設定ファイル
+      - ./setup_gitlab_mcp.sh:/app/setup_gitlab_mcp.sh:z  # GitLab MCP セットアップスクリプト
+      - ./install_glab.sh:/app/install_glab.sh:z  # GitLab CLI インストールスクリプト
+      - ./setup-gitlab-and-glab.sh:/app/setup-gitlab-and-glab.sh:z  # 統合セットアップスクリプト
+    environment:
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-us.anthropic.claude-sonnet-4-20250514-v1:0}
+      - ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL:-us.anthropic.claude-3-5-haiku-20241022-v1:0}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - GITLAB_API_TOKEN=${GITLAB_API_TOKEN}
+      - GITLAB_PERSONAL_ACCESS_TOKEN=${GITLAB_API_TOKEN}
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    depends_on:
+      - gitlab-amazonlinux
+    networks:
+      - gitlab-network-amazonlinux
+
+  gitlab-amazonlinux:
+    image: 'gitlab/gitlab-ce:latest'
+    container_name: gitlab-amazonlinux
+    restart: always
+    hostname: 'gitlab.local'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        # APIレート制限の設定
+        gitlab_rails['rate_limit_requests_per_period'] = 300
+        gitlab_rails['rate_limit_period'] = 3600  # 1時間
+        # Amazon Linux環境用の最適化
+        gitlab_rails['max_request_duration_seconds'] = 60
+    ports:
+      - '80:80'  # Amazon Linux版は標準ポートを使用
+      - '443:443'
+      - '2222:22'
+    volumes:
+      - 'gitlab-config-amazonlinux:/etc/gitlab:z'
+      - 'gitlab-logs-amazonlinux:/var/log/gitlab:z'
+      - 'gitlab-data-amazonlinux:/var/opt/gitlab:z'
+    shm_size: '256m'
+    networks:
+      - gitlab-network-amazonlinux
+
+volumes:
+  gitlab-config-amazonlinux:
+  gitlab-logs-amazonlinux:
+  gitlab-data-amazonlinux:
+
+networks:
+  gitlab-network-amazonlinux:
+    driver: bridge

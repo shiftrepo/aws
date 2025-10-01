@@ -1,0 +1,391 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 2.5rem;
+  color: #333;
+  margin: 0;
+}
+
+.highlight {
+  color: #0070f3;
+}
+
+.backLink {
+  padding: 8px 16px;
+  background-color: #eaeaea;
+  color: #333;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.backLink:hover {
+  background-color: #ddd;
+}
+
+.navigation {
+  margin-bottom: 20px;
+}
+
+.tabList {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  margin-right: 5px;
+  transition: all 0.3s;
+}
+
+.tab:hover {
+  background-color: #f5f5f5;
+}
+
+.tab.active {
+  background-color: #0070f3;
+  color: white;
+  font-weight: bold;
+}
+
+.content {
+  background: #fff;
+  border-radius: 0 0 8px 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-height: 400px;
+}
+
+.tabContent h2 {
+  color: #0070f3;
+  margin-top: 0;
+}
+
+.visualContainer {
+  display: flex;
+  gap: 40px;
+  margin: 30px 0;
+}
+
+.containerVisual {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.containerBox {
+  width: 200px;
+  border: 2px solid #0070f3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.appLayer, .libLayer, .binLayer {
+  padding: 15px;
+  text-align: center;
+}
+
+.appLayer {
+  background-color: #c2e0ff;
+}
+
+.libLayer {
+  background-color: #d1f7c4;
+}
+
+.binLayer {
+  background-color: #ffe8c2;
+}
+
+.description {
+  flex: 2;
+}
+
+.keyPoints {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f5f9ff;
+  border-radius: 8px;
+}
+
+.keyPoints h3 {
+  color: #0070f3;
+  margin-top: 0;
+}
+
+.keyPoints ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.keyPoints li {
+  margin-bottom: 10px;
+}
+
+/* VS Virtual Machine styles */
+.comparisonContainer {
+  display: flex;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+.comparisonItem {
+  flex: 1;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.comparisonItem h3 {
+  color: #0070f3;
+  margin-top: 0;
+}
+
+.containerStack, .vmStack {
+  display: flex;
+  flex-direction: column;
+  margin: 20px 0;
+}
+
+.containerStack > div,
+.vmStack > div {
+  padding: 10px;
+  margin-bottom: 2px;
+  text-align: center;
+}
+
+.app {
+  background-color: #c2e0ff;
+}
+
+.containerEngine {
+  background-color: #d1f7c4;
+}
+
+.os {
+  background-color: #ffe8c2;
+}
+
+.hardware {
+  background-color: #ffd2d2;
+}
+
+.vmBox {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #0070f3;
+  margin-bottom: 10px;
+}
+
+.guestOs {
+  background-color: #ffc2eb;
+}
+
+.hypervisor {
+  background-color: #e2c2ff;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+
+.featureList li {
+  margin-bottom: 8px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.featureList li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #0070f3;
+}
+
+.keyDifference {
+  background-color: #f5f9ff;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+/* Host and container relationship */
+.relationshipDiagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+.hostSystem, .containerSystem {
+  flex: 1;
+  border: 1px solid #0070f3;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.hostSystem h3, .containerSystem h3 {
+  text-align: center;
+  margin-top: 0;
+  color: #0070f3;
+}
+
+.hostComponents {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.hostKernel {
+  background-color: #ffc2eb;
+  padding: 15px;
+  text-align: center;
+}
+
+.hostResources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.hostResources div {
+  background-color: #e2c2ff;
+  padding: 10px;
+  text-align: center;
+}
+
+.arrows {
+  font-size: 2rem;
+  color: #0070f3;
+}
+
+.multipleContainers {
+  display: flex;
+  gap: 15px;
+}
+
+.singleContainer {
+  flex: 1;
+  border: 1px dashed #0070f3;
+  padding: 10px;
+}
+
+.singleContainer div {
+  padding: 8px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.singleContainer div:nth-child(1) {
+  background-color: #c2e0ff;
+}
+
+.singleContainer div:nth-child(2) {
+  background-color: #d1f7c4;
+}
+
+.singleContainer div:nth-child(3) {
+  background-color: #ffe8c2;
+}
+
+.singleContainer div:nth-child(4) {
+  background-color: #ffd2d2;
+}
+
+.relationshipExplanation {
+  margin-top: 30px;
+}
+
+.relationshipExplanation h3 {
+  color: #0070f3;
+}
+
+.relationshipExplanation ul {
+  padding-left: 20px;
+}
+
+.relationshipExplanation li {
+  margin-bottom: 15px;
+}
+
+/* Interactive Demo */
+.comingSoon {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #666;
+  margin: 30px 0;
+}
+
+.mockTerminal {
+  margin: 30px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-family: monospace;
+}
+
+.terminalHeader {
+  background-color: #333;
+  color: white;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: center;
+}
+
+.terminalBody {
+  background-color: #1e1e1e;
+  color: #f0f0f0;
+  padding: 15px;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.terminalBody p {
+  margin: 5px 0;
+}
+
+.terminalOutput {
+  color: #a0a0a0;
+}
+
+/* Mini button for Docker feature card */
+.miniButton {
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background-color 0.3s;
+}
+
+.miniButton:hover {
+  background-color: #0051bb;
+}
