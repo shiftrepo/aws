@@ -295,4 +295,51 @@ export AWS_DEFAULT_REGION="us-east-1"
 4. **LLM Enhancement**: Send to Claude 3 Sonnet for optimization
 5. **Result Display**: TOP 4 with AI reasoning
 
+## 必須バージョンインクリメント方針
+
+### バージョン管理ルール
+- **任意の修正時**: バージョン必須インクリメント
+- **形式**: v2.1.x（x部分を+1）
+- **目的**: ユーザ画面確認によるデプロイ検証
+
+### 更新箇所
+1. **HTMLタイトル**: `console.log('🔥 改良版スケジュールシステム - v2.1.x')`
+2. **ヘッダー表示**: `<h1>... <span>v2.1.x</span></h1>`
+
+### ユーザ確認プロセス
+1. 修正完了後、バージョンインクリメント
+2. デプロイ実行
+3. ユーザに報告「v2.1.x デプロイ完了」
+4. ユーザが画面でバージョン確認
+5. 合致確認で作業完了
+
+## 🚨 CRITICAL: Dockerデプロイ検証プロセス
+
+### デプロイ失敗防止必須手順
+**Dockerキャッシュによる古いファイル配信を防ぐため以下を必須実行**
+
+### 1. 強制リビルド実行
+```bash
+# 必須：キャッシュ無視での完全リビルド
+docker compose down
+docker compose build --no-cache frontend
+docker compose up -d
+```
+
+### 2. デプロイ後検証
+```bash
+# コンテナ内バージョン確認（必須）
+docker exec scheweb_frontend_1 grep -n "v2.1" /usr/share/nginx/html/schedule-grid-improved.html
+
+# 修正内容確認例
+docker exec scheweb_frontend_1 grep -A5 "renderTimeHeader" /usr/share/nginx/html/schedule-grid-improved.html
+```
+
+### 3. 検証完了条件
+- ✅ コンテナ内バージョンが修正版と一致
+- ✅ コンテナ内ソースコードが修正内容反映済み
+- ✅ ユーザ画面でバージョン確認完了
+
+**絶対に実行禁止**: `docker compose build` のみでのデプロイ（キャッシュ残存リスク）
+
 Remember: This is a production scheduling application with real user data and AWS integration. Always test changes in development environment first.
