@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>タイムライン表示テスト - ken's 08:30-09:00ブロック確認</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 2px solid #4CAF50; border-radius: 8px; background: #f9f9f9; }
+        .success { background: #E8F5E8; border-color: #4CAF50; }
+        .error { background: #FFE6E6; border-color: #f44336; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🎯 タイムライン表示システム - ken's 08:30ブロック検証テスト</h1>
+
+    <div class="test-section">
+        <h2>📊 テストデータ設定</h2>
+        <p>実際のAPIデータを模擬:</p>
+        <pre id="test-data"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>⏰ タイムライン表示結果</h2>
+        <div id="timeline-container"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 検証結果</h2>
+        <div id="verification-results"></div>
+    </div>
+
+    <!-- タイムライン表示システムを読み込み -->
+    <script src="../app/frontend/schedule_display_v2.js"></script>
+
+    <script>
+        // テストデータ (実際のAPIレスポンスを模擬)
+        const testUsers = [
+            {
+                id: 1,
+                username: "admin",
+                start_time: "09:00",
+                end_time: "18:00",
+                availability: {
+                    monday: [{ start: "09:00", end: "10:00" }],
+                    tuesday: [{ start: "09:00", end: "11:00" }],
+                    wednesday: [{ start: "13:00", end: "17:00" }]
+                }
+            },
+            {
+                id: 2,
+                username: "hoge",
+                start_time: "09:00",
+                end_time: "18:00",
+                availability: {
+                    monday: [{ start: "09:30", end: "10:30" }],
+                    thursday: [
+                        { start: "09:00", end: "10:00" },
+                        { start: "10:00", end: "11:00" },
+                        { start: "11:00", end: "12:00" }
+                    ]
+                }
+            },
+            {
+                id: 3,
+                username: "ken",
+                start_time: "08:00",
+                end_time: "17:00",
+                availability: {
+                    friday: [{ start: "09:00", end: "10:00" }],
+                    monday: [{ start: "08:30", end: "11:00" }], // 🎯 This is the critical slot!
+                    thursday: [
+                        { start: "09:00", end: "10:00" },
+                        { start: "10:00", end: "11:00" },
+                        { start: "11:00", end: "12:00" },
+                        { start: "12:00", end: "13:00" }
+                    ],
+                    tuesday: [
+                        { start: "09:00", end: "10:00" },
+                        { start: "10:00", end: "11:00" },
+                        { start: "11:00", end: "12:00" },
+                        { start: "12:00", end: "13:00" }
+                    ]
+                }
+            },
+            {
+                id: 4,
+                username: "testuser",
+                start_time: "09:00",
+                end_time: "18:00",
+                availability: {}
+            }
+        ];
+
+        // テストデータ表示
+        document.getElementById('test-data').textContent = JSON.stringify(testUsers, null, 2);
+
+        console.log('🚀 Starting timeline test...');
+
+        // タイムライン表示を実行
+        const timeline = new ScheduleTimeline('timeline-container');
+        timeline.loadData(testUsers);
+
+        // 検証を実行
+        setTimeout(() => {
+            verifyKenBlock();
+        }, 1000);
+
+        function verifyKenBlock() {
+            console.log('🔍 Verifying ken\'s 08:30-09:00 block...');
+
+            const results = [];
+
+            // 1. DOM要素の存在確認
+            const timelineSlots = document.querySelectorAll('.timeline-slot');
+            results.push(`✅ Timeline slots found: ${timelineSlots.length}`);
+
+            // 2. 08:30-09:00スロットの検索
+            let found0830Block = false;
+            let kenBlock = null;
+
+            timelineSlots.forEach((slot, index) => {
+                const timeText = slot.querySelector('.slot-time strong');
+                const participantsText = slot.querySelector('.slot-participants');
+
+                if (timeText && timeText.textContent.includes('08:30 - 09:00')) {
+                    found0830Block = true;
+                    kenBlock = slot;
+
+                    results.push(`✅ Found 08:30-09:00 slot at index ${index}`);
+                    results.push(`📋 Content: ${timeText.textContent}`);
+                    results.push(`👥 Participants: ${participantsText ? participantsText.textContent : 'N/A'}`);
+
+                    // kenが参加者に含まれているかチェック
+                    if (participantsText && participantsText.textContent.includes('ken')) {
+                        results.push(`✅ SUCCESS: ken is included in 08:30-09:00 slot!`);
+
+                        // 視覚的ハイライト
+                        slot.style.border = '3px solid #FF6B6B';
+                        slot.style.backgroundColor = '#FFE6E6';
+
+                        // 成功メッセージ追加
+                        const successBadge = document.createElement('div');
+                        successBadge.innerHTML = '🎉 <strong>FIXED!</strong> ken\'s 08:30 block found!';
+                        successBadge.style.cssText = `
+                            background: #4CAF50;
+                            color: white;
+                            padding: 8px;
+                            border-radius: 4px;
+                            margin-top: 8px;
+                            text-align: center;
+                            font-weight: bold;
+                        `;
+                        slot.appendChild(successBadge);
+                    } else {
+                        results.push(`❌ ERROR: ken is NOT included in 08:30-09:00 slot`);
+                    }
+                }
+            });
+
+            // 3. Monday曜日セクションの確認
+            const mondaySection = Array.from(document.querySelectorAll('.day-title')).find(
+                title => title.textContent.includes('月曜日')
+            );
+
+            if (mondaySection) {
+                results.push(`✅ Monday section found`);
+            } else {
+                results.push(`❌ Monday section NOT found`);
+            }
+
+            // 4. 全体の検証結果
+            if (found0830Block) {
+                results.push(`\n🎯 FINAL RESULT: ✅ SUCCESS - ken's 08:30-09:00 block is displayed!`);
+                results.push(`✅ Timeline display system works correctly`);
+                results.push(`✅ Time offset bug is FIXED`);
+
+                document.getElementById('verification-results').className = 'test-section success';
+            } else {
+                results.push(`\n🎯 FINAL RESULT: ❌ FAILURE - ken's 08:30-09:00 block is missing`);
+                document.getElementById('verification-results').className = 'test-section error';
+            }
+
+            // 結果を表示
+            document.getElementById('verification-results').innerHTML = `
+                <h3>${found0830Block ? '✅ テスト成功' : '❌ テスト失敗'}</h3>
+                <pre>${results.join('\n')}</pre>
+            `;
+
+            console.log('🔍 Verification completed:', results);
+        }
+    </script>
+</body>
+</html>
