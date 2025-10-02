@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チームスケジュール管理システム - 改良版</title>
+    <style>
+        /* 基本スタイル */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 認証スタイル */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .auth-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-card h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.9rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .demo-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* メインシステムスタイル */
+        .main-container {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+        }
+
+        .header h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            padding: 0.7rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .controls button:hover,
+        .controls button.active {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        .logout-btn {
+            background: #e74c3c !important;
+            margin-left: auto;
+        }
+
+        .current-user {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        /* スケジュールグリッド */
+        .schedule-container {
+            position: relative;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .time-header {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .users-header {
+            width: 200px;
+            padding: 1rem;
+            background: #343a40;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .time-slots-header {
+            flex: 1;
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .time-slots-header::-webkit-scrollbar {
+            display: none;
+        }
+
+        .time-slot {
+            min-width: 60px;
+            padding: 0.5rem 0.25rem;
+            text-align: center;
+            border-right: 1px solid #dee2e6;
+            background: #f8f9fa;
+            flex-shrink: 0;
+        }
+
+        .time-slot .grid-number {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .time-slot .time-range {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.2rem;
+        }
+
+        .grid-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .users-column {
+            width: 200px;
+            background: #f8f9fa;
+            border-right: 2px solid #e9ecef;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .user-row {
+            padding: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 500;
+            background: white;
+            margin: 1px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            height: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-row:hover {
+            background: #e9ecef;
+        }
+
+        .user-row.current-user {
+            background: #cce5ff;
+            border-left: 4px solid #007bff;
+        }
+
+        .schedule-grid {
+            flex: 1;
+            overflow: auto;
+            scrollbar-width: thin;
+        }
+
+        .grid-row {
+            display: flex;
+            min-height: 30px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .grid-cell {
+            min-width: 60px;
+            min-height: 30px;
+            border-right: 1px solid #dee2e6;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .grid-cell:hover {
+            background: #f0f8ff;
+            transform: scale(1.02);
+        }
+
+        .grid-cell.available {
+            background: #d4edda;
+        }
+
+        .grid-cell.unavailable {
+            background: #f8f9fa;
+        }
+
+        .grid-cell.single-user {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-left: 4px solid #f39c12;
+        }
+
+        .grid-cell.partial-meeting {
+            background: linear-gradient(135deg, #d1ecf1, #74b9ff);
+            border-left: 4px solid #0984e3;
+        }
+
+        .grid-cell.full-meeting {
+            background: linear-gradient(135deg, #d4edda, #00b894);
+            border-left: 4px solid #00a085;
+        }
+
+        .grid-number-display {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        /* 予定入力モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 500px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .modal-body label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .modal-body input,
+        .modal-body select {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-footer button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .save-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .cancel-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* ローディング・エラー */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* AI分析用スタイル */
+        .analysis-loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .analysis-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .analysis-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .candidate-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .candidate-rank {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .candidate-time {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 0.5rem;
+        }
+
+        .candidate-participants {
+            margin: 1rem 0;
+        }
+
+        .participants-available {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .participants-unavailable {
+            color: #dc3545;
+        }
+
+        .rank-1 {
+            border-left: 5px solid #FFD700;
+            box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .rank-2 {
+            border-left: 5px solid #C0C0C0;
+            box-shadow: 0 4px 8px rgba(192, 192, 192, 0.3);
+        }
+
+        .rank-3 {
+            border-left: 5px solid #CD7F32;
+            box-shadow: 0 4px 8px rgba(205, 127, 50, 0.3);
+        }
+
+        .rank-4 {
+            border-left: 5px solid #6c757d;
+        }
+
+        .llm-reasoning {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-style: italic;
+        }
+
+        .analysis-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .users-header,
+            .users-column {
+                width: 120px;
+            }
+
+            .time-slot,
+            .grid-cell {
+                min-width: 50px;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .controls button {
+                width: 100%;
+            }
+
+            .user-row {
+                height: 25px;
+                font-size: 0.8rem;
+            }
+
+            .grid-cell {
+                min-height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 動的コンテンツがここに生成されます -->
+
+    <script>
+        console.log('🔥 改良版スケジュールシステム - v2.1.5 - LLM分析UI改善版 (コンパクト表示対応)');
+        // 🆔 ページ識別子 - 現在表示中のファイル確認用
+        document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
+        console.log('📄 表示ファイル: schedule-grid-improved.html - LLM分析対応版');
+
+        // 認証管理システム
+        class AuthManager {
+            constructor() {
+                this.apiBaseUrl = '/api';
+                this.init();
+            }
+
+            init() {
+                setTimeout(() => {
+                    this.checkAuthStatus();
+                }, 200);
+            }
+
+            checkAuthStatus() {
+                const token = localStorage.getItem('authToken');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+                console.log('🔍 認証チェック:', token ? `${currentUser.username} でログイン済み` : 'ログイン必要');
+
+                if (token && currentUser.username) {
+                    this.showDashboard();
+                } else {
+                    this.showLogin();
+                }
+            }
+
+            showLogin() {
+                document.body.innerHTML = `
+                    <div class="auth-container">
+                        <div class="auth-card">
+                            <h1>📅 チームスケジューラー</h1>
+                            <form id="loginForm">
+                                <div class="form-group">
+                                    <label for="username">ユーザーネーム</label>
+                                    <input type="text" id="username" required placeholder="ユーザーネームを入力">
+                                </div>
+                                <div class="form-group">
+                                    <label for="password">パスワード</label>
+                                    <input type="password" id="password" required placeholder="パスワードを入力">
+                                </div>
+                                <button type="submit" class="auth-btn">ログイン</button>
+                                <div id="loginError" class="error-message" style="display: none;"></div>
+                            </form>
+                            <div class="demo-info">
+                                <p><strong>💡 デモアカウント:</strong></p>
+                                <p>🔹 admin / admin123</p>
+                                <p>🔹 ken / admin123</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+            }
+
+            async handleLogin() {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const errorElement = document.getElementById('loginError');
+
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('authToken', data.access_token);
+                        localStorage.setItem('currentUser', JSON.stringify(data.user));
+                        console.log('✅ ログイン成功:', data.user.username);
+                        this.showDashboard();
+                    } else {
+                        const error = await response.json();
+                        errorElement.textContent = error.error || 'ログインに失敗しました';
+                        errorElement.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('❌ ログインエラー:', error);
+                    errorElement.textContent = 'サーバーに接続できません';
+                    errorElement.style.display = 'block';
+                }
+            }
+
+            showDashboard() {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+                document.body.innerHTML = `
+                    <div class="container">
+                        <div class="main-container">
+                            <div class="header">
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.5</span></h1>
+                                <div class="controls">
+                                    <span class="current-user">👤 ${currentUser.username}</span>
+                                    <button id="addScheduleBtn">➕ 予定追加</button>
+                                    <button id="analysisBtn">🤖 LLM分析</button>
+                                    <button id="refreshBtn">🔄 更新</button>
+                                    <button id="logoutBtn" class="logout-btn">🚪 ログアウト</button>
+                                </div>
+                            </div>
+
+                            <div class="schedule-container">
+                                <div class="time-header">
+                                    <div class="users-header">ユーザー / 時間</div>
+                                    <div class="time-slots-header" id="timeHeader"></div>
+                                </div>
+
+                                <div class="grid-body">
+                                    <div class="users-column" id="usersColumn"></div>
+                                    <div class="schedule-grid" id="scheduleGrid"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 予定入力モーダル -->
+                    <div id="scheduleModal" class="modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2 id="modalTitle">予定を追加</h2>
+                                <button class="close-btn" id="closeModal">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="scheduleDay">曜日</label>
+                                    <select id="scheduleDay" required>
+                                        <option value="monday">月曜日</option>
+                                        <option value="tuesday">火曜日</option>
+                                        <option value="wednesday">水曜日</option>
+                                        <option value="thursday">木曜日</option>
+                                        <option value="friday">金曜日</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="startTime">開始時間</label>
+                                    <input type="time" id="startTime" required min="07:00" max="18:30" step="1800">
+                                </div>
+                                <div class="form-group">
+                                    <label for="endTime">終了時間</label>
+                                    <input type="time" id="endTime" required min="07:30" max="19:00" step="1800">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button id="saveSchedule" class="save-btn">保存</button>
+                                <button id="deleteSchedule" class="delete-btn hidden">削除</button>
+                                <button id="cancelSchedule" class="cancel-btn">キャンセル</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI分析結果モーダル -->
+                    <div id="analysisModal" class="modal">
+                        <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                            <div class="modal-header" style="position: sticky; top: 0; background: white; z-index: 10; border-bottom: 1px solid #dee2e6;">
+                                <h2>🤖 AI分析結果</h2>
+                                <button class="close-btn" id="closeAnalysisModal">&times;</button>
+                            </div>
+                            <div class="modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto; padding: 1rem;">
+                                <div id="analysisResults">
+                                    <div class="analysis-loading">
+                                        <div class="analysis-spinner"></div>
+                                        <h3>🤖 LLM分析実行中...</h3>
+                                        <p>AI がチームの予定を詳細に分析しています</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="position: sticky; bottom: 0; background: white; border-top: 1px solid #dee2e6;">
+                                <button id="runAnalysisAgain" class="save-btn" style="display:none;">🔄 再分析</button>
+                                <button id="closeAnalysisBtn" class="cancel-btn">閉じる</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ローディング -->
+                    <div id="loading" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                `;
+
+                this.setupEventListeners();
+                setTimeout(() => {
+                    window.scheduleManager = new ScheduleManager();
+                }, 300);
+            }
+
+            setupEventListeners() {
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    this.logout();
+                });
+
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    if (window.scheduleManager) {
+                        window.scheduleManager.loadData();
+                    }
+                });
+
+                document.getElementById('addScheduleBtn').addEventListener('click', () => {
+                    if (window.scheduleManager) {
+                        window.scheduleManager.showScheduleModal();
+                    }
+                });
+
+                document.getElementById('analysisBtn').addEventListener('click', () => {
+                    if (window.scheduleManager) {
+                        window.scheduleManager.runLLMAnalysis();
+                    }
+                });
+            }
+
+            logout() {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                this.showLogin();
+            }
+        }
+
+        // スケジュール管理システム
+        class ScheduleManager {
+            constructor() {
+                this.users = [];
+                this.gridData = [];
+                this.userAvailability = [];
+                this.timeSlots = this.generateTimeSlots();
+                this.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+                console.log('🚀 ScheduleManager 初期化開始');
+                this.setupScrollSync();
+                this.setupModalEvents();
+                this.loadData();
+            }
+
+            generateTimeSlots() {
+                const slots = [];
+                for (let hour = 7; hour < 19; hour++) {
+                    slots.push({
+                        index: slots.length,
+                        start: `${hour.toString().padStart(2, '0')}:00`,
+                        end: `${hour.toString().padStart(2, '0')}:30`
+                    });
+                    slots.push({
+                        index: slots.length,
+                        start: `${hour.toString().padStart(2, '0')}:30`,
+                        end: `${(hour + 1).toString().padStart(2, '0')}:00`
+                    });
+                }
+                return slots;
+            }
+
+            setupScrollSync() {
+                const timeHeader = document.getElementById('timeHeader');
+                const scheduleGrid = document.getElementById('scheduleGrid');
+                const usersColumn = document.getElementById('usersColumn');
+
+                // 横スクロール連動
+                timeHeader.addEventListener('scroll', () => {
+                    scheduleGrid.scrollLeft = timeHeader.scrollLeft;
+                });
+
+                scheduleGrid.addEventListener('scroll', () => {
+                    timeHeader.scrollLeft = scheduleGrid.scrollLeft;
+                    // 縦スクロール連動
+                    usersColumn.scrollTop = scheduleGrid.scrollTop;
+                });
+
+                // 縦スクロール連動（ユーザー列からグリッドへ）
+                usersColumn.addEventListener('scroll', () => {
+                    scheduleGrid.scrollTop = usersColumn.scrollTop;
+                });
+
+                console.log('✅ 横軸・縦軸スクロール連動セットアップ完了');
+            }
+
+            setupModalEvents() {
+                const modal = document.getElementById('scheduleModal');
+                const closeBtn = document.getElementById('closeModal');
+                const cancelBtn = document.getElementById('cancelSchedule');
+                const saveBtn = document.getElementById('saveSchedule');
+                const deleteBtn = document.getElementById('deleteSchedule');
+
+                closeBtn.addEventListener('click', () => this.hideScheduleModal());
+                cancelBtn.addEventListener('click', () => this.hideScheduleModal());
+                saveBtn.addEventListener('click', () => this.saveSchedule());
+                deleteBtn.addEventListener('click', () => this.deleteSchedule());
+
+                // モーダル外クリックで閉じる
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.hideScheduleModal();
+                    }
+                });
+
+                // 分析モーダルのイベント
+                const analysisModal = document.getElementById('analysisModal');
+                const closeAnalysisBtn = document.getElementById('closeAnalysisModal');
+                const closeAnalysisBtnFooter = document.getElementById('closeAnalysisBtn');
+                const runAnalysisAgain = document.getElementById('runAnalysisAgain');
+
+                closeAnalysisBtn.addEventListener('click', () => this.hideAnalysisModal());
+                closeAnalysisBtnFooter.addEventListener('click', () => this.hideAnalysisModal());
+                runAnalysisAgain.addEventListener('click', () => this.runLLMAnalysis());
+
+                analysisModal.addEventListener('click', (e) => {
+                    if (e.target === analysisModal) {
+                        this.hideAnalysisModal();
+                    }
+                });
+            }
+
+            async loadData() {
+                const loading = document.getElementById('loading');
+                loading.classList.add('show');
+
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const headers = {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    };
+
+                    const [usersResponse, gridResponse, availabilityResponse] = await Promise.all([
+                        fetch('/api/availability/all', { headers }),
+                        fetch('/api/grid-schedule', { headers }),
+                        fetch('/api/availability', { headers })
+                    ]);
+
+                    if (usersResponse.ok && gridResponse.ok) {
+                        const usersData = await usersResponse.json();
+                        const gridData = await gridResponse.json();
+
+                        this.users = Array.isArray(usersData) ? usersData : usersData.users || [];
+                        this.processGridData(gridData);
+
+                        if (availabilityResponse.ok) {
+                            this.userAvailability = await availabilityResponse.json();
+                        }
+
+                        this.renderTimeHeader();
+                        this.renderGrid();
+
+                        console.log('✅ データ読み込み完了');
+                    }
+                } catch (error) {
+                    console.error('❌ データ読み込みエラー:', error);
+                } finally {
+                    loading.classList.remove('show');
+                }
+            }
+
+            processGridData(gridData) {
+                this.gridData = [];
+                if (gridData.grid_schedule) {
+                    for (const [day, slots] of Object.entries(gridData.grid_schedule)) {
+                        slots.forEach(slot => {
+                            this.gridData.push({
+                                ...slot,
+                                day: day
+                            });
+                        });
+                    }
+                }
+            }
+
+            renderTimeHeader() {
+                const timeHeader = document.getElementById('timeHeader');
+                timeHeader.innerHTML = '';
+
+                this.timeSlots.forEach(slot => {
+                    const timeSlot = document.createElement('div');
+                    timeSlot.className = 'time-slot';
+                    timeSlot.innerHTML = `
+                        <div class="grid-number">#${slot.index}</div>
+                        <div class="time-range">${slot.start}-${slot.end}</div>
+                    `;
+                    timeHeader.appendChild(timeSlot);
+                });
+            }
+
+            renderGrid() {
+                const usersColumn = document.getElementById('usersColumn');
+                const scheduleGrid = document.getElementById('scheduleGrid');
+
+                usersColumn.innerHTML = '';
+                scheduleGrid.innerHTML = '';
+
+                this.users.forEach(user => {
+                    // ユーザー列
+                    const userRow = document.createElement('div');
+                    userRow.className = 'user-row';
+                    if (user.username === this.currentUser.username) {
+                        userRow.classList.add('current-user');
+                    }
+                    userRow.textContent = user.username;
+                    usersColumn.appendChild(userRow);
+
+                    // グリッド行
+                    const gridRow = document.createElement('div');
+                    gridRow.className = 'grid-row';
+
+                    this.timeSlots.forEach(slot => {
+                        const cell = document.createElement('div');
+                        cell.className = 'grid-cell';
+                        cell.dataset.user = user.username;
+                        cell.dataset.gridIndex = slot.index;
+                        cell.dataset.timeStart = slot.start;
+                        cell.dataset.timeEnd = slot.end;
+
+                        // 月曜日のデータを表示（デモ用）
+                        const mondaySlot = this.gridData.find(g =>
+                            g.grid_index === slot.index && g.day === 'monday'
+                        );
+
+                        if (mondaySlot && mondaySlot.available_users.includes(user.username)) {
+                            cell.classList.add('available');
+
+                            const participantCount = mondaySlot.participant_count;
+                            if (participantCount === 1) {
+                                cell.classList.add('single-user');
+                            } else if (participantCount === this.users.length) {
+                                cell.classList.add('full-meeting');
+                            } else {
+                                cell.classList.add('partial-meeting');
+                            }
+
+                            cell.title = `${user.username} - ${slot.start}-${slot.end} (${participantCount}人参加)`;
+                        } else {
+                            cell.classList.add('unavailable');
+                            cell.title = `${user.username} - ${slot.start}-${slot.end} 利用不可`;
+                        }
+
+                        // グリッド番号表示
+                        const gridNumber = document.createElement('span');
+                        gridNumber.className = 'grid-number-display';
+                        gridNumber.textContent = slot.index;
+                        cell.appendChild(gridNumber);
+
+                        // クリックイベント（現在のユーザーの場合のみ）
+                        if (user.username === this.currentUser.username) {
+                            cell.addEventListener('click', () => {
+                                this.showScheduleModal(slot, user);
+                            });
+                        }
+
+                        gridRow.appendChild(cell);
+                    });
+
+                    scheduleGrid.appendChild(gridRow);
+                });
+
+                console.log('✅ グリッド描画完了');
+            }
+
+            showScheduleModal(slot = null, user = null) {
+                const modal = document.getElementById('scheduleModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const daySelect = document.getElementById('scheduleDay');
+                const startTime = document.getElementById('startTime');
+                const endTime = document.getElementById('endTime');
+                const deleteBtn = document.getElementById('deleteSchedule');
+
+                if (slot) {
+                    modalTitle.textContent = '予定を編集';
+                    daySelect.value = 'monday'; // 現在は月曜日固定
+                    startTime.value = slot.start;
+                    endTime.value = slot.end;
+                    deleteBtn.classList.remove('hidden');
+
+                    modal.dataset.editMode = 'true';
+                    modal.dataset.gridIndex = slot.index;
+                } else {
+                    modalTitle.textContent = '予定を追加';
+                    daySelect.value = 'monday';
+                    startTime.value = '09:00';
+                    endTime.value = '10:00';
+                    deleteBtn.classList.add('hidden');
+
+                    modal.dataset.editMode = 'false';
+                }
+
+                modal.classList.add('show');
+            }
+
+            hideScheduleModal() {
+                const modal = document.getElementById('scheduleModal');
+                modal.classList.remove('show');
+            }
+
+            async saveSchedule() {
+                const modal = document.getElementById('scheduleModal');
+                const day = document.getElementById('scheduleDay').value;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+
+                if (!day || !startTime || !endTime) {
+                    alert('すべての項目を入力してください');
+                    return;
+                }
+
+                if (startTime >= endTime) {
+                    alert('開始時間は終了時間より前に設定してください');
+                    return;
+                }
+
+                const loading = document.getElementById('loading');
+                loading.classList.add('show');
+
+                try {
+                    const token = localStorage.getItem('authToken');
+                    // APIが期待する形式に修正
+                    const scheduleData = {
+                        availability: {
+                            [day]: [{
+                                start: startTime,
+                                end: endTime
+                            }]
+                        }
+                    };
+
+                    console.log('📤 送信データ:', scheduleData);
+
+                    const response = await fetch('/api/availability', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(scheduleData)
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ 予定保存成功');
+                        this.hideScheduleModal();
+                        await this.loadData(); // データ再読み込み
+                    } else {
+                        const error = await response.json();
+                        console.error('❌ API エラー:', error);
+                        alert('保存に失敗しました: ' + (error.error || '不明なエラー'));
+                    }
+                } catch (error) {
+                    console.error('❌ 予定保存エラー:', error);
+                    alert('保存に失敗しました');
+                } finally {
+                    loading.classList.remove('show');
+                }
+            }
+
+            async deleteSchedule() {
+                if (!confirm('この予定を削除しますか？')) {
+                    return;
+                }
+
+                // 削除APIが実装されている場合の処理
+                // 現在のAPIには削除エンドポイントがないため、アラートのみ
+                alert('削除機能は今後実装予定です');
+            }
+
+            // AI分析関連メソッド
+            async runLLMAnalysis() {
+                this.showAnalysisModal();
+
+                try {
+                    console.log('🤖 LLM分析を開始...');
+
+                    const token = localStorage.getItem('authToken');
+                    if (!token) {
+                        throw new Error('認証トークンがありません。ログインが必要です。');
+                    }
+
+                    const headers = {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    };
+
+                    const response = await fetch('/api/llm-analysis', {
+                        method: 'GET',
+                        headers: headers
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            throw new Error('認証が必要です。ログインしてください。');
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `API Error: ${response.status}`);
+                    }
+
+                    const analysisResult = await response.json();
+                    console.log('✅ LLM分析結果:', analysisResult);
+
+                    this.displayAnalysisResults(analysisResult);
+
+                } catch (error) {
+                    console.error('❌ LLM分析エラー:', error);
+                    this.showAnalysisError(`LLM分析に失敗しました: ${error.message}`);
+                }
+            }
+
+            showAnalysisModal() {
+                const modal = document.getElementById('analysisModal');
+                const resultsContainer = document.getElementById('analysisResults');
+
+                // 初期ローディング表示
+                resultsContainer.innerHTML = `
+                    <div class="analysis-loading">
+                        <div class="analysis-spinner"></div>
+                        <h3>🤖 LLM分析実行中...</h3>
+                        <p>AI がチームの予定を詳細に分析しています</p>
+                        <p><small>この処理には数秒から数十秒かかる場合があります</small></p>
+                    </div>
+                `;
+
+                modal.classList.add('show');
+            }
+
+            hideAnalysisModal() {
+                const modal = document.getElementById('analysisModal');
+                modal.classList.remove('show');
+            }
+
+            displayAnalysisResults(analysisResult) {
+                const resultsContainer = document.getElementById('analysisResults');
+                const runAnalysisAgain = document.getElementById('runAnalysisAgain');
+
+                if (!analysisResult.success || !analysisResult.top_candidates || analysisResult.top_candidates.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="analysis-error">
+                            <h3>分析結果なし</h3>
+                            <p>会議候補が見つかりませんでした。</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const candidates = analysisResult.top_candidates;
+                const stats = analysisResult.statistics;
+
+                let resultsHtml = `
+                    <div class="analysis-summary" style="padding: 1rem; margin-bottom: 1rem;">
+                        <h3>🎯 TOP ${candidates.length}候補</h3>
+                        <div style="display: flex; gap: 1rem; font-size: 0.9rem; margin-top: 0.5rem;">
+                            <span>📊 ${analysisResult.total_candidates}個</span>
+                            <span>👥 ${analysisResult.total_users}人</span>
+                            <span>🏆 ${stats.max_participation_rate.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                `;
+
+                candidates.forEach((candidate, index) => {
+                    const rankEmoji = ['🥇', '🥈', '🥉', '🏅'][index] || '🏅';
+
+                    resultsHtml += `
+                        <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; ${index === 0 ? 'border-left: 4px solid #FFD700;' : ''}">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="background: linear-gradient(135deg, #ffc107, #fd7e14); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">${rankEmoji} ${index + 1}位</span>
+                                <strong style="color: #007bff; font-size: 1.1rem;">${this.getDayName(candidate.day)} ${candidate.start}-${candidate.end}</strong>
+                                <span style="color: #6c757d; font-size: 0.9rem;">(${candidate.duration}分)</span>
+                            </div>
+
+                            <div style="margin: 0.5rem 0; font-size: 0.9rem;">
+                                <span style="color: #28a745; font-weight: bold;">✅ ${candidate.available_users.join(', ')} (${candidate.participant_count}人/${candidate.total_users}人)</span>
+                                ${candidate.unavailable_users && candidate.unavailable_users.length > 0 ?
+                                    `<br><span style="color: #dc3545;">❌ ${candidate.unavailable_users.join(', ')}</span>` : ''
+                                }
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: #6c757d;">
+                                <span>📊 参加率: ${candidate.availability_percentage}%</span>
+                                ${candidate.consecutive_slots > 1 ? `<span>🔗 連続${candidate.consecutive_slots}スロット</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // LLM分析の洞察とサマリーは現在利用不可のためコンパクト版では削除
+
+                resultsContainer.innerHTML = resultsHtml;
+                runAnalysisAgain.style.display = 'block';
+            }
+
+            getDayName(day) {
+                const dayNames = {
+                    'monday': '月曜日',
+                    'tuesday': '火曜日',
+                    'wednesday': '水曜日',
+                    'thursday': '木曜日',
+                    'friday': '金曜日'
+                };
+                return dayNames[day] || day;
+            }
+
+            showAnalysisError(message) {
+                const resultsContainer = document.getElementById('analysisResults');
+                resultsContainer.innerHTML = `
+                    <div class="analysis-error">
+                        <h3>❌ 分析エラー</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+
+                const runAnalysisAgain = document.getElementById('runAnalysisAgain');
+                runAnalysisAgain.style.display = 'block';
+            }
+        }
+
+        // システム初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            window.authManager = new AuthManager();
+        });
+    </script>
+</body>
+</html>

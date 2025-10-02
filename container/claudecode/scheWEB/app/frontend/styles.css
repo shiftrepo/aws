@@ -1,0 +1,518 @@
+/**
+ * チームスケジュール管理システム - スタイル
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ヘッダー */
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.controls button {
+    padding: 10px 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.controls button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.controls button.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ビューコンテナ */
+.view {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.view.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* グリッド表示 */
+.grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.grid-header h2 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.legend {
+    display: flex;
+    gap: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.legend-item .color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.color.available {
+    background: #27ae60;
+}
+
+.color.unavailable {
+    background: #e74c3c;
+}
+
+/* 時間ヘッダー */
+.time-header {
+    display: flex;
+    background: white;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0;
+}
+
+.time-label {
+    width: 120px;
+    padding: 10px;
+    background: #34495e;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    border-radius: 8px 0 0 0;
+}
+
+.grid-numbers {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+}
+
+.time-cell {
+    min-width: 120px;
+    padding: 5px;
+    text-align: center;
+    border-right: 1px solid #ecf0f1;
+    background: #f8f9fa;
+}
+
+.grid-number {
+    font-weight: bold;
+    color: #3498db;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.time-cell .time-label {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    background: none;
+    padding: 0;
+    width: auto;
+}
+
+/* スケジュールグリッド */
+.schedule-grid {
+    display: flex;
+    background: white;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.users-column {
+    width: 120px;
+    border-right: 2px solid #ecf0f1;
+}
+
+.user-header {
+    padding: 15px 10px;
+    background: #34495e;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+.user-list {
+    background: #f8f9fa;
+}
+
+.user-row {
+    padding: 15px 10px;
+    border-bottom: 1px solid #ecf0f1;
+    font-weight: 500;
+    text-align: center;
+    background: white;
+    margin-bottom: 1px;
+}
+
+.grid-content {
+    flex: 1;
+    overflow-x: auto;
+}
+
+.grid-cells {
+    min-width: fit-content;
+}
+
+.cell-row {
+    display: flex;
+    border-bottom: 1px solid #ecf0f1;
+    margin-bottom: 1px;
+}
+
+.grid-cell {
+    min-width: 120px;
+    height: 50px;
+    border-right: 1px solid #ecf0f1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.grid-cell.available {
+    background: #d5f4e6;
+    border-left: 4px solid #27ae60;
+}
+
+.grid-cell.unavailable {
+    background: #fadbd8;
+    border-left: 4px solid #e74c3c;
+}
+
+.grid-cell:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+/* リスト表示 */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.list-header h2 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.filters select,
+.filters input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.schedule-list {
+    display: grid;
+    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.schedule-item {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #3498db;
+    transition: transform 0.2s ease;
+}
+
+.schedule-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.schedule-item.available {
+    border-left-color: #27ae60;
+}
+
+.schedule-item.unavailable {
+    border-left-color: #e74c3c;
+    opacity: 0.7;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.grid-index {
+    background: #3498db;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.username {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.status.available {
+    background: #d5f4e6;
+    color: #27ae60;
+}
+
+.status.unavailable {
+    background: #fadbd8;
+    color: #e74c3c;
+}
+
+.time-range {
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+/* ローディング */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: white;
+    font-size: 1.1rem;
+}
+
+/* エラー表示 */
+.error {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+}
+
+.error.hidden {
+    display: none;
+}
+
+.error-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.error-content h3 {
+    color: #e74c3c;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.error-content p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+#retryBtn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s ease;
+}
+
+#retryBtn:hover {
+    background: #2980b9;
+}
+
+/* データなし表示 */
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: #7f8c8d;
+    font-style: italic;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .controls {
+        gap: 5px;
+    }
+
+    .controls button {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+
+    .grid-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .list-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .filters {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .schedule-list {
+        grid-template-columns: 1fr;
+    }
+
+    .time-cell,
+    .grid-cell {
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .time-cell,
+    .grid-cell {
+        min-width: 80px;
+    }
+
+    .users-column {
+        width: 100px;
+    }
+
+    .user-row {
+        padding: 10px 5px;
+        font-size: 0.9rem;
+    }
+
+    .grid-cell {
+        height: 40px;
+    }
+}

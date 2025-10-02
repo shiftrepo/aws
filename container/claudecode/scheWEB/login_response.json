@@ -1,0 +1,7 @@
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc1OTI5NjYxNSwianRpIjoiODQxZDJmZjEtYzFmNS00ZDViLWE0OTYtYzQ4M2VkZWEzMzUwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6MSwibmJmIjoxNzU5Mjk2NjE1LCJjc3JmIjoiODYyZWRiNGItYjQ2Mi00YjU2LWFhYmQtNTMzZTljYWNlZTdlIiwiZXhwIjoxNzU5MzgzMDE1LCJ1c2VybmFtZSI6ImFkbWluIn0.hi33RCuYWXaQnXKMv7U-vC1YSr4VCclqubCkckMHAk8",
+  "user": {
+    "id": 1,
+    "username": "admin"
+  }
+}

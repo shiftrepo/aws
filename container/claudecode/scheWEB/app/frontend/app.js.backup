@@ -1,0 +1,442 @@
+/**
+ * チームスケジュール管理システム - フロントエンド
+ * 7:00-19:00を30分固定グリッド (24スロット) + API連携
+ */
+
+class ScheduleManager {
+    constructor() {
+        this.currentView = 'grid';
+        this.scheduleData = [];
+        this.users = [];
+        this.gridData = [];
+
+        // 7:00から19:00まで30分間隔で24スロット
+        this.timeSlots = this.generateTimeSlots();
+        this.apiBaseUrl = '/api';
+
+        this.init();
+    }
+
+    /**
+     * 時間スロットを生成 (7:00-19:00, 30分間隔)
+     */
+    generateTimeSlots() {
+        const slots = [];
+        for (let hour = 7; hour < 19; hour++) {
+            slots.push({
+                index: slots.length,
+                start: `${hour.toString().padStart(2, '0')}:00`,
+                end: `${hour.toString().padStart(2, '0')}:30`,
+                label: `${hour.toString().padStart(2, '0')}:00-${hour.toString().padStart(2, '0')}:30`
+            });
+            slots.push({
+                index: slots.length,
+                start: `${hour.toString().padStart(2, '0')}:30`,
+                end: `${(hour + 1).toString().padStart(2, '0')}:00`,
+                label: `${hour.toString().padStart(2, '0')}:30-${(hour + 1).toString().padStart(2, '0')}:00`
+            });
+        }
+        return slots;
+    }
+
+    /**
+     * 初期化
+     */
+    async init() {
+        this.bindEvents();
+        this.setupGrid();
+        await this.loadData();
+    }
+
+    /**
+     * イベントバインディング
+     */
+    bindEvents() {
+        document.getElementById('gridViewBtn').addEventListener('click', () => this.switchView('grid'));
+        document.getElementById('listViewBtn').addEventListener('click', () => this.switchView('list'));
+        document.getElementById('refreshBtn').addEventListener('click', () => this.loadData());
+        document.getElementById('retryBtn').addEventListener('click', () => this.loadData());
+
+        document.getElementById('userFilter').addEventListener('change', () => this.filterList());
+        document.getElementById('timeFilter').addEventListener('change', () => this.filterList());
+    }
+
+    /**
+     * グリッド構造をセットアップ
+     */
+    setupGrid() {
+        // 時間ヘッダー（番号付き）を生成
+        const gridNumbers = document.querySelector('.grid-numbers');
+        gridNumbers.innerHTML = '';
+
+        this.timeSlots.forEach(slot => {
+            const timeCell = document.createElement('div');
+            timeCell.className = 'time-cell';
+            timeCell.innerHTML = `
+                <div class="grid-number">${slot.index}</div>
+                <div class="time-label">${slot.label}</div>
+            `;
+            gridNumbers.appendChild(timeCell);
+        });
+    }
+
+    /**
+     * データを読み込み
+     */
+    async loadData() {
+        try {
+            this.showLoading(true);
+            this.hideError();
+
+            console.log('🔥 データ読み込み開始');
+
+            // JWTトークンを取得（ローカルストレージから）
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                throw new Error('認証トークンがありません。ログインが必要です。');
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
+            // 並列でデータを取得
+            const [usersResponse, gridResponse] = await Promise.all([
+                fetch(`${this.apiBaseUrl}/availability/all`, { headers }),
+                fetch(`${this.apiBaseUrl}/grid-schedule`, { headers })
+            ]);
+
+            if (!usersResponse.ok) {
+                if (usersResponse.status === 401) {
+                    throw new Error('認証が必要です。ログインしてください。');
+                }
+                throw new Error(`Users API failed: ${usersResponse.status}`);
+            }
+            if (!gridResponse.ok) {
+                if (gridResponse.status === 401) {
+                    throw new Error('認証が必要です。ログインしてください。');
+                }
+                throw new Error(`Grid API failed: ${gridResponse.status}`);
+            }
+
+            const usersData = await usersResponse.json();
+            const gridData = await gridResponse.json();
+
+            console.log('✅ Users data loaded:', usersData);
+            console.log('✅ Grid data loaded:', gridData);
+
+            // データ構造を正規化
+            if (Array.isArray(usersData)) {
+                this.users = usersData;
+            } else {
+                this.users = usersData.users || [];
+            }
+
+            if (gridData.grid_schedule) {
+                // grid-schedule APIのレスポンス形式に対応
+                this.gridData = this.processGridSchedule(gridData.grid_schedule);
+            } else {
+                this.gridData = gridData.grid || [];
+            }
+
+            this.scheduleData = this.processScheduleData();
+
+            console.log('📊 処理済みユーザー数:', this.users.length);
+            console.log('📊 処理済みグリッド数:', this.gridData.length);
+
+            this.renderGrid();
+            this.renderList();
+            this.populateUserFilter();
+
+        } catch (error) {
+            console.error('❌ データ読み込みエラー:', error);
+            this.showError(`データの読み込みに失敗しました: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    /**
+     * grid-schedule APIレスポンスを処理
+     */
+    processGridSchedule(gridSchedule) {
+        const processedGrid = [];
+
+        // 各曜日の各時間スロットを処理
+        Object.entries(gridSchedule).forEach(([day, daySlots]) => {
+            if (Array.isArray(daySlots)) {
+                daySlots.forEach(slot => {
+                    processedGrid.push({
+                        day: day,
+                        grid_index: slot.grid_index,
+                        start: slot.start,
+                        end: slot.end,
+                        participant_count: slot.participant_count,
+                        available_users: slot.available_users || [],
+                        unavailable_users: slot.unavailable_users || [],
+                        availability_percentage: slot.availability_percentage || 0
+                    });
+                });
+            }
+        });
+
+        return processedGrid;
+    }
+
+    /**
+     * スケジュールデータを処理
+     */
+    processScheduleData() {
+        const processed = [];
+
+        // gridDataから詳細リスト用のデータを生成
+        this.gridData.forEach(slot => {
+            if (slot.available_users && slot.available_users.length > 0) {
+                slot.available_users.forEach(username => {
+                    processed.push({
+                        username: username,
+                        start_time: slot.start,
+                        end_time: slot.end,
+                        grid_index: slot.grid_index,
+                        available: true
+                    });
+                });
+            }
+        });
+
+        return processed;
+    }
+
+    /**
+     * グリッド表示をレンダリング
+     */
+    renderGrid() {
+        const userList = document.querySelector('.user-list');
+        const gridCells = document.querySelector('.grid-cells');
+
+        if (!userList || !gridCells) {
+            console.error('❌ グリッド要素が見つかりません');
+            return;
+        }
+
+        // ユーザーリストをクリア
+        userList.innerHTML = '';
+        gridCells.innerHTML = '';
+
+        if (this.users.length === 0) {
+            userList.innerHTML = '<div class="no-data">ユーザーがいません</div>';
+            return;
+        }
+
+        console.log('🎯 グリッド描画開始 - ユーザー数:', this.users.length);
+
+        // ユーザーごとの行を作成
+        this.users.forEach((user, userIndex) => {
+            // ユーザー名
+            const userRow = document.createElement('div');
+            userRow.className = 'user-row';
+            userRow.textContent = user.username || `User ${userIndex + 1}`;
+            userList.appendChild(userRow);
+
+            // グリッドセル行
+            const cellRow = document.createElement('div');
+            cellRow.className = 'cell-row';
+
+            // 各時間スロットのセル
+            this.timeSlots.forEach((slot, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.dataset.user = user.username;
+                cell.dataset.gridIndex = index;
+
+                // グリッドデータから該当するスロット（月曜日を使用）を検索
+                const gridSlot = this.gridData.find(g =>
+                    g.grid_index === index && (g.day === 'monday' || !g.day)
+                );
+
+                const isAvailable = gridSlot && gridSlot.available_users &&
+                                  gridSlot.available_users.includes(user.username);
+
+                if (isAvailable) {
+                    cell.classList.add('available');
+
+                    // 参加者数によって色を変える
+                    const participantCount = gridSlot.participant_count || 0;
+                    if (participantCount === 1) {
+                        cell.classList.add('single-user');
+                    } else if (participantCount === this.users.length) {
+                        cell.classList.add('full-meeting');
+                    } else {
+                        cell.classList.add('partial-meeting');
+                    }
+
+                    cell.title = `${user.username} - ${slot.label} 利用可能 (${participantCount}人参加)`;
+
+                    // グリッド番号を表示
+                    const gridNumber = document.createElement('span');
+                    gridNumber.className = 'grid-number-display';
+                    gridNumber.textContent = index;
+                    cell.appendChild(gridNumber);
+
+                } else {
+                    cell.classList.add('unavailable');
+                    cell.title = `${user.username} - ${slot.label} 利用不可`;
+                }
+
+                cellRow.appendChild(cell);
+            });
+
+            gridCells.appendChild(cellRow);
+        });
+
+        console.log('✅ グリッド描画完了');
+
+        // デバッグ情報を表示
+        this.logGridDebugInfo();
+    }
+
+    /**
+     * グリッドデバッグ情報を出力
+     */
+    logGridDebugInfo() {
+        console.log('🔍 グリッドデバッグ情報:');
+        console.log('Time slots:', this.timeSlots.length);
+        console.log('Grid data:', this.gridData.length);
+
+        // user2 (ken) の 08:30 (グリッド#3) を特別にチェック
+        const kenGrid3 = this.gridData.find(g =>
+            g.grid_index === 3 && g.day === 'monday'
+        );
+
+        if (kenGrid3) {
+            console.log('🎯 ken (user2) のグリッド#3 (08:30-09:00):', kenGrid3);
+        } else {
+            console.log('❌ ken (user2) のグリッド#3が見つかりません');
+        }
+
+        // 最初の5つのグリッドスロットを表示
+        console.log('📊 最初の5グリッドスロット:');
+        this.gridData.slice(0, 5).forEach(slot => {
+            console.log(`  グリッド#${slot.grid_index}: ${slot.start}-${slot.end} (${slot.available_users?.join(', ')})`);
+        });
+    }
+
+    /**
+     * リスト表示をレンダリング
+     */
+    renderList() {
+        const scheduleList = document.getElementById('scheduleList');
+        scheduleList.innerHTML = '';
+
+        if (this.scheduleData.length === 0) {
+            scheduleList.innerHTML = '<div class="no-data">スケジュールデータがありません</div>';
+            return;
+        }
+
+        // グリッドインデックス順でソート
+        const sortedData = [...this.scheduleData].sort((a, b) => a.grid_index - b.grid_index);
+
+        sortedData.forEach(item => {
+            const listItem = document.createElement('div');
+            listItem.className = `schedule-item ${item.available ? 'available' : 'unavailable'}`;
+
+            listItem.innerHTML = `
+                <div class="item-header">
+                    <span class="grid-index">グリッド#${item.grid_index}</span>
+                    <span class="username">${item.username}</span>
+                    <span class="status ${item.available ? 'available' : 'unavailable'}">
+                        ${item.available ? '利用可能' : '利用不可'}
+                    </span>
+                </div>
+                <div class="time-range">
+                    ${item.start_time} - ${item.end_time}
+                </div>
+            `;
+
+            scheduleList.appendChild(listItem);
+        });
+    }
+
+    /**
+     * ユーザーフィルターを設定
+     */
+    populateUserFilter() {
+        const userFilter = document.getElementById('userFilter');
+        userFilter.innerHTML = '<option value="">全てのユーザー</option>';
+
+        this.users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.username;
+            option.textContent = user.username;
+            userFilter.appendChild(option);
+        });
+    }
+
+    /**
+     * リストをフィルタリング
+     */
+    filterList() {
+        const userFilter = document.getElementById('userFilter').value;
+        const timeFilter = document.getElementById('timeFilter').value;
+        const items = document.querySelectorAll('.schedule-item');
+
+        items.forEach(item => {
+            const username = item.querySelector('.username').textContent;
+            const timeRange = item.querySelector('.time-range').textContent;
+
+            let showItem = true;
+
+            if (userFilter && username !== userFilter) {
+                showItem = false;
+            }
+
+            if (timeFilter && !timeRange.includes(timeFilter)) {
+                showItem = false;
+            }
+
+            item.style.display = showItem ? 'block' : 'none';
+        });
+    }
+
+    /**
+     * 表示切り替え
+     */
+    switchView(viewType) {
+        this.currentView = viewType;
+
+        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+        document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(`${viewType}View`).classList.add('active');
+        document.getElementById(`${viewType}ViewBtn`).classList.add('active');
+    }
+
+    /**
+     * ローディング表示制御
+     */
+    showLoading(show) {
+        const loading = document.getElementById('loading');
+        loading.style.display = show ? 'flex' : 'none';
+    }
+
+    /**
+     * エラー表示制御
+     */
+    showError(message) {
+        const error = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.textContent = message;
+        error.classList.remove('hidden');
+    }
+
+    hideError() {
+        const error = document.getElementById('error');
+        error.classList.add('hidden');
+    }
+}
+
+// アプリケーション開始
+document.addEventListener('DOMContentLoaded', () => {
+    window.scheduleManager = new ScheduleManager();
+});
