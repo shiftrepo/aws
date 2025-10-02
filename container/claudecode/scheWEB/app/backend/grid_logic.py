@@ -6,12 +6,12 @@
 
 def create_time_grid():
     """
-    7:00-19:00を30分刻みで固定グリッド作成
+    8:00-18:00を30分刻みで固定グリッド作成
     Returns: [(start_time, end_time, grid_index), ...]
     """
     grid = []
-    start_hour = 7  # 7:00開始
-    end_hour = 19   # 19:00終了
+    start_hour = 8  # 8:00開始
+    end_hour = 18   # 18:00終了
 
     index = 0
     for hour in range(start_hour, end_hour):
@@ -40,14 +40,14 @@ def time_to_grid_index(time_str):
     try:
         hours, minutes = map(int, time_str.split(':'))
 
-        # 7:00を基準とした分数計算
-        total_minutes = (hours - 7) * 60 + minutes
+        # 8:00を基準とした分数計算
+        total_minutes = (hours - 8) * 60 + minutes
 
         # 30分刻みでのインデックス
         grid_index = total_minutes // 30
 
-        # 範囲外チェック (7:00-19:00 = 0-23)
-        if grid_index < 0 or grid_index > 23:
+        # 範囲外チェック (8:00-18:00 = 0-19)
+        if grid_index < 0 or grid_index > 19:
             return None
 
         return grid_index
@@ -60,12 +60,12 @@ def grid_index_to_time(index):
     グリッドインデックスを時間文字列に変換
     3 -> '08:30'
     """
-    if index < 0 or index > 23:
+    if index < 0 or index > 19:
         return None
 
     # インデックスから分数計算
     total_minutes = index * 30
-    hours = 7 + (total_minutes // 60)
+    hours = 8 + (total_minutes // 60)
     minutes = total_minutes % 60
 
     return f"{hours:02d}:{minutes:02d}"
