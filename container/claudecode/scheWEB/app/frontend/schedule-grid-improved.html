@@ -735,10 +735,10 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.19 - 個別編集対応版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.22 - 編集画面全時間帯表示版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
-        console.log('📄 表示ファイル: schedule-grid-improved.html - LLM分析対応版');
+        console.log('📄 表示ファイル: schedule-grid-improved.html - 編集画面全時間帯表示版');
 
         // 認証管理システム
         class AuthManager {
@@ -835,7 +835,7 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.19</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.22</span></h1>
                                 <div class="controls">
                                     <span class="current-user">👤 ${currentUser.username}</span>
                                     <button id="addScheduleBtn">➕ 予定追加</button>
@@ -1445,19 +1445,19 @@
                 console.log('🖱️ モーダル表示:', { slot, user, hasExistingSchedule, currentDay: this.currentDay });
 
                 if (hasExistingSchedule && slot) {
-                    // 編集モード: 既存予定があるセルをクリック
-                    modalTitle.textContent = '予定を編集';
+                    // 編集モード: 既存予定があるセルをクリック - v2.1.22で全時間帯表示に変更
+                    modalTitle.textContent = `${this.getDayName(this.currentDay)}の予定を編集`;
                     daySelect.value = this.currentDay;
 
-                    // クリックした特定の予定のみを読み込む（個別編集モード）
-                    this.loadSpecificScheduleForEdit(this.currentDay, slot);
+                    // v2.1.22: 該当曜日の全予定を読み込む（全体編集モード）
+                    this.loadAllSchedulesForEdit(this.currentDay);
 
                     deleteBtn.classList.remove('hidden');
-                    modal.dataset.editMode = 'individual';
-                    modal.dataset.gridIndex = slot.index;
-                    modal.dataset.editingTimeSlot = `${slot.start}-${slot.end}`;
+                    deleteBtn.textContent = `${this.getDayName(this.currentDay)}の全予定を削除`;
+                    modal.dataset.editMode = 'all_edit';
+                    modal.dataset.editingDay = this.currentDay;
 
-                    console.log('📝 個別編集モード: 特定予定を読み込み', slot);
+                    console.log('📝 v2.1.22: 全体編集モード - 該当曜日の全予定を表示', this.currentDay);
                 } else if (slot && !hasExistingSchedule) {
                     // 新規追加モード: 空のセルをクリック
                     modalTitle.textContent = '予定を追加';
@@ -1528,8 +1528,8 @@
                 return '';
             }
 
-            loadSpecificScheduleForEdit(day, slot) {
-                console.log('🔄 特定予定編集読み込み開始:', day, slot);
+            loadAllSchedulesForEdit(day) {
+                console.log('🔄 v2.1.22: 全予定編集読み込み開始:', day);
                 console.log('💾 userAvailability:', this.userAvailability);
 
                 // 現在のユーザーの予定データから指定曜日の予定を取得
@@ -1537,94 +1537,83 @@
                     const schedules = this.userAvailability[day];
                     console.log('📅 指定曜日の全予定:', schedules);
 
-                    // クリックしたグリッドセルの時間帯に対応する予定を探す
-                    let targetSchedule = null;
-                    for (const schedule of schedules) {
-                        // グリッドセルの時間帯が予定の時間範囲内にある場合
-                        if (slot.start >= schedule.start && slot.end <= schedule.end) {
-                            targetSchedule = schedule;
-                            break;
-                        }
-                        // 予定の一部がグリッドセルと重なる場合も含める
-                        if (slot.start < schedule.end && slot.end > schedule.start) {
-                            targetSchedule = schedule;
-                            break;
-                        }
-                    }
-
-                    console.log('🎯 対象予定:', targetSchedule);
-
                     // 既存のスケジュール項目をクリア
                     const container = document.getElementById('scheduleContainer');
                     container.innerHTML = '';
 
-                    if (!targetSchedule) {
-                        // 対象予定が見つからない場合は空の項目を作成
+                    if (schedules.length === 0) {
+                        // 予定がない場合は空の項目を1つ作成
                         this.createEmptyScheduleItem();
                         return;
                     }
 
-                    // 対象予定のスケジュール項目を作成
-                    const firstItem = document.createElement('div');
-                    firstItem.className = 'schedule-item';
-                    firstItem.dataset.index = '0';
-                    firstItem.innerHTML = `
-                        <div class="schedule-item-header">編集中の予定</div>
-                        <div class="form-group">
-                            <label>開始時間（8:00〜18:00、30分刻み）</label>
-                            <div class="time-selector">
-                                <select id="startHour_0" class="start-hour" required>
-                                    <option value="08">08時</option>
-                                    <option value="09">09時</option>
-                                    <option value="10">10時</option>
-                                    <option value="11">11時</option>
-                                    <option value="12">12時</option>
-                                    <option value="13">13時</option>
-                                    <option value="14">14時</option>
-                                    <option value="15">15時</option>
-                                    <option value="16">16時</option>
-                                    <option value="17">17時</option>
-                                    <option value="18">18時</option>
-                                </select>
-                                <span class="time-separator">:</span>
-                                <select id="startMinute_0" class="start-minute" required>
-                                    <option value="00">00分</option>
-                                    <option value="30">30分</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>終了時間（8:00〜18:00、30分刻み）</label>
-                            <div class="time-selector">
-                                <select id="endHour_0" class="end-hour" required>
-                                    <option value="08">08時</option>
-                                    <option value="09">09時</option>
-                                    <option value="10">10時</option>
-                                    <option value="11">11時</option>
-                                    <option value="12">12時</option>
-                                    <option value="13">13時</option>
-                                    <option value="14">14時</option>
-                                    <option value="15">15時</option>
-                                    <option value="16">16時</option>
-                                    <option value="17">17時</option>
-                                    <option value="18">18時</option>
-                                </select>
-                                <span class="time-separator">:</span>
-                                <select id="endMinute_0" class="end-minute" required>
-                                    <option value="00">00分</option>
-                                    <option value="30">30分</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="button" class="remove-schedule-btn" onclick="window.scheduleManager.removeScheduleItem(0)">🗑️ この予定を削除</button>
-                    `;
-                    container.appendChild(firstItem);
+                    // 各予定に対してスケジュール項目を作成
+                    schedules.forEach((schedule, index) => {
+                        console.log(`⏰ 予定 ${index + 1}: ${schedule.start} - ${schedule.end}`);
 
-                    // 対象予定の時間を設定
-                    this.setTimeToSelectors('startHour_0', 'startMinute_0', targetSchedule.start);
-                    this.setTimeToSelectors('endHour_0', 'endMinute_0', targetSchedule.end);
+                        const scheduleItem = document.createElement('div');
+                        scheduleItem.className = 'schedule-item';
+                        scheduleItem.dataset.index = index.toString();
 
-                    this.scheduleItemCount = 1;
+                        scheduleItem.innerHTML = `
+                            <div class="schedule-item-header">時間帯 ${index + 1}</div>
+                            <div class="form-group">
+                                <label>開始時間（8:00〜18:00、30分刻み）</label>
+                                <div class="time-selector">
+                                    <select id="startHour_${index}" class="start-hour" required>
+                                        <option value="08">08時</option>
+                                        <option value="09">09時</option>
+                                        <option value="10">10時</option>
+                                        <option value="11">11時</option>
+                                        <option value="12">12時</option>
+                                        <option value="13">13時</option>
+                                        <option value="14">14時</option>
+                                        <option value="15">15時</option>
+                                        <option value="16">16時</option>
+                                        <option value="17">17時</option>
+                                        <option value="18">18時</option>
+                                    </select>
+                                    <span class="time-separator">:</span>
+                                    <select id="startMinute_${index}" class="start-minute" required>
+                                        <option value="00">00分</option>
+                                        <option value="30">30分</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>終了時間（8:00〜18:00、30分刻み）</label>
+                                <div class="time-selector">
+                                    <select id="endHour_${index}" class="end-hour" required>
+                                        <option value="08">08時</option>
+                                        <option value="09">09時</option>
+                                        <option value="10">10時</option>
+                                        <option value="11">11時</option>
+                                        <option value="12">12時</option>
+                                        <option value="13">13時</option>
+                                        <option value="14">14時</option>
+                                        <option value="15">15時</option>
+                                        <option value="16">16時</option>
+                                        <option value="17">17時</option>
+                                        <option value="18">18時</option>
+                                    </select>
+                                    <span class="time-separator">:</span>
+                                    <select id="endMinute_${index}" class="end-minute" required>
+                                        <option value="00">00分</option>
+                                        <option value="30">30分</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="button" class="remove-schedule-btn" onclick="window.scheduleManager.removeScheduleItem(${index})">🗑️ この時間帯を削除</button>
+                        `;
+
+                        container.appendChild(scheduleItem);
+
+                        // 各予定の時間を設定
+                        this.setTimeToSelectors(`startHour_${index}`, `startMinute_${index}`, schedule.start);
+                        this.setTimeToSelectors(`endHour_${index}`, `endMinute_${index}`, schedule.end);
+                    });
+
+                    this.scheduleItemCount = schedules.length;
                     this.updateRemoveButtonsVisibility();
                 } else {
                     console.log('❌ 指定曜日の予定が見つかりません');
@@ -1999,39 +1988,24 @@
                     // 既存の全曜日の予定を保持するため、現在のavailabilityをベースにする
                     const allAvailability = { ...currentAvailability };
 
-                    if (isIndividualEdit) {
-                        // 個別編集モード: 特定の予定のみを更新し、他の予定は保持
-                        console.log('💾 個別編集モード保存:', editingTimeSlot);
+                    if (editMode === 'all_edit') {
+                        // v2.1.22: 全体編集モード - 該当曜日の全予定を置き換え
+                        console.log('💾 v2.1.22: 全体編集モード保存:', day);
 
-                        const existingSchedules = currentAvailability[day] ? [...currentAvailability[day]] : [];
-                        let updatedSchedules = [];
-
-                        // 編集対象の元の予定を探して除去
-                        if (editingTimeSlot && existingSchedules.length > 0) {
-                            const [origStart, origEnd] = editingTimeSlot.split('-');
-                            updatedSchedules = existingSchedules.filter(schedule => {
-                                return !(schedule.start === origStart && schedule.end === origEnd);
-                            });
-                        } else {
-                            updatedSchedules = [...existingSchedules];
-                        }
-
-                        // 新しい予定を追加（空でない場合）
-                        if (scheduleItems.length > 0) {
-                            // 重複チェック（他の既存予定との）
-                            for (const newItem of scheduleItems) {
-                                for (const existing of updatedSchedules) {
-                                    if ((newItem.start < existing.end && newItem.end > existing.start)) {
-                                        alert(`新しい時間帯が既存の予定 ${existing.start}-${existing.end} と重複しています`);
-                                        loading.classList.remove('show');
-                                        return;
-                                    }
+                        // 重複チェック（モーダル内の予定同士）
+                        for (let i = 0; i < scheduleItems.length; i++) {
+                            for (let j = i + 1; j < scheduleItems.length; j++) {
+                                if ((scheduleItems[i].start < scheduleItems[j].end &&
+                                     scheduleItems[i].end > scheduleItems[j].start)) {
+                                    alert(`時間帯 ${i + 1} (${scheduleItems[i].start}-${scheduleItems[i].end}) と時間帯 ${j + 1} (${scheduleItems[j].start}-${scheduleItems[j].end}) が重複しています`);
+                                    loading.classList.remove('show');
+                                    return;
                                 }
                             }
-                            updatedSchedules.push(...scheduleItems);
                         }
 
-                        allAvailability[day] = updatedSchedules;
+                        // 該当曜日の予定を全て置き換える
+                        allAvailability[day] = scheduleItems;
                     } else if (editMode === 'false' && currentAvailability[day] && currentAvailability[day].length > 0) {
                         // 新規追加モード: 既存の予定に新しい予定を追加
                         const existingSchedules = [...currentAvailability[day]];
