@@ -133,7 +133,7 @@ def login():
     ).fetchone()
     conn.close()
 
-    if user and check_password(data['password'], user['password_hash']):
+    if user and data['password'] == user['password_hash']:
         access_token = create_access_token(
             identity=str(user['id']),
             additional_claims={"username": user['username']}
