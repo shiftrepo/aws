@@ -735,10 +735,10 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.25 - admin LLM除外修正版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.26 - ヘルプ機能充実版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
-        console.log('📄 表示ファイル: schedule-grid-improved.html - 編集画面全時間帯表示版');
+        console.log('📄 表示ファイル: schedule-grid-improved.html - ヘルプ機能充実版');
 
         // 認証管理システム
         class AuthManager {
@@ -839,13 +839,14 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.25</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.26</span></h1>
                                 <div class="controls">
                                     <span class="current-user">👤 ${currentUser.username} ${currentUser.username === 'admin' ? '(管理者)' : ''}</span>
                                     ${currentUser.username !== 'admin' ? '<button id="addScheduleBtn">➕ 予定追加</button>' : ''}
                                     ${currentUser.username === 'admin' ? '<button id="adminUsersBtn">👥 ユーザー管理</button>' : ''}
                                     ${currentUser.username === 'admin' ? '<button id="adminDataBtn">💾 データ管理</button>' : ''}
                                     <button id="analysisBtn">🤖 LLM分析</button>
+                                    <button id="helpBtn">❓ ヘルプ</button>
                                     <button id="refreshBtn">🔄 更新</button>
                                     <button id="logoutBtn" class="logout-btn">🚪 ログアウト</button>
                                 </div>
@@ -1050,6 +1051,24 @@
                         </div>
                     </div>` : ''}
 
+                    <!-- ヘルプモーダル -->
+                    <div id="helpModal" class="modal">
+                        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                            <div class="modal-header" style="position: sticky; top: 0; background: white; z-index: 10; border-bottom: 1px solid #dee2e6;">
+                                <h2>❓ システムヘルプ</h2>
+                                <button class="close-btn" id="closeHelpModal">&times;</button>
+                            </div>
+                            <div class="modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto; padding: 1.5rem;">
+                                <div id="helpContent">
+                                    <!-- ヘルプコンテンツはJavaScriptで動的生成 -->
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="position: sticky; bottom: 0; background: white; border-top: 1px solid #dee2e6;">
+                                <button id="closeHelpBtn" class="cancel-btn">閉じる</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ローディング -->
                     <div id="loading" class="loading">
                         <div class="spinner"></div>
@@ -1091,6 +1110,10 @@
                     if (window.scheduleManager) {
                         window.scheduleManager.runLLMAnalysis();
                     }
+                });
+
+                document.getElementById('helpBtn').addEventListener('click', () => {
+                    this.showHelpModal();
                 });
             }
 
@@ -1345,6 +1368,207 @@
                     console.error('削除エラー:', error);
                     alert('❌ 削除処理に失敗しました');
                 }
+            }
+
+            showHelpModal() {
+                const modal = document.getElementById('helpModal');
+                const helpContent = document.getElementById('helpContent');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+                // ヘルプコンテンツを動的生成
+                helpContent.innerHTML = this.generateHelpContent(currentUser);
+
+                // モーダルを表示
+                modal.classList.add('show');
+
+                // モーダル閉じるイベント（一度だけ追加）
+                const closeModal = () => {
+                    modal.classList.remove('show');
+                };
+
+                document.getElementById('closeHelpModal').addEventListener('click', closeModal);
+                document.getElementById('closeHelpBtn').addEventListener('click', closeModal);
+
+                // モーダル外クリックで閉じる
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            }
+
+            generateHelpContent(currentUser) {
+                const isAdmin = currentUser.username === 'admin';
+
+                return `
+                    <div style="line-height: 1.6;">
+                        <!-- システム概要 -->
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                            <h3 style="margin: 0 0 1rem 0; font-size: 1.3rem;">🎯 チームスケジュール管理システムとは</h3>
+                            <p style="margin: 0; font-size: 1rem;">チームメンバーの予定を共有し、AI分析により最適な会議時間を見つけるシステムです。</p>
+                        </div>
+
+                        <!-- 基本操作 -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1rem;">📖 基本操作</h3>
+
+                            <div style="display: grid; gap: 1rem;">
+                                ${!isAdmin ? `
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border-left: 4px solid #28a745;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #28a745;">➕ 予定の追加</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;">1. 「予定追加」ボタンをクリック、または空いているセル（グレー）をクリック<br>
+                                    2. 曜日と時間を選択<br>
+                                    3. 「保存」ボタンで予定を登録</p>
+                                </div>
+
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border-left: 4px solid #007bff;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #007bff;">✏️ 予定の編集</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;">1. 既存の予定があるセル（色付き）をクリック<br>
+                                    2. その曜日の全予定が表示されるので、必要に応じて編集<br>
+                                    3. 「保存」ボタンで変更を確定</p>
+                                </div>
+
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border-left: 4px solid #dc3545;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #dc3545;">🗑️ 予定の削除</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;">1. 既存の予定があるセル（色付き）をクリック<br>
+                                    2. 編集画面で「この曜日の全予定を削除」ボタンをクリック<br>
+                                    3. 確認メッセージで「OK」を選択</p>
+                                </div>
+                                ` : ''}
+
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border-left: 4px solid #6f42c1;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #6f42c1;">🤖 AI分析の活用</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;">1. 「LLM分析」ボタンをクリック<br>
+                                    2. AI が全員の予定を分析し、最適な会議時間候補を提案<br>
+                                    3. 参加人数、参加率、時間の長さを考慮した TOP 4 候補を表示</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- スケジュールグリッドの見方 -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1rem;">📊 スケジュールグリッドの見方</h3>
+
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; background: #f8f9fa; border-radius: 6px;">
+                                    <div style="width: 30px; height: 20px; background: #d4edda; border-radius: 3px;"></div>
+                                    <span><strong>緑色セル：</strong> あなたが参加可能な時間帯</span>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; background: #f8f9fa; border-radius: 6px;">
+                                    <div style="width: 30px; height: 20px; background: linear-gradient(135deg, #fff3cd, #ffeaa7); border-left: 4px solid #f39c12; border-radius: 3px;"></div>
+                                    <span><strong>黄色セル：</strong> 1人だけが参加可能（あなた含む）</span>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; background: #f8f9fa; border-radius: 6px;">
+                                    <div style="width: 30px; height: 20px; background: linear-gradient(135deg, #d1ecf1, #74b9ff); border-left: 4px solid #0984e3; border-radius: 3px;"></div>
+                                    <span><strong>青色セル：</strong> 一部のメンバーが参加可能（部分会議）</span>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; background: #f8f9fa; border-radius: 6px;">
+                                    <div style="width: 30px; height: 20px; background: linear-gradient(135deg, #d4edda, #00b894); border-left: 4px solid #00a085; border-radius: 3px;"></div>
+                                    <span><strong>濃い緑セル：</strong> 全員が参加可能（理想的な会議時間）</span>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 1rem; padding: 1rem; background: #e3f2fd; border-radius: 6px;">
+                                <p style="margin: 0; font-size: 0.9rem;"><strong>💡 ヒント：</strong> セル内の数字は参加可能人数を表示します。数字が大きいほど多くの人が参加できる時間帯です。</p>
+                            </div>
+                        </div>
+
+                        ${isAdmin ? `
+                        <!-- 管理者機能 -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #333; border-bottom: 2px solid #dc3545; padding-bottom: 0.5rem; margin-bottom: 1rem;">👥 管理者機能</h3>
+
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="background: #fff3cd; padding: 1rem; border-radius: 6px; border-left: 4px solid #ffc107;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #856404;">👥 ユーザー管理</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;">登録されているユーザーの一覧表示と削除が可能です。<br>
+                                    ⚠️ ユーザーを削除すると、そのユーザーの全ての予定データも削除されます。</p>
+                                </div>
+
+                                <div style="background: #f8d7da; padding: 1rem; border-radius: 6px; border-left: 4px solid #dc3545;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #721c24;">💾 データ管理</h4>
+                                    <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem;"><strong>📤 エクスポート：</strong> 全ユーザーと予定データをJSONファイルでバックアップ<br>
+                                    <strong>📥 インポート：</strong> バックアップファイルからデータを復元<br>
+                                    <strong>🗑️ 全データ削除：</strong> システム内の全データを完全削除</p>
+                                    <p style="margin: 0; font-size: 0.85rem; color: #721c24;"><strong>⚠️ 注意：</strong> データ削除操作は元に戻すことができません。</p>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <!-- 時間設定について -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1rem;">⏰ 時間設定について</h3>
+
+                            <div style="background: #f8f9fa; padding: 1.2rem; border-radius: 6px;">
+                                <ul style="margin: 0; padding-left: 1.2rem;">
+                                    <li style="margin-bottom: 0.5rem;"><strong>利用可能時間：</strong> 7:00 〜 19:00（12時間）</li>
+                                    <li style="margin-bottom: 0.5rem;"><strong>時間間隔：</strong> 30分刻み（24スロット/日）</li>
+                                    <li style="margin-bottom: 0.5rem;"><strong>対象曜日：</strong> 月曜日 〜 金曜日（平日のみ）</li>
+                                    <li><strong>連続予定：</strong> 複数の時間帯を連続して登録可能</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- AI分析について -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1rem;">🤖 AI分析について</h3>
+
+                            <div style="background: #f8f9fa; padding: 1.2rem; border-radius: 6px;">
+                                <h4 style="margin: 0 0 1rem 0; color: #333;">📊 分析内容</h4>
+                                <ul style="margin: 0 0 1rem 0; padding-left: 1.2rem;">
+                                    <li style="margin-bottom: 0.5rem;">全メンバーの予定を分析し、最適な会議時間を提案</li>
+                                    <li style="margin-bottom: 0.5rem;">参加人数、参加率、時間の長さを総合的に評価</li>
+                                    <li style="margin-bottom: 0.5rem;">連続する時間帯を優先的に推奨</li>
+                                    <li>午前中や昼食後など、会議に適した時間帯を考慮</li>
+                                </ul>
+
+                                <h4 style="margin: 1rem 0 0.5rem 0; color: #333;">🎯 活用方法</h4>
+                                <p style="margin: 0; font-size: 0.9rem;">AI分析結果の TOP 4 候補から、チームの状況に最も適した時間を選んで会議をスケジュールしてください。</p>
+                            </div>
+                        </div>
+
+                        <!-- よくある質問 -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1rem;">❓ よくある質問</h3>
+
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #007bff;">Q. 予定を間違って登録してしまいました</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;"><strong>A.</strong> 該当する曜日の色付きセルをクリックして編集画面を開き、予定を修正または削除してください。</p>
+                                </div>
+
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #007bff;">Q. AI分析で候補が表示されません</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;"><strong>A.</strong> 2人以上が参加可能な時間帯がない場合、候補は表示されません。メンバーに予定の追加を促してください。</p>
+                                </div>
+
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #007bff;">Q. 土日の予定は登録できませんか？</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;"><strong>A.</strong> 現在は平日（月〜金）のみサポートしています。土日の対応は今後の機能追加で検討予定です。</p>
+                                </div>
+
+                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #007bff;">Q. 他のユーザーの予定を編集できますか？</h4>
+                                    <p style="margin: 0; font-size: 0.9rem;"><strong>A.</strong> 各ユーザーは自分の予定のみ編集可能です。他のユーザーの予定は閲覧のみできます。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- システム情報 -->
+                        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 8px; text-align: center;">
+                            <h4 style="margin: 0 0 1rem 0; color: #495057;">📋 システム情報</h4>
+                            <p style="margin: 0; font-size: 0.9rem; color: #6c757d;">
+                                バージョン: v2.1.26<br>
+                                最終更新: ヘルプ機能充実版<br>
+                                AI分析: AWS Bedrock Claude 3 Sonnet
+                            </p>
+                        </div>
+                    </div>
+                `;
             }
 
             logout() {
