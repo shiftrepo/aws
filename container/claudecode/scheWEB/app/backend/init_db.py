@@ -79,11 +79,11 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_meetings_day ON meetings (day_of_week)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_meeting_participants ON meeting_participants (meeting_id, user_id)')
 
-    # Insert sample data for development/testing
+    # Insert sample data for development/testing - using plain text passwords for simple authentication
     sample_users = [
-        ("admin", "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewkY4u2QNuP1YtlW", "09:00", "18:00"),  # password: admin123
-        ("user1", "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewkY4u2QNuP1YtlW", "09:30", "17:30"),  # password: admin123
-        ("user2", "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewkY4u2QNuP1YtlW", "08:30", "17:00"),  # password: admin123
+        ("admin", "admin123", "09:00", "18:00"),     # Simple plain text password
+        ("user1", "admin123", "09:30", "17:30"),     # Simple plain text password
+        ("user2", "admin123", "08:30", "17:00"),     # Simple plain text password
     ]
 
     for username, password_hash, start_time, end_time in sample_users:
