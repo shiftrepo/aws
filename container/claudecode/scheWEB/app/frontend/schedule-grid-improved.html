@@ -107,15 +107,19 @@
             font-weight: 500;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 0.9rem;
             border: 2px solid #e1e5e9;
             border-radius: 8px;
             transition: border-color 0.3s;
+            background: white;
+            font-size: 1rem;
         }
 
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -952,7 +956,7 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.29 - 明るく洗練されたデザイン版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.30 - 新規ユーザー登録機能追加版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
         console.log('📄 表示ファイル: schedule-grid-improved.html - ヘルプ機能充実版');
@@ -1000,6 +1004,9 @@
                                 <button type="submit" class="auth-btn">ログイン</button>
                                 <div id="loginError" class="error-message" style="display: none;"></div>
                             </form>
+                            <div style="text-align: center; margin-top: 1rem;">
+                                <button type="button" id="showRegisterBtn" class="auth-btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); margin-top: 10px;">新規登録</button>
+                            </div>
                             <div class="demo-info">
                                 <h3 style="color: #ff6b6b; margin-bottom: 10px; font-size: 1.2em;">🔑 ログイン情報</h3>
                                 <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
@@ -1016,6 +1023,65 @@
                 document.getElementById('loginForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.handleLogin();
+                });
+
+                document.getElementById('showRegisterBtn').addEventListener('click', () => {
+                    this.showRegister();
+                });
+            }
+
+            showRegister() {
+                document.body.innerHTML = `
+                    <div class="auth-container">
+                        <div class="auth-card">
+                            <h1>📝 新規ユーザー登録</h1>
+                            <form id="registerForm">
+                                <div class="form-group">
+                                    <label for="regUsername">ユーザーネーム</label>
+                                    <input type="text" id="regUsername" required placeholder="ユーザーネームを入力">
+                                </div>
+                                <div class="form-group">
+                                    <label for="regPassword">パスワード</label>
+                                    <input type="password" id="regPassword" required placeholder="パスワードを入力">
+                                </div>
+                                <div class="form-group">
+                                    <label for="startTime">勤務開始時間</label>
+                                    <select id="startTime" required>
+                                        <option value="">開始時間を選択</option>
+                                        <option value="07:00">07:00</option>
+                                        <option value="08:00">08:00</option>
+                                        <option value="09:00" selected>09:00</option>
+                                        <option value="10:00">10:00</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="endTime">勤務終了時間</label>
+                                    <select id="endTime" required>
+                                        <option value="">終了時間を選択</option>
+                                        <option value="16:00">16:00</option>
+                                        <option value="17:00">17:00</option>
+                                        <option value="18:00" selected>18:00</option>
+                                        <option value="19:00">19:00</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="auth-btn">登録</button>
+                                <div id="registerError" class="error-message" style="display: none;"></div>
+                                <div id="registerSuccess" class="success-message" style="display: none; color: #28a745; margin-top: 1rem; text-align: center; font-weight: bold;"></div>
+                            </form>
+                            <div style="text-align: center; margin-top: 1rem;">
+                                <button type="button" id="showLoginBtn" class="auth-btn" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); margin-top: 10px;">ログインに戻る</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('registerForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleRegister();
+                });
+
+                document.getElementById('showLoginBtn').addEventListener('click', () => {
+                    this.showLogin();
                 });
             }
 
@@ -1049,6 +1115,55 @@
                 }
             }
 
+            async handleRegister() {
+                const username = document.getElementById('regUsername').value;
+                const password = document.getElementById('regPassword').value;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                const errorElement = document.getElementById('registerError');
+                const successElement = document.getElementById('registerSuccess');
+
+                // エラーメッセージをクリア
+                errorElement.style.display = 'none';
+                successElement.style.display = 'none';
+
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password,
+                            start_time: startTime,
+                            end_time: endTime
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        console.log('✅ 登録成功:', data.message);
+                        successElement.textContent = '🎉 登録が完了しました！ログイン画面に戻ります...';
+                        successElement.style.display = 'block';
+
+                        // 3秒後にログイン画面に戻る
+                        setTimeout(() => {
+                            this.showLogin();
+                        }, 3000);
+                    } else {
+                        console.error('❌ 登録エラー:', data.error);
+                        errorElement.textContent = data.error || '登録に失敗しました';
+                        errorElement.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('💥 ネットワークエラー:', error);
+                    errorElement.textContent = 'サーバーとの通信に失敗しました';
+                    errorElement.style.display = 'block';
+                }
+            }
+
             showDashboard() {
                 const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
@@ -1056,7 +1171,7 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.29</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.30</span></h1>
                                 <div class="controls">
                                     <span class="current-user">👤 ${currentUser.username} ${currentUser.username === 'admin' ? '(管理者)' : ''}</span>
                                     ${currentUser.username !== 'admin' ? '<button id="addScheduleBtn">➕ 予定追加</button>' : ''}

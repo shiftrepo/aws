@@ -92,16 +92,14 @@ def register():
             logger.warning(f"❌ REGISTRATION: Username '{data['username']}' already exists")
             return jsonify({"error": "Username already exists"}), 400
 
-        # Create new user
-        logger.info(f"🔄 REGISTRATION: Hashing password for '{data['username']}'")
-        hashed_password = hash_password(data['password'])
-        logger.info(f"✅ REGISTRATION: Password hashed successfully")
+        # Create new user (simple password storage)
+        logger.info(f"🔄 REGISTRATION: Storing user '{data['username']}' with simple password")
 
         logger.info(f"🔄 REGISTRATION: Inserting user '{data['username']}' into database")
         conn.execute('''
             INSERT INTO users (username, password_hash, start_time, end_time, created_at)
             VALUES (?, ?, ?, ?, ?)
-        ''', (data['username'], hashed_password, data['start_time'],
+        ''', (data['username'], data['password'], data['start_time'],
               data['end_time'], datetime.now().isoformat()))
         conn.commit()
         conn.close()
@@ -120,7 +118,7 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """User login"""
+    """Simple user login - accepts any valid username/password combination"""
     data = request.get_json()
 
     if not data.get('username') or not data.get('password'):
@@ -133,11 +131,13 @@ def login():
     ).fetchone()
     conn.close()
 
+    # Simple authentication - if user exists and password matches, allow login
     if user and data['password'] == user['password_hash']:
         access_token = create_access_token(
             identity=str(user['id']),
             additional_claims={"username": user['username']}
         )
+        logger.info(f"✅ LOGIN SUCCESS: User '{user['username']}' logged in successfully")
         return jsonify({
             "access_token": access_token,
             "user": {
@@ -146,6 +146,7 @@ def login():
             }
         })
 
+    logger.warning(f"❌ LOGIN FAILED: Invalid credentials for '{data.get('username', 'unknown')}'")
     return jsonify({"error": "Invalid credentials"}), 401
 
 @app.route('/api/availability', methods=['POST'])
@@ -635,14 +636,13 @@ def import_all_data():
                     errors.append(f"User '{user_data['username']}' already exists - skipped")
                     continue
 
-                # Hash password and insert user
-                hashed_password = hash_password(user_data['password'])
+                # Simple password storage (matching our simplified auth)
                 conn.execute('''
                     INSERT INTO users (username, password_hash, start_time, end_time, created_at)
                     VALUES (?, ?, ?, ?, ?)
                 ''', (
                     user_data['username'],
-                    hashed_password,
+                    user_data['password'],
                     user_data['start_time'],
                     user_data['end_time'],
                     user_data.get('created_at', datetime.now().isoformat())
