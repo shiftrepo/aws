@@ -236,9 +236,9 @@
         }
 
         .time-slot {
-            width: 40px;
-            min-width: 40px;
-            max-width: 40px;
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
             padding: 0.3rem 0.15rem;
             text-align: center;
             border-right: 1px solid #dee2e6;
@@ -302,9 +302,9 @@
         }
 
         .grid-cell {
-            width: 40px;
-            min-width: 40px;
-            max-width: 40px;
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
             min-height: 30px;
             border-right: 1px solid #dee2e6;
             position: relative;
@@ -735,7 +735,7 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.26 - ヘルプ機能充実版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.28 - グリッド幅最適化版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
         console.log('📄 表示ファイル: schedule-grid-improved.html - ヘルプ機能充実版');
@@ -839,7 +839,7 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.26</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.28</span></h1>
                                 <div class="controls">
                                     <span class="current-user">👤 ${currentUser.username} ${currentUser.username === 'admin' ? '(管理者)' : ''}</span>
                                     ${currentUser.username !== 'admin' ? '<button id="addScheduleBtn">➕ 予定追加</button>' : ''}
