@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - sqlite_data:/app/data
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - DATABASE_PATH=/app/data/scheduler.db
+      - SECRET_KEY=dev-secret-key-change-in-production
+      # AWS Bedrock環境変数（ホストから継承）
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    networks:
+      - app-network
+    # Podman固有の設定
+    security_opt:
+      - label=disable
+
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    # Podman固有の設定
+    security_opt:
+      - label=disable
+
+volumes:
+  sqlite_data:
+    # Podman用のボリューム設定
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

@@ -46,6 +46,10 @@ def check_password(password, hashed):
     """Check password against hash"""
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
+def is_admin_user(username):
+    """Check if user is admin"""
+    return username == 'admin'
+
 # API Routes
 
 @app.route('/api/register', methods=['POST'])
@@ -213,12 +217,13 @@ def get_all_availability():
         conn = get_db_connection()
         logger.info("✅ AVAILABILITY/ALL: Database connection established")
 
-        # Get all users with their availability
+        # Get all users with their availability (exclude admin)
         query = '''
             SELECT u.id, u.username, u.start_time, u.end_time,
                    a.day_of_week, a.start_time as avail_start, a.end_time as avail_end
             FROM users u
             LEFT JOIN availability a ON u.id = a.user_id
+            WHERE u.username != 'admin'
             ORDER BY u.username, a.day_of_week, a.start_time
         '''
 
@@ -269,17 +274,18 @@ def get_grid_schedule():
     """
     conn = get_db_connection()
 
-    # 全ユーザーの情報を取得
+    # 全ユーザーの情報を取得（adminを除外）
     users_query = '''
-        SELECT id, username FROM users ORDER BY username
+        SELECT id, username FROM users WHERE username != 'admin' ORDER BY username
     '''
     all_users = {row['id']: row['username'] for row in conn.execute(users_query).fetchall()}
 
-    # 全ユーザーのavailabilityを取得
+    # 全ユーザーのavailabilityを取得（adminを除外）
     query = '''
         SELECT u.id, u.username, a.day_of_week, a.start_time, a.end_time
         FROM users u
         LEFT JOIN availability a ON u.id = a.user_id
+        WHERE u.username != 'admin'
         ORDER BY u.username, a.day_of_week, a.start_time
     '''
 
@@ -499,6 +505,88 @@ def run_llm_analysis():
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"分析中にエラーが発生しました: {str(e)}"}), 500
+
+# Admin only endpoints
+@app.route('/api/admin/users', methods=['GET'])
+@jwt_required()
+def get_all_users():
+    """Get all users (admin only)"""
+    # Get current user from JWT
+    current_user_id = get_jwt_identity()
+    conn = get_db_connection()
+    current_user = conn.execute(
+        'SELECT username FROM users WHERE id = ?',
+        (current_user_id,)
+    ).fetchone()
+
+    if not current_user or not is_admin_user(current_user['username']):
+        conn.close()
+        return jsonify({"error": "Admin access required"}), 403
+
+    # Get all users except admin
+    users = conn.execute('''
+        SELECT id, username, start_time, end_time, created_at
+        FROM users
+        WHERE username != 'admin'
+        ORDER BY created_at DESC
+    ''').fetchall()
+    conn.close()
+
+    users_list = []
+    for user in users:
+        users_list.append({
+            "id": user['id'],
+            "username": user['username'],
+            "start_time": user['start_time'],
+            "end_time": user['end_time'],
+            "created_at": user['created_at']
+        })
+
+    return jsonify({"users": users_list})
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    """Delete user (admin only)"""
+    # Get current user from JWT
+    current_user_id = get_jwt_identity()
+    conn = get_db_connection()
+    current_user = conn.execute(
+        'SELECT username FROM users WHERE id = ?',
+        (current_user_id,)
+    ).fetchone()
+
+    if not current_user or not is_admin_user(current_user['username']):
+        conn.close()
+        return jsonify({"error": "Admin access required"}), 403
+
+    # Check if user exists and is not admin
+    target_user = conn.execute(
+        'SELECT id, username FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
+
+    if not target_user:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+
+    if target_user['username'] == 'admin':
+        conn.close()
+        return jsonify({"error": "Cannot delete admin user"}), 403
+
+    try:
+        # Delete user's availability and meetings (CASCADE should handle this)
+        conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        conn.commit()
+        conn.close()
+
+        logger.info(f"🗑️ Admin {current_user['username']} deleted user {target_user['username']} (ID: {user_id})")
+        return jsonify({"message": f"User '{target_user['username']}' deleted successfully"})
+
+    except sqlite3.Error as e:
+        conn.close()
+        logger.error(f"💥 Delete user error: {str(e)}")
+        return jsonify({"error": f"Failed to delete user: {str(e)}"}), 500
 
 @app.route('/api/meeting-compatibility')
 @jwt_required()

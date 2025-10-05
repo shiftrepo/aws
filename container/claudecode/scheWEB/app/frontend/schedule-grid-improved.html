@@ -735,7 +735,7 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.22 - 編集画面全時間帯表示版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.23 - admin除外版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
         console.log('📄 表示ファイル: schedule-grid-improved.html - 編集画面全時間帯表示版');
@@ -784,9 +784,13 @@
                                 <div id="loginError" class="error-message" style="display: none;"></div>
                             </form>
                             <div class="demo-info">
-                                <p><strong>💡 デモアカウント:</strong></p>
-                                <p>🔹 admin / admin123</p>
-                                <p>🔹 ken / admin123</p>
+                                <h3 style="color: #ff6b6b; margin-bottom: 10px; font-size: 1.2em;">🔑 ログイン情報</h3>
+                                <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                                    <p style="font-weight: bold; margin-bottom: 8px; color: #333;">✅ 利用可能なアカウント:</p>
+                                    <p style="font-size: 1.1em; margin-bottom: 5px;">👤 <strong>admin</strong> / <strong>admin123</strong></p>
+                                    <p style="font-size: 1.1em; margin-bottom: 5px;">👤 <strong>user1</strong> / <strong>admin123</strong></p>
+                                    <p style="font-size: 1.1em;">👤 <strong>user2</strong> / <strong>admin123</strong></p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -835,10 +839,11 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.22</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.23</span></h1>
                                 <div class="controls">
-                                    <span class="current-user">👤 ${currentUser.username}</span>
-                                    <button id="addScheduleBtn">➕ 予定追加</button>
+                                    <span class="current-user">👤 ${currentUser.username} ${currentUser.username === 'admin' ? '(管理者)' : ''}</span>
+                                    ${currentUser.username !== 'admin' ? '<button id="addScheduleBtn">➕ 予定追加</button>' : ''}
+                                    ${currentUser.username === 'admin' ? '<button id="adminUsersBtn">👥 ユーザー管理</button>' : ''}
                                     <button id="analysisBtn">🤖 LLM分析</button>
                                     <button id="refreshBtn">🔄 更新</button>
                                     <button id="logoutBtn" class="logout-btn">🚪 ログアウト</button>
@@ -849,9 +854,10 @@
                             <div style="background: rgba(255,255,255,0.95); padding: 1rem; margin: 0.5rem 2rem; border-radius: 8px; border-left: 4px solid #007bff; font-size: 0.9rem;">
                                 <div style="font-weight: 600; color: #007bff; margin-bottom: 0.5rem;">📖 操作方法</div>
                                 <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                                    <span><strong>➕ 予定追加:</strong> 「予定追加」ボタンまたは空いているセルをクリック</span>
-                                    <span><strong>✏️ 予定編集:</strong> 既存の予定があるセル（色付き）をクリック</span>
-                                    <span><strong>🗑️ 予定削除:</strong> 編集画面で「この曜日の全予定を削除」ボタン</span>
+                                    ${currentUser.username === 'admin' ?
+                                        '<span><strong>👥 ユーザー管理:</strong> ユーザーの削除が可能です</span><span><strong>🤖 LLM分析:</strong> 全ユーザーのスケジュール分析</span>' :
+                                        '<span><strong>➕ 予定追加:</strong> 「予定追加」ボタンまたは空いているセルをクリック</span><span><strong>✏️ 予定編集:</strong> 既存の予定があるセル（色付き）をクリック</span><span><strong>🗑️ 予定削除:</strong> 編集画面で「この曜日の全予定を削除」ボタン</span>'
+                                    }
                                 </div>
                             </div>
 
@@ -986,6 +992,29 @@
                         </div>
                     </div>
 
+                    <!-- Admin ユーザー管理モーダル -->
+                    ${currentUser.username === 'admin' ? `
+                    <div id="adminUsersModal" class="modal">
+                        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                            <div class="modal-header" style="position: sticky; top: 0; background: white; z-index: 10; border-bottom: 1px solid #dee2e6;">
+                                <h2>👥 ユーザー管理</h2>
+                                <button class="close-btn" id="closeAdminModal">&times;</button>
+                            </div>
+                            <div class="modal-body" style="max-height: calc(90vh - 140px); overflow-y: auto; padding: 1rem;">
+                                <div id="usersListContainer">
+                                    <div class="loading">
+                                        <div class="spinner"></div>
+                                        <p>ユーザーリストを読み込み中...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="position: sticky; bottom: 0; background: white; border-top: 1px solid #dee2e6;">
+                                <button id="refreshUsersBtn" class="save-btn">🔄 更新</button>
+                                <button id="closeAdminModalBtn" class="cancel-btn">閉じる</button>
+                            </div>
+                        </div>
+                    </div>` : ''}
+
                     <!-- ローディング -->
                     <div id="loading" class="loading">
                         <div class="spinner"></div>
@@ -1009,10 +1038,14 @@
                     }
                 });
 
-                document.getElementById('addScheduleBtn').addEventListener('click', () => {
+                document.getElementById('addScheduleBtn')?.addEventListener('click', () => {
                     if (window.scheduleManager) {
                         window.scheduleManager.showScheduleModal(null, null, false); // 新規追加モード
                     }
+                });
+
+                document.getElementById('adminUsersBtn')?.addEventListener('click', () => {
+                    this.showAdminUsersModal();
                 });
 
                 document.getElementById('analysisBtn').addEventListener('click', () => {
@@ -1020,6 +1053,108 @@
                         window.scheduleManager.runLLMAnalysis();
                     }
                 });
+            }
+
+            async showAdminUsersModal() {
+                const modal = document.getElementById('adminUsersModal');
+                modal.classList.add('show');
+
+                // モーダル閉じるイベント
+                document.getElementById('closeAdminModal').addEventListener('click', () => {
+                    modal.classList.remove('show');
+                });
+                document.getElementById('closeAdminModalBtn').addEventListener('click', () => {
+                    modal.classList.remove('show');
+                });
+                document.getElementById('refreshUsersBtn').addEventListener('click', () => {
+                    this.loadUsersList();
+                });
+
+                // ユーザーリスト読み込み
+                await this.loadUsersList();
+            }
+
+            async loadUsersList() {
+                const container = document.getElementById('usersListContainer');
+                container.innerHTML = '<div class="loading"><div class="spinner"></div><p>ユーザーリストを読み込み中...</p></div>';
+
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch('/api/admin/users', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.renderUsersList(data.users);
+                    } else {
+                        container.innerHTML = '<div class="error">ユーザーリストの読み込みに失敗しました</div>';
+                    }
+                } catch (error) {
+                    console.error('ユーザーリスト読み込みエラー:', error);
+                    container.innerHTML = '<div class="error">サーバーエラーが発生しました</div>';
+                }
+            }
+
+            renderUsersList(users) {
+                const container = document.getElementById('usersListContainer');
+
+                if (users.length === 0) {
+                    container.innerHTML = '<div class="no-users"><p>👤 登録ユーザーはいません</p></div>';
+                    return;
+                }
+
+                let html = '<div class="users-table"><table style="width: 100%; border-collapse: collapse;">';
+                html += '<thead><tr style="background: #f8f9fa;">';
+                html += '<th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">👤 ユーザー名</th>';
+                html += '<th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">⏰ 勤務時間</th>';
+                html += '<th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">📅 登録日</th>';
+                html += '<th style="padding: 12px; border: 1px solid #dee2e6; text-align: center;">🗑️ 操作</th>';
+                html += '</tr></thead><tbody>';
+
+                users.forEach(user => {
+                    html += '<tr>';
+                    html += `<td style="padding: 12px; border: 1px solid #dee2e6;"><strong>${user.username}</strong></td>`;
+                    html += `<td style="padding: 12px; border: 1px solid #dee2e6;">${user.start_time} - ${user.end_time}</td>`;
+                    html += `<td style="padding: 12px; border: 1px solid #dee2e6;">${new Date(user.created_at).toLocaleDateString('ja-JP')}</td>`;
+                    html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center;">`;
+                    html += `<button onclick="window.authManager.deleteUser(${user.id}, '${user.username}')" class="delete-user-btn" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">🗑️ 削除</button>`;
+                    html += '</td></tr>';
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            }
+
+            async deleteUser(userId, username) {
+                if (!confirm(`ユーザー "${username}" を削除しますか？この操作は取り消せません。`)) {
+                    return;
+                }
+
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`/api/admin/users/${userId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        alert(`✅ ${data.message}`);
+                        await this.loadUsersList(); // リスト更新
+
+                        // スケジュールも更新
+                        if (window.scheduleManager) {
+                            window.scheduleManager.loadData();
+                        }
+                    } else {
+                        const error = await response.json();
+                        alert(`❌ 削除エラー: ${error.error}`);
+                    }
+                } catch (error) {
+                    console.error('ユーザー削除エラー:', error);
+                    alert('❌ サーバーエラーが発生しました');
+                }
             }
 
             logout() {
@@ -1418,8 +1553,8 @@
                         }
 
 
-                        // クリックイベント（現在のユーザーの場合のみ）
-                        if (user.username === this.currentUser.username) {
+                        // クリックイベント（現在のユーザーの場合のみ、adminは除く）
+                        if (user.username === this.currentUser.username && this.currentUser.username !== 'admin') {
                             cell.addEventListener('click', () => {
                                 // 既存予定があるかチェック
                                 const hasExistingSchedule = daySlot && daySlot.available_users.includes(user.username);
