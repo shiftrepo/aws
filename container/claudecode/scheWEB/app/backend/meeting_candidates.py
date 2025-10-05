@@ -252,21 +252,23 @@ JSONのみを返してください。追加の説明は不要です。
         return slots
 
     def get_all_availability(self):
-        """全ユーザーのavailabilityを取得"""
+        """全ユーザーのavailabilityを取得（adminユーザーを除外）"""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
 
+        # adminユーザーを除外してavailabilityを取得
         query = '''
             SELECT u.id, u.username, a.day_of_week, a.start_time, a.end_time
             FROM users u
             LEFT JOIN availability a ON u.id = a.user_id
+            WHERE u.username != 'admin'
             ORDER BY u.username, a.day_of_week, a.start_time
         '''
 
         rows = conn.execute(query).fetchall()
 
-        # Get all users for reference
-        all_users_query = 'SELECT id, username FROM users ORDER BY username'
+        # adminユーザーを除外してユーザーリストを取得
+        all_users_query = 'SELECT id, username FROM users WHERE username != \'admin\' ORDER BY username'
         all_users = {row['id']: row['username'] for row in conn.execute(all_users_query).fetchall()}
 
         conn.close()

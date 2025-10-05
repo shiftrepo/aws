@@ -735,7 +735,7 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.23 - admin除外版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.25 - admin LLM除外修正版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
         console.log('📄 表示ファイル: schedule-grid-improved.html - 編集画面全時間帯表示版');
@@ -839,11 +839,12 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.23</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.25</span></h1>
                                 <div class="controls">
                                     <span class="current-user">👤 ${currentUser.username} ${currentUser.username === 'admin' ? '(管理者)' : ''}</span>
                                     ${currentUser.username !== 'admin' ? '<button id="addScheduleBtn">➕ 予定追加</button>' : ''}
                                     ${currentUser.username === 'admin' ? '<button id="adminUsersBtn">👥 ユーザー管理</button>' : ''}
+                                    ${currentUser.username === 'admin' ? '<button id="adminDataBtn">💾 データ管理</button>' : ''}
                                     <button id="analysisBtn">🤖 LLM分析</button>
                                     <button id="refreshBtn">🔄 更新</button>
                                     <button id="logoutBtn" class="logout-btn">🚪 ログアウト</button>
@@ -1015,6 +1016,40 @@
                         </div>
                     </div>` : ''}
 
+                    <!-- Admin データ管理モーダル -->
+                    ${currentUser.username === 'admin' ? `
+                    <div id="adminDataModal" class="modal">
+                        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                            <div class="modal-header" style="position: sticky; top: 0; background: white; z-index: 10; border-bottom: 1px solid #dee2e6;">
+                                <h2>💾 データ管理</h2>
+                                <button class="close-btn" id="closeAdminDataModal">&times;</button>
+                            </div>
+                            <div class="modal-body" style="padding: 2rem;">
+                                <div class="data-management-section">
+                                    <h3 style="margin-bottom: 1rem; color: #333;">📤 データエクスポート</h3>
+                                    <p style="margin-bottom: 1rem; color: #666;">全ユーザーと予定データをJSONファイルでダウンロードします。</p>
+                                    <button id="exportDataBtn" class="save-btn" style="width: 100%; margin-bottom: 2rem;">📥 データをエクスポート</button>
+                                </div>
+
+                                <div class="data-management-section">
+                                    <h3 style="margin-bottom: 1rem; color: #333;">📥 データインポート</h3>
+                                    <p style="margin-bottom: 1rem; color: #666;">JSONファイルからユーザーと予定データを復元します。</p>
+                                    <input type="file" id="importFileInput" accept=".json" style="width: 100%; margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button id="importDataBtn" class="save-btn" style="width: 100%; margin-bottom: 2rem;">📤 データをインポート</button>
+                                </div>
+
+                                <div class="data-management-section" style="border-top: 2px solid #ffebee; padding-top: 1.5rem;">
+                                    <h3 style="margin-bottom: 1rem; color: #d32f2f;">🗑️ 全データ削除</h3>
+                                    <p style="margin-bottom: 1rem; color: #666;">⚠️ 警告: 全ユーザーと予定データが完全に削除されます。この操作は元に戻せません。</p>
+                                    <button id="deleteAllDataBtn" class="delete-btn" style="width: 100%;">🗑️ 全データを削除</button>
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="position: sticky; bottom: 0; background: white; border-top: 1px solid #dee2e6;">
+                                <button id="closeAdminDataModalBtn" class="cancel-btn">閉じる</button>
+                            </div>
+                        </div>
+                    </div>` : ''}
+
                     <!-- ローディング -->
                     <div id="loading" class="loading">
                         <div class="spinner"></div>
@@ -1046,6 +1081,10 @@
 
                 document.getElementById('adminUsersBtn')?.addEventListener('click', () => {
                     this.showAdminUsersModal();
+                });
+
+                document.getElementById('adminDataBtn')?.addEventListener('click', () => {
+                    this.showAdminDataModal();
                 });
 
                 document.getElementById('analysisBtn').addEventListener('click', () => {
@@ -1154,6 +1193,157 @@
                 } catch (error) {
                     console.error('ユーザー削除エラー:', error);
                     alert('❌ サーバーエラーが発生しました');
+                }
+            }
+
+            async showAdminDataModal() {
+                const modal = document.getElementById('adminDataModal');
+                modal.classList.add('show');
+
+                // モーダル閉じるイベント
+                document.getElementById('closeAdminDataModal').addEventListener('click', () => {
+                    modal.classList.remove('show');
+                });
+                document.getElementById('closeAdminDataModalBtn').addEventListener('click', () => {
+                    modal.classList.remove('show');
+                });
+
+                // エクスポートボタンのイベント
+                document.getElementById('exportDataBtn').addEventListener('click', () => {
+                    this.exportData();
+                });
+
+                // インポートボタンのイベント
+                document.getElementById('importDataBtn').addEventListener('click', () => {
+                    this.importData();
+                });
+
+                // 全データ削除ボタンのイベント
+                document.getElementById('deleteAllDataBtn').addEventListener('click', () => {
+                    this.deleteAllData();
+                });
+            }
+
+            async exportData() {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch('/api/admin/export', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        // JSONファイルとしてダウンロード
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `schedule_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        alert(`✅ データエクスポート完了\\n\\n📊 統計:\\n・ユーザー: ${data.statistics.total_users}人\\n・予定: ${data.statistics.total_availability_records}件`);
+                    } else {
+                        const error = await response.json();
+                        alert(`❌ エクスポートエラー: ${error.error}`);
+                    }
+                } catch (error) {
+                    console.error('エクスポートエラー:', error);
+                    alert('❌ エクスポートに失敗しました');
+                }
+            }
+
+            async importData() {
+                const fileInput = document.getElementById('importFileInput');
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    alert('📁 インポートするJSONファイルを選択してください');
+                    return;
+                }
+
+                if (!confirm('⚠️ データインポートを実行しますか？\\n\\n既存のユーザー名と重複する場合はスキップされます。')) {
+                    return;
+                }
+
+                try {
+                    const fileContent = await file.text();
+                    const importData = JSON.parse(fileContent);
+
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch('/api/admin/import', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(importData)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        let message = `✅ インポート完了\\n\\n📊 結果:\\n・ユーザー: ${result.imported_users}人\\n・予定: ${result.imported_availability}件`;
+
+                        if (result.errors.length > 0) {
+                            message += `\\n\\n⚠️ エラー (${result.errors.length}件):\\n${result.errors.slice(0, 3).join('\\n')}`;
+                            if (result.errors.length > 3) {
+                                message += `\\n... 他${result.errors.length - 3}件`;
+                            }
+                        }
+
+                        alert(message);
+
+                        // スケジュールを更新
+                        if (window.scheduleManager) {
+                            window.scheduleManager.loadData();
+                        }
+
+                        // ファイル入力をクリア
+                        fileInput.value = '';
+                    } else {
+                        const error = await response.json();
+                        alert(`❌ インポートエラー: ${error.error}`);
+                    }
+                } catch (error) {
+                    console.error('インポートエラー:', error);
+                    alert('❌ ファイルの読み込みまたは処理に失敗しました');
+                }
+            }
+
+            async deleteAllData() {
+                if (!confirm('🗑️ 全データ削除\\n\\n⚠️ 重要な警告:\\n• 全ユーザーが削除されます\\n• 全予定データが削除されます\\n• この操作は元に戻せません\\n\\n本当に削除しますか？')) {
+                    return;
+                }
+
+                if (!confirm('⚠️ 最終確認\\n\\n「はい」をクリックすると全データが完全に削除されます。\\n\\n続行しますか？')) {
+                    return;
+                }
+
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch('/api/admin/delete-all', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert(`✅ 全データ削除完了\\n\\n📊 削除結果:\\n・ユーザー: ${result.deleted_users}人\\n・予定: ${result.deleted_availability}件`);
+
+                        // スケジュールを更新
+                        if (window.scheduleManager) {
+                            window.scheduleManager.loadData();
+                        }
+                    } else {
+                        const error = await response.json();
+                        alert(`❌ 削除エラー: ${error.error}`);
+                    }
+                } catch (error) {
+                    console.error('削除エラー:', error);
+                    alert('❌ 削除処理に失敗しました');
                 }
             }
 

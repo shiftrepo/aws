@@ -506,6 +506,248 @@ def run_llm_analysis():
         traceback.print_exc()
         return jsonify({"error": f"分析中にエラーが発生しました: {str(e)}"}), 500
 
+# Admin Data Management endpoints
+@app.route('/api/admin/export', methods=['GET'])
+@jwt_required()
+def export_all_data():
+    """Export all users and schedules to JSON (admin only)"""
+    current_user_id = get_jwt_identity()
+    conn = get_db_connection()
+    current_user = conn.execute(
+        'SELECT username FROM users WHERE id = ?',
+        (current_user_id,)
+    ).fetchone()
+
+    if not current_user or not is_admin_user(current_user['username']):
+        conn.close()
+        return jsonify({"error": "Admin access required"}), 403
+
+    try:
+        # Export users (with plain text passwords - as requested)
+        users_query = '''
+            SELECT id, username, start_time, end_time, created_at
+            FROM users
+            WHERE username != 'admin'
+            ORDER BY id
+        '''
+        users_rows = conn.execute(users_query).fetchall()
+
+        users_export = []
+        for user in users_rows:
+            # For export, use default password (as requested - plain text)
+            users_export.append({
+                "id": user['id'],
+                "username": user['username'],
+                "password": "admin123",  # Plain text default password
+                "start_time": user['start_time'],
+                "end_time": user['end_time'],
+                "created_at": user['created_at']
+            })
+
+        # Export availability
+        availability_query = '''
+            SELECT a.id, a.user_id, u.username, a.day_of_week, a.start_time, a.end_time, a.created_at
+            FROM availability a
+            JOIN users u ON a.user_id = u.id
+            WHERE u.username != 'admin'
+            ORDER BY a.user_id, a.day_of_week, a.start_time
+        '''
+        availability_rows = conn.execute(availability_query).fetchall()
+
+        availability_export = []
+        for avail in availability_rows:
+            availability_export.append({
+                "id": avail['id'],
+                "user_id": avail['user_id'],
+                "username": avail['username'],
+                "day_of_week": avail['day_of_week'],
+                "start_time": avail['start_time'],
+                "end_time": avail['end_time'],
+                "created_at": avail['created_at']
+            })
+
+        conn.close()
+
+        export_data = {
+            "export_info": {
+                "timestamp": datetime.now().isoformat(),
+                "version": "v2.1.24",
+                "exported_by": current_user['username']
+            },
+            "users": users_export,
+            "availability": availability_export,
+            "statistics": {
+                "total_users": len(users_export),
+                "total_availability_records": len(availability_export)
+            }
+        }
+
+        logger.info(f"📤 Data exported by admin: {len(users_export)} users, {len(availability_export)} availability records")
+        return jsonify(export_data)
+
+    except Exception as e:
+        conn.close()
+        logger.error(f"💥 Export error: {str(e)}")
+        return jsonify({"error": f"Export failed: {str(e)}"}), 500
+
+@app.route('/api/admin/import', methods=['POST'])
+@jwt_required()
+def import_all_data():
+    """Import users and schedules from JSON (admin only)"""
+    current_user_id = get_jwt_identity()
+    conn = get_db_connection()
+    current_user = conn.execute(
+        'SELECT username FROM users WHERE id = ?',
+        (current_user_id,)
+    ).fetchone()
+
+    if not current_user or not is_admin_user(current_user['username']):
+        conn.close()
+        return jsonify({"error": "Admin access required"}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+
+    if 'users' not in data:
+        return jsonify({"error": "Missing 'users' data in JSON"}), 400
+
+    try:
+        imported_users = 0
+        imported_availability = 0
+        errors = []
+
+        # Import users
+        for user_data in data['users']:
+            try:
+                # Check required fields
+                required_fields = ['username', 'password', 'start_time', 'end_time']
+                if not all(field in user_data for field in required_fields):
+                    errors.append(f"User missing required fields: {user_data.get('username', 'unknown')}")
+                    continue
+
+                # Check if user already exists
+                existing_user = conn.execute(
+                    'SELECT id FROM users WHERE username = ?', (user_data['username'],)
+                ).fetchone()
+
+                if existing_user:
+                    errors.append(f"User '{user_data['username']}' already exists - skipped")
+                    continue
+
+                # Hash password and insert user
+                hashed_password = hash_password(user_data['password'])
+                conn.execute('''
+                    INSERT INTO users (username, password_hash, start_time, end_time, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    user_data['username'],
+                    hashed_password,
+                    user_data['start_time'],
+                    user_data['end_time'],
+                    user_data.get('created_at', datetime.now().isoformat())
+                ))
+                imported_users += 1
+
+            except Exception as e:
+                errors.append(f"Failed to import user '{user_data.get('username', 'unknown')}': {str(e)}")
+
+        # Import availability if provided
+        if 'availability' in data:
+            for avail_data in data['availability']:
+                try:
+                    # Get user ID by username
+                    user_row = conn.execute(
+                        'SELECT id FROM users WHERE username = ?', (avail_data['username'],)
+                    ).fetchone()
+
+                    if not user_row:
+                        errors.append(f"User '{avail_data['username']}' not found for availability import")
+                        continue
+
+                    user_id = user_row['id']
+
+                    conn.execute('''
+                        INSERT INTO availability (user_id, day_of_week, start_time, end_time, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (
+                        user_id,
+                        avail_data['day_of_week'],
+                        avail_data['start_time'],
+                        avail_data['end_time'],
+                        avail_data.get('created_at', datetime.now().isoformat())
+                    ))
+                    imported_availability += 1
+
+                except Exception as e:
+                    errors.append(f"Failed to import availability for '{avail_data.get('username', 'unknown')}': {str(e)}")
+
+        conn.commit()
+        conn.close()
+
+        result = {
+            "message": "Import completed",
+            "imported_users": imported_users,
+            "imported_availability": imported_availability,
+            "errors": errors
+        }
+
+        logger.info(f"📥 Data imported by admin: {imported_users} users, {imported_availability} availability records")
+        return jsonify(result)
+
+    except Exception as e:
+        conn.close()
+        logger.error(f"💥 Import error: {str(e)}")
+        return jsonify({"error": f"Import failed: {str(e)}"}), 500
+
+@app.route('/api/admin/delete-all', methods=['DELETE'])
+@jwt_required()
+def delete_all_data():
+    """Delete all users and schedules (admin only)"""
+    current_user_id = get_jwt_identity()
+    conn = get_db_connection()
+    current_user = conn.execute(
+        'SELECT username FROM users WHERE id = ?',
+        (current_user_id,)
+    ).fetchone()
+
+    if not current_user or not is_admin_user(current_user['username']):
+        conn.close()
+        return jsonify({"error": "Admin access required"}), 403
+
+    try:
+        # Count records before deletion
+        users_count = conn.execute('SELECT COUNT(*) as count FROM users WHERE username != "admin"').fetchone()['count']
+        availability_count = conn.execute('''
+            SELECT COUNT(*) as count FROM availability a
+            JOIN users u ON a.user_id = u.id
+            WHERE u.username != "admin"
+        ''').fetchone()['count']
+
+        # Delete all availability for non-admin users
+        conn.execute('''
+            DELETE FROM availability
+            WHERE user_id IN (SELECT id FROM users WHERE username != "admin")
+        ''')
+
+        # Delete all non-admin users
+        conn.execute('DELETE FROM users WHERE username != "admin"')
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"🗑️ All data deleted by admin: {users_count} users, {availability_count} availability records")
+        return jsonify({
+            "message": "All user data deleted successfully",
+            "deleted_users": users_count,
+            "deleted_availability": availability_count
+        })
+
+    except Exception as e:
+        conn.close()
+        logger.error(f"💥 Delete all error: {str(e)}")
+        return jsonify({"error": f"Delete operation failed: {str(e)}"}), 500
+
 # Admin only endpoints
 @app.route('/api/admin/users', methods=['GET'])
 @jwt_required()

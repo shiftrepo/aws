@@ -1,0 +1,387 @@
+{
+  "export_info": {
+    "timestamp": "2025-01-05T12:00:00Z",
+    "version": "v2.1.24",
+    "exported_by": "admin"
+  },
+  "users": [
+    {
+      "id": 100,
+      "username": "tanaka_hiroshi",
+      "password": "tanaka123",
+      "start_time": "09:00",
+      "end_time": "18:00",
+      "created_at": "2025-01-01T09:00:00Z"
+    },
+    {
+      "id": 101,
+      "username": "sato_akiko",
+      "password": "sato456",
+      "start_time": "08:30",
+      "end_time": "17:30",
+      "created_at": "2025-01-01T10:00:00Z"
+    },
+    {
+      "id": 102,
+      "username": "suzuki_takeshi",
+      "password": "suzuki789",
+      "start_time": "10:00",
+      "end_time": "19:00",
+      "created_at": "2025-01-01T11:00:00Z"
+    },
+    {
+      "id": 103,
+      "username": "watanabe_yuki",
+      "password": "watanabe321",
+      "start_time": "09:30",
+      "end_time": "18:30",
+      "created_at": "2025-01-01T12:00:00Z"
+    },
+    {
+      "id": 104,
+      "username": "ito_makoto",
+      "password": "ito654",
+      "start_time": "08:00",
+      "end_time": "17:00",
+      "created_at": "2025-01-01T13:00:00Z"
+    },
+    {
+      "id": 105,
+      "username": "yamamoto_emi",
+      "password": "yamamoto987",
+      "start_time": "09:15",
+      "end_time": "18:15",
+      "created_at": "2025-01-01T14:00:00Z"
+    }
+  ],
+  "availability": [
+    {
+      "id": 200,
+      "user_id": 100,
+      "username": "tanaka_hiroshi",
+      "day_of_week": "monday",
+      "start_time": "10:00",
+      "end_time": "12:00",
+      "created_at": "2025-01-02T10:00:00Z"
+    },
+    {
+      "id": 201,
+      "user_id": 100,
+      "username": "tanaka_hiroshi",
+      "day_of_week": "monday",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "created_at": "2025-01-02T10:05:00Z"
+    },
+    {
+      "id": 202,
+      "user_id": 100,
+      "username": "tanaka_hiroshi",
+      "day_of_week": "tuesday",
+      "start_time": "09:30",
+      "end_time": "11:30",
+      "created_at": "2025-01-02T10:10:00Z"
+    },
+    {
+      "id": 203,
+      "user_id": 100,
+      "username": "tanaka_hiroshi",
+      "day_of_week": "wednesday",
+      "start_time": "13:00",
+      "end_time": "17:00",
+      "created_at": "2025-01-02T10:15:00Z"
+    },
+    {
+      "id": 204,
+      "user_id": 100,
+      "username": "tanaka_hiroshi",
+      "day_of_week": "thursday",
+      "start_time": "10:30",
+      "end_time": "12:30",
+      "created_at": "2025-01-02T10:20:00Z"
+    },
+    {
+      "id": 205,
+      "user_id": 100,
+      "username": "tanaka_hiroshi",
+      "day_of_week": "friday",
+      "start_time": "14:30",
+      "end_time": "16:30",
+      "created_at": "2025-01-02T10:25:00Z"
+    },
+    {
+      "id": 206,
+      "user_id": 101,
+      "username": "sato_akiko",
+      "day_of_week": "monday",
+      "start_time": "09:00",
+      "end_time": "11:00",
+      "created_at": "2025-01-02T11:00:00Z"
+    },
+    {
+      "id": 207,
+      "user_id": 101,
+      "username": "sato_akiko",
+      "day_of_week": "monday",
+      "start_time": "13:30",
+      "end_time": "15:30",
+      "created_at": "2025-01-02T11:05:00Z"
+    },
+    {
+      "id": 208,
+      "user_id": 101,
+      "username": "sato_akiko",
+      "day_of_week": "tuesday",
+      "start_time": "10:00",
+      "end_time": "12:00",
+      "created_at": "2025-01-02T11:10:00Z"
+    },
+    {
+      "id": 209,
+      "user_id": 101,
+      "username": "sato_akiko",
+      "day_of_week": "wednesday",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "created_at": "2025-01-02T11:15:00Z"
+    },
+    {
+      "id": 210,
+      "user_id": 101,
+      "username": "sato_akiko",
+      "day_of_week": "thursday",
+      "start_time": "11:00",
+      "end_time": "13:00",
+      "created_at": "2025-01-02T11:20:00Z"
+    },
+    {
+      "id": 211,
+      "user_id": 101,
+      "username": "sato_akiko",
+      "day_of_week": "friday",
+      "start_time": "15:00",
+      "end_time": "17:00",
+      "created_at": "2025-01-02T11:25:00Z"
+    },
+    {
+      "id": 212,
+      "user_id": 102,
+      "username": "suzuki_takeshi",
+      "day_of_week": "monday",
+      "start_time": "11:00",
+      "end_time": "13:00",
+      "created_at": "2025-01-02T12:00:00Z"
+    },
+    {
+      "id": 213,
+      "user_id": 102,
+      "username": "suzuki_takeshi",
+      "day_of_week": "tuesday",
+      "start_time": "10:30",
+      "end_time": "12:30",
+      "created_at": "2025-01-02T12:05:00Z"
+    },
+    {
+      "id": 214,
+      "user_id": 102,
+      "username": "suzuki_takeshi",
+      "day_of_week": "tuesday",
+      "start_time": "15:00",
+      "end_time": "17:00",
+      "created_at": "2025-01-02T12:10:00Z"
+    },
+    {
+      "id": 215,
+      "user_id": 102,
+      "username": "suzuki_takeshi",
+      "day_of_week": "wednesday",
+      "start_time": "13:30",
+      "end_time": "16:30",
+      "created_at": "2025-01-02T12:15:00Z"
+    },
+    {
+      "id": 216,
+      "user_id": 102,
+      "username": "suzuki_takeshi",
+      "day_of_week": "thursday",
+      "start_time": "11:30",
+      "end_time": "13:30",
+      "created_at": "2025-01-02T12:20:00Z"
+    },
+    {
+      "id": 217,
+      "user_id": 102,
+      "username": "suzuki_takeshi",
+      "day_of_week": "friday",
+      "start_time": "14:00",
+      "end_time": "18:00",
+      "created_at": "2025-01-02T12:25:00Z"
+    },
+    {
+      "id": 218,
+      "user_id": 103,
+      "username": "watanabe_yuki",
+      "day_of_week": "monday",
+      "start_time": "10:30",
+      "end_time": "12:30",
+      "created_at": "2025-01-02T13:00:00Z"
+    },
+    {
+      "id": 219,
+      "user_id": 103,
+      "username": "watanabe_yuki",
+      "day_of_week": "monday",
+      "start_time": "15:00",
+      "end_time": "17:00",
+      "created_at": "2025-01-02T13:05:00Z"
+    },
+    {
+      "id": 220,
+      "user_id": 103,
+      "username": "watanabe_yuki",
+      "day_of_week": "tuesday",
+      "start_time": "09:30",
+      "end_time": "11:30",
+      "created_at": "2025-01-02T13:10:00Z"
+    },
+    {
+      "id": 221,
+      "user_id": 103,
+      "username": "watanabe_yuki",
+      "day_of_week": "wednesday",
+      "start_time": "14:30",
+      "end_time": "16:30",
+      "created_at": "2025-01-02T13:15:00Z"
+    },
+    {
+      "id": 222,
+      "user_id": 103,
+      "username": "watanabe_yuki",
+      "day_of_week": "thursday",
+      "start_time": "10:00",
+      "end_time": "12:00",
+      "created_at": "2025-01-02T13:20:00Z"
+    },
+    {
+      "id": 223,
+      "user_id": 103,
+      "username": "watanabe_yuki",
+      "day_of_week": "friday",
+      "start_time": "13:00",
+      "end_time": "15:00",
+      "created_at": "2025-01-02T13:25:00Z"
+    },
+    {
+      "id": 224,
+      "user_id": 104,
+      "username": "ito_makoto",
+      "day_of_week": "monday",
+      "start_time": "09:00",
+      "end_time": "11:00",
+      "created_at": "2025-01-02T14:00:00Z"
+    },
+    {
+      "id": 225,
+      "user_id": 104,
+      "username": "ito_makoto",
+      "day_of_week": "monday",
+      "start_time": "14:30",
+      "end_time": "16:30",
+      "created_at": "2025-01-02T14:05:00Z"
+    },
+    {
+      "id": 226,
+      "user_id": 104,
+      "username": "ito_makoto",
+      "day_of_week": "tuesday",
+      "start_time": "10:00",
+      "end_time": "12:00",
+      "created_at": "2025-01-02T14:10:00Z"
+    },
+    {
+      "id": 227,
+      "user_id": 104,
+      "username": "ito_makoto",
+      "day_of_week": "wednesday",
+      "start_time": "13:00",
+      "end_time": "16:00",
+      "created_at": "2025-01-02T14:15:00Z"
+    },
+    {
+      "id": 228,
+      "user_id": 104,
+      "username": "ito_makoto",
+      "day_of_week": "thursday",
+      "start_time": "11:00",
+      "end_time": "13:00",
+      "created_at": "2025-01-02T14:20:00Z"
+    },
+    {
+      "id": 229,
+      "user_id": 104,
+      "username": "ito_makoto",
+      "day_of_week": "friday",
+      "start_time": "15:30",
+      "end_time": "17:00",
+      "created_at": "2025-01-02T14:25:00Z"
+    },
+    {
+      "id": 230,
+      "user_id": 105,
+      "username": "yamamoto_emi",
+      "day_of_week": "monday",
+      "start_time": "11:00",
+      "end_time": "13:00",
+      "created_at": "2025-01-02T15:00:00Z"
+    },
+    {
+      "id": 231,
+      "user_id": 105,
+      "username": "yamamoto_emi",
+      "day_of_week": "tuesday",
+      "start_time": "09:30",
+      "end_time": "11:30",
+      "created_at": "2025-01-02T15:05:00Z"
+    },
+    {
+      "id": 232,
+      "user_id": 105,
+      "username": "yamamoto_emi",
+      "day_of_week": "tuesday",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "created_at": "2025-01-02T15:10:00Z"
+    },
+    {
+      "id": 233,
+      "user_id": 105,
+      "username": "yamamoto_emi",
+      "day_of_week": "wednesday",
+      "start_time": "15:00",
+      "end_time": "17:00",
+      "created_at": "2025-01-02T15:15:00Z"
+    },
+    {
+      "id": 234,
+      "user_id": 105,
+      "username": "yamamoto_emi",
+      "day_of_week": "thursday",
+      "start_time": "10:30",
+      "end_time": "12:30",
+      "created_at": "2025-01-02T15:20:00Z"
+    },
+    {
+      "id": 235,
+      "user_id": 105,
+      "username": "yamamoto_emi",
+      "day_of_week": "friday",
+      "start_time": "13:30",
+      "end_time": "16:00",
+      "created_at": "2025-01-02T15:25:00Z"
+    }
+  ],
+  "statistics": {
+    "total_users": 6,
+    "total_availability_records": 36
+  }
+}
