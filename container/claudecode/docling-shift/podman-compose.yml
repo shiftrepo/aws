@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  docling:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docling-processor
+    volumes:
+      # ホストの./data/inputディレクトリをコンテナの/shared/inputにマウント
+      - ./data/input:/shared/input:rw,Z
+      # ホストの./data/outputディレクトリをコンテナの/shared/outputにマウント
+      - ./data/output:/shared/output:rw,Z
+      # ホストの./data/configディレクトリをコンテナの/shared/configにマウント
+      - ./data/config:/shared/config:rw,Z
+      # キャッシュディレクトリもマウント
+      - ./data/cache:/shared/cache:rw,Z
+    user: "0:0"  # root user inside container
+    environment:
+      - DOCLING_CACHE_DIR=/shared/cache
+      - PYTHONPATH=/app
+    working_dir: /app
+    # インタラクティブモードでコンテナを起動
+    stdin_open: true
+    tty: true
+    # ポートマッピング（FastAPIサーバーを起動する場合）
+    ports:
+      - "8000:8000"
+    # ヘルスチェック
+    healthcheck:
+      test: ["CMD", "python", "-c", "import docling; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    driver: bridge
