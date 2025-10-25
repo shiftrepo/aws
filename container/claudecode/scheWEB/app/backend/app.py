@@ -12,9 +12,12 @@ import logging
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app,
      origins=["*"],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"],
-     supports_credentials=True)
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+     allow_headers=["*"],
+     expose_headers=["*"],
+     supports_credentials=False,
+     send_wildcard=True,
+     max_age=86400)
 
 # Configure logging with console handler
 logging.basicConfig(
@@ -133,7 +136,7 @@ def login():
     ).fetchone()
     conn.close()
 
-    if user and data['password'] == user['password_hash']:
+    if user and check_password(data['password'], user['password_hash']):
         access_token = create_access_token(
             identity=str(user['id']),
             additional_claims={"username": user['username']}
@@ -155,7 +158,7 @@ def save_availability():
     user_id = int(get_jwt_identity())
     data = request.get_json()
 
-    if not data.get('availability'):
+    if 'availability' not in data:
         return jsonify({"error": "Availability data required"}), 400
 
     conn = get_db_connection()

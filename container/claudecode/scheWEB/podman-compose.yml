@@ -6,7 +6,7 @@ services:
       context: ./app/backend
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5000:5000"
     volumes:
       - sqlite_data:/app/data
     environment:
@@ -29,7 +29,7 @@ services:
       context: ./app/frontend
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "0.0.0.0:8080:80"
     networks:
       - app-network
     # Podman固有の設定

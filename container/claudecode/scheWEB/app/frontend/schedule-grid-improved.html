@@ -952,7 +952,7 @@
     <!-- 動的コンテンツがここに生成されます -->
 
     <script>
-        console.log('🔥 改良版スケジュールシステム - v2.1.29 - 明るく洗練されたデザイン版');
+        console.log('🔥 改良版スケジュールシステム - v2.1.32 - 重複判定デバッグ版');
         // 🆔 ページ識別子 - 現在表示中のファイル確認用
         document.title += ' [IMPROVED-HTML-FILE-ID: schedule-grid-improved.html]';
         console.log('📄 表示ファイル: schedule-grid-improved.html - ヘルプ機能充実版');
@@ -1000,6 +1000,39 @@
                                 <button type="submit" class="auth-btn">ログイン</button>
                                 <div id="loginError" class="error-message" style="display: none;"></div>
                             </form>
+
+                            <!-- 新規登録フォーム -->
+                            <div style="margin: 2rem 0; padding: 1rem 0; border-top: 1px solid #eee;">
+                                <h3 style="text-align: center; margin-bottom: 1rem; color: #666; font-size: 1.1rem;">新規ユーザー登録</h3>
+                                <form id="registerForm">
+                                    <div class="form-group">
+                                        <label for="regUsername">ユーザーネーム</label>
+                                        <input type="text" id="regUsername" required placeholder="ユーザーネームを入力">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="regPassword">パスワード</label>
+                                        <input type="password" id="regPassword" required placeholder="パスワードを入力">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="startTime">勤務開始時間</label>
+                                        <select id="startTime" required>
+                                            <option value="08:00">08:00</option>
+                                            <option value="09:00" selected>09:00</option>
+                                            <option value="10:00">10:00</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="endTime">勤務終了時間</label>
+                                        <select id="endTime" required>
+                                            <option value="17:00">17:00</option>
+                                            <option value="18:00" selected>18:00</option>
+                                            <option value="19:00">19:00</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="auth-btn">新規登録</button>
+                                    <div id="registerError" class="error-message" style="display: none;"></div>
+                                </form>
+                            </div>
                             <div class="demo-info">
                                 <h3 style="color: #ff6b6b; margin-bottom: 10px; font-size: 1.2em;">🔑 ログイン情報</h3>
                                 <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
@@ -1016,6 +1049,11 @@
                 document.getElementById('loginForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.handleLogin();
+                });
+
+                document.getElementById('registerForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleRegister();
                 });
             }
 
@@ -1049,6 +1087,56 @@
                 }
             }
 
+            async handleRegister() {
+                const username = document.getElementById('regUsername').value;
+                const password = document.getElementById('regPassword').value;
+                const start_time = document.getElementById('startTime').value;
+                const end_time = document.getElementById('endTime').value;
+                const errorElement = document.getElementById('registerError');
+
+                // 入力チェック
+                if (!username || !password || !start_time || !end_time) {
+                    errorElement.textContent = 'すべてのフィールドを入力してください';
+                    errorElement.style.display = 'block';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password, start_time, end_time })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('✅ 登録成功:', data.message);
+
+                        // 成功メッセージを表示
+                        errorElement.style.color = '#28a745';
+                        errorElement.textContent = '登録完了！ログインしてください';
+                        errorElement.style.display = 'block';
+
+                        // フォームをリセット
+                        document.getElementById('registerForm').reset();
+
+                        // 3秒後にエラーメッセージを非表示
+                        setTimeout(() => {
+                            errorElement.style.display = 'none';
+                            errorElement.style.color = '#e74c3c';
+                        }, 3000);
+                    } else {
+                        const error = await response.json();
+                        errorElement.textContent = error.error || '登録に失敗しました';
+                        errorElement.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('❌ 登録エラー:', error);
+                    errorElement.textContent = 'サーバーに接続できません';
+                    errorElement.style.display = 'block';
+                }
+            }
+
             showDashboard() {
                 const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
@@ -1056,7 +1144,7 @@
                     <div class="container">
                         <div class="main-container">
                             <div class="header">
-                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.29</span></h1>
+                                <h1>📅 チームスケジュール管理システム <span style="font-size: 0.6em; color: rgba(255,255,255,0.8);">v2.1.32</span></h1>
                                 <div class="controls">
                                     <span class="current-user">👤 ${currentUser.username} ${currentUser.username === 'admin' ? '(管理者)' : ''}</span>
                                     ${currentUser.username !== 'admin' ? '<button id="addScheduleBtn">➕ 予定追加</button>' : ''}
@@ -2804,9 +2892,15 @@
                     // 重複チェック
                     for (let j = 0; j < scheduleItems.length; j++) {
                         const existing = scheduleItems[j];
+                        console.log(`🔍 重複チェック: 時間帯${i + 1}(${startTime}-${endTime}) vs 時間帯${j + 1}(${existing.start}-${existing.end})`);
+                        console.log(`  条件1: ${startTime} < ${existing.end} = ${startTime < existing.end}`);
+                        console.log(`  条件2: ${endTime} > ${existing.start} = ${endTime > existing.start}`);
                         if ((startTime < existing.end && endTime > existing.start)) {
-                            alert(`時間帯 ${i + 1} が時間帯 ${j + 1} と重複しています`);
+                            console.error(`❌ 重複検出: 時間帯${i + 1}(${startTime}-${endTime}) と 時間帯${j + 1}(${existing.start}-${existing.end})`);
+                            alert(`時間帯 ${i + 1} (${startTime}-${endTime}) が時間帯 ${j + 1} (${existing.start}-${existing.end}) と重複しています`);
                             return;
+                        } else {
+                            console.log(`  ✅ 重複なし`);
                         }
                     }
 
@@ -2862,12 +2956,19 @@
                         // 重複チェック（既存予定との）
                         for (let i = 0; i < scheduleItems.length; i++) {
                             const newItem = scheduleItems[i];
+                            console.log(`🔍 既存予定との重複チェック: 新規(${newItem.start}-${newItem.end})`);
                             for (let j = 0; j < existingSchedules.length; j++) {
                                 const existing = existingSchedules[j];
+                                console.log(`  vs 既存${j + 1}(${existing.start}-${existing.end})`);
+                                console.log(`    条件1: ${newItem.start} < ${existing.end} = ${newItem.start < existing.end}`);
+                                console.log(`    条件2: ${newItem.end} > ${existing.start} = ${newItem.end > existing.start}`);
                                 if ((newItem.start < existing.end && newItem.end > existing.start)) {
-                                    alert(`新しい時間帯が既存の予定 ${existing.start}-${existing.end} と重複しています`);
+                                    console.error(`❌ 既存予定との重複検出: 新規(${newItem.start}-${newItem.end}) と 既存(${existing.start}-${existing.end})`);
+                                    alert(`新しい時間帯 (${newItem.start}-${newItem.end}) が既存の予定 (${existing.start}-${existing.end}) と重複しています`);
                                     loading.classList.remove('show');
                                     return;
+                                } else {
+                                    console.log(`    ✅ 重複なし`);
                                 }
                             }
                         }

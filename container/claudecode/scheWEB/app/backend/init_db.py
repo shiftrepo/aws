@@ -6,8 +6,13 @@ Creates SQLite database with required tables
 
 import sqlite3
 import os
+import bcrypt
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', '/app/data/scheduler.db')
+
+def hash_password(password):
+    """Hash password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def init_database():
     """Initialize the database with required tables"""
@@ -79,14 +84,16 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_meetings_day ON meetings (day_of_week)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_meeting_participants ON meeting_participants (meeting_id, user_id)')
 
-    # Insert sample data for development/testing - using plain text passwords for simple authentication
+    # Insert sample data for development/testing - using bcrypt hashed passwords
     sample_users = [
-        ("admin", "admin123", "09:00", "18:00"),     # Simple plain text password
-        ("user1", "admin123", "09:30", "17:30"),     # Simple plain text password
-        ("user2", "admin123", "08:30", "17:00"),     # Simple plain text password
+        ("admin", "admin123", "09:00", "18:00"),
+        ("user1", "admin123", "09:30", "17:30"),
+        ("user2", "admin123", "08:30", "17:00"),
     ]
 
-    for username, password_hash, start_time, end_time in sample_users:
+    for username, password, start_time, end_time in sample_users:
+        # Hash the password using bcrypt
+        password_hash = hash_password(password)
         cursor.execute('''
             INSERT OR IGNORE INTO users (username, password_hash, start_time, end_time, created_at)
             VALUES (?, ?, ?, ?, datetime('now'))
