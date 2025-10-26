@@ -24,7 +24,8 @@ RUN pip install --no-cache-dir \
     docling-ibm-models \
     fastapi \
     uvicorn \
-    python-multipart
+    python-multipart \
+    onnxruntime
 
 # 共有ディレクトリを作成
 RUN mkdir -p /shared/input /shared/output /shared/config

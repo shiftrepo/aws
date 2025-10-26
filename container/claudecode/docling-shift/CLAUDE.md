@@ -70,6 +70,9 @@ podman exec docling-processor python process_documents.py /shared/input/document
 # Process entire directory
 podman exec docling-processor python process_documents.py /shared/input/
 
+# Process with RapidOCR engine
+podman exec docling-processor docling --ocr-engine rapidocr --to md /shared/input/document.pdf --output /shared/output/document.md
+
 # Access container interactively
 podman exec -it docling-processor bash
 ```
@@ -110,6 +113,7 @@ podman exec -it docling-processor bash
 - docling, docling-core, docling-ibm-models
 - fastapi, uvicorn (for optional API mode)
 - python-multipart
+- onnxruntime (required for RapidOCR engine)
 
 ## Troubleshooting Common Issues
 
@@ -122,6 +126,12 @@ podman exec -it docling-processor bash
 - Rebuild after Dockerfile changes: `podman-compose build`
 - Check volume mounts with: `podman exec docling-processor df -h`
 - Verify file accessibility: `podman exec docling-processor ls -la /shared/input/`
+
+**RapidOCR Engine Issues:**
+- If encountering "ImportError: onnxruntime is not installed", rebuild container with no-cache: `podman-compose build --no-cache`
+- RapidOCR requires onnxruntime package for optimal performance
+- Verify RapidOCR availability: `podman exec docling-processor docling --ocr-engine rapidocr --help`
+- Test RapidOCR functionality: `podman exec docling-processor docling --ocr-engine rapidocr --to md input.pdf --output output.md`
 
 ## Optional Features
 

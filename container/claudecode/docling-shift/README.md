@@ -88,6 +88,9 @@ python process_documents.py document.pdf json
 ```bash
 # ホストから直接コマンド実行
 podman exec docling-processor python process_documents.py /shared/input/document.pdf
+
+# RapidOCRエンジンを使用した処理
+podman exec docling-processor docling --ocr-engine rapidocr --to md /shared/input/document.pdf --output /shared/output/document.md
 ```
 
 ## サポートされるファイル形式
@@ -134,6 +137,18 @@ podman exec docling-processor python process_documents.py /shared/input/document
    ```bash
    # ログを確認
    podman-compose logs docling
+   ```
+
+4. **RapidOCRエンジンエラー** （issue #110対応）
+   ```bash
+   # "ImportError: onnxruntime is not installed" エラーが発生した場合
+   podman-compose build --no-cache
+
+   # RapidOCRの動作確認
+   podman exec docling-processor docling --ocr-engine rapidocr --help
+
+   # RapidOCRでドキュメント処理テスト
+   podman exec docling-processor docling --ocr-engine rapidocr --to md input.pdf --output output.md
    ```
 
 ### デバッグ
