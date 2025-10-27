@@ -14,6 +14,13 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr-jpn \
     libreoffice \
     pandoc \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    ffmpeg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,13 +32,20 @@ RUN pip install --no-cache-dir \
     fastapi \
     uvicorn \
     python-multipart \
-    onnxruntime
+    onnxruntime \
+    paddlepaddle \
+    paddleocr \
+    opencv-python \
+    pillow \
+    pymupdf \
+    pdf2image
 
 # 共有ディレクトリを作成
 RUN mkdir -p /shared/input /shared/output /shared/config
 
 # 処理スクリプトをコピー
 COPY process_documents.py /app/
+COPY paddle_ocr_integration.py /app/
 
 # 環境変数の設定
 ENV PYTHONPATH=/app

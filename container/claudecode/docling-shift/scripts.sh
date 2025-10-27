@@ -17,12 +17,13 @@ show_help() {
     echo "  build          コンテナイメージをビルド"
     echo "  start          コンテナを起動（バックグラウンド）"
     echo "  stop           コンテナを停止"
-    echo "  restart        コンテナを再起動"
+    echo "  restart        コンテナを재起動"
     echo "  logs           コンテナのログを表示"
     echo "  shell          コンテナ内のシェルに接続"
     echo "  status         コンテナの状態を確認"
     echo "  clean          停止済みコンテナとイメージを削除"
     echo "  process [file] ファイルを処理（Markdown形式で出力）"
+    echo "  paddle [file]  PaddleOCRでファイルを処理"
     echo "  help           このヘルプを表示"
 }
 
@@ -118,6 +119,42 @@ process_file() {
     fi
 }
 
+# PaddleOCRファイル処理
+paddle_process_file() {
+    if [ -z "$1" ]; then
+        echo -e "${RED}エラー: ファイル名を指定してください。${NC}"
+        echo "使用方法: ./scripts.sh paddle <ファイル名> [言語] [出力形式]"
+        echo "例: ./scripts.sh paddle document.pdf japan markdown"
+        exit 1
+    fi
+
+    local file_path="$1"
+    local lang="${2:-en}"  # デフォルトは英語
+    local format="${3:-markdown}"  # デフォルトはMarkdown
+
+    echo -e "${YELLOW}PaddleOCRでファイルを処理しています: ${file_path}${NC}"
+    echo -e "${YELLOW}言語: ${lang}, 出力形式: ${format}${NC}"
+
+    # 出力ファイル名を生成
+    local basename=$(basename "${file_path%.*}")
+    local output_file="${basename}_paddle.${format}"
+
+    podman exec docling-processor python paddle_ocr_integration.py "${file_path}" \
+        --lang "${lang}" \
+        --format "${format}" \
+        --output "${output_file}" \
+        --verbose
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}PaddleOCRファイルの処理が完了しました！${NC}"
+        echo "出力ファイルは data/output/ ディレクトリで確認できます。"
+        echo "ファイル名: ${output_file}"
+    else
+        echo -e "${RED}PaddleOCRファイルの処理に失敗しました。${NC}"
+        exit 1
+    fi
+}
+
 # メイン処理
 case "$1" in
     build)
@@ -146,6 +183,9 @@ case "$1" in
         ;;
     process)
         process_file "$2"
+        ;;
+    paddle)
+        paddle_process_file "$2" "$3" "$4"
         ;;
     help|--help|-h)
         show_help
