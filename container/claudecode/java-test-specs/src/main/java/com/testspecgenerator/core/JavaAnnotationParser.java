@@ -1,0 +1,369 @@
+package com.testspecgenerator.core;
+
+import com.testspecgenerator.model.TestCaseInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Javaファイルからカスタムアノテーションとテストメソッドを抽出するクラス
+ */
+public class JavaAnnotationParser {
+
+    private static final Logger logger = LoggerFactory.getLogger(JavaAnnotationParser.class);
+
+    // アノテーションパターン
+    private static final Pattern ANNOTATION_PATTERN = Pattern.compile(
+            "@(\\w+)\\s+(.+?)(?=\\s*@\\w+|\\s*\\*/|$)",
+            Pattern.MULTILINE | Pattern.DOTALL
+    );
+
+    // テストメソッドパターン
+    private static final Pattern TEST_METHOD_PATTERN = Pattern.compile(
+            "@(?:Test|ParameterizedTest).*?public\\s+void\\s+(\\w+)\\s*\\(",
+            Pattern.DOTALL | Pattern.MULTILINE
+    );
+
+    // JavaDocコメントパターン
+    private static final Pattern JAVADOC_PATTERN = Pattern.compile(
+            "/\\*\\*(.*?)\\*/",
+            Pattern.DOTALL
+    );
+
+    // クラス名抽出パターン
+    private static final Pattern CLASS_NAME_PATTERN = Pattern.compile(
+            "(?:public\\s+)?(?:abstract\\s+)?class\\s+(\\w+)",
+            Pattern.MULTILINE
+    );
+
+    // サポートするアノテーション名
+    private static final Set<String> SUPPORTED_ANNOTATIONS = Set.of(
+            "TestModule", "TestCase", "BaselineVersion", "TestOverview",
+            "TestPurpose", "TestProcess", "TestResults", "Creator",
+            "CreatedDate", "Modifier", "ModifiedDate", "TestCategory",
+            "Priority", "Requirements", "Dependencies"
+    );
+
+    // ファイルエンコーディング候補
+    private static final List<Charset> ENCODING_CANDIDATES = List.of(
+            StandardCharsets.UTF_8,
+            Charset.forName("Shift_JIS"),
+            Charset.forName("MS932"),
+            StandardCharsets.ISO_8859_1
+    );
+
+    /**
+     * Javaファイルのリストを処理してテストケース情報を抽出
+     */
+    public List<TestCaseInfo> processJavaFiles(List<Path> javaFiles) {
+        logger.info("Javaファイル処理開始: {}個のファイル", javaFiles.size());
+
+        List<TestCaseInfo> testCases = new ArrayList<>();
+
+        for (int i = 0; i < javaFiles.size(); i++) {
+            Path javaFile = javaFiles.get(i);
+            logger.debug("処理中: {} ({}/{})", javaFile.getFileName(), i + 1, javaFiles.size());
+
+            try {
+                List<TestCaseInfo> fileCases = processJavaFile(javaFile);
+                testCases.addAll(fileCases);
+            } catch (Exception e) {
+                logger.warn("ファイル処理中にエラー: {} - {}", javaFile, e.getMessage());
+            }
+        }
+
+        logger.info("Javaファイル処理完了: {}個のテストケース抽出", testCases.size());
+        return testCases;
+    }
+
+    /**
+     * 単一のJavaファイルを処理してテストケース情報を抽出
+     */
+    public List<TestCaseInfo> processJavaFile(Path javaFile) throws IOException {
+        // ファイル内容を読み込み
+        String content = readFileWithEncoding(javaFile);
+        if (content == null || content.trim().isEmpty()) {
+            logger.warn("ファイル内容が空または読み込めません: {}", javaFile);
+            return new ArrayList<>();
+        }
+
+        // クラス名を抽出
+        String className = extractClassName(content);
+        if (className == null) {
+            logger.warn("クラス名を抽出できません: {}", javaFile);
+            return new ArrayList<>();
+        }
+
+        // テストメソッドを検索
+        List<String> testMethods = extractTestMethods(content);
+        logger.debug("テストメソッド発見数: {} in {}", testMethods.size(), className);
+
+        if (testMethods.isEmpty()) {
+            logger.debug("テストメソッドが見つかりません: {}", javaFile);
+            return new ArrayList<>();
+        }
+
+        // 各テストメソッドについてアノテーション情報を抽出
+        List<TestCaseInfo> testCases = new ArrayList<>();
+
+        for (String methodName : testMethods) {
+            TestCaseInfo testCase = new TestCaseInfo(javaFile.toString(), className, methodName);
+
+            // メソッドレベルのアノテーション抽出
+            Map<String, String> methodAnnotations = extractMethodAnnotations(content, methodName);
+
+            // クラスレベルのアノテーション抽出（フォールバック）
+            Map<String, String> classAnnotations = extractClassAnnotations(content);
+
+            // アノテーション情報をマージ（メソッドレベルが優先）
+            Map<String, String> mergedAnnotations = new HashMap<>(classAnnotations);
+            mergedAnnotations.putAll(methodAnnotations);
+
+            // TestCaseInfoにアノテーション情報を設定
+            applyAnnotationsToTestCase(testCase, mergedAnnotations);
+
+            testCases.add(testCase);
+
+            logger.debug("テストケース抽出: {}.{} - モジュール: {}, ケース: {}",
+                    className, methodName,
+                    testCase.getTestModule(), testCase.getTestCase());
+        }
+
+        return testCases;
+    }
+
+    /**
+     * エンコーディングを自動検出してファイルを読み込み
+     */
+    private String readFileWithEncoding(Path filePath) throws IOException {
+        for (Charset charset : ENCODING_CANDIDATES) {
+            try {
+                String content = Files.readString(filePath, charset);
+                logger.debug("ファイル読み込み成功: {} ({})", filePath, charset.name());
+                return content;
+            } catch (IOException e) {
+                logger.debug("エンコーディング {} で読み込み失敗: {}", charset.name(), filePath);
+            }
+        }
+
+        logger.error("すべてのエンコーディングで読み込み失敗: {}", filePath);
+        throw new IOException("ファイルを読み込めません: " + filePath);
+    }
+
+    /**
+     * Javaファイルからクラス名を抽出
+     */
+    private String extractClassName(String content) {
+        Matcher matcher = CLASS_NAME_PATTERN.matcher(content);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    /**
+     * Javaファイルからテストメソッド名を抽出
+     */
+    private List<String> extractTestMethods(String content) {
+        List<String> methods = new ArrayList<>();
+        Matcher matcher = TEST_METHOD_PATTERN.matcher(content);
+
+        while (matcher.find()) {
+            String methodName = matcher.group(1);
+            methods.add(methodName);
+            logger.debug("テストメソッド発見: {} at position {}", methodName, matcher.start());
+        }
+
+        return methods;
+    }
+
+    /**
+     * 指定メソッドのアノテーション情報を抽出
+     */
+    private Map<String, String> extractMethodAnnotations(String content, String methodName) {
+        // メソッド定義の位置を検索
+        Pattern methodPattern = Pattern.compile(
+                "/\\*\\*(.*?)\\*/.*?@(?:Test|ParameterizedTest).*?public\\s+void\\s+" +
+                        Pattern.quote(methodName) + "\\s*\\(",
+                Pattern.DOTALL | Pattern.MULTILINE
+        );
+
+        Matcher matcher = methodPattern.matcher(content);
+        if (matcher.find()) {
+            String javadocContent = matcher.group(1);
+            return parseAnnotations(javadocContent);
+        }
+
+        return new HashMap<>();
+    }
+
+    /**
+     * クラスレベルのアノテーション情報を抽出
+     */
+    private Map<String, String> extractClassAnnotations(String content) {
+        // クラス定義より前のJavaDocコメントを検索
+        Pattern classJavadocPattern = Pattern.compile(
+                "/\\*\\*(.*?)\\*/\\s*(?:public\\s+)?(?:abstract\\s+)?class",
+                Pattern.DOTALL | Pattern.MULTILINE
+        );
+
+        Matcher matcher = classJavadocPattern.matcher(content);
+        if (matcher.find()) {
+            String javadocContent = matcher.group(1);
+            return parseAnnotations(javadocContent);
+        }
+
+        return new HashMap<>();
+    }
+
+    /**
+     * JavaDocコメント内容からアノテーション情報を解析
+     */
+    private Map<String, String> parseAnnotations(String javadocContent) {
+        Map<String, String> annotations = new HashMap<>();
+
+        if (javadocContent == null || javadocContent.trim().isEmpty()) {
+            return annotations;
+        }
+
+        // 行単位で処理
+        String[] lines = javadocContent.split("\\n");
+        for (String line : lines) {
+            line = line.trim();
+
+            // コメント記号を除去
+            if (line.startsWith("*")) {
+                line = line.substring(1).trim();
+            }
+
+            // @アノテーション形式をチェック
+            if (line.startsWith("@")) {
+                parseAnnotationLine(line, annotations);
+            }
+        }
+
+        return annotations;
+    }
+
+    /**
+     * 単一のアノテーション行を解析
+     */
+    private void parseAnnotationLine(String line, Map<String, String> annotations) {
+        // @AnnotationName value の形式を解析
+        int spaceIndex = line.indexOf(' ', 1);
+        if (spaceIndex == -1) {
+            spaceIndex = line.indexOf('\t', 1);
+        }
+
+        if (spaceIndex > 1) {
+            String annotationName = line.substring(1, spaceIndex).trim();
+            String value = line.substring(spaceIndex + 1).trim();
+
+            if (SUPPORTED_ANNOTATIONS.contains(annotationName)) {
+                annotations.put(annotationName, value);
+                logger.debug("アノテーション解析: {} = {}", annotationName, value);
+            }
+        }
+    }
+
+    /**
+     * アノテーション情報をTestCaseInfoオブジェクトに適用
+     */
+    private void applyAnnotationsToTestCase(TestCaseInfo testCase, Map<String, String> annotations) {
+        annotations.forEach((key, value) -> {
+            if (value != null && !value.trim().isEmpty()) {
+                switch (key) {
+                    case "TestModule":
+                        testCase.setTestModule(value.trim());
+                        break;
+                    case "TestCase":
+                        testCase.setTestCase(value.trim());
+                        break;
+                    case "BaselineVersion":
+                        testCase.setBaselineVersion(value.trim());
+                        break;
+                    case "TestOverview":
+                        testCase.setTestOverview(value.trim());
+                        break;
+                    case "TestPurpose":
+                        testCase.setTestPurpose(value.trim());
+                        break;
+                    case "TestProcess":
+                        testCase.setTestProcess(value.trim());
+                        break;
+                    case "TestResults":
+                        testCase.setTestResults(value.trim());
+                        break;
+                    case "Creator":
+                        testCase.setCreator(value.trim());
+                        break;
+                    case "CreatedDate":
+                        testCase.setCreatedDate(value.trim());
+                        break;
+                    case "Modifier":
+                        testCase.setModifier(value.trim());
+                        break;
+                    case "ModifiedDate":
+                        testCase.setModifiedDate(value.trim());
+                        break;
+                    case "TestCategory":
+                        testCase.setTestCategory(value.trim());
+                        break;
+                    case "Priority":
+                        testCase.setPriority(value.trim());
+                        break;
+                    case "Requirements":
+                        testCase.setRequirements(value.trim());
+                        break;
+                    case "Dependencies":
+                        testCase.setDependencies(value.trim());
+                        break;
+                }
+            }
+        });
+    }
+
+    /**
+     * 抽出されたテストケースの統計情報を取得
+     */
+    public Map<String, Object> getStatistics(List<TestCaseInfo> testCases) {
+        Map<String, Object> stats = new HashMap<>();
+
+        stats.put("totalTestCases", testCases.size());
+        stats.put("classCount", testCases.stream()
+                .map(TestCaseInfo::getClassName)
+                .distinct()
+                .count());
+
+        // アノテーション完成度統計
+        long annotatedCases = testCases.stream()
+                .mapToLong(tc -> !"Not Specified".equals(tc.getTestModule()) ? 1 : 0)
+                .sum();
+        stats.put("annotatedCases", annotatedCases);
+        stats.put("annotationCompleteness", testCases.isEmpty() ? 0.0 :
+                (double) annotatedCases / testCases.size() * 100.0);
+
+        return stats;
+    }
+
+    /**
+     * 処理サマリーをログ出力
+     */
+    public void logProcessingSummary(List<TestCaseInfo> testCases) {
+        Map<String, Object> stats = getStatistics(testCases);
+
+        logger.info("=== アノテーション解析サマリー ===");
+        logger.info("総テストケース数: {}", stats.get("totalTestCases"));
+        logger.info("対象クラス数: {}", stats.get("classCount"));
+        logger.info("アノテーション付きケース: {}", stats.get("annotatedCases"));
+        logger.info("アノテーション完成度: {:.1f}%", stats.get("annotationCompleteness"));
+    }
+}

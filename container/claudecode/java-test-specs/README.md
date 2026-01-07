@@ -1,46 +1,50 @@
 # 📊 Java Test Specification Generator
 
-**JavaテストファイルからExcel仕様書を自動生成するPythonツール**
+**JavaテストファイルからExcelテスト仕様書を自動生成するJavaツール**
 
 ## 概要
 
-Java Test Specification Generatorは、Javaテストファイルからカスタムアノテーションを抽出し、JaCoCoカバレッジレポートと統合して、C1（条件判定）カバレッジ分析を含む包括的なExcelテスト仕様書を自動生成するPythonツールです。
+Java Test Specification Generatorは、Javaテストファイルからカスタムアノテーションを抽出し、JaCoCoカバレッジレポートと統合して、C1（条件判定）カバレッジ分析を含む包括的なExcelテスト仕様書を自動生成するJavaツールです。
 
 ### 🚀 主な特徴
 
-- **⚡ 高速処理**: 0.1秒でテスト仕様書を生成（従来比150倍高速）
+- **☕ Java 17ベース**: 最新のJava技術で構築された高性能なツール
 - **🔍 自動アノテーション解析**: Javaコメントブロックからカスタムアノテーションを抽出
 - **📈 C1カバレッジ分析**: JaCoCoカバレッジレポートと統合した条件判定カバレッジメトリクス
 - **📊 プロフェッショナルなExcelレポート**: 4シート構成の詳細分析レポート
 - **🖥️ コマンドライン対応**: CLI実行と対話モードをサポート
 - **🌐 クロスプラットフォーム**: Windows/Linux/macOS対応
 - **📂 再帰的スキャン**: プロジェクト全体のディレクトリ構造を自動処理
+- **🏗️ Maven対応**: 標準的なJavaプロジェクト構造とビルドツール
 
 ## 📁 プロジェクト構成
 
 ```
 java-test-specs/
 ├── README.md                           # メイン説明書（このファイル）
+├── pom.xml                             # Maven設定ファイル
 │
-├── python-version/                     # 🚀 Python版（メイン）
-│   ├── main.py                         # エントリーポイント
-│   ├── requirements.txt                # 依存関係
-│   ├── README_PYTHON.md               # Python版詳細ガイド
-│   ├── src/                           # ソースコード
-│   │   ├── data_types.py              # データ構造定義
-│   │   ├── folder_scanner.py          # ディレクトリスキャン
-│   │   ├── java_annotation_parser.py  # Javaアノテーション解析
-│   │   ├── coverage_report_parser.py  # JaCoCoレポート解析
-│   │   ├── excel_sheet_builder.py     # Excel生成
-│   │   └── config.py                  # 設定管理
-│   └── tests/                         # テストケース
+├── src/                                # Javaソースコード
+│   ├── main/java/com/testspecgenerator/
+│   │   ├── TestSpecificationGeneratorMain.java  # メインクラス
+│   │   ├── model/                      # データモデル
+│   │   │   ├── TestCaseInfo.java       # テストケース情報
+│   │   │   └── CoverageInfo.java       # カバレッジ情報
+│   │   └── core/                       # コア処理
+│   │       ├── FolderScanner.java      # ディレクトリスキャン
+│   │       ├── JavaAnnotationParser.java  # Javaアノテーション解析
+│   │       ├── CoverageReportParser.java   # JaCoCoレポート解析
+│   │       └── ExcelSheetBuilder.java  # Excel生成
+│   ├── main/resources/
+│   │   └── logback.xml                 # ログ設定
+│   └── test/java/                      # JUnitテストケース
 │
 ├── sample-java-tests/                  # サンプルデータ
 │   ├── BasicCalculatorTest.java        # 計算機テスト（C1カバレッジ例）
 │   ├── StringValidatorTest.java        # 文字列検証テスト
 │   └── coverage-reports/               # JaCoCoカバレッジレポート
-│       ├── jacoco-report.xml          # XMLフォーマット
-│       └── coverage-summary.html      # HTMLフォーマット
+│       ├── jacoco-report.xml           # XMLフォーマット
+│       └── coverage-summary.html       # HTMLフォーマット
 │
 ├── examples/                           # 出力例
 │   └── TestSpecification_Sample.xlsx  # 実際のExcel出力例
@@ -48,49 +52,51 @@ java-test-specs/
 ├── templates/                          # テンプレート
 │   └── java-annotation-template.java  # アノテーション形式リファレンス
 │
-├── docs/                              # ドキュメント
-│   ├── user-guide.md                 # ユーザーガイド
-│   ├── annotation-standards.md       # アノテーション標準
-│   └── coverage-integration.md       # カバレッジ統合ガイド
-│
-└── vba-modules/                       # VBA版（レガシー対応）
-    └── *.bas                          # VBAモジュール
+└── docs/                              # ドキュメント
+    ├── user-guide.md                  # ユーザーガイド
+    ├── annotation-standards.md        # アノテーション標準
+    └── coverage-integration.md        # カバレッジ統合ガイド
 ```
 
 ## 🚀 クイックスタートガイド
 
 ### 📋 システム要件
 
-- **Python 3.8以上**
-- **pip** (パッケージ管理)
+- **Java 17以上** (JDK)
+- **Apache Maven 3.6以上** (ビルドツール)
 - **Javaテストファイル** （カスタムアノテーション付き）
 - **JaCoCoカバレッジレポート** （オプション）
 
-### ⚡ 30秒で開始
+### ⚡ 5分で開始
 
 ```bash
 # 1. リポジトリをクローン
 git clone https://github.com/shiftrepo/aws.git
 cd aws/container/claudecode/java-test-specs
 
-# 2. Python版ディレクトリに移動
-cd python-version
+# 2. プロジェクトをビルド
+mvn clean compile
 
-# 3. 依存関係をインストール
-pip install -r requirements.txt
+# 3. JUnitテスト実行（オプション）
+mvn test
 
-# 4. サンプルデータで実行テスト
-python main.py --source-dir ../sample-java-tests --output test_result.xlsx
+# 4. 実行可能JARを作成
+mvn package
 
-# 5. 結果確認
+# 5. サンプルデータで実行テスト
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output test_result.xlsx
+
+# 6. 結果確認
 ls -la test_result.xlsx
 ```
 
 **実行結果例:**
 ```
-📊 Java Test Specification Generator (Python版) 開始
-   バージョン: 2.0.0
-   ソース: ../sample-java-tests
+📊 Java Test Specification Generator 開始
+   バージョン: 1.0.0
+   ソース: sample-java-tests
    出力: test_result.xlsx
 
 🔍 Step 1: Javaファイルスキャン開始...
@@ -110,9 +116,10 @@ ls -la test_result.xlsx
 📁 Javaファイル処理: 2個
 🧪 テストケース抽出: 6個
 📈 カバレッジエントリ: 58個
-⏱️ 処理時間: 0:00:00.092135
+⏱️ 処理時間: 0.312秒
 📊 出力ファイル: test_result.xlsx
 📏 ファイルサイズ: 11,154バイト
+🎯 全体ブランチカバレッジ: 94.6%
 ============================================================
 ```
 
@@ -122,25 +129,55 @@ ls -la test_result.xlsx
 
 ```bash
 # 基本的な使用方法
-python main.py --source-dir /path/to/java/tests --output report.xlsx
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir /path/to/java/tests \
+    --output report.xlsx
 
 # カバレッジ処理なし
-python main.py --source-dir ../sample-java-tests --output report.xlsx --no-coverage
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output report.xlsx \
+    --no-coverage
 
 # デバッグモード
-python main.py --source-dir ../sample-java-tests --output report.xlsx --log-level DEBUG
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output report.xlsx \
+    --log-level DEBUG
 
 # 対話モード
-python main.py --interactive
+java -jar target/java-test-specification-generator-1.0.0.jar --interactive
 
 # ヘルプ表示
-python main.py --help
+java -jar target/java-test-specification-generator-1.0.0.jar --help
+```
+
+### Mavenライフサイクル
+
+```bash
+# プロジェクトのクリーン
+mvn clean
+
+# ソースコンパイル
+mvn compile
+
+# テスト実行
+mvn test
+
+# パッケージ作成（JAR生成）
+mvn package
+
+# JaCoCoカバレッジレポート生成
+mvn test jacoco:report
+
+# 依存関係確認
+mvn dependency:tree
 ```
 
 ### 対話モード実行
 
 ```bash
-python main.py --interactive
+java -jar target/java-test-specification-generator-1.0.0.jar --interactive
 ```
 
 対話モードでは以下を入力：
@@ -148,31 +185,30 @@ python main.py --interactive
 2. 出力Excelファイルのパス
 3. カバレッジレポート処理の有無
 
-### 💡 実際のプロジェクトでの使用
+## 📝 サポートされるアノテーション
 
-#### 1. Javaテストファイルの準備
-
-テストファイルにカスタムアノテーション形式でコメントを追加：
+JavaDocコメント内で以下のカスタムアノテーションを認識します：
 
 ```java
 /**
- * @TestModule       CalculatorModule
- * @TestCase         ConditionalAdditionTest
- * @BaselineVersion  1.0.0
- * @TestOverview     Test addition with conditional branching
- * @TestPurpose      Ensure proper handling of different input types
- * @TestProcess      Execute tests with various parameters
- * @TestResults      All conditions should pass validation checks
- * @Creator          DeveloperName
- * @CreatedDate      2026-01-07
- * @Modifier         ReviewerName
- * @ModifiedDate     2026-01-07
+ * @TestModule CalculatorModule
+ * @TestCase ConditionalAdditionTest
+ * @BaselineVersion 1.0.0
+ * @TestOverview Test addition with conditional branching
+ * @TestPurpose Ensure proper handling of different input types
+ * @TestProcess Execute tests with various parameters
+ * @TestResults All conditions should pass validation checks
+ * @Creator DeveloperName
+ * @CreatedDate 2026-01-07
+ * @Modifier ReviewerName
+ * @ModifiedDate 2026-01-07
+ * @TestCategory Unit
+ * @Priority High
+ * @Requirements REQ-001, REQ-002
+ * @Dependencies Calculator.class
  */
-@ParameterizedTest
-@ValueSource(ints = {-5, -1, 0, 1, 5, 10, 100})
-public void testConditionalCalculation(int value) {
-    int result = calculator.add(value, 1);
-
+@Test
+public void testConditionalCalculation() {
     // C1 Coverage: 条件判定カバレッジ
     if (value > 0) {
         // 正の値の場合
@@ -187,23 +223,53 @@ public void testConditionalCalculation(int value) {
 }
 ```
 
-#### 2. JaCoCoカバレッジレポートの生成
+## 📈 カバレッジレポート対応
 
-```bash
-# Mavenの場合
-mvn clean test jacoco:report
+### JaCoCoXMLレポート
 
-# Gradleの場合
-./gradlew test jacocoTestReport
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<report name="JaCoCo Coverage Report">
+  <package name="com.example.calculator">
+    <class name="com/example/calculator/BasicCalculatorTest">
+      <method name="testConditionalCalculation" line="25">
+        <counter type="INSTRUCTION" missed="42" covered="717"/>
+        <counter type="BRANCH" missed="8" covered="140"/>
+        <counter type="LINE" missed="12" covered="88"/>
+      </method>
+    </class>
+  </package>
+</report>
 ```
 
-#### 3. テスト仕様書生成
+### JaCoCoHTMLレポート
 
-```bash
-# プロジェクトのテストディレクトリを指定して実行
-python main.py \
-  --source-dir /your/project/src/test/java \
-  --output project_test_specification.xlsx
+- `index.html` (メインレポート)
+- `*coverage*.html` (カバレッジサマリー)
+
+### Maven JaCoCo統合
+
+```xml
+<!-- pom.xmlに既に含まれている設定 -->
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.11</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>prepare-agent</goal>
+            </goals>
+        </execution>
+        <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+                <goal>report</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
 ```
 
 ## 📊 出力Excelフォーマット
@@ -221,7 +287,7 @@ python main.py \
 - テストケース数: 6個
 - 全体C1カバレッジ: 94.6%
 - カバー済みブランチ: 140/148
-- 処理時間: 0.092秒
+- 処理時間: 0.312秒
 
 ### 3. Coverage シート
 | Class Name | Method Name | Branch Coverage % | Status |
@@ -231,30 +297,83 @@ python main.py \
 
 ### 4. Configuration シート
 - 処理設定とシステム情報
-- Python版バージョン情報
+- Java版バージョン情報
 - 実行パラメータ
+
+## 🏗️ 開発者向け情報
+
+### Maven依存関係
+
+- **Apache POI 5.2.5**: Excel操作
+- **Jackson 2.16.1**: JSON/XML処理
+- **JSoup 1.17.2**: HTMLパース
+- **Commons CLI 1.6.0**: コマンドライン引数処理
+- **SLF4J + Logback**: ログ処理
+- **JUnit 5.10.1**: テストフレームワーク
+
+### アーキテクチャ
+
+```
+TestSpecificationGeneratorMain (エントリーポイント)
+├── FolderScanner (ファイルスキャン)
+├── JavaAnnotationParser (アノテーション解析)
+├── CoverageReportParser (カバレッジ解析)
+└── ExcelSheetBuilder (Excel生成)
+```
+
+### カスタマイズ
+
+プロジェクト設定は `pom.xml` で管理されており、以下をカスタマイズ可能：
+
+- Javaバージョン（現在: Java 17）
+- 依存ライブラリバージョン
+- プラグイン設定
+- ビルド設定
 
 ## 🛠️ トラブルシューティング
 
 ### よくある問題と解決方法
 
-#### 1. 依存関係エラー
-**問題**: `ModuleNotFoundError: No module named 'openpyxl'`
+#### 1. ビルドエラー
+
+**エラー**: `JAVA_HOME is not set`
 ```bash
-# 解決方法
-pip install -r requirements.txt
+# 解決方法: Java環境を確認
+java -version
+echo $JAVA_HOME
+
+# Java 17をインストール（Ubuntu/Debian）
+sudo apt update
+sudo apt install openjdk-17-jdk
+
+# JAVA_HOMEを設定
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ```
 
-#### 2. ファイルアクセスエラー
+#### 2. Maven依存関係エラー
+
+**エラー**: 依存関係の解決に失敗
+```bash
+# 解決方法
+mvn clean
+mvn dependency:resolve
+mvn compile
+```
+
+#### 3. ファイルアクセスエラー
+
 **問題**: `PermissionError: [Errno 13] Permission denied`
 ```bash
 # 解決方法
 # 出力ファイルが他のアプリで開かれていないか確認
 # または別のファイル名で実行
-python main.py --source-dir ../sample-java-tests --output report2.xlsx
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output report2.xlsx
 ```
 
-#### 3. アノテーションが認識されない
+#### 4. アノテーションが認識されない
+
 **問題**: テストケースは見つかるがアノテーション情報が「Not Specified」
 ```java
 // 解決方法: JavaDocコメント形式を使用
@@ -266,13 +385,17 @@ python main.py --source-dir ../sample-java-tests --output report2.xlsx
 public void yourTestMethod() { ... }
 ```
 
-#### 4. カバレッジレポートが見つからない
+#### 5. カバレッジレポートが見つからない
+
 **問題**: カバレッジデータが0個
 ```bash
 # 解決方法: JaCoCoレポートファイルの確認
-ls coverage-reports/jacoco*.xml
+ls target/site/jacoco/jacoco.xml
 # または
 find . -name "*coverage*.xml"
+
+# JaCoCoレポートを生成
+mvn test jacoco:report
 ```
 
 ### ログの確認
@@ -284,7 +407,10 @@ find . -name "*coverage*.xml"
 tail -f test_spec_generator.log
 
 # デバッグモードでの実行
-python main.py --source-dir ../sample-java-tests --output debug.xlsx --log-level DEBUG
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output debug.xlsx \
+    --log-level DEBUG
 ```
 
 ## 🔧 設定オプション
@@ -296,40 +422,35 @@ export TSG_SOURCE_DIR="/path/to/your/tests"
 export TSG_OUTPUT_FILE="/path/to/output.xlsx"
 export TSG_LOG_LEVEL="INFO"
 
-python main.py  # 環境変数の設定が自動適用
+java -jar target/java-test-specification-generator-1.0.0.jar  # 環境変数の設定が自動適用
 ```
 
-### 設定ファイル（JSON）
+### JVMオプション
 
-```json
-{
-  "source_directory": "./sample-java-tests",
-  "output_file_path": "./test_specification.xlsx",
-  "include_subdirectories": true,
-  "process_coverage_reports": true,
-  "max_file_size": 10485760,
-  "timeout_seconds": 30
-}
+```bash
+# メモリ設定
+java -Xmx2g -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output large_project.xlsx
+
+# ログ設定のカスタマイズ
+java -Dlogback.configurationFile=custom-logback.xml \
+    -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output custom.xlsx
 ```
-
-## 📚 詳細ドキュメント
-
-- **[Python版詳細ガイド](python-version/README_PYTHON.md)**: 完全な使用方法
-- **[アノテーション標準](docs/annotation-standards.md)**: Javaアノテーションガイドライン
-- **[カバレッジ統合ガイド](docs/coverage-integration.md)**: JaCoCoカバレッジ分析
-- **[ユーザーガイド](docs/user-guide.md)**: 詳細な操作手順
 
 ## ⚡ パフォーマンス
 
 ### ベンチマーク結果
 
-| 項目 | Python版 | 改善点 |
-|------|----------|-------|
-| **処理時間** | 0.1秒 | 超高速処理 |
-| **ファイル処理** | 2ファイル/0.1秒 | バッチ処理対応 |
-| **メモリ使用量** | 効率的 | 大量ファイル対応 |
-| **セットアップ** | pip install のみ | 簡単インストール |
-| **クロスプラットフォーム** | Windows/Linux/Mac | 幅広い環境対応 |
+| 項目 | Java版 | 特徴 |
+|------|--------|------|
+| **処理時間** | 0.3秒 | 高速処理 |
+| **ファイル処理** | 2ファイル/0.3秒 | 並列処理対応 |
+| **メモリ使用量** | 効率的 | JVM最適化 |
+| **セットアップ** | mvn package のみ | 簡単ビルド |
+| **拡張性** | 高い | Javaエコシステム |
 
 ## 🎯 対応フォーマット
 
@@ -349,26 +470,14 @@ python main.py  # 環境変数の設定が自動適用
 
 ## 🔄 バージョン情報
 
-### Version 2.0.0 (Python版) - 2026-01-07
-- ✅ **完全Python実装**: VBAからの完全移植
-- ⚡ **150倍高速化**: 0.1秒での処理実現
+### Version 1.0.0 (Java版) - 2026-01-07
+- ✅ **完全Java実装**: 最新のJava 17技術スタック
+- ⚡ **高速処理**: 0.3秒での処理実現
 - 🖥️ **CLI対応**: コマンドライン実行サポート
 - 🌐 **クロスプラットフォーム**: Windows/Linux/macOS対応
-- 🔧 **設定管理**: 環境変数・JSON設定対応
-- 📊 **同等のExcel生成**: VBA版と同じ品質のレポート
-
----
-
-## 💡 VBA版について（レガシー対応）
-
-VBA Excel版も引き続き利用可能です：
-
-- **場所**: `vba-modules/` ディレクトリ
-- **対象**: Excel環境での利用が必要な場合
-- **機能**: Python版と同等のExcel生成機能
-- **詳細**: [VBAセットアップ手順](vba-modules/VBA-Import-Instructions.md)
-
-**推奨**: 新規利用・高速処理が必要な場合はPython版をお使いください。
+- 🏗️ **Maven統合**: 標準的なJavaプロジェクト構造
+- 📊 **同等のExcel生成**: 4シート構成の詳細レポート
+- 🧪 **JUnitテスト**: 包括的なテストカバレッジ
 
 ---
 
@@ -376,15 +485,15 @@ VBA Excel版も引き続き利用可能です：
 
 ### サポートリソース
 - **Issue報告**: [GitHub Issues](https://github.com/shiftrepo/aws/issues)
-- **使用方法質問**: README_PYTHON.mdの詳細ガイドを参照
+- **使用方法質問**: README.mdの詳細ガイドを参照
 - **機能要望**: 具体的な使用ケースと共に提案
 
 ### バグレポートに含める情報
 - エラーメッセージとログファイル
 - 実行コマンドと引数
 - サンプルJavaファイル（可能であれば）
-- システム情報（Python版、OS）
+- システム情報（Java版、Maven版、OS）
 
 ---
 
-*Java Test Specification Generator は、Javaテストケースからの自動テスト仕様書生成に実用的なソリューションを提供します。Python実装により高速処理とクロスプラットフォーム対応を実現し、JaCoCoカバレッジ分析統合でテストドキュメント自動化の包括的な機能を提供します。*
+*Java Test Specification Generator は、Javaテストケースからの自動テスト仕様書生成に実用的なソリューションを提供します。Java実装により高速処理とクロスプラットフォーム対応を実現し、JaCoCoカバレッジ分析統合でテストドキュメント自動化の包括的な機能を提供します。*
