@@ -41,6 +41,9 @@ java-test-specs/
 │   ├── main/resources/
 │   │   └── logback.xml                 # ログ設定
 │   └── test/java/                      # JUnitテストケース（150アサーション）
+│       ├── com/example/                # アノテーション付きテストサンプル
+│       │   ├── BasicCalculatorTest.java    # 計算機テスト（C1カバレッジ含む）
+│       │   └── StringValidatorTest.java    # 文字列検証テスト（条件分岐含む）
 │       ├── com/testspecgenerator/core/
 │       │   └── FolderScannerTest.java  # コアロジックテスト
 │       └── com/testspecgenerator/
