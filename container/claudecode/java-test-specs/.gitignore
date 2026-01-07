@@ -87,5 +87,10 @@ target/surefire-reports/
 target/*.jar.original
 dependency-reduced-pom.xml
 
-# Keep the final executable JAR and test results
+# Keep the final executable JAR and JaCoCo coverage reports
 !target/*.jar
+!target/site/jacoco/
+!target/site/jacoco/*.xml
+!target/site/jacoco/*.csv
+!target/site/jacoco/*.html
+!target/site/jacoco/jacoco-resources/
