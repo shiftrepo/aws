@@ -103,6 +103,7 @@ public class CoverageReportParser {
                 Elements classes = packageElement.select("class");
                 for (Element classElement : classes) {
                     String className = extractClassNameFromPath(classElement.attr("name"));
+                    String sourceFileName = classElement.attr("sourcefilename");
 
                     // メソッド要素を検索
                     Elements methods = classElement.select("method");
@@ -113,7 +114,7 @@ public class CoverageReportParser {
                         CoverageInfo coverageInfo = new CoverageInfo(className, methodName);
                         coverageInfo.setPackageName(packageName);
                         coverageInfo.setReportType("XML");
-                        coverageInfo.setSourceFile(xmlFile.toString());
+                        coverageInfo.setSourceFile(sourceFileName != null && !sourceFileName.isEmpty() ? sourceFileName : "");
 
                         // カウンター要素からメトリクスを抽出
                         Elements counters = methodElement.select("counter");
@@ -197,7 +198,11 @@ public class CoverageReportParser {
                     CoverageInfo coverageInfo = new CoverageInfo(className, methodName);
                     coverageInfo.setPackageName(packageName);
                     coverageInfo.setReportType("HTML");
-                    coverageInfo.setSourceFile(htmlFile.toString());
+                    // HTMLレポートからはソースファイル名を取得できないため、クラス名から推測
+                    String sourceFile = className.contains("$") ?
+                        className.substring(0, className.indexOf("$")) + ".java" :
+                        className + ".java";
+                    coverageInfo.setSourceFile(sourceFile);
 
                     // 各セルからカバレッジ情報を抽出
                     for (int i = 1; i < cells.size(); i++) {
