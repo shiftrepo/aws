@@ -1,5 +1,8 @@
-# Generated Excel output files
-*.xlsx
+# Exclude temporary Excel files, but keep test result files
+# Allow test_result.xlsx, final_test.xlsx, and example files
+temp_*.xlsx
+debug_*.xlsx
+scratch_*.xlsx
 
 # Python cache and bytecode
 __pycache__/
@@ -74,6 +77,15 @@ Thumbs.db
 *.log
 test_spec_generator.log
 
-# Maven
-target/
+# Maven build artifacts - exclude most but keep final JAR
+target/classes/
+target/test-classes/
+target/maven-*
+target/generated-*/
+target/original-*.jar
+target/surefire-reports/
+target/*.jar.original
 dependency-reduced-pom.xml
+
+# Keep the final executable JAR and test results
+!target/*.jar
