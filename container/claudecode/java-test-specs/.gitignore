@@ -73,3 +73,7 @@ Thumbs.db
 # Logs
 *.log
 test_spec_generator.log
+
+# Maven
+target/
+dependency-reduced-pom.xml

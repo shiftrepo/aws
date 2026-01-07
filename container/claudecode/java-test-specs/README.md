@@ -69,8 +69,163 @@ java-test-specs/
 - **Javaテストファイル** （カスタムアノテーション付き）
 - **JaCoCoカバレッジレポート** （オプション）
 
+### 🔍 **事前環境チェック** ⚠️ **必須**
+
+以下のコマンドで環境を確認してから開始してください：
+
+```bash
+# Java環境の確認
+java -version
+# 期待される出力例:
+# openjdk version "17.0.x" 2023-xx-xx
+# OpenJDK Runtime Environment (build 17.0.x+xx)
+# OpenJDK 64-Bit Server VM (build 17.0.x+xx, mixed mode, sharing)
+
+# Maven環境の確認
+mvn --version
+# 期待される出力例:
+# Apache Maven 3.8.x (xxxxx)
+# Maven home: /usr/share/maven
+# Java version: 17.0.x, vendor: Eclipse Adoptium, runtime: /usr/lib/jvm/java-17-openjdk
+```
+
+#### ❌ **環境が整っていない場合**
+
+**⚠️ 重要**: 以下のエラーが表示される場合は環境セットアップが必要です：
+
+```bash
+java -version
+# ❌ エラー例:
+# bash: java: command not found
+# または
+# java: command not found
+
+mvn --version
+# ❌ エラー例:
+# bash: mvn: command not found
+# または
+# mvn: command not found
+```
+
+**📦 環境別インストール手順:**
+
+##### **Ubuntu/Debian系**
+```bash
+# パッケージリストを更新
+sudo apt update
+
+# Java 17とMavenをインストール
+sudo apt install openjdk-17-jdk maven
+
+# インストール確認
+java -version
+mvn --version
+```
+
+##### **CentOS/RHEL/Fedora系**
+```bash
+# Java 17とMavenをインストール
+sudo dnf install java-17-openjdk-devel maven
+
+# インストール確認
+java -version
+mvn --version
+
+# RHEL 8以前の場合
+sudo yum install java-17-openjdk-devel maven
+```
+
+##### **macOS (Homebrew)**
+```bash
+# Homebrewがない場合は先にインストール
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Java 17とMavenをインストール
+brew install openjdk@17 maven
+
+# Java 17をデフォルトに設定
+sudo ln -sfn /usr/local/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+
+# インストール確認
+java -version
+mvn --version
+```
+
+##### **Windows**
+```powershell
+# 管理者権限でPowerShellを開く
+
+# Chocolatey（パッケージマネージャー）をインストール（推奨）
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Java 17とMavenをインストール
+choco install openjdk17 maven
+
+# または手動インストール:
+# 1. https://adoptium.net/ からJDK 17をダウンロード
+# 2. https://maven.apache.org/download.cgi からMavenをダウンロード
+# 3. 環境変数PATHに追加
+
+# インストール確認
+java -version
+mvn --version
+```
+
+##### **🐳 Docker環境での実行（推奨）**
+```bash
+# SELinux環境での完全なワンライナー実行
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  bash -c "mvn clean package -DskipTests && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx"
+
+# またはステップごとに実行する場合:
+# 1. ビルド
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  mvn clean package -DskipTests
+
+# 2. 実行
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx
+
+# ⚠️ SELinux無効環境の場合（:Zを削除）
+docker run --rm \
+  -v "$(pwd)":/workspace \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  bash -c "mvn clean package -DskipTests && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx"
+```
+
+##### **🏢 企業環境・制限された環境での対処**
+```bash
+# 管理者権限がない場合のポータブル版使用
+
+# 1. SDKMANを使用（Linux/macOS）
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install java 17.0.9-tem
+sdk install maven 3.9.6
+
+# 2. 手動インストール（管理者権限不要）
+# JDK 17ポータブル版をダウンロードし、JAVA_HOMEを設定
+export JAVA_HOME=/path/to/portable/jdk-17
+export PATH=$JAVA_HOME/bin:$PATH
+
+# 3. Mavenポータブル版を設定
+export M2_HOME=/path/to/portable/maven
+export PATH=$M2_HOME/bin:$PATH
+```
+
 ### ⚡ 5分で開始
 
+#### **💻 ローカル環境での実行**
 ```bash
 # 1. リポジトリをクローン
 git clone https://github.com/shiftrepo/aws.git
@@ -94,6 +249,23 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 ls -la test_result.xlsx
 ```
 
+#### **🐳 Docker環境での実行（環境構築不要）**
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/shiftrepo/aws.git
+cd aws/container/claudecode/java-test-specs
+
+# 2. ワンライナーで完了（推奨）
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  bash -c "mvn clean package -DskipTests && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx"
+
+# 3. 結果確認
+ls -la test_result.xlsx
+```
+
 **実行結果例:**
 ```
 📊 Java Test Specification Generator 開始
@@ -108,21 +280,22 @@ ls -la test_result.xlsx
 ✅ テストケース抽出: 6個
 
 📈 Step 3: カバレッジレポート処理開始...
-✅ カバレッジデータ取得: 58個
+✅ カバレッジデータ取得: 28個
 
 📊 Step 4: Excelレポート生成開始...
 ✅ Excelレポート生成完了
 
+============================================================
 🎉 処理完了サマリー
 ============================================================
 📁 Javaファイル処理: 2個
 🧪 テストケース抽出: 6個
-📈 カバレッジエントリ: 58個
-⏱️ 処理時間: 0.312秒
+📈 カバレッジエントリ: 28個
+⏱️ 処理時間: 1.921秒
 📊 出力ファイル: test_result.xlsx
-📏 ファイルサイズ: 11,154バイト
-🎯 全体ブランチカバレッジ: 94.6%
+📏 ファイルサイズ: 9,305バイト
 ============================================================
+✅ テスト仕様書が正常に生成されました: test_result.xlsx
 ```
 
 ## 📖 使用方法
@@ -334,70 +507,372 @@ TestSpecificationGeneratorMain (エントリーポイント)
 
 ## 🛠️ トラブルシューティング
 
-### よくある問題と解決方法
+### 🚨 環境関連の問題
 
-#### 1. ビルドエラー
+#### ❌ **問題1: Java環境が見つからない**
 
-**エラー**: `JAVA_HOME is not set`
+**エラーメッセージ:**
 ```bash
-# 解決方法: Java環境を確認
 java -version
+# bash: java: command not found
+# または
+# java: No such file or directory
+```
+
+**解決手順:**
+```bash
+# Step 1: 現在のシステム確認
+uname -a
+cat /etc/os-release
+
+# Step 2: Javaの検索
+which java
+whereis java
+ls /usr/lib/jvm/
+
+# Step 3: 環境別インストール（前述の「環境が整っていない場合」を参照）
+
+# Step 4: 環境変数の確認と設定
 echo $JAVA_HOME
+echo $PATH
 
-# Java 17をインストール（Ubuntu/Debian）
-sudo apt update
-sudo apt install openjdk-17-jdk
-
-# JAVA_HOMEを設定
+# 手動設定が必要な場合
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$PATH
+
+# 永続化（.bashrcまたは.profileに追加）
+echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> ~/.bashrc
+echo 'export PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-#### 2. Maven依存関係エラー
+#### ❌ **問題2: Maven環境が見つからない**
 
-**エラー**: 依存関係の解決に失敗
+**エラーメッセージ:**
+```bash
+mvn --version
+# bash: mvn: command not found
+# または
+# mvn: No such file or directory
+```
+
+**解決手順:**
+```bash
+# Step 1: Mavenの検索
+which mvn
+whereis maven
+ls /usr/share/maven/
+
+# Step 2: 手動インストール（管理者権限がない場合）
+cd /tmp
+wget https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+tar xzf apache-maven-3.9.6-bin.tar.gz
+sudo mv apache-maven-3.9.6 /opt/maven
+
+# Step 3: 環境変数設定
+export M2_HOME=/opt/maven
+export MAVEN_HOME=/opt/maven
+export PATH=$M2_HOME/bin:$PATH
+
+# Step 4: 永続化
+echo 'export M2_HOME=/opt/maven' >> ~/.bashrc
+echo 'export PATH=$M2_HOME/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# Step 5: 確認
+mvn --version
+```
+
+### 🔧 ビルドとコンパイル関連の問題
+
+#### ❌ **問題3: ビルドエラー**
+
+**エラー1**: `JAVA_HOME is not set`
 ```bash
 # 解決方法
+java -version  # Javaは動作する
+echo $JAVA_HOME  # 空の場合は設定が必要
+
+# JAVA_HOMEを正しく設定
+export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+echo $JAVA_HOME
+```
+
+**エラー2**: `Project build error: Non-resolvable parent POM`
+```bash
+# 解決方法: pom.xmlの確認と修正
 mvn clean
-mvn dependency:resolve
-mvn compile
+mvn validate  # pom.xmlの構文チェック
+mvn help:effective-pom  # 実効POMの確認
 ```
 
-#### 3. ファイルアクセスエラー
-
-**問題**: `PermissionError: [Errno 13] Permission denied`
+**エラー3**: `Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin`
 ```bash
-# 解決方法
-# 出力ファイルが他のアプリで開かれていないか確認
-# または別のファイル名で実行
-java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir sample-java-tests \
-    --output report2.xlsx
+# 解決方法: Javaバージョンの確認
+java -version  # Java 17が必要
+javac -version  # コンパイラの確認
+
+# pom.xmlでJavaバージョンを確認
+grep -A5 -B5 "maven.compiler" pom.xml
 ```
 
-#### 4. アノテーションが認識されない
+#### ❌ **問題4: 依存関係エラー**
 
-**問題**: テストケースは見つかるがアノテーション情報が「Not Specified」
+**エラー**: `Could not resolve dependencies`
+```bash
+# Step 1: ローカルリポジトリのクリア
+rm -rf ~/.m2/repository
+mvn clean
+
+# Step 2: 依存関係の強制更新
+mvn clean compile -U
+
+# Step 3: オフラインモードの確認
+mvn dependency:resolve
+mvn dependency:tree
+
+# Step 4: プロキシ設定が必要な環境
+# ~/.m2/settings.xmlを作成
+mkdir -p ~/.m2
+cat > ~/.m2/settings.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <proxies>
+        <proxy>
+            <id>http-proxy</id>
+            <active>true</active>
+            <protocol>http</protocol>
+            <host>proxy.example.com</host>
+            <port>8080</port>
+        </proxy>
+    </proxies>
+</settings>
+EOF
+```
+
+### 📂 実行時の問題
+
+#### ❌ **問題5: ファイルアクセスエラー**
+
+**エラー**: `java.nio.file.AccessDeniedException`
+```bash
+# 解決方法1: ファイルロック確認
+lsof test_result.xlsx  # Linuxの場合
+# Excelなどで開かれているファイルを閉じる
+
+# 解決方法2: 権限確認
+ls -la test_result.xlsx
+chmod 644 test_result.xlsx
+
+# 解決方法3: 別ディレクトリで実行
+mkdir -p /tmp/testgen
+cd /tmp/testgen
+java -jar /path/to/java-test-specification-generator-1.0.0.jar \
+    --source-dir /path/to/sample-java-tests \
+    --output test_result.xlsx
+```
+
+#### ❌ **問題6: メモリエラー**
+
+**エラー**: `java.lang.OutOfMemoryError: Java heap space`
+```bash
+# 解決方法: JVMメモリ設定を増加
+java -Xmx4g -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output test_result.xlsx
+
+# 大規模プロジェクトの場合
+java -Xms2g -Xmx8g -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir large-project \
+    --output large_result.xlsx
+```
+
+### 📝 データ処理の問題
+
+#### ❌ **問題7: アノテーションが認識されない**
+
+**問題**: 「Not Specified」として表示される
+
+**解決手順:**
 ```java
-// 解決方法: JavaDocコメント形式を使用
+// ❌ 間違った形式
+// @TestModule MyModule  <- スラッシュ2つのコメントは認識されない
+
+/* @TestModule MyModule */  // <- ブロックコメントも認識されない
+
+// ✅ 正しい形式（JavaDocコメント）
 /**
- * @TestModule YourModule
- * @TestCase YourTestCase
+ * @TestModule MyModule
+ * @TestCase MyTestCase
+ * @TestOverview このテストの概要説明
  */
 @Test
-public void yourTestMethod() { ... }
+public void testMethod() {
+    // テスト実装
+}
 ```
 
-#### 5. カバレッジレポートが見つからない
-
-**問題**: カバレッジデータが0個
+**確認方法:**
 ```bash
-# 解決方法: JaCoCoレポートファイルの確認
-ls target/site/jacoco/jacoco.xml
-# または
-find . -name "*coverage*.xml"
+# アノテーション抽出のデバッグ
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output debug.xlsx \
+    --log-level DEBUG
 
-# JaCoCoレポートを生成
-mvn test jacoco:report
+# ログファイルでアノテーション抽出状況を確認
+grep "annotation" test_spec_generator.log
+```
+
+#### ❌ **問題8: カバレッジレポートが見つからない**
+
+**エラー**: `Coverage files found: 0`
+
+**解決手順:**
+```bash
+# Step 1: JaCoCoレポートファイルの確認
+find . -name "*.xml" -path "*/jacoco*" 2>/dev/null
+find . -name "*coverage*.xml" 2>/dev/null
+find . -name "*coverage*.html" 2>/dev/null
+
+# Step 2: JaCoCoレポートを生成
+mvn clean test jacoco:report
+
+# Step 3: 生成されたファイルを確認
+ls -la target/site/jacoco/
+ls -la target/jacoco-reports/
+
+# Step 4: 手動でのカバレッジファイル指定
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output test_result.xlsx \
+    --coverage-dir target/site/jacoco
+```
+
+### 🏢 特殊環境での問題
+
+#### ❌ **問題9: 企業プロキシ環境**
+
+**エラー**: `Could not transfer artifact`
+```bash
+# 解決方法: Maven用プロキシ設定
+mkdir -p ~/.m2
+cat > ~/.m2/settings.xml << 'EOF'
+<settings>
+    <proxies>
+        <proxy>
+            <id>corporate-proxy</id>
+            <active>true</active>
+            <protocol>http</protocol>
+            <host>proxy.company.com</host>
+            <port>8080</port>
+            <username>your-username</username>
+            <password>your-password</password>
+        </proxy>
+    </proxies>
+</settings>
+EOF
+
+# SSL証明書の問題がある場合
+mvn clean compile -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true
+```
+
+#### ❌ **問題10: コンテナ環境での実行**
+
+**問題**: `Permission denied` や `ls: cannot open directory '.':`
+
+**解決方法:**
+```bash
+# 1. SELinux環境での解決（:Z オプション追加）
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  mvn clean package -DskipTests
+
+# 2. SELinux状態の確認
+getenforce
+# Enforcingの場合は:Zオプションが必要
+
+# 3. 権限問題の解決（ファイルアクセス）
+chmod -R 755 .
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx
+
+# 4. 出力ファイル権限の修正
+sudo chown $(id -u):$(id -g) test_result.xlsx
+```
+
+**TTYエラーが出る場合:**
+```bash
+# -itオプションを削除して実行
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  bash -c "echo 'コンテナ内で実行中' && mvn --version"
+```
+
+### 📊 出力とログの問題
+
+#### ❌ **問題11: Excel出力が正しくない**
+
+**問題**: 空のExcelファイルや文字化け
+
+**解決方法:**
+```bash
+# Step 1: Javaエンコーディング確認
+java -Dfile.encoding=UTF-8 -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir sample-java-tests \
+    --output test_result.xlsx
+
+# Step 2: ファイル内容の確認
+file test_result.xlsx
+hexdump -C test_result.xlsx | head
+
+# Step 3: ログでエラー詳細確認
+tail -50 test_spec_generator.log
+```
+
+### 🔍 診断コマンド集
+
+**包括的な環境診断:**
+```bash
+#!/bin/bash
+echo "=== Java Test Spec Generator 環境診断 ==="
+echo "日時: $(date)"
+echo ""
+
+echo "--- システム情報 ---"
+uname -a
+cat /etc/os-release 2>/dev/null || sw_vers 2>/dev/null || ver 2>/dev/null
+
+echo ""
+echo "--- Java環境 ---"
+which java && java -version || echo "Java not found"
+echo "JAVA_HOME: $JAVA_HOME"
+
+echo ""
+echo "--- Maven環境 ---"
+which mvn && mvn --version || echo "Maven not found"
+echo "M2_HOME: $M2_HOME"
+
+echo ""
+echo "--- ディスク容量 ---"
+df -h .
+
+echo ""
+echo "--- 権限 ---"
+ls -la .
+whoami
+id
+
+echo ""
+echo "--- ネットワーク（Maven用） ---"
+ping -c 1 repo1.maven.org 2>/dev/null || echo "Maven repository unreachable"
 ```
 
 ### ログの確認
