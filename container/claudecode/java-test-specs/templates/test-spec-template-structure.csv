@@ -1,0 +1,104 @@
+Sheet,Row,Column,Content,Format,Notes
+Test Details,1,A,Test Specification Report,Title,"Bold, Size 16, Center"
+Test Details,2,A,Generated on: [DATE],Header,"Bold, Size 12"
+Test Details,3,A,Source Directory: [PATH],Header,"Bold, Size 12"
+Test Details,4,A,,Spacer,
+Test Details,5,A,File Path,Header,"Bold, Background Blue"
+Test Details,5,B,Test Module,Header,"Bold, Background Blue"
+Test Details,5,C,Test Case,Header,"Bold, Background Blue"
+Test Details,5,D,Baseline Version,Header,"Bold, Background Blue"
+Test Details,5,E,Test Overview,Header,"Bold, Background Blue"
+Test Details,5,F,Test Purpose,Header,"Bold, Background Blue"
+Test Details,5,G,Test Process,Header,"Bold, Background Blue"
+Test Details,5,H,Test Results,Header,"Bold, Background Blue"
+Test Details,5,I,Creator,Header,"Bold, Background Blue"
+Test Details,5,J,Created Date,Header,"Bold, Background Blue"
+Test Details,5,K,Modifier,Header,"Bold, Background Blue"
+Test Details,5,L,Modified Date,Header,"Bold, Background Blue"
+Test Details,5,M,Coverage %,Header,"Bold, Background Blue"
+Test Details,5,N,Branches Covered,Header,"Bold, Background Blue"
+Test Details,5,O,Branches Total,Header,"Bold, Background Blue"
+Test Details,6,A,[DATA_ROW_1],Data,Normal
+Test Details,6,B,[DATA_ROW_1],Data,Normal
+Test Details,6,C,[DATA_ROW_1],Data,Normal
+Test Details,6,D,[DATA_ROW_1],Data,Normal
+Test Details,6,E,[DATA_ROW_1],Data,Normal
+Test Details,6,F,[DATA_ROW_1],Data,Wrap Text
+Test Details,6,G,[DATA_ROW_1],Data,Wrap Text
+Test Details,6,H,[DATA_ROW_1],Data,Wrap Text
+Test Details,6,I,[DATA_ROW_1],Data,Normal
+Test Details,6,J,[DATA_ROW_1],Data,Date Format
+Test Details,6,K,[DATA_ROW_1],Data,Normal
+Test Details,6,L,[DATA_ROW_1],Data,Date Format
+Test Details,6,M,[DATA_ROW_1],Data,Percentage
+Test Details,6,N,[DATA_ROW_1],Data,Number
+Test Details,6,O,[DATA_ROW_1],Data,Number
+Summary,1,A,Test Summary Report,Title,"Bold, Size 16, Center"
+Summary,2,A,,Spacer,
+Summary,3,A,Total Test Files,Label,"Bold"
+Summary,3,B,[TOTAL_FILES],Data,Number
+Summary,4,A,Total Test Cases,Label,"Bold"
+Summary,4,B,[TOTAL_CASES],Data,Number
+Summary,5,A,Total Test Methods,Label,"Bold"
+Summary,5,B,[TOTAL_METHODS],Data,Number
+Summary,6,A,,Spacer,
+Summary,7,A,Coverage Statistics,Subtitle,"Bold, Size 14"
+Summary,8,A,Overall Branch Coverage,Label,"Bold"
+Summary,8,B,[COVERAGE_PERCENT],Data,Percentage
+Summary,9,A,Branches Covered,Label,"Bold"
+Summary,9,B,[BRANCHES_COVERED],Data,Number
+Summary,10,A,Total Branches,Label,"Bold"
+Summary,10,B,[TOTAL_BRANCHES],Data,Number
+Summary,11,A,Missing Coverage,Label,"Bold"
+Summary,11,B,[MISSING_BRANCHES],Data,Number
+Summary,12,A,,Spacer,
+Summary,13,A,Module Coverage Breakdown,Subtitle,"Bold, Size 14"
+Summary,14,A,Module Name,Header,"Bold, Background Light Blue"
+Summary,14,B,Test Cases,Header,"Bold, Background Light Blue"
+Summary,14,C,Coverage %,Header,"Bold, Background Light Blue"
+Summary,14,D,Status,Header,"Bold, Background Light Blue"
+Summary,15,A,[MODULE_1],Data,Normal
+Summary,15,B,[CASES_1],Data,Number
+Summary,15,C,[COVERAGE_1],Data,Percentage
+Summary,15,D,[STATUS_1],Data,Conditional Formatting
+Coverage,1,A,Coverage Analysis Report,Title,"Bold, Size 16, Center"
+Coverage,2,A,,Spacer,
+Coverage,3,A,File Path,Header,"Bold, Background Green"
+Coverage,3,B,Method Name,Header,"Bold, Background Green"
+Coverage,3,C,Instructions Covered,Header,"Bold, Background Green"
+Coverage,3,D,Instructions Missed,Header,"Bold, Background Green"
+Coverage,3,E,Branches Covered,Header,"Bold, Background Green"
+Coverage,3,F,Branches Missed,Header,"Bold, Background Green"
+Coverage,3,G,C1 Coverage %,Header,"Bold, Background Green"
+Coverage,3,H,Coverage Status,Header,"Bold, Background Green"
+Coverage,4,A,[FILE_1],Data,Normal
+Coverage,4,B,[METHOD_1],Data,Normal
+Coverage,4,C,[INST_COVERED_1],Data,Number
+Coverage,4,D,[INST_MISSED_1],Data,Number
+Coverage,4,E,[BRANCH_COVERED_1],Data,Number
+Coverage,4,F,[BRANCH_MISSED_1],Data,Number
+Coverage,4,G,[C1_PERCENT_1],Data,Percentage
+Coverage,4,H,[STATUS_1],Data,Conditional Formatting
+Configuration,1,A,Processing Configuration,Title,"Bold, Size 16, Center"
+Configuration,2,A,,Spacer,
+Configuration,3,A,Configuration Parameter,Header,"Bold, Background Yellow"
+Configuration,3,B,Value,Header,"Bold, Background Yellow"
+Configuration,3,C,Description,Header,"Bold, Background Yellow"
+Configuration,4,A,Source Directory,Label,"Bold"
+Configuration,4,B,[SOURCE_PATH],Data,Normal
+Configuration,4,C,Directory containing Java test files,Description,Normal
+Configuration,5,A,Output File,Label,"Bold"
+Configuration,5,B,[OUTPUT_PATH],Data,Normal
+Configuration,5,C,Generated Excel report location,Description,Normal
+Configuration,6,A,Processing Date,Label,"Bold"
+Configuration,6,B,[PROCESS_DATE],Data,Date Format
+Configuration,6,C,When the report was generated,Description,Normal
+Configuration,7,A,Files Processed,Label,"Bold"
+Configuration,7,B,[FILE_COUNT],Data,Number
+Configuration,7,C,Total number of Java files analyzed,Description,Normal
+Configuration,8,A,Coverage Reports Found,Label,"Bold"
+Configuration,8,B,[COVERAGE_COUNT],Data,Number
+Configuration,8,C,Number of JaCoCo reports processed,Description,Normal
+Configuration,9,A,Processing Duration,Label,"Bold"
+Configuration,9,B,[DURATION],Data,Time Format
+Configuration,9,C,Time taken to generate this report,Description,Normal
