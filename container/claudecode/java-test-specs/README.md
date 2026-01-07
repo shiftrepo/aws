@@ -15,7 +15,7 @@ Java Test Specification Generatorは、Javaテストファイルからカスタ�
 - **📈 C1カバレッジ分析**: JaCoCoカバレッジレポートと統合した条件判定カバレッジメトリクス
 - **📊 プロフェッショナルなExcelレポート**: 4シート構成の詳細分析レポート
 - **🖥️ コマンドライン対応**: CLI実行と対話モードをサポート
-- **🌐 クロスプラットフォーム**: Windows/Linux/macOS対応
+- **🐧 Linuxサポート**: Ubuntu/Debian/CentOS/RHEL/Fedora対応
 - **📂 再帰的スキャン**: プロジェクト全体のディレクトリ構造を自動処理
 - **🏗️ Maven対応**: 標準的なJavaプロジェクト構造とビルドツール
 
@@ -132,42 +132,6 @@ mvn --version
 sudo yum install java-17-openjdk-devel maven
 ```
 
-##### **macOS (Homebrew)**
-```bash
-# Homebrewがない場合は先にインストール
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Java 17とMavenをインストール
-brew install openjdk@17 maven
-
-# Java 17をデフォルトに設定
-sudo ln -sfn /usr/local/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
-
-# インストール確認
-java -version
-mvn --version
-```
-
-##### **Windows**
-```powershell
-# 管理者権限でPowerShellを開く
-
-# Chocolatey（パッケージマネージャー）をインストール（推奨）
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
-# Java 17とMavenをインストール
-choco install openjdk17 maven
-
-# または手動インストール:
-# 1. https://adoptium.net/ からJDK 17をダウンロード
-# 2. https://maven.apache.org/download.cgi からMavenをダウンロード
-# 3. 環境変数PATHに追加
-
-# インストール確認
-java -version
-mvn --version
-```
-
 ##### **🐳 Docker環境での実行（推奨・カバレッジレポート込み）**
 ```bash
 # 【完全版】カバレッジ生成→テスト仕様書作成 ワンライナー実行
@@ -221,7 +185,7 @@ docker run --rm \
 ```bash
 # 管理者権限がない場合のポータブル版使用
 
-# 1. SDKMANを使用（Linux/macOS）
+# 1. SDKMANを使用（Linux）
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 sdk install java 17.0.9-tem
@@ -991,7 +955,7 @@ java -Dlogback.configurationFile=custom-logback.xml \
 - ✅ **完全Java実装**: 最新のJava 17技術スタック
 - ⚡ **高速処理**: 0.3秒での処理実現
 - 🖥️ **CLI対応**: コマンドライン実行サポート
-- 🌐 **クロスプラットフォーム**: Windows/Linux/macOS対応
+- 🐧 **Linuxサポート**: Ubuntu/Debian/CentOS/RHEL/Fedora対応
 - 🏗️ **Maven統合**: 標準的なJavaプロジェクト構造
 - 📊 **同等のExcel生成**: 4シート構成の詳細レポート
 - 🧪 **JUnitテスト**: 包括的なテストカバレッジ
