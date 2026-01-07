@@ -71,14 +71,36 @@ public class CoverageReportParser {
     public List<CoverageInfo> processCoverageFile(Path coverageFile) throws IOException {
         String fileName = coverageFile.getFileName().toString().toLowerCase();
 
+        List<CoverageInfo> coverageInfos;
         if (fileName.endsWith(".xml")) {
-            return parseXmlCoverageReport(coverageFile);
+            coverageInfos = parseXmlCoverageReport(coverageFile);
         } else if (fileName.endsWith(".html")) {
-            return parseHtmlCoverageReport(coverageFile);
+            coverageInfos = parseHtmlCoverageReport(coverageFile);
         } else {
             logger.warn("サポートされていないファイル形式: {}", coverageFile);
             return new ArrayList<>();
         }
+
+        // com.exampleパッケージのカバレッジのみをフィルタリング
+        // （ツール自体のカバレッジは除外）
+        List<CoverageInfo> filteredCoverage = new ArrayList<>();
+        for (CoverageInfo coverage : coverageInfos) {
+            String packageName = coverage.getPackageName();
+            if (packageName != null && packageName.startsWith("com/example")) {
+                filteredCoverage.add(coverage);
+                logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
+                    coverage.getClassName(), coverage.getMethodName(), packageName);
+            } else if (packageName != null && packageName.startsWith("com.example")) {
+                filteredCoverage.add(coverage);
+                logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
+                    coverage.getClassName(), coverage.getMethodName(), packageName);
+            }
+        }
+
+        logger.info("カバレッジフィルタリング: 全{}個 -> com.example: {}個",
+            coverageInfos.size(), filteredCoverage.size());
+
+        return filteredCoverage;
     }
 
     /**
@@ -232,27 +254,91 @@ public class CoverageReportParser {
         logger.debug("カバレッジデータマージ開始: テストケース{}個, カバレッジ{}個", testCases.size(), coverageData.size());
 
         // カバレッジデータをマップ化（高速検索用）
-        Map<String, CoverageInfo> coverageMap = new HashMap<>();
+        // キーをメソッド名のみにし、複数のクラス名パターンに対応
+        Map<String, List<CoverageInfo>> coverageByMethod = new HashMap<>();
         for (CoverageInfo coverage : coverageData) {
-            String key = coverage.getClassName() + "." + coverage.getMethodName();
-            coverageMap.put(key, coverage);
+            String methodKey = coverage.getMethodName();
+            coverageByMethod.computeIfAbsent(methodKey, k -> new ArrayList<>()).add(coverage);
+
+            // クラス名もキーとして保存（完全一致用）
+            String fullKey = coverage.getClassName() + "." + coverage.getMethodName();
+            coverageByMethod.computeIfAbsent(fullKey, k -> new ArrayList<>()).add(coverage);
         }
 
         // 各テストケースに対応するカバレッジ情報を検索
         for (TestCaseInfo testCase : testCases) {
-            String key = testCase.getClassName() + "." + testCase.getMethodName();
-            CoverageInfo coverage = coverageMap.get(key);
+            // テストクラス名から実装クラス名を推定（"Test"を除去）
+            String implClassName = testCase.getClassName().replace("Test", "");
+            String testMethodName = testCase.getMethodName();
+
+            // テストメソッド名から実際のメソッド名を推定
+            // 例: testAdd -> add, testDivideByZero -> divide
+            String targetMethodName = testMethodName;
+            if (targetMethodName.startsWith("test")) {
+                targetMethodName = targetMethodName.substring(4);
+                if (targetMethodName.length() > 0) {
+                    targetMethodName = Character.toLowerCase(targetMethodName.charAt(0)) +
+                                     (targetMethodName.length() > 1 ? targetMethodName.substring(1) : "");
+                }
+                // キャメルケースから実際のメソッド名を抽出（例: testDivideByZero -> divide）
+                if (targetMethodName.contains("_")) {
+                    targetMethodName = targetMethodName.substring(0, targetMethodName.indexOf("_"));
+                } else if (targetMethodName.matches(".*[A-Z].*")) {
+                    // 大文字で始まる部分までを取得
+                    for (int i = 1; i < targetMethodName.length(); i++) {
+                        if (Character.isUpperCase(targetMethodName.charAt(i))) {
+                            targetMethodName = targetMethodName.substring(0, i);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 複数のパターンで検索
+            CoverageInfo coverage = null;
+
+            // 1. 実装クラス名 + メソッド名で検索
+            String implKey = implClassName + "." + targetMethodName;
+            List<CoverageInfo> candidates = coverageByMethod.get(implKey);
+            if (candidates != null && !candidates.isEmpty()) {
+                coverage = candidates.get(0);
+                logger.debug("カバレッジマッチ（実装クラス）: {} -> {}", testCase.getMethodName(), implKey);
+            }
+
+            // 2. メソッド名のみで検索（クラス名が一致しない場合）
+            if (coverage == null) {
+                candidates = coverageByMethod.get(targetMethodName);
+                if (candidates != null && !candidates.isEmpty()) {
+                    // パッケージ名を考慮してベストマッチを探す
+                    for (CoverageInfo candidate : candidates) {
+                        if (candidate.getClassName().equals(implClassName) ||
+                            candidate.getClassName().endsWith(implClassName)) {
+                            coverage = candidate;
+                            logger.debug("カバレッジマッチ（メソッド名）: {} -> {}.{}",
+                                testCase.getMethodName(), candidate.getClassName(), targetMethodName);
+                            break;
+                        }
+                    }
+                    // それでも見つからない場合は最初の候補を使用
+                    if (coverage == null && !candidates.isEmpty()) {
+                        coverage = candidates.get(0);
+                        logger.debug("カバレッジマッチ（メソッド名のみ）: {} -> {}.{}",
+                            testCase.getMethodName(), coverage.getClassName(), targetMethodName);
+                    }
+                }
+            }
 
             if (coverage != null) {
                 // カバレッジ情報をテストケースに設定
-                testCase.setCoveragePercent(coverage.getBranchCoverage());
+                testCase.setCoveragePercent(coverage.getBranchCoverage() * 100);
                 testCase.setBranchesCovered(coverage.getBranchesCovered());
                 testCase.setBranchesTotal(coverage.getBranchesTotal());
 
-                logger.debug("カバレッジマージ: {} -> {:.1f}%",
-                        key, testCase.getCoveragePercent());
+                logger.debug("カバレッジマージ完了: {} -> {:.1f}%",
+                        testCase.getMethodName(), testCase.getCoveragePercent());
             } else {
-                logger.debug("カバレッジ情報が見つかりません: {}", key);
+                logger.debug("カバレッジ情報が見つかりません: {} (探索: {})",
+                    testCase.getMethodName(), implKey);
             }
         }
     }

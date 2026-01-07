@@ -135,7 +135,9 @@ public class FolderScanner {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                     String dirName = dir.getFileName().toString();
-                    if (EXCLUDED_DIRECTORIES.contains(dirName)) {
+                    // カバレッジレポートスキャン時はtargetディレクトリを除外しない
+                    // (JaCoCoレポートはtarget/site/jacocoにあるため)
+                    if (EXCLUDED_DIRECTORIES.contains(dirName) && !"target".equals(dirName)) {
                         logger.debug("ディレクトリをスキップ: {}", dir);
                         return FileVisitResult.SKIP_SUBTREE;
                     }
