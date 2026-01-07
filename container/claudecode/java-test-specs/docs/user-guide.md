@@ -1,388 +1,388 @@
-# User Guide: Java Test Specification Generator
+# ユーザーガイド: Java テスト仕様書生成ツール
 
-## Table of Contents
-1. [Getting Started](#getting-started)
-2. [Installation](#installation)
-3. [First Time Setup](#first-time-setup)
-4. [Basic Operations](#basic-operations)
-5. [Advanced Features](#advanced-features)
-6. [Troubleshooting](#troubleshooting)
-7. [Best Practices](#best-practices)
+## 目次
+1. [はじめに](#はじめに)
+2. [インストール](#インストール)
+3. [初回セットアップ](#初回セットアップ)
+4. [基本操作](#基本操作)
+5. [高度な機能](#高度な機能)
+6. [トラブルシューティング](#トラブルシューティング)
+7. [ベストプラクティス](#ベストプラクティス)
 
-## Getting Started
+## はじめに
 
-### What This Tool Does
-The Java Test Specification Generator automatically creates comprehensive Excel-based test specification documents by:
-- **Scanning Java test files** for custom annotations
-- **Extracting test case information** (purpose, process, expected results)
-- **Analyzing JaCoCo coverage reports** for C1 (condition/decision) coverage
-- **Generating professional Excel reports** with multiple analysis sheets
+### このツールの機能
+Java テスト仕様書生成ツールは以下の処理を自動実行して、包括的なExcelベースのテスト仕様書を作成します：
+- **Javaテストファイルの解析**: カスタムアノテーションを自動抽出
+- **テストケース情報の取得**: 目的、手順、期待結果などを抽出
+- **JaCoCoカバレッジレポートの分析**: C1（条件判定）カバレッジを解析
+- **プロフェッショナルなExcelレポートの生成**: 複数シートでの分析結果出力
 
-### Who Should Use This Tool
-- **QA Engineers** documenting test cases and coverage
-- **Test Managers** creating test specification reports
-- **Development Teams** tracking test coverage metrics
-- **Project Managers** generating test documentation for deliverables
+### 対象ユーザー
+- **QAエンジニア**: テストケースとカバレッジの文書化
+- **テストマネージャー**: テスト仕様書レポートの作成
+- **開発チーム**: テストカバレッジメトリクスの追跡
+- **プロジェクトマネージャー**: 成果物のためのテスト文書生成
 
-### Before You Begin
-Ensure you have:
-- **Microsoft Excel 2016 or later** with VBA enabled
-- **Java test files** with proper annotations (see [Annotation Standards](annotation-standards.md))
-- **JaCoCo coverage reports** (optional, for coverage analysis)
-- **Write permissions** to output directory
+### 事前準備
+以下を確認してください：
+- **Microsoft Excel 2016以降**: VBA有効化必須
+- **Javaテストファイル**: 適切なアノテーション付き（[アノテーション標準](annotation-standards.md)参照）
+- **JaCoCoカバレッジレポート**: オプション、カバレッジ分析用
+- **書き込み権限**: 出力ディレクトリへの書き込み権限
 
-## Installation
+## インストール
 
-### Step 1: Download Project Files
-1. Download all project files to your local system
-2. Recommended location: `C:\Tools\JavaTestSpecGenerator\`
-3. Ensure all subdirectories and files are preserved
+### ステップ 1: プロジェクトファイルのダウンロード
+1. 全プロジェクトファイルをローカルシステムにダウンロード
+2. 推奨場所: `C:\Tools\JavaTestSpecGenerator\`
+3. 全サブディレクトリとファイルが保持されていることを確認
 
-### Step 2: Create Excel Application
-1. Follow the detailed [VBA Import Instructions](../vba-modules/VBA-Import-Instructions.md)
-2. Create `TestSpecGenerator.xlsm` in the main project directory
-3. Import all 6 VBA modules in the specified order
+### ステップ 2: Excelアプリケーションの作成
+1. 詳細な[VBAインポート手順](../vba-modules/VBA-Import-Instructions.md)に従う
+2. メインプロジェクトディレクトリに`TestSpecGenerator.xlsm`を作成
+3. 指定された順序で6つのVBAモジュールをすべてインポート
 
-### Step 3: Configure Excel Security
-1. **Enable Developer Tab**: File → Options → Customize Ribbon → Check "Developer"
-2. **Macro Security**: File → Options → Trust Center → Trust Center Settings → Macro Settings
-3. **Choose Setting**: "Disable all macros with notification" (recommended) or "Enable all macros" (development only)
+### ステップ 3: Excelセキュリティの設定
+1. **開発者タブの有効化**: ファイル → オプション → リボンのユーザー設定 → 「開発」にチェック
+2. **マクロセキュリティ**: ファイル → オプション → セキュリティセンター → セキュリティセンターの設定 → マクロの設定
+3. **設定選択**: 「警告を表示してすべてのマクロを無効にする」（推奨）または「すべてのマクロを有効にする」（開発時のみ）
 
-## First Time Setup
+## 初回セットアップ
 
-### Testing with Sample Data
-Before using with real projects, test the tool with included sample files:
+### サンプルデータでのテスト
+実際のプロジェクトで使用する前に、付属のサンプルファイルでツールをテスト：
 
-1. **Open TestSpecGenerator.xlsm**
-2. **Enable macros** when prompted
-3. **Click "Generate Test Specification"** button
-4. **Configure test run**:
-   - **Source Directory**: `[ProjectPath]\sample-java-tests`
-   - **Output File**: `[ProjectPath]\examples\sample-output\TestSpec_Sample.xlsx`
-5. **Click OK** to start processing
-6. **Verify results** in generated Excel file
+1. **TestSpecGenerator.xlsmを開く**
+2. **プロンプトが表示されたらマクロを有効化**
+3. **「Generate Test Specification」ボタンをクリック**
+4. **テスト実行の設定**:
+   - **ソースディレクトリ**: `[プロジェクトパス]\sample-java-tests`
+   - **出力ファイル**: `[プロジェクトパス]\examples\sample-output\TestSpec_Sample.xlsx`
+5. **OKをクリック**して処理開始
+6. **生成されたExcelファイルで結果を確認**
 
-Expected results from sample data:
-- **2 Java test files** processed
-- **6 test methods** found
-- **15 test cases** with annotations
-- **94.6% C1 coverage** from sample JaCoCo reports
+サンプルデータからの期待結果：
+- **2つのJavaテストファイル**を処理
+- **6つのテストメソッド**を発見
+- **8つのテストケース**（アノテーション付き）
+- **94.6% C1カバレッジ**（サンプルJaCoCoレポートより）
 
-### Understanding Sample Output
-The generated Excel file contains:
+### サンプル出力の理解
+生成されるExcelファイルの内容：
 
-#### Test Details Sheet
-- Complete annotation data from `BasicCalculatorTest.java` and `StringValidatorTest.java`
-- Coverage percentages linked to JaCoCo reports
-- Creator, dates, and modification tracking
+#### Test Details シート
+- `BasicCalculatorTest.java`と`StringValidatorTest.java`からの完全なアノテーションデータ
+- JaCoCoレポートにリンクされたカバレッジ率
+- 作成者、日付、修正追跡情報
 
-#### Summary Sheet
-- **2 files processed**, **15 test cases found**
-- **Overall 94.6% branch coverage**
-- **140 of 148 branches covered**
-- Processing time and statistics
+#### Summary シート
+- **2ファイル処理**、**8テストケース発見**
+- **全体94.6%ブランチカバレッジ**
+- **148ブランチ中140ブランチカバー**
+- 処理時間と統計情報
 
-#### Coverage Sheet
-- Method-level coverage analysis
-- Detailed branch and instruction metrics
-- Coverage status indicators
+#### Coverage シート
+- メソッドレベルのカバレッジ分析
+- 詳細なブランチと命令メトリクス
+- カバレッジステータス指標
 
-#### Configuration Sheet
-- Processing settings and metadata
-- File paths and timestamps
-- Application version information
+#### Configuration シート
+- 処理設定とメタデータ
+- ファイルパスとタイムスタンプ
+- アプリケーションバージョン情報
 
-## Basic Operations
+## 基本操作
 
-### Starting the Application
+### アプリケーションの開始
 
-#### Method 1: Button Click (Recommended)
-1. Open `TestSpecGenerator.xlsm`
-2. Enable macros when prompted
-3. Click the "Generate Test Specification" button on the sheet
+#### 方法 1: ボタンクリック（推奨）
+1. `TestSpecGenerator.xlsm`を開く
+2. プロンプトが表示されたらマクロを有効化
+3. シート上の「Generate Test Specification」ボタンをクリック
 
-#### Method 2: VBA Editor
-1. Press `Alt + F11` to open VBA Editor
-2. Press `F5` or click Run → Run Sub/UserForm
-3. Select `MainController.GenerateTestSpecification`
-4. Click Run
+#### 方法 2: VBAエディタ
+1. `Alt + F11`でVBAエディタを開く
+2. `F5`またはRun → Run Sub/UserFormをクリック
+3. `MainController.GenerateTestSpecification`を選択
+4. Runをクリック
 
-#### Method 3: Ribbon Command (if configured)
-1. Use custom ribbon button if added during setup
-2. Click your custom "Generate Test Spec" button
+#### 方法 3: リボンコマンド（設定済みの場合）
+1. セットアップ時に追加したカスタムリボンボタンを使用
+2. カスタム「Generate Test Spec」ボタンをクリック
 
-### Configuration Dialog
+### 設定ダイアログ
 
-When you run the tool, you'll see two input dialogs:
+ツールを実行すると、2つの入力ダイアログが表示されます：
 
-#### Source Directory Input
+#### ソースディレクトリ入力
 ```
-Enter the source directory containing Java test files:
+Javaテストファイルを含むソースディレクトリを入力してください:
 [C:\Projects\MyProject\src\test\java]
 ```
-- **Enter full path** to directory containing Java test files
-- **Use backslashes** for Windows paths: `C:\path\to\tests`
-- **Include subdirectories**: Tool automatically scans recursively
-- **Verify path exists**: Tool will validate before proceeding
+- **フルパスを入力**: Javaテストファイルを含むディレクトリへのフルパス
+- **Windowsパスにバックスラッシュを使用**: `C:\path\to\tests`
+- **サブディレクトリを含める**: ツールは自動的に再帰的にスキャン
+- **パスが存在することを確認**: ツールは処理前に検証
 
-#### Output File Input
+#### 出力ファイル入力
 ```
-Enter the output file path for the Excel report:
+Excelレポートの出力ファイルパスを入力してください:
 [C:\Reports\TestSpecification_20260107_143022.xlsx]
 ```
-- **Specify full path** including filename and `.xlsx` extension
-- **Default timestamp**: Tool suggests timestamped filename
-- **Ensure directory exists**: Output directory must be writable
-- **Overwrite confirmation**: Tool will ask if file already exists
+- **ファイル名と.xlsx拡張子を含むフルパスを指定**
+- **デフォルトタイムスタンプ**: ツールはタイムスタンプ付きファイル名を提案
+- **ディレクトリが存在することを確認**: 出力ディレクトリは書き込み可能である必要
+- **上書き確認**: ファイルが既に存在する場合、ツールが確認
 
-#### Confirmation Dialog
-Review your settings before processing:
+#### 確認ダイアログ
+処理前に設定を確認：
 ```
-Configuration Summary:
+設定サマリ:
 
-Source Directory: C:\Projects\MyProject\src\test\java
-Output File: C:\Reports\TestSpecification_20260107_143022.xlsx
+ソースディレクトリ: C:\Projects\MyProject\src\test\java
+出力ファイル: C:\Reports\TestSpecification_20260107_143022.xlsx
 
-Proceed with test specification generation?
-[Yes] [No]
-```
-
-### Processing Workflow
-
-Once confirmed, the tool executes these steps:
-
-1. **Scanning Java Files** (10% - 20%)
-   - Recursively searches for `.java` files
-   - Filters by file size (max 10MB per file)
-   - Reports number of files found
-
-2. **Processing Annotations** (20% - 40%)
-   - Reads each Java file
-   - Extracts JavaDoc comment blocks
-   - Parses custom annotations
-   - Creates test case records
-
-3. **Scanning Coverage Reports** (40% - 60%)
-   - Searches for JaCoCo XML and HTML reports
-   - Identifies coverage files by naming patterns
-   - Reports number of coverage reports found
-
-4. **Processing Coverage Data** (60% - 70%)
-   - Parses JaCoCo XML reports
-   - Extracts branch, instruction, and line coverage
-   - Calculates C1 coverage percentages
-
-5. **Merging Data** (70% - 80%)
-   - Links test cases to coverage data by file path
-   - Combines annotation and coverage information
-   - Resolves conflicts and missing data
-
-6. **Generating Excel Report** (80% - 100%)
-   - Creates multi-sheet workbook
-   - Applies formatting and styling
-   - Saves to specified output file
-
-### Progress Monitoring
-
-During processing, monitor progress via:
-- **Excel Status Bar**: Shows current step and percentage
-- **Processing Messages**: Detailed step descriptions
-- **Time Estimation**: Based on file count and size
-
-Example status messages:
-```
-Java Test Specification Generator - Scanning for Java test files... (10%)
-Java Test Specification Generator - Found 25 Java files. Processing annotations... (20%)
-Java Test Specification Generator - Found 78 test cases. Scanning for coverage reports... (40%)
+テスト仕様書の生成を続行しますか？
+[はい] [いいえ]
 ```
 
-## Advanced Features
+### 処理ワークフロー
 
-### Large Project Optimization
+確認後、ツールは以下のステップを実行：
 
-For projects with many files (>200 Java files):
+1. **Javaファイルのスキャン** (10% - 20%)
+   - `.java`ファイルを再帰的に検索
+   - ファイルサイズでフィルタ（ファイルあたり最大10MB）
+   - 発見ファイル数を報告
 
-#### Performance Settings
-- **File Size Limits**: Automatically skips files >10MB
-- **Memory Management**: Processes files sequentially to avoid memory issues
-- **Progress Reporting**: Regular updates to prevent timeout appearance
-- **Error Recovery**: Continues processing if individual files fail
+2. **アノテーションの処理** (20% - 40%)
+   - 各Javaファイルを読み取り
+   - JavaDocコメントブロックを抽出
+   - カスタムアノテーションを解析
+   - テストケースレコードを作成
 
-#### Best Practices for Large Projects
-1. **Run during off-peak hours** to avoid system slowdowns
-2. **Close unnecessary applications** to free memory
-3. **Use local drives** rather than network paths when possible
-4. **Consider splitting** very large projects into modules
+3. **カバレッジレポートのスキャン** (40% - 60%)
+   - JaCoCo XMLおよびHTMLレポートを検索
+   - 命名パターンによりカバレッジファイルを識別
+   - 発見されたカバレッジレポート数を報告
 
-### Custom Annotation Support
+4. **カバレッジデータの処理** (60% - 70%)
+   - JaCoCo XMLレポートを解析
+   - ブランチ、命令、行カバレッジを抽出
+   - C1カバレッジ率を計算
 
-The tool supports extensible annotation parsing:
+5. **データのマージ** (70% - 80%)
+   - ファイルパスでテストケースをカバレッジデータにリンク
+   - アノテーションとカバレッジ情報を結合
+   - 競合と欠損データを解決
 
-#### Adding New Annotations
-1. **Modify JavaAnnotationParser.bas**
-2. **Add new case** in `ApplyAnnotationsToTestCase` subroutine
-3. **Update TestCaseInfo structure** in DataTypes.bas if needed
-4. **Test with sample files** before production use
+6. **Excelレポートの生成** (80% - 100%)
+   - マルチシートワークブックを作成
+   - 書式とスタイルを適用
+   - 指定された出力ファイルに保存
 
-#### Annotation Inheritance
-- **Class-level annotations** apply to all methods in the class
-- **Method-level annotations** override class-level values
-- **Missing annotations** show as "Not Specified"
+### 進行状況の監視
 
-### Coverage Report Integration
+処理中は以下で進行状況を監視：
+- **Excelステータスバー**: 現在のステップと進行率を表示
+- **処理メッセージ**: 詳細なステップ説明
+- **時間推定**: ファイル数とサイズに基づく
 
-#### Supported JaCoCo Formats
-- **XML Reports**: `jacoco.xml`, `jacoco-report.xml`, `*coverage*.xml`
-- **HTML Reports**: `index.html` in coverage directories, `*coverage*.html`
-
-#### Coverage Matching Logic
-The tool links coverage data to test files by:
-1. **File path matching**: Compares Java file paths to coverage source files
-2. **Class name resolution**: Matches class names in coverage reports
-3. **Package structure**: Resolves package paths to file locations
-
-#### Coverage Metrics Extracted
-- **C1 Coverage**: Branch/condition coverage percentage
-- **Instruction Coverage**: C0 coverage metrics
-- **Line Coverage**: Executable line coverage
-- **Method Coverage**: Individual method statistics
-
-## Troubleshooting
-
-### Common Error Messages
-
-#### "Source directory does not exist"
+ステータスメッセージの例：
 ```
-Problem: Specified directory path is invalid
-Solutions:
-- Verify directory path spelling and case
-- Use full absolute paths (C:\path\to\directory)
-- Check network drive connectivity if applicable
-- Ensure you have read permissions to the directory
+Java Test Specification Generator - Javaテストファイルをスキャン中... (10%)
+Java Test Specification Generator - 25個のJavaファイルを発見。アノテーションを処理中... (20%)
+Java Test Specification Generator - 78個のテストケースを発見。カバレッジレポートをスキャン中... (40%)
 ```
 
-#### "Permission denied when saving output file"
+## 高度な機能
+
+### 大規模プロジェクトの最適化
+
+多数のファイル（Javaファイル200個以上）を持つプロジェクトの場合：
+
+#### 性能設定
+- **ファイルサイズ制限**: 10MB以上のファイルを自動的にスキップ
+- **メモリ管理**: メモリ問題を回避するため、ファイルを順次処理
+- **進行レポート**: タイムアウトの見た目を防ぐための定期更新
+- **エラー回復**: 個別のファイルが失敗しても処理を継続
+
+#### 大規模プロジェクトのベストプラクティス
+1. **オフピーク時間中に実行**してシステムの遅延を回避
+2. **不必要なアプリケーションを閉じて**メモリを解放
+3. **可能な場合はネットワークパスではなくローカルドライブを使用**
+4. **非常に大きなプロジェクトはモジュールに分割することを検討**
+
+### カスタムアノテーションサポート
+
+ツールは拡張可能なアノテーション解析をサポート：
+
+#### 新しいアノテーションの追加
+1. **JavaAnnotationParser.basを変更**
+2. **`ApplyAnnotationsToTestCase`サブルーチンに新しいケースを追加**
+3. **必要に応じてDataTypes.basのTestCaseInfo構造を更新**
+4. **本番使用前にサンプルファイルでテスト**
+
+#### アノテーション継承
+- **クラスレベルのアノテーション**はクラス内のすべてのメソッドに適用
+- **メソッドレベルのアノテーション**はクラスレベルの値を上書き
+- **欠損アノテーション**は「Not Specified」として表示
+
+### カバレッジレポート統合
+
+#### サポートされるJaCoCoフォーマット
+- **XMLレポート**: `jacoco.xml`、`jacoco-report.xml`、`*coverage*.xml`
+- **HTMLレポート**: カバレッジディレクトリの`index.html`、`*coverage*.html`
+
+#### カバレッジマッチングロジック
+ツールは以下の方法でカバレッジデータをテストファイルにリンク：
+1. **ファイルパスマッチング**: Javaファイルパスをカバレッジソースファイルと比較
+2. **クラス名解決**: カバレッジレポート内のクラス名をマッチング
+3. **パッケージ構造**: パッケージパスをファイル場所に解決
+
+#### 抽出されるカバレッジメトリクス
+- **C1カバレッジ**: ブランチ/条件カバレッジ率
+- **命令カバレッジ**: C0カバレッジメトリクス
+- **行カバレッジ**: 実行可能行カバレッジ
+- **メソッドカバレッジ**: 個別メソッド統計
+
+## トラブルシューティング
+
+### 一般的なエラーメッセージ
+
+#### 「ソースディレクトリが存在しません」
 ```
-Problem: Cannot write to specified output location
-Solutions:
-- Check output directory exists and is writable
-- Close any existing Excel files with same name
-- Verify sufficient disk space (at least 50MB free)
-- Run Excel as administrator if needed
+問題: 指定されたディレクトリパスが無効
+解決策:
+- ディレクトリパスのスペルと大文字小文字を確認
+- 完全な絶対パスを使用 (C:\path\to\directory)
+- 該当する場合、ネットワークドライブの接続を確認
+- ディレクトリへの読み取り権限があることを確認
 ```
 
-#### "No Java files found in directory"
+#### 「出力ファイル保存時に権限が拒否されました」
 ```
-Problem: Directory contains no .java files
-Solutions:
-- Verify directory contains Java test files
-- Check file extensions are exactly ".java"
-- Ensure files are not hidden or system files
-- Try with sample-java-tests directory first
-```
-
-#### "Failed to parse Java annotations"
-```
-Problem: Annotation format issues in Java files
-Solutions:
-- Check JavaDoc comment format (/** ... */)
-- Verify annotations start with @ symbol
-- Remove special characters from annotation values
-- Use template format from java-annotation-template.java
+問題: 指定された出力場所に書き込みできない
+解決策:
+- 出力ディレクトリが存在し、書き込み可能であることを確認
+- 同じ名前の既存Excelファイルを閉じる
+- 十分なディスク容量があることを確認（少なくとも50MB空き）
+- 必要に応じて管理者としてExcelを実行
 ```
 
-#### "JaCoCo coverage report parsing failed"
+#### 「ディレクトリにJavaファイルが見つかりません」
 ```
-Problem: Coverage report format not recognized
-Solutions:
-- Ensure JaCoCo generated XML reports (not just HTML)
-- Check file naming follows JaCoCo conventions
-- Verify XML structure is valid (open in browser/editor)
-- Generate new coverage reports with latest JaCoCo version
-```
-
-### Performance Issues
-
-#### Slow Processing (>10 minutes for <100 files)
-```
-Possible Causes and Solutions:
-- Network drives: Copy project to local drive temporarily
-- Antivirus scanning: Add project directory to exclusions
-- Low memory: Close other applications, restart Excel
-- Large files: Check for unusually large Java files (>1MB)
+問題: ディレクトリに.javaファイルが含まれていない
+解決策:
+- ディレクトリにJavaテストファイルが含まれていることを確認
+- ファイル拡張子が正確に「.java」であることを確認
+- ファイルが隠しファイルやシステムファイルでないことを確認
+- まずsample-java-testsディレクトリで試行
 ```
 
-#### Memory Errors
+#### 「Javaアノテーションの解析に失敗しました」
 ```
-Out of Memory Error Solutions:
-- Close other Excel workbooks and applications
-- Restart Excel and try again
-- Process smaller subdirectories separately
-- Increase virtual memory if possible
-```
-
-#### Excel Crashes During Generation
-```
-Recovery Steps:
-- Save VBA code changes before running
-- Enable "Disable all macros with notification"
-- Test with smaller sample first
-- Check Excel installation for updates
+問題: Javaファイルのアノテーション形式に問題
+解決策:
+- JavaDocコメント形式を確認 (/** ... */)
+- アノテーションが@記号で始まることを確認
+- アノテーション値から特殊文字を削除
+- java-annotation-template.javaのテンプレート形式を使用
 ```
 
-### Debugging Techniques
+#### 「JaCoCoカバレッジレポートの解析に失敗しました」
+```
+問題: カバレッジレポート形式が認識されない
+解決策:
+- JaCoCoがXMLレポートを生成したことを確認（HTMLのみでない）
+- ファイル命名がJaCoCo規約に従っていることを確認
+- XML構造が有効であることを確認（ブラウザ/エディタで開く）
+- 最新のJaCoCoバージョンで新しいカバレッジレポートを生成
+```
 
-#### VBA Immediate Window
-1. **Press Ctrl+G** in VBA Editor to open Immediate Window
-2. **Add debug statements** to VBA code: `Debug.Print "Current file: " & fileName`
-3. **Monitor processing** in real-time during execution
-4. **Check error details** in `MainController.g_ProcessingErrors`
+### 性能問題
 
-#### Error Log Analysis
+#### 処理が遅い（100ファイル未満で10分以上）
+```
+可能な原因と解決策:
+- ネットワークドライブ: プロジェクトを一時的にローカルドライブにコピー
+- ウイルス対策スキャン: プロジェクトディレクトリを除外に追加
+- メモリ不足: 他のアプリケーションを閉じ、Excelを再起動
+- 大きなファイル: 異常に大きなJavaファイル（>1MB）を確認
+```
+
+#### メモリエラー
+```
+メモリ不足エラーの解決策:
+- 他のExcelワークブックとアプリケーションを閉じる
+- Excelを再起動して再試行
+- より小さなサブディレクトリを個別に処理
+- 可能であれば仮想メモリを増やす
+```
+
+#### 生成中にExcelがクラッシュ
+```
+回復手順:
+- 実行前にVBAコードの変更を保存
+- 「警告を表示してすべてのマクロを無効にする」を有効化
+- まず小さなサンプルでテスト
+- Excelインストールでアップデートをチェック
+```
+
+### デバッグ技術
+
+#### VBA イミディエイトウィンドウ
+1. **VBAエディタでCtrl+G**を押してイミディエイトウィンドウを開く
+2. **VBAコードにデバッグ文を追加**: `Debug.Print "Current file: " & fileName`
+3. **実行中の処理をリアルタイムで監視**
+4. **`MainController.g_ProcessingErrors`でエラー詳細を確認**
+
+#### エラーログ分析
 ```vba
-' In VBA Immediate Window, type:
+' VBA イミディエイトウィンドウで以下を入力:
 For i = 1 To MainController.g_ProcessingErrors.Count
     Debug.Print MainController.g_ProcessingErrors(i)
 Next i
 ```
 
-#### Step-by-Step Debugging
-1. **Set breakpoints** in VBA code at key functions
-2. **Press F8** to step through code line by line
-3. **Check variable values** with mouse hover or Watch window
-4. **Identify exact failure points** for targeted fixes
+#### ステップバイステップデバッグ
+1. **VBAコードの主要な関数にブレークポイントを設定**
+2. **F8を押してコードを一行ずつステップ実行**
+3. **マウスホバーまたはウォッチウィンドウで変数値をチェック**
+4. **対象修正のため正確な失敗ポイントを特定**
 
-## Best Practices
+## ベストプラクティス
 
-### Java File Organization
+### Javaファイルの構成
 
-#### Recommended Directory Structure
+#### 推奨ディレクトリ構造
 ```
 src/
-├── main/java/                  # Production code
-└── test/java/                  # Test files (scan this directory)
-    ├── unit/                   # Unit tests
-    ├── integration/            # Integration tests
-    └── system/                 # System tests
+├── main/java/                  # 本番コード
+└── test/java/                  # テストファイル（このディレクトリをスキャン）
+    ├── unit/                   # ユニットテスト
+    ├── integration/            # 統合テスト
+    └── system/                 # システムテスト
 ```
 
-#### File Naming Conventions
-- **Use consistent naming**: `ClassNameTest.java` or `TestClassName.java`
-- **Group related tests**: Package structure mirrors main code
-- **Separate test types**: Different directories for unit/integration tests
+#### ファイル命名規約
+- **一貫した命名を使用**: `ClassNameTest.java`または`TestClassName.java`
+- **関連テストをグループ化**: パッケージ構造はメインコードを反映
+- **テストタイプを分離**: ユニット/統合テスト用の異なるディレクトリ
 
-### Annotation Best Practices
+### アノテーションのベストプラクティス
 
-#### Complete Documentation
+#### 完全な文書化
 ```java
 /**
  * @TestModule UserManagementModule
  * @TestCase UserRegistrationValidation
  * @BaselineVersion 2.1.0
- * @TestOverview Validate user registration form with various input combinations
- * @TestPurpose Ensure proper validation prevents invalid user registrations
- * @TestProcess Submit registration forms with valid and invalid data combinations
- * @TestResults Valid data accepted, invalid data rejected with appropriate error messages
+ * @TestOverview 様々な入力組み合わせでユーザー登録フォームを検証
+ * @TestPurpose 適切な検証により無効なユーザー登録を防ぐことを確認
+ * @TestProcess 有効および無効なデータ組み合わせで登録フォームを送信
+ * @TestResults 有効なデータは受け入れ、無効なデータは適切なエラーメッセージで拒否
  * @Creator John Smith
  * @CreatedDate 2026-01-07
  * @Modifier Jane Doe
@@ -392,18 +392,18 @@ src/
  */
 ```
 
-#### Consistency Guidelines
-1. **Use consistent terminology** across all test files
-2. **Follow date format** strictly (YYYY-MM-DD)
-3. **Keep descriptions concise** but informative
-4. **Update modification info** when changing tests
-5. **Use standardized creator names** (no nicknames)
+#### 一貫性ガイドライン
+1. **全テストファイル間で一貫した用語を使用**
+2. **日付形式を厳密に守る**（YYYY-MM-DD）
+3. **説明を簡潔に保つ**が情報に富む
+4. **テスト変更時に修正情報を更新**
+5. **標準化された作成者名を使用**（ニックネームなし）
 
-### Coverage Report Generation
+### カバレッジレポート生成
 
-#### JaCoCo Configuration
+#### JaCoCo設定
 ```xml
-<!-- In pom.xml for Maven projects -->
+<!-- Mavenプロジェクトのpom.xml -->
 <plugin>
     <groupId>org.jacoco</groupId>
     <artifactId>jacoco-maven-plugin</artifactId>
@@ -425,52 +425,52 @@ src/
 </plugin>
 ```
 
-#### Report Generation Commands
+#### レポート生成コマンド
 ```bash
-# Maven projects
+# Mavenプロジェクト
 mvn clean test jacoco:report
 
-# Gradle projects
+# Gradleプロジェクト
 ./gradlew test jacocoTestReport
 
-# Ant projects
+# Antプロジェクト
 ant test jacoco-report
 ```
 
-### Workflow Integration
+### ワークフロー統合
 
-#### Regular Documentation Updates
-1. **Run tool after major test changes** to update documentation
-2. **Include in code review process** to verify annotation completeness
-3. **Generate reports before releases** for deliverable documentation
-4. **Archive historical reports** for trend analysis
+#### 定期的な文書更新
+1. **主要なテスト変更後にツールを実行**して文書を更新
+2. **コードレビュープロセスに含める**アノテーション完全性の確認
+3. **リリース前にレポートを生成**成果物文書用
+4. **過去のレポートをアーカイブ**トレンド分析用
 
-#### Team Coordination
-- **Standardize annotation formats** across team members
-- **Share VBA tool configuration** to ensure consistency
-- **Document custom modifications** to VBA code
-- **Provide training** on annotation standards and tool usage
+#### チーム調整
+- **チームメンバー間でアノテーション形式を標準化**
+- **VBAツール設定を共有**一貫性確保のため
+- **VBAコードのカスタム修正を文書化**
+- **アノテーション標準とツール使用に関するトレーニングを提供**
 
-#### Quality Assurance
-1. **Review generated reports** for accuracy and completeness
-2. **Validate coverage percentages** against actual test execution
-3. **Check for missing annotations** in new test files
-4. **Verify links between tests** and requirements
+#### 品質保証
+1. **生成されたレポートの精度と完全性をレビュー**
+2. **実際のテスト実行と照らしてカバレッジ率を検証**
+3. **新しいテストファイルの欠損アノテーションをチェック**
+4. **テストと要件間のリンクを確認**
 
-### Maintenance and Updates
+### メンテナンスと更新
 
-#### Regular Maintenance Tasks
-- **Update VBA modules** when annotation standards change
-- **Test with new Java/JaCoCo versions** to ensure compatibility
-- **Review and clean up** old coverage reports
-- **Update documentation** when adding new features
+#### 定期メンテナンスタスク
+- **アノテーション標準変更時にVBAモジュールを更新**
+- **新しいJava/JaCoCoバージョンで互換性をテスト**
+- **古いカバレッジレポートをレビューとクリーンアップ**
+- **新機能追加時に文書を更新**
 
-#### Version Control
-- **Track VBA module changes** with version comments
-- **Include sample files** in project repositories
-- **Document configuration changes** in team wikis
-- **Backup working configurations** before modifications
+#### バージョン管理
+- **VBAモジュール変更をバージョンコメントで追跡**
+- **プロジェクトリポジトリにサンプルファイルを含める**
+- **チームwikiで設定変更を文書化**
+- **修正前に動作中の設定をバックアップ**
 
 ---
 
-*This user guide provides comprehensive instructions for effectively using the Java Test Specification Generator. For additional technical details, refer to the [README.md](../README.md) and other documentation files in the project.*
+*このユーザーガイドは、Java テスト仕様書生成ツールを効果的に使用するための包括的な手順を提供します。追加の技術詳細については、[README.md](../README.md)およびプロジェクト内の他の文書ファイルを参照してください。*

@@ -1,67 +1,67 @@
-# VBA Module Import Instructions
+# VBA モジュールインポート手順
 
-## Overview
-This document provides step-by-step instructions for importing the VBA modules into Excel to create the TestSpecGenerator.xlsm file.
+## 概要
+このドキュメントは、VBAモジュールをExcelにインポートしてTestSpecGenerator.xlsmファイルを作成するためのステップバイステップ手順を提供します。
 
-## Prerequisites
-- Microsoft Excel 2016 or later
-- VBA (Visual Basic for Applications) enabled
-- Developer tab enabled in Excel ribbon
+## 事前要件
+- Microsoft Excel 2016以降
+- VBA（Visual Basic for Applications）有効化
+- Excel リボンの開発者タブ有効化
 
-## Enabling Developer Tab (if not visible)
-1. Open Excel
-2. Go to **File** → **Options** → **Customize Ribbon**
-3. Check **Developer** in the right panel
-4. Click **OK**
+## 開発者タブの有効化（表示されていない場合）
+1. Excelを開く
+2. **ファイル** → **オプション** → **リボンのユーザー設定** に移動
+3. 右パネルで**開発**にチェックを入れる
+4. **OK**をクリック
 
-## Creating the TestSpecGenerator.xlsm File
+## TestSpecGenerator.xlsmファイルの作成
 
-### Step 1: Create New Macro-Enabled Workbook
-1. Open Excel
-2. Create a new blank workbook
-3. Save as **TestSpecGenerator.xlsm** (Excel Macro-Enabled Workbook format)
-4. Choose the location: `/container/claudecode/java-test-specs/`
+### ステップ 1: 新しいマクロ有効ワークブックの作成
+1. Excelを開く
+2. 新しい空白のワークブックを作成
+3. **TestSpecGenerator.xlsm**として保存（Excel マクロ有効ワークブック形式）
+4. 場所を選択: `/container/claudecode/java-test-specs/`
 
-### Step 2: Open VBA Editor
-1. Press **Alt + F11** or click **Developer** → **Visual Basic**
-2. The VBA Editor window will open
+### ステップ 2: VBAエディタを開く
+1. **Alt + F11**を押すか、**開発者** → **Visual Basic**をクリック
+2. VBAエディタウィンドウが開きます
 
-### Step 3: Import VBA Modules
-Import each `.bas` file in the following order:
+### ステップ 3: VBAモジュールのインポート
+各`.bas`ファイルを以下の順序でインポート：
 
-#### 3.1 Import DataTypes.bas
-1. In VBA Editor: **File** → **Import File**
-2. Navigate to `/container/claudecode/java-test-specs/vba-modules/`
-3. Select **DataTypes.bas**
-4. Click **Open**
+#### 3.1 DataTypes.basのインポート
+1. VBAエディタで: **ファイル** → **ファイルのインポート**
+2. `/container/claudecode/java-test-specs/vba-modules/`に移動
+3. **DataTypes.bas**を選択
+4. **開く**をクリック
 
-#### 3.2 Import FolderScanner.bas
-1. **File** → **Import File**
-2. Select **FolderScanner.bas**
-3. Click **Open**
+#### 3.2 FolderScanner.basのインポート
+1. **ファイル** → **ファイルのインポート**
+2. **FolderScanner.bas**を選択
+3. **開く**をクリック
 
-#### 3.3 Import JavaAnnotationParser.bas
-1. **File** → **Import File**
-2. Select **JavaAnnotationParser.bas**
-3. Click **Open**
+#### 3.3 JavaAnnotationParser.basのインポート
+1. **ファイル** → **ファイルのインポート**
+2. **JavaAnnotationParser.bas**を選択
+3. **開く**をクリック
 
-#### 3.4 Import CoverageReportParser.bas
-1. **File** → **Import File**
-2. Select **CoverageReportParser.bas**
-3. Click **Open**
+#### 3.4 CoverageReportParser.basのインポート
+1. **ファイル** → **ファイルのインポート**
+2. **CoverageReportParser.bas**を選択
+3. **開く**をクリック
 
-#### 3.5 Import ExcelSheetBuilder.bas
-1. **File** → **Import File**
-2. Select **ExcelSheetBuilder.bas**
-3. Click **Open**
+#### 3.5 ExcelSheetBuilder.basのインポート
+1. **ファイル** → **ファイルのインポート**
+2. **ExcelSheetBuilder.bas**を選択
+3. **開く**をクリック
 
-#### 3.6 Import MainController.bas
-1. **File** → **Import File**
-2. Select **MainController.bas**
-3. Click **Open**
+#### 3.6 MainController.basのインポート
+1. **ファイル** → **ファイルのインポート**
+2. **MainController.bas**を選択
+3. **開く**をクリック
 
-### Step 4: Verify Module Import
-After importing all modules, the VBA Project Explorer should show:
+### ステップ 4: モジュールインポートの確認
+すべてのモジュールをインポート後、VBAプロジェクトエクスプローラーに以下が表示される必要があります：
 ```
 VBAProject (TestSpecGenerator.xlsm)
 ├── Microsoft Excel Objects
@@ -78,115 +78,137 @@ VBAProject (TestSpecGenerator.xlsm)
     └── MainController
 ```
 
-### Step 5: Create User Interface (Optional)
-#### 5.1 Add Ribbon Button
-1. In Excel, right-click on the ribbon
-2. Select **Customize the Ribbon**
-3. Create a new group or tab
-4. Add a button linked to `MainController.GenerateTestSpecification`
+### ステップ 5: ユーザーインターフェース作成（オプション）
+#### 5.1 リボンボタンの追加
+1. Excelでリボンを右クリック
+2. **リボンのユーザー設定**を選択
+3. 新しいグループまたはタブを作成
+4. `MainController.GenerateTestSpecification`にリンクするボタンを追加
 
-#### 5.2 Add Shape Button (Alternative)
-1. Go to **Insert** → **Shapes**
-2. Insert a rectangle or button shape
-3. Right-click the shape → **Assign Macro**
-4. Select `MainController.GenerateTestSpecification`
-5. Format the button with text "Generate Test Specification"
+#### 5.2 図形ボタンの追加（代替方法）
+1. **挿入** → **図形**に移動
+2. 四角形またはボタン図形を挿入
+3. 図形を右クリック → **マクロの登録**
+4. `MainController.GenerateTestSpecification`を選択
+5. ボタンに「Generate Test Specification」のテキストを設定
 
-### Step 6: Configure Macro Security
-1. Go to **File** → **Options** → **Trust Center** → **Trust Center Settings**
-2. Select **Macro Settings**
-3. Choose **Enable all macros** (for development) or **Disable all macros with notification** (for production use)
-4. Click **OK**
+### ステップ 6: マクロセキュリティの設定
+1. **ファイル** → **オプション** → **セキュリティセンター** → **セキュリティセンターの設定**に移動
+2. **マクロの設定**を選択
+3. **すべてのマクロを有効にする**（開発用）または**警告を表示してすべてのマクロを無効にする**（本番使用）を選択
+4. **OK**をクリック
 
-### Step 7: Test the Application
-1. Close VBA Editor
-2. Save the workbook (**Ctrl + S**)
-3. Click your button or run `MainController.GenerateTestSpecification` from VBA Editor
-4. Test with the sample Java files in `/sample-java-tests/`
+### ステップ 7: アプリケーションのテスト
+1. VBAエディタを閉じる
+2. ワークブックを保存（**Ctrl + S**）
+3. ボタンをクリックするか、VBAエディタから`MainController.GenerateTestSpecification`を実行
+4. `/sample-java-tests/`のサンプルJavaファイルでテスト
 
-## Usage Instructions
+## 使用方法
 
-### Running the Tool
-1. Open **TestSpecGenerator.xlsm**
-2. Enable macros when prompted
-3. Click the "Generate Test Specification" button or:
-   - Press **Alt + F11** to open VBA Editor
-   - Press **F5** or click **Run** → **Run Sub/UserForm**
-   - Select `MainController.GenerateTestSpecification`
+### ツールの実行
+1. **TestSpecGenerator.xlsm**を開く
+2. プロンプトが表示されたらマクロを有効化
+3. 「Generate Test Specification」ボタンをクリックするか：
+   - **Alt + F11**を押してVBAエディタを開く
+   - **F5**を押すか**実行** → **Sub/ユーザーフォームの実行**をクリック
+   - `MainController.GenerateTestSpecification`を選択
 
-### Input Requirements
-- **Source Directory**: Path containing Java test files
-  - Example: `C:\Projects\MyProject\src\test\java`
-- **Output File**: Path for generated Excel report
-  - Example: `C:\Reports\TestSpec_20260107.xlsx`
+### 入力要件
+- **ソースディレクトリ**: Javaテストファイルを含むパス
+  - 例: `C:\Projects\MyProject\src\test\java`
+- **出力ファイル**: 生成されるExcelレポートのパス
+  - 例: `C:\Reports\TestSpec_20260107.xlsx`
 
-### Expected Output
-The tool will generate an Excel file with 4 sheets:
-1. **Test Details** - Complete test case information
-2. **Summary** - Aggregated statistics
-3. **Coverage** - Coverage analysis results
-4. **Configuration** - Processing metadata
+### 期待される出力
+ツールは4つのシートを持つExcelファイルを生成します：
+1. **Test Details** - 完全なテストケース情報
+2. **Summary** - 集計統計
+3. **Coverage** - カバレッジ分析結果
+4. **Configuration** - 処理メタデータ
 
-## Troubleshooting
+## トラブルシューティング
 
-### Common Issues
+### よくある問題
 
-#### "Compile Error: User-defined type not defined"
-- **Solution**: Ensure DataTypes.bas is imported first
+#### 「コンパイルエラー: ユーザー定義型が定義されていません」
+- **解決策**: DataTypes.basが最初にインポートされていることを確認
 
-#### "File not found" errors during scanning
-- **Solution**: Verify source directory path exists and contains Java files
+#### スキャン中の「ファイルが見つかりません」エラー
+- **解決策**: ソースディレクトリパスが存在し、Javaファイルが含まれていることを確認
 
-#### "Permission denied" when saving output file
-- **Solution**: Ensure output directory exists and is writable
+#### 出力ファイル保存時の「アクセスが拒否されました」
+- **解決策**: 出力ディレクトリが存在し、書き込み可能であることを確認
 
-#### Macro security warnings
-- **Solution**: Enable macros or add file to trusted locations
+#### マクロセキュリティ警告
+- **解決策**: マクロを有効化するか、ファイルを信頼できる場所に追加
 
-### Error Logging
-The application logs errors to:
-- `MainController.g_ProcessingErrors` collection
-- Check VBA Immediate Window (**Ctrl + G**) for debug output
+### エラーログ
+アプリケーションは以下にエラーをログに記録：
+- `MainController.g_ProcessingErrors`コレクション
+- デバッグ出力については VBA イミディエイトウィンドウ（**Ctrl + G**）をチェック
 
-## Performance Considerations
+## 性能に関する考慮事項
 
-### Large Projects
-For projects with many files (>1000 Java files):
-- Expect processing time of 5-10 minutes
-- Consider running during off-peak hours
-- Ensure sufficient disk space for output file
+### 大規模プロジェクト
+多数のファイル（Javaファイル1000個以上）を持つプロジェクトの場合：
+- 処理時間5-10分を予想
+- オフピーク時間中の実行を検討
+- 出力ファイル用の十分なディスク容量を確保
 
-### Memory Usage
-- Large files (>10MB) are skipped automatically
-- Memory usage scales with number of test cases found
-- Close other applications if memory issues occur
+### メモリ使用量
+- 大きなファイル（10MB以上）は自動的にスキップされます
+- メモリ使用量は見つかったテストケース数に応じてスケール
+- メモリ問題が発生した場合は他のアプリケーションを閉じる
 
-## File Structure After Setup
+## セットアップ後のファイル構造
 ```
 /container/claudecode/java-test-specs/
-├── TestSpecGenerator.xlsm          # Main application file
-├── sample-java-tests/              # Example test files
-├── vba-modules/                    # VBA source code
-├── templates/                      # Excel templates
-├── docs/                          # Documentation
-└── examples/                      # Sample outputs
+├── TestSpecGenerator.xlsm          # メインアプリケーションファイル
+├── sample-java-tests/              # サンプルテストファイル
+├── vba-modules/                    # VBAソースコード
+├── templates/                      # Excelテンプレート
+├── docs/                          # ドキュメント
+└── examples/                      # サンプル出力
 ```
 
-## Version Information
-- **VBA Application Version**: 1.0.0
-- **Excel Compatibility**: 2016 or later
-- **File Format**: .xlsm (Excel Macro-Enabled Workbook)
-- **Created**: 2026-01-07
+## バージョン情報
+- **VBAアプリケーションバージョン**: 1.0.0
+- **Excel互換性**: 2016以降
+- **ファイル形式**: .xlsm（Excel マクロ有効ワークブック）
+- **作成日**: 2026-01-07
 
-## Security Notes
-- The application only reads Java files and coverage reports
-- No system modifications or external network connections
-- All file operations are within user-specified directories
-- Macro security should be configured according to organizational policies
+## セキュリティ注意事項
+- アプリケーションはJavaファイルとカバレッジレポートのみを読み取ります
+- システム変更や外部ネットワーク接続はありません
+- すべてのファイル操作はユーザー指定ディレクトリ内で行われます
+- マクロセキュリティは組織のポリシーに従って設定する必要があります
 
-## Support
-For issues or questions:
-1. Check error messages in the application
-2. Verify file paths and permissions
-3. Ensure all VBA modules are properly imported
-4. Review sample Java files for proper annotation format
+## サポート
+問題や質問がある場合：
+1. アプリケーションのエラーメッセージを確認
+2. ファイルパスと権限を確認
+3. すべてのVBAモジュールが適切にインポートされていることを確認
+4. 適切なアノテーション形式についてサンプルJavaファイルをレビュー
+
+## 🚨 重要な実行順序
+
+### VBAモジュールインポート順序（必須）
+以下の順序で**必ず**インポートしてください：
+
+1. **DataTypes.bas** ← 最初に必須（他のモジュールが依存）
+2. **FolderScanner.bas**
+3. **JavaAnnotationParser.bas**
+4. **CoverageReportParser.bas**
+5. **ExcelSheetBuilder.bas**
+6. **MainController.bas** ← 最後にインポート
+
+### 依存関係エラーの回避
+- DataTypes.basを最初にインポートしないと「ユーザー定義型が定義されていません」エラーが発生
+- MainController.basは他の全モジュールに依存するため最後にインポート
+
+### 実行前チェックリスト
+- [ ] 6つのモジュールがすべてVBAプロジェクトエクスプローラーに表示されている
+- [ ] コンパイルエラーがない（VBAエディタでF5を押してテスト）
+- [ ] マクロセキュリティが適切に設定されている
+- [ ] sample-java-testsディレクトリでテスト実行が成功する
