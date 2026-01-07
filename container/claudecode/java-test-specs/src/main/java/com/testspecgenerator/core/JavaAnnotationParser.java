@@ -26,9 +26,9 @@ public class JavaAnnotationParser {
             Pattern.MULTILINE | Pattern.DOTALL
     );
 
-    // テストメソッドパターン
+    // テストメソッドパターン (JUnit 5では修飾子はオプション)
     private static final Pattern TEST_METHOD_PATTERN = Pattern.compile(
-            "@(?:Test|ParameterizedTest).*?public\\s+void\\s+(\\w+)\\s*\\(",
+            "@(?:Test|ParameterizedTest).*?(?:public\\s+)?void\\s+(\\w+)\\s*\\(",
             Pattern.DOTALL | Pattern.MULTILINE
     );
 
@@ -49,7 +49,9 @@ public class JavaAnnotationParser {
             "TestModule", "TestCase", "BaselineVersion", "TestOverview",
             "TestPurpose", "TestProcess", "TestResults", "Creator",
             "CreatedDate", "Modifier", "ModifiedDate", "TestCategory",
-            "Priority", "Requirements", "Dependencies"
+            "Priority", "Requirements", "Dependencies",
+            // 実際のテストファイルで使用されているアノテーション
+            "TestType", "TestObjective", "PreCondition", "ExpectedResult", "TestData"
     );
 
     // ファイルエンコーディング候補
@@ -189,9 +191,9 @@ public class JavaAnnotationParser {
      * 指定メソッドのアノテーション情報を抽出
      */
     private Map<String, String> extractMethodAnnotations(String content, String methodName) {
-        // メソッド定義の位置を検索
+        // メソッド定義の位置を検索 (JUnit 5では修飾子はオプション)
         Pattern methodPattern = Pattern.compile(
-                "/\\*\\*(.*?)\\*/.*?@(?:Test|ParameterizedTest).*?public\\s+void\\s+" +
+                "/\\*\\*(.*?)\\*/.*?@(?:Test|ParameterizedTest).*?(?:public\\s+)?void\\s+" +
                         Pattern.quote(methodName) + "\\s*\\(",
                 Pattern.DOTALL | Pattern.MULTILINE
         );
@@ -324,6 +326,22 @@ public class JavaAnnotationParser {
                         testCase.setRequirements(value.trim());
                         break;
                     case "Dependencies":
+                        testCase.setDependencies(value.trim());
+                        break;
+                    // 実際のテストファイルで使用されているアノテーションのマッピング
+                    case "TestType":
+                        testCase.setTestCategory(value.trim());
+                        break;
+                    case "TestObjective":
+                        testCase.setTestPurpose(value.trim());
+                        break;
+                    case "PreCondition":
+                        testCase.setTestProcess(value.trim());
+                        break;
+                    case "ExpectedResult":
+                        testCase.setTestResults(value.trim());
+                        break;
+                    case "TestData":
                         testCase.setDependencies(value.trim());
                         break;
                 }

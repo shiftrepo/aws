@@ -2,28 +2,21 @@ package com.example;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @TestModule ValidationModule
- * @TestCase StringValidationOperations
- * @BaselineVersion 1.2.0
- * @TestOverview Comprehensive string validation testing with multiple validation rules
- * @TestPurpose Ensure robust string validation with proper error handling and edge cases
- * @TestProcess Test various string patterns including null, empty, valid and invalid formats
- * @TestResults All validation rules should be properly enforced
- * @Creator QATeam
+ * @TestModule StringValidationModule
+ * @TestCase StringValidationRules
+ * @BaselineVersion 1.0.0
+ * @TestType Comprehensive string validation testing for C1 coverage
+ * @TestObjective Verify string validation rules with boundary conditions
+ * @PreCondition Input validation patterns must handle various string formats
+ * @ExpectedResult All validation rules should work correctly
+ * @TestData DeveloperTeam
  * @CreatedDate 2026-01-07
- * @Modifier SecurityTeam
- * @ModifiedDate 2026-01-07
- * @TestCategory Integration
- * @Priority Medium
- * @Requirements REQ-VAL-001, REQ-VAL-002, REQ-SEC-001
- * @Dependencies StringValidator utility class
  */
+@DisplayName("StringValidator Test Suite with Full Coverage")
 public class StringValidatorTest {
 
     private StringValidator validator;
@@ -34,213 +27,353 @@ public class StringValidatorTest {
     }
 
     /**
-     * @TestCase EmailValidation
-     * @TestOverview Test email address validation with various formats
-     * @TestPurpose Verify email validation rules and format compliance
-     */
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "test@example.com",
-        "user.name@domain.co.jp",
-        "invalid-email",
-        "test@",
-        "@domain.com"
-    })
-    public void testEmailValidation(String email) {
-        boolean isValid = validator.isValidEmail(email);
-
-        // C1 Coverage: Email format validation branches
-        if (email != null && email.contains("@")) {
-            String[] parts = email.split("@");
-            if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
-                if (parts[1].contains(".")) {
-                    assertTrue(isValid, "Valid email should pass validation: " + email);
-                } else {
-                    assertFalse(isValid, "Email without domain extension should fail: " + email);
-                }
-            } else {
-                assertFalse(isValid, "Malformed email should fail validation: " + email);
-            }
-        } else {
-            assertFalse(isValid, "Invalid email format should fail: " + email);
-        }
-    }
-
-    /**
-     * @TestCase PasswordStrengthValidation
-     * @TestOverview Test password strength validation with security requirements
-     * @TestPurpose Ensure password meets security criteria
+     * @TestCase testIsEmpty
+     * @TestType Functional
+     * @TestObjective 空文字列チェック機能のテスト
+     * @ExpectedResult 正しい空文字列判定
      */
     @Test
-    public void testPasswordStrengthValidation() {
-        // C1 Coverage: Multiple password validation conditions
-        String weakPassword = "123";
-        String mediumPassword = "password123";
-        String strongPassword = "MyStr0ngP@ssw0rd!";
+    @DisplayName("空文字列チェック機能のテスト")
+    void testIsEmpty() {
+        assertTrue(validator.isEmpty(null));
+        assertTrue(validator.isEmpty(""));
+        assertTrue(validator.isEmpty("   "));
+        assertTrue(validator.isEmpty("\t"));
+        assertTrue(validator.isEmpty("\n"));
 
-        // Test weak password
-        assertFalse(validator.isStrongPassword(weakPassword), "Weak password should fail");
-
-        // Test medium password
-        boolean mediumResult = validator.isStrongPassword(mediumPassword);
-        if (mediumPassword.length() >= 8) {
-            if (containsDigit(mediumPassword)) {
-                // Should pass length and digit requirements
-                assertNotNull(mediumResult, "Medium password validation completed");
-            }
-        }
-
-        // Test strong password
-        assertTrue(validator.isStrongPassword(strongPassword), "Strong password should pass");
+        assertFalse(validator.isEmpty("a"));
+        assertFalse(validator.isEmpty(" a "));
+        assertFalse(validator.isEmpty("test"));
     }
 
     /**
-     * @TestCase NullAndEmptyStringHandling
-     * @TestOverview Test null and empty string handling across validation methods
-     * @TestPurpose Verify proper handling of edge case inputs
-     */
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" ", "  ", "\t", "\n"})
-    public void testNullAndEmptyStringHandling(String input) {
-        // C1 Coverage: Null and empty string branches
-        if (input == null) {
-            assertFalse(validator.isValidEmail(input), "Null should fail email validation");
-            assertFalse(validator.isStrongPassword(input), "Null should fail password validation");
-            assertFalse(validator.isValidPhoneNumber(input), "Null should fail phone validation");
-        } else if (input.trim().isEmpty()) {
-            assertFalse(validator.isValidEmail(input), "Empty string should fail email validation");
-            assertFalse(validator.isStrongPassword(input), "Empty string should fail password validation");
-            assertFalse(validator.isValidPhoneNumber(input), "Empty string should fail phone validation");
-        } else {
-            // Whitespace-only strings
-            assertFalse(validator.isValidEmail(input), "Whitespace-only should fail email validation");
-        }
-    }
-
-    /**
-     * @TestCase PhoneNumberValidation
-     * @TestOverview Test phone number validation with international formats
-     * @TestPurpose Verify phone number format compliance
-     */
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "+81-90-1234-5678",
-        "090-1234-5678",
-        "09012345678",
-        "+1-555-123-4567",
-        "invalid-phone",
-        "123"
-    })
-    public void testPhoneNumberValidation(String phoneNumber) {
-        boolean isValid = validator.isValidPhoneNumber(phoneNumber);
-
-        // C1 Coverage: Phone number format validation
-        if (phoneNumber != null && phoneNumber.length() >= 10) {
-            String digitsOnly = phoneNumber.replaceAll("[^0-9]", "");
-            if (digitsOnly.length() >= 10 && digitsOnly.length() <= 15) {
-                if (phoneNumber.startsWith("+") || phoneNumber.matches("^[0-9-]+$")) {
-                    assertTrue(isValid, "Valid phone format should pass: " + phoneNumber);
-                } else {
-                    // May still be valid depending on implementation
-                    assertNotNull(isValid, "Phone validation completed for: " + phoneNumber);
-                }
-            } else {
-                assertFalse(isValid, "Invalid digit count should fail: " + phoneNumber);
-            }
-        } else {
-            assertFalse(isValid, "Short phone number should fail: " + phoneNumber);
-        }
-    }
-
-    /**
-     * @TestCase ComplexValidationRules
-     * @TestOverview Test complex validation rules combining multiple criteria
-     * @TestPurpose Verify comprehensive validation logic
+     * @TestCase testIsLengthInRange
+     * @TestType Boundary Testing
+     * @TestObjective 文字列長範囲チェックのテスト
+     * @ExpectedResult 正しい範囲判定
      */
     @Test
-    public void testComplexValidationRules() {
-        String testInput = "ComplexInput123!@#";
+    @DisplayName("文字列長範囲チェックのテスト")
+    void testIsLengthInRange() {
+        assertFalse(validator.isLengthInRange(null, 1, 10));
 
-        // C1 Coverage: Multiple validation criteria
-        boolean hasUpperCase = containsUpperCase(testInput);
-        boolean hasLowerCase = containsLowerCase(testInput);
-        boolean hasDigit = containsDigit(testInput);
-        boolean hasSpecialChar = containsSpecialChar(testInput);
+        assertTrue(validator.isLengthInRange("", 0, 10));
+        assertFalse(validator.isLengthInRange("", 1, 10));
 
-        // Complex conditional logic for C1 coverage
-        if (hasUpperCase && hasLowerCase) {
-            if (hasDigit && hasSpecialChar) {
-                assertTrue(validator.isComplexValid(testInput), "Complex input with all criteria should pass");
-            } else if (hasDigit || hasSpecialChar) {
-                // Partial compliance
-                boolean result = validator.isComplexValid(testInput);
-                assertNotNull(result, "Partial compliance validation completed");
-            } else {
-                assertFalse(validator.isComplexValid(testInput), "Missing digit and special char should fail");
-            }
-        } else {
-            assertFalse(validator.isComplexValid(testInput), "Missing case variety should fail");
-        }
+        assertTrue(validator.isLengthInRange("hello", 5, 10));
+        assertTrue(validator.isLengthInRange("hello", 3, 5));
+        assertTrue(validator.isLengthInRange("hello", 5, 5));
+
+        assertFalse(validator.isLengthInRange("hello", 6, 10));
+        assertFalse(validator.isLengthInRange("hello", 1, 4));
     }
 
-    // Helper methods
-    private boolean containsUpperCase(String str) {
-        return str != null && str.chars().anyMatch(Character::isUpperCase);
+    /**
+     * @TestCase testIsValidEmail
+     * @TestType Pattern Matching
+     * @TestObjective メールアドレス形式チェックのテスト
+     * @ExpectedResult 正しいメール形式判定
+     */
+    @Test
+    @DisplayName("メールアドレス形式チェックのテスト")
+    void testIsValidEmail() {
+        // 有効なメールアドレス
+        assertTrue(validator.isValidEmail("test@example.com"));
+        assertTrue(validator.isValidEmail("user.name@example.co.jp"));
+        assertTrue(validator.isValidEmail("user+tag@example.com"));
+        assertTrue(validator.isValidEmail("123@example.com"));
+
+        // 無効なメールアドレス
+        assertFalse(validator.isValidEmail(null));
+        assertFalse(validator.isValidEmail(""));
+        assertFalse(validator.isValidEmail("invalid"));
+        assertFalse(validator.isValidEmail("@example.com"));
+        assertFalse(validator.isValidEmail("user@"));
+        assertFalse(validator.isValidEmail("user@.com"));
+        assertFalse(validator.isValidEmail("user@example"));
+        assertFalse(validator.isValidEmail("user space@example.com"));
     }
 
-    private boolean containsLowerCase(String str) {
-        return str != null && str.chars().anyMatch(Character::isLowerCase);
+    /**
+     * @TestCase testIsValidPhoneNumber
+     * @TestType Pattern Matching
+     * @TestObjective 電話番号形式チェックのテスト（日本形式）
+     * @ExpectedResult 正しい電話番号判定
+     */
+    @Test
+    @DisplayName("電話番号形式チェックのテスト")
+    void testIsValidPhoneNumber() {
+        // 有効な電話番号
+        assertTrue(validator.isValidPhoneNumber("090-1234-5678"));
+        assertTrue(validator.isValidPhoneNumber("09012345678"));
+        assertTrue(validator.isValidPhoneNumber("03-1234-5678"));
+        assertTrue(validator.isValidPhoneNumber("0312345678"));
+        assertTrue(validator.isValidPhoneNumber("+81-90-1234-5678"));
+        assertTrue(validator.isValidPhoneNumber("+819012345678"));
+
+        // 無効な電話番号
+        assertFalse(validator.isValidPhoneNumber(null));
+        assertFalse(validator.isValidPhoneNumber(""));
+        assertFalse(validator.isValidPhoneNumber("123"));
+        assertFalse(validator.isValidPhoneNumber("abc-defg-hijk"));
     }
 
-    private boolean containsDigit(String str) {
-        return str != null && str.chars().anyMatch(Character::isDigit);
+    /**
+     * @TestCase testIsValidUrl
+     * @TestType Pattern Matching
+     * @TestObjective URL形式チェックのテスト
+     * @ExpectedResult 正しいURL判定
+     */
+    @Test
+    @DisplayName("URL形式チェックのテスト")
+    void testIsValidUrl() {
+        // 有効なURL
+        assertTrue(validator.isValidUrl("http://example.com"));
+        assertTrue(validator.isValidUrl("https://example.com"));
+        assertTrue(validator.isValidUrl("https://example.com/path"));
+        assertTrue(validator.isValidUrl("https://example.com:8080"));
+        assertTrue(validator.isValidUrl("https://example.com:8080/path"));
+        assertTrue(validator.isValidUrl("ftp://example.com"));
+
+        // 無効なURL
+        assertFalse(validator.isValidUrl(null));
+        assertFalse(validator.isValidUrl(""));
+        assertFalse(validator.isValidUrl("example.com"));
+        assertFalse(validator.isValidUrl("//example.com"));
+        assertFalse(validator.isValidUrl("file:///path"));
     }
 
-    private boolean containsSpecialChar(String str) {
-        return str != null && str.chars().anyMatch(ch -> !Character.isLetterOrDigit(ch));
+    /**
+     * @TestCase testIsNumeric
+     * @TestType Character Validation
+     * @TestObjective 数値文字列チェックのテスト
+     * @ExpectedResult 正しい数値判定
+     */
+    @Test
+    @DisplayName("数値文字列チェックのテスト")
+    void testIsNumeric() {
+        assertTrue(validator.isNumeric("123"));
+        assertTrue(validator.isNumeric("0"));
+        assertTrue(validator.isNumeric("9999999"));
+
+        assertFalse(validator.isNumeric(null));
+        assertFalse(validator.isNumeric(""));
+        assertFalse(validator.isNumeric("12.3"));
+        assertFalse(validator.isNumeric("-123"));
+        assertFalse(validator.isNumeric("123a"));
+        assertFalse(validator.isNumeric("a123"));
+        assertFalse(validator.isNumeric("1 2 3"));
     }
 
-    // Simple validator implementation for testing
-    private static class StringValidator {
+    /**
+     * @TestCase testIsAlphabetic
+     * @TestType Character Validation
+     * @TestObjective アルファベット文字列チェックのテスト
+     * @ExpectedResult 正しいアルファベット判定
+     */
+    @Test
+    @DisplayName("アルファベット文字列チェックのテスト")
+    void testIsAlphabetic() {
+        assertTrue(validator.isAlphabetic("abc"));
+        assertTrue(validator.isAlphabetic("ABC"));
+        assertTrue(validator.isAlphabetic("AbCdEf"));
 
-        public boolean isValidEmail(String email) {
-            if (email == null || email.trim().isEmpty()) {
-                return false;
-            }
-            return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-        }
+        assertFalse(validator.isAlphabetic(null));
+        assertFalse(validator.isAlphabetic(""));
+        assertFalse(validator.isAlphabetic("abc123"));
+        assertFalse(validator.isAlphabetic("123"));
+        assertFalse(validator.isAlphabetic("abc "));
+        assertFalse(validator.isAlphabetic("abc-def"));
+    }
 
-        public boolean isStrongPassword(String password) {
-            if (password == null || password.length() < 8) {
-                return false;
-            }
-            boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
-            boolean hasLower = password.chars().anyMatch(Character::isLowerCase);
-            boolean hasDigit = password.chars().anyMatch(Character::isDigit);
-            boolean hasSpecial = password.chars().anyMatch(ch -> !Character.isLetterOrDigit(ch));
+    /**
+     * @TestCase testIsAlphanumeric
+     * @TestType Character Validation
+     * @TestObjective 英数字文字列チェックのテスト
+     * @ExpectedResult 正しい英数字判定
+     */
+    @Test
+    @DisplayName("英数字文字列チェックのテスト")
+    void testIsAlphanumeric() {
+        assertTrue(validator.isAlphanumeric("abc123"));
+        assertTrue(validator.isAlphanumeric("ABC"));
+        assertTrue(validator.isAlphanumeric("123"));
+        assertTrue(validator.isAlphanumeric("a1b2c3"));
 
-            return hasUpper && hasLower && hasDigit && hasSpecial;
-        }
+        assertFalse(validator.isAlphanumeric(null));
+        assertFalse(validator.isAlphanumeric(""));
+        assertFalse(validator.isAlphanumeric("abc-123"));
+        assertFalse(validator.isAlphanumeric("abc 123"));
+        assertFalse(validator.isAlphanumeric("abc_123"));
+        assertFalse(validator.isAlphanumeric("abc.123"));
+    }
 
-        public boolean isValidPhoneNumber(String phone) {
-            if (phone == null || phone.trim().isEmpty()) {
-                return false;
-            }
-            String digitsOnly = phone.replaceAll("[^0-9]", "");
-            return digitsOnly.length() >= 10 && digitsOnly.length() <= 15;
-        }
+    /**
+     * @TestCase testIsStrongPassword
+     * @TestType Security Validation
+     * @TestObjective パスワード強度チェックのテスト
+     * @ExpectedResult 正しいパスワード強度判定
+     */
+    @Test
+    @DisplayName("パスワード強度チェックのテスト")
+    void testIsStrongPassword() {
+        // 強いパスワード
+        assertTrue(validator.isStrongPassword("Abc123!@"));
+        assertTrue(validator.isStrongPassword("Password1!"));
+        assertTrue(validator.isStrongPassword("MyP@ssw0rd"));
 
-        public boolean isComplexValid(String input) {
-            if (input == null || input.length() < 8) {
-                return false;
-            }
-            boolean hasUpper = input.chars().anyMatch(Character::isUpperCase);
-            boolean hasLower = input.chars().anyMatch(Character::isLowerCase);
-            boolean hasDigit = input.chars().anyMatch(Character::isDigit);
-            boolean hasSpecial = input.chars().anyMatch(ch -> !Character.isLetterOrDigit(ch));
+        // 弱いパスワード
+        assertFalse(validator.isStrongPassword(null));
+        assertFalse(validator.isStrongPassword(""));
+        assertFalse(validator.isStrongPassword("short"));
+        assertFalse(validator.isStrongPassword("abc12345")); // 大文字なし
+        assertFalse(validator.isStrongPassword("ABC12345")); // 小文字なし
+        assertFalse(validator.isStrongPassword("Abcdefgh")); // 数字なし
+        assertFalse(validator.isStrongPassword("Abc12345")); // 特殊文字なし
+        assertFalse(validator.isStrongPassword("12345678")); // 文字なし
+    }
 
-            return hasUpper && hasLower && (hasDigit || hasSpecial);
-        }
+    /**
+     * @TestCase testIsValidPostalCode
+     * @TestType Pattern Matching
+     * @TestObjective 郵便番号形式チェックのテスト
+     * @ExpectedResult 正しい郵便番号判定
+     */
+    @Test
+    @DisplayName("郵便番号形式チェックのテスト")
+    void testIsValidPostalCode() {
+        assertTrue(validator.isValidPostalCode("123-4567"));
+        assertTrue(validator.isValidPostalCode("1234567"));
+
+        assertFalse(validator.isValidPostalCode(null));
+        assertFalse(validator.isValidPostalCode(""));
+        assertFalse(validator.isValidPostalCode("123"));
+        assertFalse(validator.isValidPostalCode("12-34567"));
+        assertFalse(validator.isValidPostalCode("1234-567"));
+        assertFalse(validator.isValidPostalCode("abc-defg"));
+    }
+
+    /**
+     * @TestCase testIsValidCreditCard
+     * @TestType Algorithm Validation
+     * @TestObjective クレジットカード番号チェックのテスト（Luhnアルゴリズム）
+     * @ExpectedResult 正しいカード番号判定
+     */
+    @Test
+    @DisplayName("クレジットカード番号チェックのテスト")
+    void testIsValidCreditCard() {
+        // 有効なカード番号（テスト用）
+        assertTrue(validator.isValidCreditCard("4532015112830366")); // Visa
+        assertTrue(validator.isValidCreditCard("5425233430109903")); // MasterCard
+        assertTrue(validator.isValidCreditCard("4532-0151-1283-0366")); // With hyphens
+        assertTrue(validator.isValidCreditCard("4532 0151 1283 0366")); // With spaces
+
+        // 無効なカード番号
+        assertFalse(validator.isValidCreditCard(null));
+        assertFalse(validator.isValidCreditCard(""));
+        assertFalse(validator.isValidCreditCard("1234567890123456"));
+        assertFalse(validator.isValidCreditCard("123")); // Too short
+        assertFalse(validator.isValidCreditCard("12345678901234567890")); // Too long
+        assertFalse(validator.isValidCreditCard("abcd-efgh-ijkl-mnop"));
+    }
+
+    /**
+     * @TestCase testIsValidIPv4
+     * @TestType Pattern Matching
+     * @TestObjective IPv4アドレス形式チェックのテスト
+     * @ExpectedResult 正しいIPアドレス判定
+     */
+    @Test
+    @DisplayName("IPv4アドレス形式チェックのテスト")
+    void testIsValidIPv4() {
+        // 有効なIPアドレス
+        assertTrue(validator.isValidIPv4("192.168.0.1"));
+        assertTrue(validator.isValidIPv4("10.0.0.1"));
+        assertTrue(validator.isValidIPv4("172.16.0.1"));
+        assertTrue(validator.isValidIPv4("0.0.0.0"));
+        assertTrue(validator.isValidIPv4("255.255.255.255"));
+
+        // 無効なIPアドレス
+        assertFalse(validator.isValidIPv4(null));
+        assertFalse(validator.isValidIPv4(""));
+        assertFalse(validator.isValidIPv4("256.0.0.1")); // > 255
+        assertFalse(validator.isValidIPv4("192.168.0")); // 不完全
+        assertFalse(validator.isValidIPv4("192.168.0.1.1")); // 多すぎ
+        assertFalse(validator.isValidIPv4("192.168.-1.1")); // 負の値
+        assertFalse(validator.isValidIPv4("192.168.a.1")); // 文字
+    }
+
+    /**
+     * @TestCase testIsValidDateFormat
+     * @TestType Date Validation
+     * @TestObjective 日付形式チェックのテスト
+     * @ExpectedResult 正しい日付形式判定
+     */
+    @Test
+    @DisplayName("日付形式チェックのテスト")
+    void testIsValidDateFormat() {
+        // 有効な日付
+        assertTrue(validator.isValidDateFormat("2024-01-01"));
+        assertTrue(validator.isValidDateFormat("2024-12-31"));
+        assertTrue(validator.isValidDateFormat("2024-02-29")); // うるう年
+        assertTrue(validator.isValidDateFormat("2024-04-30"));
+
+        // 無効な日付
+        assertFalse(validator.isValidDateFormat(null));
+        assertFalse(validator.isValidDateFormat(""));
+        assertFalse(validator.isValidDateFormat("2024-13-01")); // 月が無効
+        assertFalse(validator.isValidDateFormat("2024-00-01")); // 月が無効
+        assertFalse(validator.isValidDateFormat("2024-01-32")); // 日が無効
+        assertFalse(validator.isValidDateFormat("2024-01-00")); // 日が無効
+        assertFalse(validator.isValidDateFormat("2024-02-30")); // 2月30日
+        assertFalse(validator.isValidDateFormat("2024-04-31")); // 4月31日
+        assertFalse(validator.isValidDateFormat("2024/01/01")); // 形式違い
+        assertFalse(validator.isValidDateFormat("01-01-2024")); // 形式違い
+    }
+
+    /**
+     * @TestCase testContainsHtml
+     * @TestType Security Validation
+     * @TestObjective HTMLタグ検出のテスト
+     * @ExpectedResult 正しいHTMLタグ検出
+     */
+    @Test
+    @DisplayName("HTMLタグ検出のテスト")
+    void testContainsHtml() {
+        assertTrue(validator.containsHtml("<div>test</div>"));
+        assertTrue(validator.containsHtml("Hello <b>world</b>"));
+        assertTrue(validator.containsHtml("<br>"));
+        assertTrue(validator.containsHtml("<img src='test.jpg'>"));
+
+        assertFalse(validator.containsHtml(null));
+        assertFalse(validator.containsHtml(""));
+        assertFalse(validator.containsHtml("plain text"));
+        assertFalse(validator.containsHtml("a < b"));
+        assertFalse(validator.containsHtml("a > b"));
+    }
+
+    /**
+     * @TestCase testIsSqlInjectionRisk
+     * @TestType Security Validation
+     * @TestObjective SQLインジェクションリスク検出のテスト
+     * @ExpectedResult 正しいSQLインジェクションリスク検出
+     */
+    @Test
+    @DisplayName("SQLインジェクションリスク検出のテスト")
+    void testIsSqlInjectionRisk() {
+        assertTrue(validator.isSqlInjectionRisk("DROP TABLE users"));
+        assertTrue(validator.isSqlInjectionRisk("1' OR '1'='1"));
+        assertTrue(validator.isSqlInjectionRisk("DELETE FROM users"));
+        assertTrue(validator.isSqlInjectionRisk("INSERT INTO users"));
+        assertTrue(validator.isSqlInjectionRisk("UPDATE users SET"));
+        assertTrue(validator.isSqlInjectionRisk("SELECT * FROM"));
+        assertTrue(validator.isSqlInjectionRisk("-- comment"));
+        assertTrue(validator.isSqlInjectionRisk("/* comment */"));
+        assertTrue(validator.isSqlInjectionRisk("value; DROP TABLE"));
+
+        assertFalse(validator.isSqlInjectionRisk(null));
+        assertFalse(validator.isSqlInjectionRisk(""));
+        assertFalse(validator.isSqlInjectionRisk("normal text"));
+        assertFalse(validator.isSqlInjectionRisk("user input"));
     }
 }
