@@ -25,6 +25,7 @@ Java Test Specification Generatorは、Javaテストファイルからカスタ�
 java-test-specs/
 ├── README.md                           # メイン説明書（このファイル）
 ├── pom.xml                             # Maven設定ファイル
+├── .gitignore                          # Git除外設定
 │
 ├── src/                                # Javaソースコード
 │   ├── main/java/com/testspecgenerator/
@@ -39,25 +40,18 @@ java-test-specs/
 │   │       └── ExcelSheetBuilder.java  # Excel生成
 │   ├── main/resources/
 │   │   └── logback.xml                 # ログ設定
-│   └── test/java/                      # JUnitテストケース
+│   └── test/java/                      # JUnitテストケース（150アサーション）
+│       ├── com/testspecgenerator/core/
+│       │   └── FolderScannerTest.java  # コアロジックテスト
+│       └── com/testspecgenerator/
+│           └── TestSpecificationGeneratorMainTest.java
 │
-├── sample-java-tests/                  # サンプルデータ
-│   ├── BasicCalculatorTest.java        # 計算機テスト（C1カバレッジ例）
-│   ├── StringValidatorTest.java        # 文字列検証テスト
-│   └── coverage-reports/               # JaCoCoカバレッジレポート
-│       ├── jacoco-report.xml           # XMLフォーマット
-│       └── coverage-summary.html       # HTMLフォーマット
-│
-├── examples/                           # 出力例
-│   └── TestSpecification_Sample.xlsx  # 実際のExcel出力例
-│
-├── templates/                          # テンプレート
-│   └── java-annotation-template.java  # アノテーション形式リファレンス
-│
-└── docs/                              # ドキュメント
-    ├── user-guide.md                  # ユーザーガイド
-    ├── annotation-standards.md        # アノテーション標準
-    └── coverage-integration.md        # カバレッジ統合ガイド
+└── target/                             # Maven生成ディレクトリ（ビルド後）
+    ├── java-test-specification-generator-1.0.0.jar  # 実行可能JAR（24MB）
+    └── site/jacoco/                    # JaCoCoカバレッジレポート
+        ├── jacoco.xml                  # XMLレポート（114KB）⭐ 主要解析対象
+        ├── index.html                  # HTMLメインレポート
+        └── com.testspecgenerator.*/    # パッケージ別詳細レポート
 ```
 
 ## 🚀 クイックスタートガイド
@@ -171,36 +165,53 @@ java -version
 mvn --version
 ```
 
-##### **🐳 Docker環境での実行（推奨）**
+##### **🐳 Docker環境での実行（推奨・カバレッジレポート込み）**
 ```bash
-# SELinux環境での完全なワンライナー実行
+# 【完全版】カバレッジ生成→テスト仕様書作成 ワンライナー実行
 docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  bash -c "mvn clean package -DskipTests && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx"
+  bash -c "mvn clean compile test package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification_complete.xlsx && rm -rf coverage-reports"
 
 # またはステップごとに実行する場合:
-# 1. ビルド
+# 1. ビルド・テスト・カバレッジ生成
 docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  mvn clean package -DskipTests
+  mvn clean compile test
 
-# 2. 実行
+# 2. 実行可能JAR作成
 docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx
+  mvn package
+
+# 3. カバレッジレポートを一時コピー（target除外対策）
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  cp -r target/site/jacoco ./coverage-reports
+
+# 4. テスト仕様書生成（カバレッジ212エントリ統合）
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification.xlsx
+
+# 5. 一時ファイル削除
+rm -rf coverage-reports
 
 # ⚠️ SELinux無効環境の場合（:Zを削除）
 docker run --rm \
   -v "$(pwd)":/workspace \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  bash -c "mvn clean package -DskipTests && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx"
+  bash -c "mvn clean compile test package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification.xlsx && rm -rf coverage-reports"
 ```
 
 ##### **🏢 企業環境・制限された環境での対処**
@@ -249,38 +260,38 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 ls -la test_result.xlsx
 ```
 
-#### **🐳 Docker環境での実行（環境構築不要）**
+#### **🐳 Docker環境での実行（環境構築不要・カバレッジ完全版）**
 ```bash
 # 1. リポジトリをクローン
 git clone https://github.com/shiftrepo/aws.git
 cd aws/container/claudecode/java-test-specs
 
-# 2. ワンライナーで完了（推奨）
+# 2. カバレッジレポート生成→テスト仕様書作成 完全ワンライナー
 docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  bash -c "mvn clean package -DskipTests && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir sample-java-tests --output test_result.xlsx"
+  bash -c "mvn clean compile test package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification_complete.xlsx && rm -rf coverage-reports"
 
 # 3. 結果確認
-ls -la test_result.xlsx
+ls -la test_specification_complete.xlsx
 ```
 
 **実行結果例:**
 ```
 📊 Java Test Specification Generator 開始
    バージョン: 1.0.0
-   ソース: sample-java-tests
-   出力: test_result.xlsx
+   ソース: /workspace
+   出力: test_specification_verification.xlsx
 
 🔍 Step 1: Javaファイルスキャン開始...
-✅ Javaファイル発見: 2個
+✅ Javaファイル発見: 9個
 
 📝 Step 2: アノテーション解析開始...
-✅ テストケース抽出: 6個
+✅ テストケース抽出: 10個
 
 📈 Step 3: カバレッジレポート処理開始...
-✅ カバレッジデータ取得: 28個
+✅ カバレッジデータ取得: 212個
 
 📊 Step 4: Excelレポート生成開始...
 ✅ Excelレポート生成完了
@@ -288,14 +299,14 @@ ls -la test_result.xlsx
 ============================================================
 🎉 処理完了サマリー
 ============================================================
-📁 Javaファイル処理: 2個
-🧪 テストケース抽出: 6個
-📈 カバレッジエントリ: 28個
-⏱️ 処理時間: 1.921秒
-📊 出力ファイル: test_result.xlsx
-📏 ファイルサイズ: 9,305バイト
+📁 Javaファイル処理: 9個
+🧪 テストケース抽出: 10個
+📈 カバレッジエントリ: 212個
+⏱️ 処理時間: 2.297秒
+📊 出力ファイル: test_specification_verification.xlsx
+📏 ファイルサイズ: 17,373バイト
 ============================================================
-✅ テスト仕様書が正常に生成されました: test_result.xlsx
+✅ テスト仕様書が正常に生成されました: test_specification_verification.xlsx
 ```
 
 ## 📖 使用方法
@@ -342,8 +353,11 @@ mvn test
 # パッケージ作成（JAR生成）
 mvn package
 
-# JaCoCoカバレッジレポート生成
-mvn test jacoco:report
+# JaCoCoカバレッジレポート生成（testと同時実行）
+mvn clean compile test
+
+# カバレッジレポート確認
+ls -la target/site/jacoco/jacoco.xml
 
 # 依存関係確認
 mvn dependency:tree
@@ -400,14 +414,35 @@ public void testConditionalCalculation() {
 
 ## 📈 カバレッジレポート対応
 
-### JaCoCoXMLレポート
+### 📍 JaCoCoカバレッジレポート生成場所
+
+JaCoCoカバレッジレポートは以下の場所に自動生成されます：
+
+```bash
+# Maven test実行でJaCoCoレポートを生成
+mvn clean compile test
+
+# 生成されるカバレッジレポートファイル:
+target/site/jacoco/
+├── jacoco.xml                    # XMLレポート（114KB）⭐ メイン解析対象
+├── jacoco.csv                    # CSVフォーマット
+├── index.html                    # HTMLメインレポート
+├── jacoco-sessions.html          # セッション情報（195KB）
+└── com.testspecgenerator.*/      # パッケージ別詳細レポート
+    ├── FolderScanner.java.html   # クラス別カバレッジ詳細
+    └── JavaAnnotationParser.java.html
+```
+
+**🔍 重要**: 本ツールは `target/site/jacoco/jacoco.xml` を解析対象とし、212個のカバレッジエントリを自動統合します。
+
+### JaCoCoXMLレポートサンプル
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <report name="JaCoCo Coverage Report">
-  <package name="com.example.calculator">
-    <class name="com/example/calculator/BasicCalculatorTest">
-      <method name="testConditionalCalculation" line="25">
+  <package name="com.testspecgenerator.core">
+    <class name="com/testspecgenerator/core/FolderScanner">
+      <method name="scanForJavaFiles" line="25">
         <counter type="INSTRUCTION" missed="42" covered="717"/>
         <counter type="BRANCH" missed="8" covered="140"/>
         <counter type="LINE" missed="12" covered="88"/>
@@ -735,18 +770,20 @@ find . -name "*.xml" -path "*/jacoco*" 2>/dev/null
 find . -name "*coverage*.xml" 2>/dev/null
 find . -name "*coverage*.html" 2>/dev/null
 
-# Step 2: JaCoCoレポートを生成
-mvn clean test jacoco:report
+# Step 2: JaCoCoレポートを生成（推奨方法）
+mvn clean compile test
 
 # Step 3: 生成されたファイルを確認
-ls -la target/site/jacoco/
-ls -la target/jacoco-reports/
+ls -la target/site/jacoco/jacoco.xml
+# 期待される出力: -rw-r--r--. 1 user group 114443 Jan  7 06:43 target/site/jacoco/jacoco.xml
 
-# Step 4: 手動でのカバレッジファイル指定
+# Step 4: カバレッジ統合でテスト仕様書生成
+# target除外対策として一時コピーしてから実行
+cp -r target/site/jacoco ./coverage-reports
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir sample-java-tests \
-    --output test_result.xlsx \
-    --coverage-dir target/site/jacoco
+    --source-dir /path/to/project \
+    --output test_result.xlsx
+rm -rf coverage-reports
 ```
 
 ### 🏢 特殊環境での問題
