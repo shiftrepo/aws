@@ -1,10 +1,10 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-Java Test Specification Generator,com.testspecgenerator.core,FolderScanner,107,313,6,30,26,61,7,26,2,13
-Java Test Specification Generator,com.testspecgenerator.core,ExcelSheetBuilder,9,1438,6,32,1,230,6,38,0,25
-Java Test Specification Generator,com.testspecgenerator.core,JavaAnnotationParser,213,497,30,32,59,98,31,23,3,13
-Java Test Specification Generator,com.testspecgenerator.core,FolderScanner.new SimpleFileVisitor() {...},21,41,2,4,6,9,3,4,1,3
-Java Test Specification Generator,com.testspecgenerator.core,FolderScanner.new SimpleFileVisitor() {...},15,47,0,6,4,11,1,6,1,3
-Java Test Specification Generator,com.testspecgenerator.core,CoverageReportParser,423,391,37,24,103,82,31,17,7,8
-Java Test Specification Generator,com.testspecgenerator,TestSpecificationGeneratorMain,304,250,22,10,105,62,19,9,7,5
-Java Test Specification Generator,com.testspecgenerator.model,CoverageInfo,409,203,29,3,87,64,53,30,37,30
-Java Test Specification Generator,com.testspecgenerator.model,TestCaseInfo,223,222,19,7,44,67,38,33,27,31
+Java Test Specification Generator,com.testspecgenerator.core,FolderScanner,420,0,36,0,87,0,33,0,15,0
+Java Test Specification Generator,com.testspecgenerator.core,ExcelSheetBuilder,1447,0,38,0,231,0,44,0,25,0
+Java Test Specification Generator,com.testspecgenerator.core,JavaAnnotationParser,710,0,62,0,157,0,54,0,16,0
+Java Test Specification Generator,com.testspecgenerator.core,FolderScanner.new SimpleFileVisitor() {...},62,0,6,0,15,0,7,0,4,0
+Java Test Specification Generator,com.testspecgenerator.core,FolderScanner.new SimpleFileVisitor() {...},62,0,6,0,15,0,7,0,4,0
+Java Test Specification Generator,com.testspecgenerator.core,CoverageReportParser,814,0,61,0,185,0,48,0,15,0
+Java Test Specification Generator,com.testspecgenerator,TestSpecificationGeneratorMain,554,0,32,0,167,0,28,0,12,0
+Java Test Specification Generator,com.testspecgenerator.model,CoverageInfo,612,0,32,0,151,0,83,0,67,0
+Java Test Specification Generator,com.testspecgenerator.model,TestCaseInfo,445,0,26,0,111,0,71,0,58,0
