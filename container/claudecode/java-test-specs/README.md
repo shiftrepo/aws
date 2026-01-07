@@ -125,10 +125,10 @@ ls -la test_result.xlsx
 python main.py --source-dir /path/to/java/tests --output report.xlsx
 
 # カバレッジ処理なし
-python main.py --source-dir ./tests --output report.xlsx --no-coverage
+python main.py --source-dir ../sample-java-tests --output report.xlsx --no-coverage
 
 # デバッグモード
-python main.py --source-dir ./tests --output report.xlsx --log-level DEBUG
+python main.py --source-dir ../sample-java-tests --output report.xlsx --log-level DEBUG
 
 # 対話モード
 python main.py --interactive
@@ -251,7 +251,7 @@ pip install -r requirements.txt
 # 解決方法
 # 出力ファイルが他のアプリで開かれていないか確認
 # または別のファイル名で実行
-python main.py --source-dir ./tests --output report2.xlsx
+python main.py --source-dir ../sample-java-tests --output report2.xlsx
 ```
 
 #### 3. アノテーションが認識されない
@@ -284,7 +284,7 @@ find . -name "*coverage*.xml"
 tail -f test_spec_generator.log
 
 # デバッグモードでの実行
-python main.py --source-dir ./tests --output debug.xlsx --log-level DEBUG
+python main.py --source-dir ../sample-java-tests --output debug.xlsx --log-level DEBUG
 ```
 
 ## 🔧 設定オプション
