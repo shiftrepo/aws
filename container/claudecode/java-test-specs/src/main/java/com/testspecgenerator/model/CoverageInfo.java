@@ -31,6 +31,18 @@ public class CoverageInfo {
     private String sourceFile;
     private String reportType; // "XML" or "HTML"
 
+    // JaCoCoの詳細情報
+    private int complexityCovered = 0;
+    private int complexityTotal = 0;
+    private double complexityCoverage = 0.0;
+    private String sessionId;
+    private String executionTime;
+    private String jacocoVersion;
+
+    // 生データ（将来の拡張用）
+    private String rawXmlData;
+    private String rawHtmlData;
+
     // デフォルトコンストラクタ
     public CoverageInfo() {
     }
@@ -111,6 +123,35 @@ public class CoverageInfo {
     public String getReportType() { return reportType; }
     public void setReportType(String reportType) { this.reportType = reportType; }
 
+    public int getComplexityCovered() { return complexityCovered; }
+    public void setComplexityCovered(int complexityCovered) {
+        this.complexityCovered = complexityCovered;
+        updateComplexityCoverage();
+    }
+
+    public int getComplexityTotal() { return complexityTotal; }
+    public void setComplexityTotal(int complexityTotal) {
+        this.complexityTotal = complexityTotal;
+        updateComplexityCoverage();
+    }
+
+    public double getComplexityCoverage() { return complexityCoverage; }
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+    public String getExecutionTime() { return executionTime; }
+    public void setExecutionTime(String executionTime) { this.executionTime = executionTime; }
+
+    public String getJacocoVersion() { return jacocoVersion; }
+    public void setJacocoVersion(String jacocoVersion) { this.jacocoVersion = jacocoVersion; }
+
+    public String getRawXmlData() { return rawXmlData; }
+    public void setRawXmlData(String rawXmlData) { this.rawXmlData = rawXmlData; }
+
+    public String getRawHtmlData() { return rawHtmlData; }
+    public void setRawHtmlData(String rawHtmlData) { this.rawHtmlData = rawHtmlData; }
+
     // ヘルパーメソッド
 
     /**
@@ -149,6 +190,15 @@ public class CoverageInfo {
         updateMethodCoverage();
     }
 
+    /**
+     * 複雑度カバレッジ情報を設定
+     */
+    public void setComplexityInfo(int covered, int total) {
+        this.complexityCovered = covered;
+        this.complexityTotal = total;
+        updateComplexityCoverage();
+    }
+
     // カバレッジ計算メソッド
 
     private void updateInstructionCoverage() {
@@ -165,6 +215,10 @@ public class CoverageInfo {
 
     private void updateMethodCoverage() {
         this.methodCoverage = calculateCoverage(methodsCovered, methodsTotal);
+    }
+
+    private void updateComplexityCoverage() {
+        this.complexityCoverage = calculateCoverage(complexityCovered, complexityTotal);
     }
 
     private double calculateCoverage(int covered, int total) {

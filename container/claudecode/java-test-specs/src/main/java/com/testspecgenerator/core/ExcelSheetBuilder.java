@@ -205,9 +205,10 @@ public class ExcelSheetBuilder {
         // ヘッダー行
         Row headerRow = sheet.createRow(0);
         String[] headers = {
-                "No.", "Class Name", "Method Name", "Package",
-                "Branch Coverage %", "Instruction Coverage %", "Line Coverage %",
-                "Status", "Branches (Covered/Total)", "Report Type"
+                "No.", "Package", "Class Name", "Method Name", "Source File",
+                "Branch Coverage %", "Branch (Covered/Total)", "Instruction Coverage %", "Instruction (Covered/Total)",
+                "Line Coverage %", "Line (Covered/Total)", "Method Coverage %", "Method (Covered/Total)",
+                "Status", "Report Type", "Primary Coverage (C1)"
         };
 
         for (int i = 0; i < headers.length; i++) {
@@ -222,16 +223,32 @@ public class ExcelSheetBuilder {
                 CoverageInfo coverage = coverageData.get(i);
                 Row dataRow = sheet.createRow(i + 1);
 
-                setCellValue(dataRow, 0, i + 1, dataStyle);
-                setCellValue(dataRow, 1, coverage.getClassName(), dataStyle);
-                setCellValue(dataRow, 2, coverage.getMethodName(), dataStyle);
-                setCellValue(dataRow, 3, coverage.getPackageName(), dataStyle);
-                setCellValue(dataRow, 4, String.format("%.1f%%", coverage.getBranchCoverage()), dataStyle);
-                setCellValue(dataRow, 5, String.format("%.1f%%", coverage.getInstructionCoverage()), dataStyle);
-                setCellValue(dataRow, 6, String.format("%.1f%%", coverage.getLineCoverage()), dataStyle);
-                setCellValue(dataRow, 7, coverage.getCoverageStatus(), dataStyle);
-                setCellValue(dataRow, 8, coverage.getBranchCoverageDisplay(), dataStyle);
-                setCellValue(dataRow, 9, coverage.getReportType(), dataStyle);
+                int colIndex = 0;
+                setCellValue(dataRow, colIndex++, i + 1, dataStyle); // No.
+                setCellValue(dataRow, colIndex++, coverage.getPackageName(), dataStyle); // Package
+                setCellValue(dataRow, colIndex++, coverage.getClassName(), dataStyle); // Class Name
+                setCellValue(dataRow, colIndex++, coverage.getMethodName(), dataStyle); // Method Name
+                setCellValue(dataRow, colIndex++, coverage.getSourceFile(), dataStyle); // Source File
+
+                // Branch Coverage
+                setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getBranchCoverage()), dataStyle);
+                setCellValue(dataRow, colIndex++, String.format("%d/%d", coverage.getBranchesCovered(), coverage.getBranchesTotal()), dataStyle);
+
+                // Instruction Coverage
+                setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getInstructionCoverage()), dataStyle);
+                setCellValue(dataRow, colIndex++, String.format("%d/%d", coverage.getInstructionsCovered(), coverage.getInstructionsTotal()), dataStyle);
+
+                // Line Coverage
+                setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getLineCoverage()), dataStyle);
+                setCellValue(dataRow, colIndex++, String.format("%d/%d", coverage.getLinesCovered(), coverage.getLinesTotal()), dataStyle);
+
+                // Method Coverage
+                setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getMethodCoverage()), dataStyle);
+                setCellValue(dataRow, colIndex++, String.format("%d/%d", coverage.getMethodsCovered(), coverage.getMethodsTotal()), dataStyle);
+
+                setCellValue(dataRow, colIndex++, coverage.getCoverageStatus(), dataStyle); // Status
+                setCellValue(dataRow, colIndex++, coverage.getReportType(), dataStyle); // Report Type
+                setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getPrimaryCoverage()), dataStyle); // Primary Coverage (C1)
             }
         }
 
