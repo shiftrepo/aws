@@ -94,3 +94,12 @@ dependency-reduced-pom.xml
 !target/site/jacoco/*.csv
 !target/site/jacoco/*.html
 !target/site/jacoco/jacoco-resources/
+# Verification and test files
+*.xlsx
+*_test.py
+*_check*.py
+display_*.py
+read_*.py
+verify_*.py
+jacoco.xml
+

@@ -170,73 +170,18 @@ public class CoverageReportParser {
 
     /**
      * JaCoCo HTMLレポートを解析
+     * 注：HTMLレポートはXMLレポートより精度が低いため、可能な限りXMLレポートを使用することを推奨
      */
     private List<CoverageInfo> parseHtmlCoverageReport(Path htmlFile) throws IOException {
         logger.debug("HTMLカバレッジレポート解析: {}", htmlFile);
 
         List<CoverageInfo> coverageInfos = new ArrayList<>();
-        String content = Files.readString(htmlFile, StandardCharsets.UTF_8);
 
-        try {
-            Document doc = Jsoup.parse(content);
+        // HTMLレポートの処理は複雑で不正確なため、スキップすることを推奨
+        // XMLレポートが利用可能な場合はそちらを優先する
+        logger.warn("HTMLレポートのパースはスキップされました。XMLレポートを使用してください: {}", htmlFile);
 
-            // テーブル行を検索（JaCoCoのHTML形式）
-            Elements rows = doc.select("table tbody tr");
-
-            for (Element row : rows) {
-                Elements cells = row.select("td");
-                if (cells.size() >= 3) {
-                    // クラス名またはメソッド名を取得
-                    Element nameCell = cells.get(0);
-                    String name = nameCell.text().trim();
-
-                    // パッケージ名とクラス名を分離
-                    String packageName = "";
-                    String className = name;
-                    String methodName = "";
-
-                    if (name.contains(".")) {
-                        int lastDot = name.lastIndexOf('.');
-                        packageName = name.substring(0, lastDot);
-                        className = name.substring(lastDot + 1);
-                    }
-
-                    // メソッド名の場合（括弧があるかチェック）
-                    if (name.contains("(")) {
-                        int parenIndex = name.indexOf('(');
-                        methodName = name.substring(0, parenIndex);
-                        className = extractClassFromMethod(name);
-                    }
-
-                    // カバレッジデータを抽出
-                    CoverageInfo coverageInfo = new CoverageInfo(className, methodName);
-                    coverageInfo.setPackageName(packageName);
-                    coverageInfo.setReportType("HTML");
-                    // HTMLレポートからはソースファイル名を取得できないため、クラス名から推測
-                    String sourceFile = className.contains("$") ?
-                        className.substring(0, className.indexOf("$")) + ".java" :
-                        className + ".java";
-                    coverageInfo.setSourceFile(sourceFile);
-
-                    // 各セルからカバレッジ情報を抽出
-                    for (int i = 1; i < cells.size(); i++) {
-                        String cellText = cells.get(i).text().trim();
-                        parseCoverageCell(cellText, coverageInfo, i);
-                    }
-
-                    if (!className.isEmpty()) {
-                        coverageInfos.add(coverageInfo);
-                        logger.debug("HTMLカバレッジ抽出: {} - ブランチ: {:.1f}%",
-                                name, coverageInfo.getBranchCoverage());
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            logger.error("HTMLカバレッジレポート解析エラー: {}", htmlFile, e);
-            throw new IOException("HTMLレポート解析に失敗しました", e);
-        }
-
+        // HTMLレポートのパースを無効化（XMLレポートのみ使用）
         return coverageInfos;
     }
 
