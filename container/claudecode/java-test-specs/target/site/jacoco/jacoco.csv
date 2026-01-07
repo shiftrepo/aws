@@ -4,7 +4,7 @@ Java Test Specification Generator,com.testspecgenerator.core,ExcelSheetBuilder,1
 Java Test Specification Generator,com.testspecgenerator.core,JavaAnnotationParser,710,0,62,0,157,0,54,0,16,0
 Java Test Specification Generator,com.testspecgenerator.core,FolderScanner.new SimpleFileVisitor() {...},62,0,6,0,15,0,7,0,4,0
 Java Test Specification Generator,com.testspecgenerator.core,FolderScanner.new SimpleFileVisitor() {...},62,0,6,0,15,0,7,0,4,0
-Java Test Specification Generator,com.testspecgenerator.core,CoverageReportParser,838,0,67,0,189,0,51,0,15,0
+Java Test Specification Generator,com.testspecgenerator.core,CoverageReportParser,868,0,74,0,200,0,56,0,16,0
 Java Test Specification Generator,com.testspecgenerator,TestSpecificationGeneratorMain,554,0,32,0,167,0,28,0,12,0
 Java Test Specification Generator,com.testspecgenerator.model,CoverageInfo,612,0,32,0,151,0,83,0,67,0
 Java Test Specification Generator,com.testspecgenerator.model,TestCaseInfo,445,0,26,0,111,0,71,0,58,0

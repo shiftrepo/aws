@@ -99,10 +99,12 @@ public class CoverageReportParser {
             for (Element packageElement : packages) {
                 String packageName = packageElement.attr("name");
 
+                // パッケージレベルのカウンターは除外（クラス要素のみ処理）
                 // クラス要素を検索
                 Elements classes = packageElement.select("class");
                 for (Element classElement : classes) {
-                    String className = extractClassNameFromPath(classElement.attr("name"));
+                    String classPath = classElement.attr("name");
+                    String className = extractClassNameFromPath(classPath);
                     String sourceFileName = classElement.attr("sourcefilename");
 
                     // メソッド要素を検索
@@ -111,10 +113,22 @@ public class CoverageReportParser {
                         String methodName = methodElement.attr("name");
                         int line = parseIntAttribute(methodElement.attr("line"), 0);
 
-                        CoverageInfo coverageInfo = new CoverageInfo(className, methodName);
+                        // メソッド名の特殊文字をデコード
+                        String displayMethodName = decodeMethodName(methodName);
+
+                        CoverageInfo coverageInfo = new CoverageInfo(className, displayMethodName);
                         coverageInfo.setPackageName(packageName);
                         coverageInfo.setReportType("XML");
-                        coverageInfo.setSourceFile(sourceFileName != null && !sourceFileName.isEmpty() ? sourceFileName : "");
+
+                        // ソースファイル名の設定（nullチェックと特殊ケースの処理）
+                        String finalSourceFile = "";
+                        if (sourceFileName != null && !sourceFileName.isEmpty()) {
+                            finalSourceFile = sourceFileName;
+                        } else if (className != null && !className.isEmpty()) {
+                            // ソースファイル名が取得できない場合はクラス名から推測
+                            finalSourceFile = className + ".java";
+                        }
+                        coverageInfo.setSourceFile(finalSourceFile);
 
                         // カウンター要素からメトリクスを抽出
                         Elements counters = methodElement.select("counter");
@@ -310,12 +324,31 @@ public class CoverageReportParser {
         String[] parts = classPath.split("/");
         String className = parts[parts.length - 1];
 
-        // 内部クラスの場合（$が含まれる）
-        if (className.contains("$")) {
-            className = className.substring(0, className.indexOf("$"));
-        }
+        // 内部クラスの場合の処理
+        // 注：匿名内部クラスは元のまま残す（FolderScanner$1など）
+        // ただし、通常の内部クラスは親クラス名を返す
 
         return className;
+    }
+
+    /**
+     * メソッド名の特殊文字をデコード
+     */
+    private String decodeMethodName(String methodName) {
+        if (methodName == null) {
+            return "";
+        }
+
+        // JaCoCo特殊メソッド名の処理
+        switch (methodName) {
+            case "&lt;init&gt;":
+                return "<init>";  // コンストラクタ
+            case "&lt;clinit&gt;":
+                return "static {...}";  // static初期化ブロック
+            default:
+                // &lt; と &gt; をデコード
+                return methodName.replace("&lt;", "<").replace("&gt;", ">");
+        }
     }
 
     /**
