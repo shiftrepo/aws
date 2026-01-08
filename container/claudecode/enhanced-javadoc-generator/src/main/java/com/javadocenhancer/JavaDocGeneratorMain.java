@@ -524,8 +524,8 @@ public class JavaDocGeneratorMain {
                     <div class="method-section">
                         <h3>📊 詳細カバレッジレポート</h3>
                         <ul>
-                            <li><a href="coverage/%s-coverage.html">%s 詳細カバレッジレポート</a></li>
-                            <li><a href="coverage/source/%s.java.html">ソースコード（カバレッジハイライト付き）</a></li>
+                            <li><a href="../../coverage/%s-coverage.html">%s 詳細カバレッジレポート</a></li>
+                            <li><a href="../../coverage/source/%s.java.html">ソースコード（カバレッジハイライト付き）</a></li>
                         </ul>
                     </div>
 
