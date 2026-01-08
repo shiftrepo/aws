@@ -537,7 +537,7 @@ public class JavaDocGeneratorMain {
                         <div class="test-links">
                             <strong>📝 関連テストケース:</strong>
                             <ul>
-                                <li><a href="../test-links/%sTest.html">%sTest.java</a></li>
+                                <li><a href="../../test-links/%sTest.html">%sTest.java</a></li>
                                 <li>テストメソッド: test%sPositive(), test%sNegative(), test%sEdgeCases()</li>
                             </ul>
                         </div>
