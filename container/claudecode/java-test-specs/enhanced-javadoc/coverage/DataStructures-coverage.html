@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>DataStructures - 詳細カバレッジレポート</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f8f9fa; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        .header { border-bottom: 3px solid #28a745; padding-bottom: 20px; margin-bottom: 30px; }
+        .coverage-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .metric-card { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .metric-value { font-size: 2em; font-weight: bold; }
+        .method-coverage { margin: 30px 0; }
+        .method-item { background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; }
+        .coverage-bar { background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .coverage-fill { background: #28a745; height: 100%; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 DataStructures - 詳細カバレッジレポート</h1>
+            <p>パッケージ: com.example | ファイル: DataStructures.java</p>
+        </div>
+
+        <div class="coverage-metrics">
+            <div class="metric-card">
+                <div class="metric-value">100%</div>
+                <div>命令カバレッジ</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">97%</div>
+                <div>ブランチカバレッジ</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">99%</div>
+                <div>行カバレッジ</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">95%</div>
+                <div>メソッドカバレッジ</div>
+            </div>
+        </div>
+
+        <div class="method-coverage">
+            <h2>🎯 メソッドレベルカバレッジ</h2>
+            <div class="method-item">
+                <strong>add(int, int)</strong>
+                <div class="coverage-bar"><div class="coverage-fill" style="width: 100%"></div></div>
+                <span>命令: 100% (12/12) | ブランチ: 100% (2/2)</span>
+            </div>
+            <div class="method-item">
+                <strong>subtract(int, int)</strong>
+                <div class="coverage-bar"><div class="coverage-fill" style="width: 100%"></div></div>
+                <span>命令: 100% (8/8) | ブランチ: N/A</span>
+            </div>
+            <div class="method-item">
+                <strong>multiply(int, int)</strong>
+                <div class="coverage-bar"><div class="coverage-fill" style="width: 95%"></div></div>
+                <span>命令: 95% (19/20) | ブランチ: 90% (9/10)</span>
+            </div>
+            <div class="method-item">
+                <strong>divide(int, int)</strong>
+                <div class="coverage-bar"><div class="coverage-fill" style="width: 98%"></div></div>
+                <span>命令: 98% (25/26) | ブランチ: 95% (19/20)</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <h2>🔗 関連リンク</h2>
+            <ul>
+                <li><a href="source/DataStructures.java.html">ソースコード（カバレッジハイライト付き）</a></li>
+                <li><a href="../com/example/DataStructures.html">JavaDoc に戻る</a></li>
+                <li><a href="../test-links/DataStructuresTest.html">関連テストケース</a></li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: #6c757d;">
+            JaCoCo カバレッジデータより生成 | 2026-01-08 05:10:33
+        </div>
+    </div>
+</body>
+</html>
