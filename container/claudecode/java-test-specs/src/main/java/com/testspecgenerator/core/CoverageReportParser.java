@@ -330,7 +330,7 @@ public class CoverageReportParser {
 
             if (coverage != null) {
                 // カバレッジ情報をテストケースに設定
-                testCase.setCoveragePercent(coverage.getBranchCoverage() * 100);
+                testCase.setCoveragePercent(coverage.getBranchCoverage());
                 testCase.setBranchesCovered(coverage.getBranchesCovered());
                 testCase.setBranchesTotal(coverage.getBranchesTotal());
 
