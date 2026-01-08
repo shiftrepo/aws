@@ -24,6 +24,7 @@ public class JavaDocEnhancement {
     private boolean includeSourceLinks = false;      // ソースコードリンクを含める
     private boolean generateCoverageCharts = false;  // カバレッジチャート生成
     private boolean skipCoverage = false;            // カバレッジ処理をスキップ
+    private boolean cleanDirectory = false;          // 出力前にディレクトリをクリア
 
     // カバレッジ統合機能フラグ（ユーザー要件の4つ）
     private boolean enableInlineDisplay = true;      // インライン表示
@@ -165,6 +166,14 @@ public class JavaDocEnhancement {
 
     public void setSkipCoverage(boolean skipCoverage) {
         this.skipCoverage = skipCoverage;
+    }
+
+    public boolean isCleanDirectory() {
+        return cleanDirectory;
+    }
+
+    public void setCleanDirectory(boolean cleanDirectory) {
+        this.cleanDirectory = cleanDirectory;
     }
 
     public void setEnableInlineDisplay(boolean enableInlineDisplay) {

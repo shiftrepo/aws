@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 
@@ -131,6 +132,11 @@ public class JavaDocGeneratorMain {
                 .desc("出力ディレクトリ（拡張JavaDoc）")
                 .build());
 
+        options.addOption(Option.builder()
+                .longOpt("clean")
+                .desc("出力ディレクトリを実行前にクリア")
+                .build());
+
         // カバレッジ関連オプション
         options.addOption(Option.builder("c")
                 .longOpt("coverage-xml")
@@ -212,6 +218,13 @@ public class JavaDocGeneratorMain {
             "    --test-dir ./src/test/java \\\n" +
             "    --coverage-xml ./target/site/jacoco/jacoco.xml \\\n" +
             "    --output-dir ./target/enhanced-javadoc\n\n" +
+            "  # Git管理用（出力先クリア付き）\n" +
+            "  java -jar enhanced-javadoc-generator.jar \\\n" +
+            "    --source-dir ./src/main/java \\\n" +
+            "    --test-dir ./src/test/java \\\n" +
+            "    --coverage-xml ./target/site/jacoco/jacoco.xml \\\n" +
+            "    --output-dir ./docs/javadoc \\\n" +
+            "    --clean\n\n" +
             "オプション:",
             options,
             "\n詳細は https://github.com/enhanced-javadoc-generator を参照してください。"
@@ -252,6 +265,7 @@ public class JavaDocGeneratorMain {
         config.setIncludeSourceLinks(cmd.hasOption("include-source-links"));
         config.setGenerateCoverageCharts(cmd.hasOption("generate-coverage-charts"));
         config.setSkipCoverage(cmd.hasOption("no-coverage"));
+        config.setCleanDirectory(cmd.hasOption("clean"));
 
         return config;
     }
@@ -412,13 +426,21 @@ public class JavaDocGeneratorMain {
             logger.warn("カバレッジファイルが存在しません: {}", config.getCoverageXmlFile());
         }
 
-        // 出力ディレクトリの作成
+        // 出力ディレクトリの準備
         if (config.getOutputDirectory() != null) {
             try {
-                Files.createDirectories(config.getOutputDirectory());
-                logger.info("出力ディレクトリ作成: {}", config.getOutputDirectory());
+                Path outputDir = config.getOutputDirectory();
+
+                // クリアオプションが指定された場合、既存ディレクトリを削除
+                if (config.isCleanDirectory() && Files.exists(outputDir)) {
+                    logger.info("既存出力ディレクトリをクリア中: {}", outputDir);
+                    deleteDirectoryRecursively(outputDir);
+                }
+
+                Files.createDirectories(outputDir);
+                logger.info("出力ディレクトリ準備完了: {}", outputDir);
             } catch (Exception e) {
-                throw new IllegalArgumentException("出力ディレクトリの作成に失敗しました: " + config.getOutputDirectory(), e);
+                throw new IllegalArgumentException("出力ディレクトリの準備に失敗しました: " + config.getOutputDirectory(), e);
             }
         }
     }
@@ -1065,5 +1087,25 @@ public class JavaDocGeneratorMain {
         logger.info("カバレッジ統合: {}", config.getCoverageXmlFile() != null && !config.isSkipCoverage() ? "有効" : "無効");
         logger.info("ソースリンク: {}", config.isIncludeSourceLinks() ? "有効" : "無効");
         logger.info("カバレッジチャート: {}", config.isGenerateCoverageCharts() ? "有効" : "無効");
+        logger.info("ディレクトリクリア: {}", config.isCleanDirectory() ? "有効" : "無効");
+    }
+
+    /**
+     * ディレクトリを再帰的に削除
+     */
+    private static void deleteDirectoryRecursively(Path directory) throws Exception {
+        if (!Files.exists(directory)) {
+            return;
+        }
+
+        Files.walk(directory)
+                .sorted(Comparator.reverseOrder())
+                .forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (Exception e) {
+                        logger.warn("ファイル削除失敗: {} - {}", path, e.getMessage());
+                    }
+                });
     }
 }
