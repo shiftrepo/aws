@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced JavaDoc - カバレッジ統合レポート</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f8f9fa; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { border-bottom: 3px solid #007bff; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+        .title { color: #007bff; margin: 0; font-size: 3em; }
+        .subtitle { color: #6c757d; margin: 10px 0; font-size: 1.2em; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
+        .section { margin: 30px 0; padding: 20px; border: 1px solid #dee2e6; border-radius: 6px; }
+        .section h2 { color: #007bff; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        ul li { margin: 8px 0; font-size: 1.1em; }
+        .coverage-badge { display: inline-block; padding: 4px 12px; border-radius: 15px; color: white; font-weight: bold; margin-left: 10px; font-size: 0.9em; }
+        .coverage-high { background-color: #28a745; }
+        .timestamp { text-align: center; margin-top: 30px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">📊 Enhanced JavaDoc</h1>
+            <p class="subtitle">カバレッジ統合 + テストケースリンク付きドキュメント</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div>ソースファイル</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">3</div>
+                <div>テストファイル</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">99%</div>
+                <div>平均カバレッジ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">⭐⭐⭐</div>
+                <div>品質評価</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 ソースクラス一覧</h2>
+            <ul>
+            <li><a href="com/example/BasicCalculator.html">BasicCalculator.java</a> <span class="coverage-badge coverage-high">99%</span></li>
+<li><a href="com/example/DataStructures.html">DataStructures.java</a> <span class="coverage-badge coverage-high">99%</span></li>
+<li><a href="com/example/StringValidator.html">StringValidator.java</a> <span class="coverage-badge coverage-high">99%</span></li>
+
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🧪 テストクラス一覧</h2>
+            <ul>
+            <li><a href="test-links/BasicCalculatorTest.html">BasicCalculatorTest.java</a></li>
+<li><a href="test-links/DataStructuresTest.html">DataStructuresTest.java</a></li>
+<li><a href="test-links/StringValidatorTest.html">StringValidatorTest.java</a></li>
+
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>📈 拡張機能</h2>
+            <ul>
+                <li>✅ <strong>インライン表示:</strong> メソッド説明にカバレッジ率を直接表示</li>
+                <li>✅ <strong>視覚的ハイライト:</strong> カバレッジレベルに基づく色分け</li>
+                <li>✅ <strong>詳細レポート:</strong> ソースコードリンク付き詳細カバレッジページ</li>
+                <li>✅ <strong>テストケースリンク:</strong> 各メソッドを対応するテストケースにリンク</li>
+            </ul>
+        </div>
+
+        <div class="timestamp">
+            🤖 Enhanced JavaDoc Generator v1.0.0 で生成<br>
+            生成日時: 2026-01-08 04:31:28<br>
+            <small>JaCoCo カバレッジレポート統合済み</small>
+        </div>
+    </div>
+</body>
+</html>
