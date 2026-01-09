@@ -152,10 +152,16 @@ public class SurefireReportParser {
             return;
         }
 
-        // クラス名でテスト実行結果をマップ化
+        // クラス名でテスト実行結果をマップ化（フルクラス名と短縮名の両方でマップ）
         Map<String, TestExecutionInfo> executionMap = new HashMap<>();
         for (TestExecutionInfo info : executionResults) {
             executionMap.put(info.getClassName(), info);
+            // 短縮名でもマップに追加（com.example.TestClass -> TestClass）
+            String shortName = info.getClassName();
+            if (shortName.contains(".")) {
+                shortName = shortName.substring(shortName.lastIndexOf(".") + 1);
+                executionMap.put(shortName, info);
+            }
         }
 
         // TestCaseInfoをクラス名でグループ化
