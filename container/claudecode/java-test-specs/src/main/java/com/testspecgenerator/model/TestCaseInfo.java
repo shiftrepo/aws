@@ -36,6 +36,12 @@ public class TestCaseInfo {
     private int branchesTotal = 0;
     private String coverageStatus = "Unknown";
 
+    // テスト実行結果情報
+    private int testsTotal = 0;
+    private int testsPassed = 0;
+    private String testExecutionStatus = "Unknown";
+    private double testSuccessRate = 0.0;
+
     // メタデータ
     private LocalDateTime extractedAt;
     private String sourceFilePath;
@@ -131,6 +137,18 @@ public class TestCaseInfo {
     public String getSourceFilePath() { return sourceFilePath; }
     public void setSourceFilePath(String sourceFilePath) { this.sourceFilePath = sourceFilePath; }
 
+    public int getTestsTotal() { return testsTotal; }
+    public void setTestsTotal(int testsTotal) { this.testsTotal = testsTotal; }
+
+    public int getTestsPassed() { return testsPassed; }
+    public void setTestsPassed(int testsPassed) { this.testsPassed = testsPassed; }
+
+    public String getTestExecutionStatus() { return testExecutionStatus; }
+    public void setTestExecutionStatus(String testExecutionStatus) { this.testExecutionStatus = testExecutionStatus; }
+
+    public double getTestSuccessRate() { return testSuccessRate; }
+    public void setTestSuccessRate(double testSuccessRate) { this.testSuccessRate = testSuccessRate; }
+
     // ヘルパーメソッド
 
     /**
@@ -191,6 +209,28 @@ public class TestCaseInfo {
      */
     public String getFullMethodName() {
         return className + "." + methodName;
+    }
+
+    /**
+     * テスト実行結果の表示文字列を取得（例: "8/10"）
+     */
+    public String getTestExecutionDisplay() {
+        if (testsTotal > 0) {
+            return String.format("%d/%d", testsPassed, testsTotal);
+        } else {
+            return "N/A";
+        }
+    }
+
+    /**
+     * テスト成功率の表示文字列を取得（例: "80.0%"）
+     */
+    public String getTestSuccessRateDisplay() {
+        if (testsTotal > 0) {
+            return String.format("%.1f%%", testSuccessRate);
+        } else {
+            return "N/A";
+        }
     }
 
     // equals, hashCode, toString

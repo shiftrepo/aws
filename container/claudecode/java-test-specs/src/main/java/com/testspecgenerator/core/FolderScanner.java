@@ -177,6 +177,96 @@ public class FolderScanner {
     }
 
     /**
+     * 指定ディレクトリからSurefireテストレポートを再帰的にスキャン
+     *
+     * @param sourceDirectory スキャンするディレクトリ
+     * @return 発見されたSurefireレポートファイル（TEST-*.xml）のリスト
+     */
+    public List<Path> scanForSurefireReports(Path sourceDirectory) {
+        logger.info("Surefireテストレポートスキャン開始: {}", sourceDirectory);
+
+        if (!Files.exists(sourceDirectory)) {
+            logger.warn("指定されたディレクトリが存在しません: {}", sourceDirectory);
+            return new ArrayList<>();
+        }
+
+        if (!Files.isDirectory(sourceDirectory)) {
+            logger.warn("指定されたパスはディレクトリではありません: {}", sourceDirectory);
+            return new ArrayList<>();
+        }
+
+        List<Path> surefireFiles = new ArrayList<>();
+
+        try {
+            Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    String dirName = dir.getFileName().toString();
+                    // Surefireレポートはtarget/surefire-reportsにあるため、targetは除外しない
+                    if (EXCLUDED_DIRECTORIES.contains(dirName) && !"target".equals(dirName)) {
+                        logger.debug("ディレクトリをスキップ: {}", dir);
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    // surefire-reportsディレクトリを優先的に検索
+                    if ("surefire-reports".equals(dirName)) {
+                        logger.debug("Surefireレポートディレクトリ発見: {}", dir);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    try {
+                        if (isSurefireReportFile(file) && isFileSizeValid(file)) {
+                            surefireFiles.add(file);
+                            logger.debug("Surefireレポート発見: {}", file);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("ファイルチェック中にエラー: {} - {}", file, e.getMessage());
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    logger.warn("ファイルアクセス失敗: {} - {}", file, exc.getMessage());
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+        } catch (IOException e) {
+            logger.error("ディレクトリスキャン中にエラー", e);
+            return new ArrayList<>();
+        }
+
+        // ファイル名でソート
+        surefireFiles.sort(Comparator.comparing(Path::toString));
+
+        logger.info("Surefireレポートスキャン完了: {}個のファイルを発見", surefireFiles.size());
+        return surefireFiles;
+    }
+
+    /**
+     * ファイルがSurefireテストレポートファイルかどうかをチェック
+     */
+    private boolean isSurefireReportFile(Path file) {
+        String fileName = file.getFileName().toString();
+
+        // TEST-*.xmlパターンに合致するかチェック
+        if (fileName.startsWith("TEST-") && fileName.endsWith(".xml")) {
+            // surefire-reportsディレクトリ内にあることを確認（推奨）
+            String pathStr = file.toString().replace('\\', '/');
+            if (pathStr.contains("/surefire-reports/") || pathStr.contains("/target/surefire-reports/")) {
+                return true;
+            }
+            // surefire-reportsディレクトリ外にあってもTEST-*.xmlパターンなら許可
+            logger.debug("Surefireレポートがsurefire-reportsディレクトリ外で発見: {}", file);
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * ファイルがJavaファイルかどうかをチェック
      */
     private boolean isJavaFile(Path file) {
