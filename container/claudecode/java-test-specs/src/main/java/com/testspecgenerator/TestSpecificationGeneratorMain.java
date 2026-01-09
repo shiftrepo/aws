@@ -27,6 +27,7 @@ public class TestSpecificationGeneratorMain {
     private final FolderScanner folderScanner;
     private final JavaAnnotationParser annotationParser;
     private final CoverageReportParser coverageParser;
+    private final SurefireReportParser surefireParser;
     private final ExcelSheetBuilder excelBuilder;
 
     private LocalDateTime processingStartTime;
@@ -35,6 +36,7 @@ public class TestSpecificationGeneratorMain {
         this.folderScanner = new FolderScanner();
         this.annotationParser = new JavaAnnotationParser();
         this.coverageParser = new CoverageReportParser();
+        this.surefireParser = new SurefireReportParser();
         this.excelBuilder = new ExcelSheetBuilder();
     }
 
@@ -231,6 +233,17 @@ public class TestSpecificationGeneratorMain {
                 coverageParser.mergeCoverageWithTestCases(testCases, coverageData);
             } else {
                 logger.info("⏭️ Step 3: カバレッジレポート処理をスキップ");
+            }
+
+            // Step 3.5: Surefireテストレポート処理
+            logger.info("📊 Step 3.5: テスト実行結果処理開始...");
+            List<Path> surefireReports = folderScanner.scanForSurefireReports(Paths.get(sourceDirectory));
+            if (!surefireReports.isEmpty()) {
+                List<TestExecutionInfo> executionResults = surefireParser.parseSurefireReports(surefireReports);
+                surefireParser.mergeExecutionResults(testCases, executionResults);
+                logger.info("✅ テスト実行結果取得: {}個のテストスイート", executionResults.size());
+            } else {
+                logger.info("⚠️ Surefireテストレポートが見つかりません - テスト実行結果はN/Aと表示されます");
             }
 
             // Step 4: Excelレポート生成

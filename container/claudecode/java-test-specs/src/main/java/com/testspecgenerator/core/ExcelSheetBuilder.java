@@ -82,7 +82,7 @@ public class ExcelSheetBuilder {
                 "Baseline Version", "Test Overview", "Test Purpose", "Test Process",
                 "Test Results", "Creator", "Created Date", "Modifier", "Modified Date",
                 "Test Category", "Priority", "Requirements", "Dependencies",
-                "Coverage %", "Branches (Covered/Total)"
+                "Coverage %", "Branches (Covered/Total)", "Test Results (Pass/Total)", "Success Rate %"
         };
 
         for (int i = 0; i < headers.length; i++) {
@@ -117,6 +117,8 @@ public class ExcelSheetBuilder {
             setCellValue(dataRow, 17, testCase.getDependencies(), dataStyle);
             setCellValue(dataRow, 18, testCase.getCoveragePercentDisplay(), dataStyle);
             setCellValue(dataRow, 19, testCase.getBranchCoverageDisplay(), dataStyle);
+            setCellValue(dataRow, 20, testCase.getTestExecutionDisplay(), dataStyle);
+            setCellValue(dataRow, 21, testCase.getTestSuccessRateDisplay(), dataStyle);
         }
 
         // 列幅を自動調整
@@ -176,6 +178,19 @@ public class ExcelSheetBuilder {
             rowNum = addSummaryRow(sheet, rowNum, "カバー済みブランチ:", String.format("%d/%d", branchStats[0], branchStats[1]), labelStyle, valueStyle);
             rowNum = addSummaryRow(sheet, rowNum, "高カバレッジケース（80%以上）:", String.valueOf(countHighCoverageCases(testCases)), labelStyle, valueStyle);
         }
+
+        rowNum++; // 空行
+
+        // テスト実行結果統計
+        createSummarySection(sheet, rowNum, "テスト実行結果", labelStyle, valueStyle);
+        rowNum += 2;
+
+        int[] testExecutionStats = calculateTestExecutionStats(testCases);
+        double testSuccessRate = calculateTestSuccessRate(testCases);
+
+        rowNum = addSummaryRow(sheet, rowNum, "総テスト数:", String.valueOf(testExecutionStats[1]), labelStyle, valueStyle);
+        rowNum = addSummaryRow(sheet, rowNum, "成功テスト数:", String.valueOf(testExecutionStats[0]), labelStyle, valueStyle);
+        rowNum = addSummaryRow(sheet, rowNum, "テスト成功率:", String.format("%.1f%%", testSuccessRate), labelStyle, valueStyle);
 
         rowNum++; // 空行
 
@@ -433,5 +448,20 @@ public class ExcelSheetBuilder {
                 .filter(tc -> !"Not Specified".equals(tc.getTestModule()) ||
                              !"Not Specified".equals(tc.getTestCase()))
                 .count();
+    }
+
+    private int[] calculateTestExecutionStats(List<TestCaseInfo> testCases) {
+        int totalPassed = testCases.stream().mapToInt(TestCaseInfo::getTestsPassed).sum();
+        int totalTests = testCases.stream().mapToInt(TestCaseInfo::getTestsTotal).sum();
+        return new int[]{totalPassed, totalTests};
+    }
+
+    private double calculateTestSuccessRate(List<TestCaseInfo> testCases) {
+        int totalPassed = testCases.stream().mapToInt(TestCaseInfo::getTestsPassed).sum();
+        int totalTests = testCases.stream().mapToInt(TestCaseInfo::getTestsTotal).sum();
+        if (totalTests == 0) {
+            return 0.0;
+        }
+        return (double) totalPassed / totalTests * 100.0;
     }
 }
