@@ -191,9 +191,10 @@ public class JavaAnnotationParser {
      * 指定メソッドのアノテーション情報を抽出
      */
     private Map<String, String> extractMethodAnnotations(String content, String methodName) {
-        // メソッド定義の位置を検索 (JUnit 5では修飾子はオプション)
+        // メソッド定義の位置を検索 (JUnit 5では修飾子はオプション、@DisplayNameなど他のアノテーションも考慮)
         Pattern methodPattern = Pattern.compile(
-                "/\\*\\*(.*?)\\*/.*?@(?:Test|ParameterizedTest).*?(?:public\\s+)?void\\s+" +
+                "/\\*\\*(.*?)\\*/\\s*(?:@\\w+(?:\\([^)]*\\))?\\s*)*@(?:Test|ParameterizedTest)(?:\\([^)]*\\))?\\s*" +
+                "(?:@\\w+(?:\\([^)]*\\))?\\s*)*(?:public\\s+)?void\\s+" +
                         Pattern.quote(methodName) + "\\s*\\(",
                 Pattern.DOTALL | Pattern.MULTILINE
         );
@@ -201,7 +202,10 @@ public class JavaAnnotationParser {
         Matcher matcher = methodPattern.matcher(content);
         if (matcher.find()) {
             String javadocContent = matcher.group(1);
+            logger.debug("メソッド {} のJavaDoc抽出成功: {}", methodName, javadocContent.trim());
             return parseAnnotations(javadocContent);
+        } else {
+            logger.debug("メソッド {} のJavaDoc抽出失敗", methodName);
         }
 
         return new HashMap<>();
@@ -337,12 +341,14 @@ public class JavaAnnotationParser {
                         break;
                     case "PreCondition":
                         testCase.setTestProcess(value.trim());
+                        testCase.setTestOverview(value.trim());  // PreConditionをTestOverviewにも設定
                         break;
                     case "ExpectedResult":
                         testCase.setTestResults(value.trim());
                         break;
                     case "TestData":
-                        testCase.setDependencies(value.trim());
+                        // TestDataをCreatorフィールドにマッピング（DeveloperTeamなど）
+                        testCase.setCreator(value.trim());
                         break;
                 }
             }
