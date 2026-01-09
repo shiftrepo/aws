@@ -29,6 +29,7 @@ public class TestSpecificationGeneratorMain {
     private final CoverageReportParser coverageParser;
     private final SurefireReportParser surefireParser;
     private final ExcelSheetBuilder excelBuilder;
+    private final EnhancedJavaDocBuilder javaDocBuilder;
 
     private LocalDateTime processingStartTime;
 
@@ -38,6 +39,7 @@ public class TestSpecificationGeneratorMain {
         this.coverageParser = new CoverageReportParser();
         this.surefireParser = new SurefireReportParser();
         this.excelBuilder = new ExcelSheetBuilder();
+        this.javaDocBuilder = new EnhancedJavaDocBuilder();
     }
 
     public static void main(String[] args) {
@@ -248,17 +250,27 @@ public class TestSpecificationGeneratorMain {
 
             // Step 4: Excelレポート生成
             logger.info("📊 Step 4: Excelレポート生成開始...");
-            boolean success = excelBuilder.generateTestSpecificationReport(outputFile, testCases, coverageData);
+            boolean excelSuccess = excelBuilder.generateTestSpecificationReport(outputFile, testCases, coverageData);
 
-            if (success) {
-                logger.info("✅ Excelレポート生成完了");
-                printSummary(javaFiles.size(), testCases.size(),
-                           coverageData != null ? coverageData.size() : 0, outputFile);
-                return true;
-            } else {
+            if (!excelSuccess) {
                 logger.error("❌ Excelレポート生成に失敗しました");
                 return false;
             }
+            logger.info("✅ Excelレポート生成完了");
+
+            // Step 5: 拡張JavaDocレポート生成
+            logger.info("🌐 Step 5: 拡張JavaDocレポート生成開始...");
+            boolean javaDocSuccess = javaDocBuilder.generateEnhancedJavaDoc(testCases, coverageData);
+
+            if (javaDocSuccess) {
+                logger.info("✅ 拡張JavaDocレポート生成完了");
+            } else {
+                logger.warn("⚠️ 拡張JavaDocレポート生成に失敗しましたが、処理を継続します");
+            }
+
+            printSummary(javaFiles.size(), testCases.size(),
+                       coverageData != null ? coverageData.size() : 0, outputFile);
+            return true;
 
         } catch (Exception e) {
             logger.error("処理中にエラーが発生しました", e);
