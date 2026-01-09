@@ -248,7 +248,7 @@ public class CoverageInfo {
         if (branchesTotal > 0) {
             return String.format("%.1f%% (%d/%d)", branchCoverage, branchesCovered, branchesTotal);
         } else {
-            return "N/A";
+            return "0.0%";
         }
     }
 
@@ -259,7 +259,7 @@ public class CoverageInfo {
         if (instructionsTotal > 0) {
             return String.format("%.1f%% (%d/%d)", instructionCoverage, instructionsCovered, instructionsTotal);
         } else {
-            return "N/A";
+            return "0.0%";
         }
     }
 
@@ -270,7 +270,7 @@ public class CoverageInfo {
         if (linesTotal > 0) {
             return String.format("%.1f%% (%d/%d)", lineCoverage, linesCovered, linesTotal);
         } else {
-            return "N/A";
+            return "0.0%";
         }
     }
 

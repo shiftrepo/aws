@@ -245,7 +245,7 @@ public class TestSpecificationGeneratorMain {
                 surefireParser.mergeExecutionResults(testCases, executionResults);
                 logger.info("✅ テスト実行結果取得: {}個のテストスイート", executionResults.size());
             } else {
-                logger.info("⚠️ Surefireテストレポートが見つかりません - テスト実行結果はN/Aと表示されます");
+                logger.info("⚠️ Surefireテストレポートが見つかりません - テスト実行結果は0/0と表示されます");
             }
 
             // Step 4: Excelレポート生成

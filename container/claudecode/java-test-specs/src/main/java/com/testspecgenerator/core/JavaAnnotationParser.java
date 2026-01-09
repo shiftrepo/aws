@@ -27,8 +27,9 @@ public class JavaAnnotationParser {
     );
 
     // テストメソッドパターン (JUnit 5では修飾子はオプション)
+    // 完全一致でTestとParameterizedTestのみを対象とする
     private static final Pattern TEST_METHOD_PATTERN = Pattern.compile(
-            "@(?:Test|ParameterizedTest).*?(?:public\\s+)?void\\s+(\\w+)\\s*\\(",
+            "@(?:Test(?!\\w)|ParameterizedTest).*?(?:public\\s+)?void\\s+(\\w+)\\s*\\(",
             Pattern.DOTALL | Pattern.MULTILINE
     );
 

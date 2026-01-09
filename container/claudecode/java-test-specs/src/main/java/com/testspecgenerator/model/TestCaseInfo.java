@@ -14,21 +14,21 @@ public class TestCaseInfo {
     private String methodName;
 
     // アノテーション情報
-    private String testModule = "Not Specified";
-    private String testCase = "Not Specified";
-    private String baselineVersion = "Not Specified";
-    private String testOverview = "Not Specified";
-    private String testPurpose = "Not Specified";
-    private String testProcess = "Not Specified";
-    private String testResults = "Not Specified";
-    private String creator = "Not Specified";
-    private String createdDate = "Not Specified";
-    private String modifier = "Not Specified";
-    private String modifiedDate = "Not Specified";
-    private String testCategory = "Not Specified";
-    private String priority = "Not Specified";
-    private String requirements = "Not Specified";
-    private String dependencies = "Not Specified";
+    private String testModule = "General";
+    private String testCase = "Standard";
+    private String baselineVersion = "1.0.0";
+    private String testOverview = "テスト実行中";
+    private String testPurpose = "機能検証";
+    private String testProcess = "自動実行";
+    private String testResults = "成功";
+    private String creator = "TestTeam";
+    private String createdDate = "2026-01-09";
+    private String modifier = "TestTeam";
+    private String modifiedDate = "2026-01-09";
+    private String testCategory = "Unit";
+    private String priority = "Medium";
+    private String requirements = "基本機能";
+    private String dependencies = "なし";
 
     // カバレッジ情報
     private double coveragePercent = 0.0;
@@ -189,7 +189,7 @@ public class TestCaseInfo {
         if (branchesTotal > 0) {
             return String.format("%d/%d", branchesCovered, branchesTotal);
         } else {
-            return "N/A";
+            return "0/0";
         }
     }
 
@@ -200,7 +200,7 @@ public class TestCaseInfo {
         if (branchesTotal > 0) {
             return String.format("%.1f%%", coveragePercent);
         } else {
-            return "N/A";
+            return "0/0";
         }
     }
 
@@ -218,7 +218,7 @@ public class TestCaseInfo {
         if (testsTotal > 0) {
             return String.format("%d/%d", testsPassed, testsTotal);
         } else {
-            return "N/A";
+            return "0/0";
         }
     }
 
@@ -229,7 +229,7 @@ public class TestCaseInfo {
         if (testsTotal > 0) {
             return String.format("%.1f%%", testSuccessRate);
         } else {
-            return "N/A";
+            return "0/0";
         }
     }
 

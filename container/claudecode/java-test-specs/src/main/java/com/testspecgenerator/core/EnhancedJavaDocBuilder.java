@@ -201,7 +201,7 @@ public class EnhancedJavaDocBuilder {
                 coverageText = String.format("%.1f%%", branchCoverage);
                 badgeClass = branchCoverage >= 80 ? "coverage-high" : "coverage-medium";
             } else {
-                coverageText = "N/A";
+                coverageText = "0.0%";
                 badgeClass = "coverage-low";
             }
 
