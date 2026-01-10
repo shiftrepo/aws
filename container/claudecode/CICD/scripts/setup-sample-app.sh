@@ -129,44 +129,185 @@ else
     echo "  ⚠ CI/CDジョブの受信を確認できませんでした（Runner状況を確認してください）"
 fi
 
-# 8. CI/CDパイプライン実行状況監視
+# 8. CI/CDパイプライン実行状況監視（強化版）
 echo "[8/8] CI/CDパイプライン実行状況監視中..."
-echo "  パイプライン実行を監視します（最大3分）..."
+echo "  🚀 6ステージパイプライン監視開始（最大5分）..."
+echo "     build → test → coverage → sonarqube → package → deploy"
+echo ""
 
-pipeline_success=false
-for i in {1..36}; do
-    sleep 5
-    # 最新のジョブ状況をチェック（6ステージ対応）
-    if sudo journalctl -u gitlab-runner --since "3 minutes ago" --no-pager | grep -q "Job succeeded.*job-status=success.*sample-app"; then
-        job_count=$(sudo journalctl -u gitlab-runner --since "3 minutes ago" --no-pager | grep -c "Job succeeded.*sample-app" || echo "0")
-        if [ "$job_count" -ge 6 ]; then
-            echo "  ✅ CI/CDパイプライン全ステージ成功（${job_count}個のジョブ完了）"
-            echo "  📊 SonarQubeプロジェクト確認: http://$EC2_HOST:8000/dashboard?id=sample-app-backend"
-            pipeline_success=true
-            break
-        elif [ "$job_count" -gt 0 ]; then
-            echo "  🔄 パイプライン実行中... (${job_count}/6 ステージ完了)"
-            if [ "$job_count" -ge 4 ]; then
-                echo "  🔍 SonarQubeステージ実行中または完了..."
-            fi
+# ステージ定義
+declare -a STAGES=("build" "test" "coverage" "sonarqube" "package" "deploy")
+declare -a STAGE_ICONS=("🏗️" "🧪" "📊" "🔍" "📦" "🚀")
+declare -A stage_status
+declare -A stage_start_time
+
+# ステージ状態初期化
+for stage in "${STAGES[@]}"; do
+    stage_status[$stage]="pending"
+done
+
+# 監視関数
+check_stage_status() {
+    local stage=$1
+    local icon=$2
+    local logs=$(sudo journalctl -u gitlab-runner --since "5 minutes ago" --no-pager 2>/dev/null || echo "")
+
+    # ステージ開始チェック
+    if echo "$logs" | grep -q "step_script.*$stage.*Running on" && [ "${stage_status[$stage]}" = "pending" ]; then
+        stage_status[$stage]="running"
+        stage_start_time[$stage]=$(date +%s)
+        printf "  %-12s %s %-10s %s\n" "[$stage]" "$icon" "開始" "$(date '+%H:%M:%S')"
+        return 1
+    fi
+
+    # ステージ成功チェック
+    if echo "$logs" | grep -q "Job succeeded.*$stage" && [ "${stage_status[$stage]}" != "completed" ]; then
+        stage_status[$stage]="completed"
+        local duration=""
+        if [ -n "${stage_start_time[$stage]}" ]; then
+            local elapsed=$(($(date +%s) - ${stage_start_time[$stage]}))
+            duration="(${elapsed}秒)"
         fi
-    elif sudo journalctl -u gitlab-runner --since "3 minutes ago" --no-pager | grep -q "Job failed.*sample-app"; then
-        echo "  ❌ CI/CDパイプラインでエラーが発生しました"
-        echo "  GitLab UI で詳細を確認: http://$EC2_HOST:5003/root/sample-app/-/pipelines"
+        printf "  %-12s %s %-10s %s %s\n" "[$stage]" "$icon" "✅完了" "$(date '+%H:%M:%S')" "$duration"
+        return 0
+    fi
+
+    # ステージ失敗チェック
+    if echo "$logs" | grep -q "Job failed.*$stage"; then
+        stage_status[$stage]="failed"
+        printf "  %-12s %s %-10s %s\n" "[$stage]" "$icon" "❌失敗" "$(date '+%H:%M:%S')"
+        return 2
+    fi
+
+    return 1
+}
+
+# 進捗バー表示関数
+show_progress() {
+    local completed=0
+    local failed=0
+
+    for stage in "${STAGES[@]}"; do
+        case "${stage_status[$stage]}" in
+            "completed") ((completed++)) ;;
+            "failed") ((failed++)) ; break ;;
+        esac
+    done
+
+    if [ $failed -gt 0 ]; then
+        printf "  📈 進捗: %d/6 ステージ完了 (❌失敗あり)\n" $completed
+        return 1
+    else
+        printf "  📈 進捗: %d/6 ステージ完了\n" $completed
+        return 0
+    fi
+}
+
+# パイプライン詳細状態表示
+show_pipeline_details() {
+    echo "  📋 パイプライン詳細状態:"
+    for i in "${!STAGES[@]}"; do
+        local stage="${STAGES[$i]}"
+        local icon="${STAGE_ICONS[$i]}"
+        local status="${stage_status[$stage]}"
+        local status_display
+
+        case $status in
+            "pending")   status_display="⏳待機中" ;;
+            "running")   status_display="🔄実行中" ;;
+            "completed") status_display="✅完了" ;;
+            "failed")    status_display="❌失敗" ;;
+        esac
+
+        printf "     %s %-12s %s\n" "$icon" "[$stage]" "$status_display"
+    done
+    echo ""
+}
+
+# メイン監視ループ（5分 = 60回 x 5秒）
+pipeline_success=false
+pipeline_failed=false
+last_completed_count=0
+
+echo "  ⏰ 監視開始時刻: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
+
+for i in {1..60}; do
+    sleep 5
+
+    # 各ステージの状態をチェック
+    current_completed=0
+    current_failed=false
+
+    for j in "${!STAGES[@]}"; do
+        check_stage_status "${STAGES[$j]}" "${STAGE_ICONS[$j]}"
+        case "${stage_status[${STAGES[$j]}]}" in
+            "completed") ((current_completed++)) ;;
+            "failed") current_failed=true ; break ;;
+        esac
+    done
+
+    # 進捗が変わった場合のみ詳細表示
+    if [ $current_completed -ne $last_completed_count ] || [ "$current_failed" = true ]; then
+        show_progress
+
+        # 5秒に1回詳細表示（進捗変化時は毎回）
+        if [ $((i % 6)) -eq 0 ] || [ $current_completed -ne $last_completed_count ]; then
+            show_pipeline_details
+        fi
+
+        last_completed_count=$current_completed
+    fi
+
+    # 全ステージ完了チェック
+    if [ $current_completed -eq 6 ]; then
+        echo "  🎉 全6ステージが正常完了しました！"
+        echo "  ⏰ 完了時刻: $(date '+%Y-%m-%d %H:%M:%S')"
+        pipeline_success=true
         break
+    fi
+
+    # 失敗チェック
+    if [ "$current_failed" = true ]; then
+        echo "  💥 パイプラインでエラーが発生しました"
+
+        # 失敗したステージの詳細ログ表示
+        echo "  🔍 エラーログ（直近30行）:"
+        sudo journalctl -u gitlab-runner --since "5 minutes ago" --no-pager -n 30 | grep -E "(ERROR|FAIL|error|fail)" | tail -10 || echo "     詳細ログを取得できませんでした"
+
+        pipeline_failed=true
+        break
+    fi
+
+    # 30秒毎に生存確認メッセージ
+    if [ $((i % 6)) -eq 0 ]; then
+        printf "  ⏳ 監視継続中... (%d/60) - 経過時間: %d分%02d秒\n" $i $((i * 5 / 60)) $((i * 5 % 60))
     fi
 done
 
-if [ "$pipeline_success" = false ]; then
-    echo "  ⚠ パイプライン完了の確認がタイムアウトしました"
-    echo "  手動確認: http://$EC2_HOST:5003/root/sample-app/-/pipelines"
-    echo ""
+# 最終結果サマリー
+echo ""
+echo "  📊 パイプライン実行結果サマリー"
+echo "  ════════════════════════════════"
+
+if [ "$pipeline_success" = true ]; then
+    echo "  🎉 CI/CDパイプライン全ステージが正常完了！"
+    echo "  📊 SonarQube: http://$EC2_HOST:8000/dashboard?id=sample-app-backend"
+    echo "  📦 Nexus Repository: http://$EC2_HOST:8082/#browse/browse:maven-snapshots"
+elif [ "$pipeline_failed" = true ]; then
+    echo "  💥 パイプライン実行中にエラーが発生しました"
+    show_pipeline_details
+else
+    echo "  ⏰ パイプライン完了の確認がタイムアウトしました（5分経過）"
+    show_pipeline_details
     echo "  🔧 トラブルシューティング："
-    echo "  1. GitLab Runner状態確認: sudo systemctl status gitlab-runner"
-    echo "  2. CI/CD環境変数確認: GitLab → Settings → CI/CD → Variables"
-    echo "  3. SonarQube接続確認: curl http://$EC2_HOST:8000/api/system/status"
-    echo "  4. 手動パイプライン実行: GitLab UI → CI/CD → Run Pipeline"
+    echo "     1. GitLab Runner状態: sudo systemctl status gitlab-runner"
+    echo "     2. CI/CD環境変数: GitLab → Settings → CI/CD → Variables"
+    echo "     3. SonarQube接続: curl http://$EC2_HOST:8000/api/system/status"
+    echo "     4. 手動実行: GitLab UI → CI/CD → Run Pipeline"
 fi
+
+echo "  🌐 GitLab Pipeline UI: http://$EC2_HOST:5003/root/sample-app/-/pipelines"
 
 echo ""
 echo "=========================================="
