@@ -6,6 +6,81 @@
 [![Quality Gate](http://${EC2_PUBLIC_IP}:8000/api/project_badges/measure?project=sample-app-backend&metric=alert_status)](http://${EC2_PUBLIC_IP}:8000/dashboard?id=sample-app-backend)
 [![Coverage](http://${EC2_PUBLIC_IP}:8000/api/project_badges/measure?project=sample-app-backend&metric=coverage)](http://${EC2_PUBLIC_IP}:8000/dashboard?id=sample-app-backend)
 
+---
+
+## 🎯 リポジトリの目的と用途
+
+### このリポジトリ (`/root/aws.git/container/claudecode/CICD/`)
+
+**これがマスタリポジトリ（本体）です。**
+
+- **目的**: CI/CD環境を構築するための環境構築プロジェクト
+- **対象**: ホストEC2のスクラッチビルド（ゼロからの完全構築）に対応
+- **役割**:
+  - GitLab、Nexus、SonarQube、PostgreSQL等のCI/CDインフラを提供
+  - `sample-app/` ディレクトリに**マスタのサンプルアプリケーション**を保持
+  - 環境構築スクリプト、設定ファイル、ドキュメントを管理
+
+### GitLab上のサンプルプログラム (`/tmp/gitlab-sample-app/`)
+
+**これはCI/CD試行用の作業コピーです。マスタではありません。**
+
+- **作成方法**: `setup-sample-app.sh` により `/root/aws.git/container/claudecode/CICD/sample-app/` からコピー
+- **目的**: 構築したGitLab環境でCI/CDパイプラインを試行・検証する
+- **用途**:
+  - CI/CDパイプラインの動作確認
+  - 修正・実験・テストの実施
+  - 品質ゲート、カバレッジ、デプロイの検証
+- **重要な原則**:
+  - ⚠️ **このディレクトリはマスタではありません**
+  - ✅ CI/CDを実現できたら、必ず `/root/aws.git/container/claudecode/CICD/sample-app/` に反映
+  - ✅ 問題や不具合の対策を実施したら、必ずコピー元のマスタに反映
+  - ✅ `setup-sample-app.sh` を実行するだけでCI/CDを確認できる
+  - ✅ 繰り返し実行しても問題なく動作する
+
+### ワークフロー
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  /root/aws.git/container/claudecode/CICD/                   │
+│  (マスタリポジトリ - 本体)                                   │
+│                                                              │
+│  ├── sample-app/           ← これがマスタ                    │
+│  ├── scripts/                                                │
+│  │   └── setup-sample-app.sh  ← CI/CD試行準備スクリプト     │
+│  └── README.md, CLAUDE.md                                    │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ setup-sample-app.sh 実行
+                          │ (sample-app をコピー)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  /tmp/gitlab-sample-app/                                     │
+│  (GitLab上のサンプル - 作業コピー)                          │
+│                                                              │
+│  ← CI/CDパイプライン試行                                     │
+│  ← 修正・実験・検証                                          │
+│  ← 問題対策                                                  │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ 成功したら反映
+                          │ (手動コピー・マージ)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  /root/aws.git/container/claudecode/CICD/sample-app/        │
+│  (マスタに反映)                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### setup-sample-app.sh スクリプトの役割
+
+- **機能**: `/root/aws.git/container/claudecode/CICD/sample-app/` から `/tmp/gitlab-sample-app/` にサンプルプログラムをコピーし、CI/CD試行を準備
+- **利便性**: ユーザーは `./scripts/setup-sample-app.sh` を実行するだけで、CI/CDを確認できる
+- **安全性**: 繰り返し実行しても問題なく動作（既存プロセス・ディレクトリのクリーンアップ機能付き）
+- **独立性**: `/tmp` の作業コピーはマスタから完全に分離されており、マスタに影響を与えない
+
+---
+
 ## 📋 目次
 
 - [プロジェクト概要](#プロジェクト概要)

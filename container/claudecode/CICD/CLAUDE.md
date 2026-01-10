@@ -8,6 +8,91 @@ This is a complete CI/CD infrastructure project running GitLab, Nexus, SonarQube
 
 **Critical Architecture Context**: All services run in containers managed by a single `docker-compose.yml`, and authentication/configuration is centralized in `.env` files with automatic token preservation on re-setup.
 
+## Repository Purpose and Architecture
+
+### Master Repository: `/root/aws.git/container/claudecode/CICD/`
+
+**This is the master repository (source of truth).**
+
+- **Purpose**: CI/CD infrastructure construction project
+- **Scope**: Complete environment setup supporting EC2 scratch builds (zero-to-production setup)
+- **Contents**:
+  - `docker-compose.yml` - All service definitions
+  - `scripts/` - Setup, backup, cleanup, credential management
+  - `sample-app/` - Sample Spring Boot + React application
+  - `.env` templates and configuration files
+
+### Working Copy: `/tmp/gitlab-sample-app/`
+
+**This is a CI/CD testing working copy, NOT the master.**
+
+- **Purpose**: CI/CD pipeline testing and verification
+- **Source**: Copied from master repository via `setup-sample-app.sh`
+- **Lifecycle**: Temporary workspace for GitLab CI/CD execution
+
+**CRITICAL PRINCIPLE**:
+```
+⚠️  /tmp/gitlab-sample-app/ is NOT the master repository
+✅  Changes MUST be reflected back to /root/aws.git/container/claudecode/CICD/sample-app/
+```
+
+### Repository Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Master Repository                                        │
+│    /root/aws.git/container/claudecode/CICD/sample-app/     │
+│    (Source of Truth)                                        │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     │ setup-sample-app.sh
+                     │ (Copy + GitLab Configuration)
+                     ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 2. Working Copy (CI/CD Testing)                             │
+│    /tmp/gitlab-sample-app/                                  │
+│    - Git remote: http://EC2_IP:5003/root/sample-app.git    │
+│    - CI/CD Pipeline execution                               │
+│    - Test modifications                                      │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     │ ✓ CI/CD Success
+                     │ Manual reflection required
+                     ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3. Reflect Changes Back to Master                           │
+│    cp /tmp/gitlab-sample-app/* → sample-app/               │
+│    git commit -m "Verified CI/CD changes"                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Role of `setup-sample-app.sh`
+
+This script prepares the working copy for CI/CD testing:
+
+1. **Copy**: Copies `sample-app/` from master to `/tmp/gitlab-sample-app/`
+2. **Configure**: Initializes git repository with GitLab remote
+3. **Setup CI/CD**: Generates `.gitlab-ci.yml`, `.ci-settings.xml.template`
+4. **Push**: Initial push to GitLab to register project
+
+**Key Operations**:
+```bash
+# Copy sample-app to /tmp
+cp -r sample-app /tmp/gitlab-sample-app
+
+# Configure git remote
+cd /tmp/gitlab-sample-app
+git init
+git remote add origin http://${EC2_PUBLIC_IP}:5003/root/sample-app.git
+
+# Push to trigger first pipeline
+git add .
+git commit -m "Initial commit"
+git push -u origin master
+```
+
+**Important**: This script does NOT modify the master repository (`/root/aws.git/`). It only creates a working copy for CI/CD testing.
+
 ## Core Commands
 
 ### Environment Setup & Management
