@@ -1,0 +1,213 @@
+# GitLab CI/CD Pipeline Configuration
+# 6ステージパイプライン: build → test → coverage → sonarqube → package → deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+
+# キャッシュ設定
+cache:
+  paths:
+    - .m2/repository/
+    - backend/target/
+
+stages:
+  - build
+  - test
+  - coverage
+  - sonarqube
+  - package
+  - deploy
+
+# 1. ビルドステージ
+build:
+  stage: build
+  script:
+    - echo "🏗️ Maven マルチモジュール プロジェクトをビルド中..."
+    - mvn $MAVEN_CLI_OPTS clean compile
+    - echo "✅ ビルド完了"
+  artifacts:
+    paths:
+      - backend/target/classes/
+      - common/target/classes/
+    expire_in: 1 hour
+  only:
+    - branches
+
+# 2. テストステージ
+test:
+  stage: test
+  script:
+    - echo "🧪 JUnit テストを実行中..."
+    - mvn $MAVEN_CLI_OPTS test
+    - echo "✅ テスト完了"
+  artifacts:
+    reports:
+      junit:
+        - backend/target/surefire-reports/TEST-*.xml
+    paths:
+      - backend/target/surefire-reports/
+      - backend/target/jacoco.exec
+    expire_in: 1 hour
+  only:
+    - branches
+
+# 3. カバレッジステージ
+coverage:
+  stage: coverage
+  script:
+    - echo "📊 JaCoCo カバレッジレポートを生成中..."
+    - mvn $MAVEN_CLI_OPTS jacoco:report
+    - echo "📈 カバレッジ結果を確認中..."
+
+    # カバレッジ結果の表示
+    - |
+      if [ -f "backend/target/site/jacoco/index.html" ]; then
+        echo "✅ カバレッジレポートが生成されました"
+        # XMLレポートからカバレッジパーセンテージを抽出
+        if [ -f "backend/target/site/jacoco/jacoco.xml" ]; then
+          LINE_COVERAGE=$(grep -o 'type="LINE".*missed="[0-9]*".*covered="[0-9]*"' backend/target/site/jacoco/jacoco.xml | head -1 | sed 's/.*covered="\([0-9]*\)".*/\1/')
+          LINE_MISSED=$(grep -o 'type="LINE".*missed="[0-9]*".*covered="[0-9]*"' backend/target/site/jacoco/jacoco.xml | head -1 | sed 's/.*missed="\([0-9]*\)".*/\1/')
+          if [ -n "$LINE_COVERAGE" ] && [ -n "$LINE_MISSED" ]; then
+            TOTAL_LINES=$((LINE_COVERAGE + LINE_MISSED))
+            if [ $TOTAL_LINES -gt 0 ]; then
+              COVERAGE_PERCENT=$((LINE_COVERAGE * 100 / TOTAL_LINES))
+              echo "🎯 行カバレッジ: ${COVERAGE_PERCENT}% (${LINE_COVERAGE}/${TOTAL_LINES})"
+            fi
+          fi
+        fi
+      else
+        echo "⚠️ カバレッジレポートの生成に失敗しました"
+        exit 1
+      fi
+
+    - echo "✅ カバレッジ分析完了"
+  dependencies:
+    - test
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: jacoco
+        path: backend/target/site/jacoco/jacoco.xml
+    paths:
+      - backend/target/site/jacoco/
+    expire_in: 1 week
+  only:
+    - branches
+
+# 4. SonarQubeステージ
+sonarqube:
+  stage: sonarqube
+  script:
+    - echo "🔍 SonarQube 静的解析を実行中..."
+    - echo "SonarQube Host: ${SONAR_HOST_URL:-http://localhost:8000}"
+    - echo "Project Key: ${SONAR_PROJECT_KEY:-sample-app-backend}"
+
+    # SonarQubeトークンの確認
+    - |
+      if [ -z "$SONAR_TOKEN" ]; then
+        echo "❌ SONAR_TOKEN が設定されていません"
+        echo "GitLab Settings → CI/CD → Variables でSOnar_TOKENを設定してください"
+        exit 1
+      fi
+
+    # SonarQube解析実行
+    - |
+      mvn $MAVEN_CLI_OPTS sonar:sonar \
+        -Dsonar.host.url=${SONAR_HOST_URL:-http://localhost:8000} \
+        -Dsonar.projectKey=${SONAR_PROJECT_KEY:-sample-app-backend} \
+        -Dsonar.projectName="Sample App Backend" \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.coverage.jacoco.xmlReportPaths=backend/target/site/jacoco/jacoco.xml \
+        -Dsonar.junit.reportPaths=backend/target/surefire-reports \
+        -Dsonar.sources=backend/src/main/java,common/src/main/java \
+        -Dsonar.tests=backend/src/test/java \
+        -Dsonar.java.binaries=backend/target/classes,common/target/classes
+
+    - echo "✅ SonarQube 解析完了"
+    - echo "🌐 SonarQube Dashboard: ${SONAR_HOST_URL:-http://localhost:8000}/dashboard?id=${SONAR_PROJECT_KEY:-sample-app-backend}"
+  dependencies:
+    - coverage
+  allow_failure: false
+  only:
+    - branches
+
+# 5. パッケージステージ
+package:
+  stage: package
+  script:
+    - echo "📦 JARファイルをパッケージ中..."
+    - mvn $MAVEN_CLI_OPTS package -DskipTests
+    - echo "✅ パッケージ完了"
+
+    # 生成されたJARファイルの確認
+    - |
+      if [ -f "backend/target/sample-app-backend-1.0.0-SNAPSHOT.jar" ]; then
+        echo "✅ Spring Boot JAR: backend/target/sample-app-backend-1.0.0-SNAPSHOT.jar"
+        ls -lh backend/target/*.jar
+      else
+        echo "❌ JARファイルの生成に失敗しました"
+        exit 1
+      fi
+  dependencies:
+    - sonarqube
+  artifacts:
+    paths:
+      - backend/target/*.jar
+      - common/target/*.jar
+    expire_in: 1 week
+  only:
+    - branches
+
+# 6. デプロイステージ（masterブランチのみ）
+deploy:
+  stage: deploy
+  script:
+    - echo "🚀 Nexus Repository にデプロイ中..."
+
+    # CI用Maven settings.xml生成
+    - |
+      if [ ! -f ".ci-settings.xml.template" ]; then
+        echo "❌ .ci-settings.xml.template ファイルが見つかりません"
+        exit 1
+      fi
+
+      # パスワード置換
+      sed "s|__NEXUS_PASSWORD__|${NEXUS_ADMIN_PASSWORD}|g" .ci-settings.xml.template > .ci-settings.xml
+
+      # EC2_PUBLIC_IPが設定されている場合は置換
+      if [ -n "$EC2_PUBLIC_IP" ]; then
+        sed -i "s|localhost|${EC2_PUBLIC_IP}|g" .ci-settings.xml
+      fi
+
+    # Nexus接続確認
+    - |
+      NEXUS_URL="http://${EC2_PUBLIC_IP:-localhost}:8082"
+      echo "Nexus URL: $NEXUS_URL"
+
+      if ! curl -f -s "$NEXUS_URL/service/rest/v1/status" > /dev/null; then
+        echo "⚠️ Nexus Repository への接続に失敗しました"
+        echo "URL: $NEXUS_URL"
+        echo "設定を確認してください"
+        exit 1
+      fi
+      echo "✅ Nexus Repository 接続確認完了"
+
+    # デプロイ実行
+    - mvn $MAVEN_CLI_OPTS deploy -DskipTests --settings .ci-settings.xml
+    - echo "✅ デプロイ完了"
+    - echo "🌐 Nexus Repository: http://${EC2_PUBLIC_IP:-localhost}:8082/#browse/browse:maven-snapshots"
+  dependencies:
+    - package
+  only:
+    - master
+    - main
+
+# 品質ゲート設定（後で実装）
+# quality_gate:
+#   stage: quality_gate
+#   script:
+#     - echo "品質ゲートチェック実装予定"
+#   when: manual
+#   only:
+#     - master
