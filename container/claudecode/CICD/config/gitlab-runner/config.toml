@@ -1,0 +1,20 @@
+concurrent = 1
+check_interval = 0
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "CICD Container Shell Runner"
+  url = "http://34.205.156.203:5003"
+  id = 34
+  token = "glrtr-3InTqXoHEFySYVx0w4cT5G86MQpwOjEKdDozCw.01.121kbuerr"
+  token_obtained_at = 2026-01-10T14:50:45Z
+  token_expires_at = 0001-01-01T00:00:00Z
+  executor = "shell"
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]

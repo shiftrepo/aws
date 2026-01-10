@@ -196,6 +196,10 @@ GITLAB_ROOT_PASSWORD=${ADMIN_PASSWORD}
 # SonarQube Token (初回セットアップ後に更新)
 SONAR_TOKEN=
 
+# SonarQube CI/CD Configuration (動的に設定)
+SONAR_HOST_URL=http://${EC2_HOST}:8000
+SONAR_PROJECT_KEY=sample-app-backend
+
 # GitLab Runner Token (GitLab UIから取得して設定)
 RUNNER_TOKEN=
 
@@ -247,6 +251,10 @@ GITLAB_ROOT_PASSWORD=${ADMIN_PASSWORD}
 
 # SonarQube Token (初回セットアップ後に更新)
 SONAR_TOKEN=${EXISTING_SONAR_TOKEN}
+
+# SonarQube CI/CD Configuration (動的に設定)
+SONAR_HOST_URL=http://${EC2_HOST}:8000
+SONAR_PROJECT_KEY=sample-app-backend
 
 # GitLab Runner Token (GitLab UIから取得して設定)
 RUNNER_TOKEN=${EXISTING_RUNNER_TOKEN}
