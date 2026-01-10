@@ -230,8 +230,8 @@ if [ ! -f "${BASE_DIR}/docker-compose.yml" ]; then
 fi
 echo "  ✓ docker-compose.yml が存在します"
 
-# 8.5. PostgreSQL初期化スクリプトの生成
-echo "PostgreSQL初期化スクリプトを生成中..."
+# PostgreSQL初期化スクリプトの生成
+echo "  PostgreSQL初期化スクリプトを生成中..."
 if [ -f "${BASE_DIR}/config/postgres/init.sql" ]; then
     # プレースホルダーを環境変数で置換
     sed -e "s/__SONAR_DB_PASSWORD__/${ADMIN_PASSWORD}/g" \
@@ -277,14 +277,22 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user root
+User=gitlab-runner
+ExecStart=/usr/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user gitlab-runner
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOFSERVICE
+
+# GitLab Runner設定ディレクトリとサービス準備
+sudo mkdir -p /etc/gitlab-runner
+sudo chown gitlab-runner:gitlab-runner /home/gitlab-runner/builds
+sudo chown gitlab-runner:gitlab-runner /home/gitlab-runner
+sudo systemctl daemon-reload
+sudo systemctl enable gitlab-runner
+echo "  ✓ GitLab Runnerサービスを設定しました"
 
 # 10. Maven設定
 echo "[11/12] Maven設定を作成中..."
