@@ -58,8 +58,9 @@ echo "  ✓ 独立ディレクトリ作成完了: $TEMP_DIR"
 
 # 2. sample-appをコピー
 echo "[2/8] sample-appファイルをコピー中..."
-cp -r $BASE_DIR/sample-app/* $TEMP_DIR/
-echo "  ✓ ファイルコピー完了"
+# 隠しファイル（.gitlab-ci.yml等）も含めてコピー
+cp -r $BASE_DIR/sample-app/. $TEMP_DIR/
+echo "  ✓ ファイルコピー完了（隠しファイル含む）"
 
 # 3. Gitリポジトリ初期化
 echo "[3/8] Gitリポジトリ初期化中..."
