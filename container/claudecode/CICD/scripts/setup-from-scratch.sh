@@ -296,7 +296,9 @@ echo "  ✓ GitLab Runnerサービスを設定しました"
 
 # 10. Maven設定
 echo "[11/12] Maven設定を作成中..."
-mkdir -p /root/.m2 /home/ec2-user/.m2 /home/gitlab-runner/.m2
+mkdir -p /root/.m2 /home/ec2-user/.m2
+sudo mkdir -p /home/gitlab-runner/.m2
+sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.m2
 
 # .envから管理者パスワードとドメイン名を読み込んでMaven settings.xmlを生成
 if [ -f "${BASE_DIR}/config/maven/settings.xml" ]; then
@@ -311,7 +313,7 @@ if [ -f "${BASE_DIR}/config/maven/settings.xml" ]; then
 
     sudo sed -e "s/Degital2026!/${ADMIN_PASSWORD}/g" \
             -e "s/34\.205\.156\.203/${EC2_HOST}/g" \
-            "${BASE_DIR}/config/maven/settings.xml" > /home/gitlab-runner/.m2/settings.xml
+            "${BASE_DIR}/config/maven/settings.xml" | sudo tee /home/gitlab-runner/.m2/settings.xml > /dev/null
 
     sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.m2 2>/dev/null || true
     echo "  ✓ Maven settings.xml を配置しました（パスワード、ドメイン名を置換）"
