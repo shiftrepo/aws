@@ -126,7 +126,9 @@ echo ""
 # 7. 環境変数ファイルの作成または更新
 echo "[7/12] 環境変数ファイルを作成中..."
 
-cat > "$ENV_FILE" << EOF
+if [ ! -f "$ENV_FILE" ]; then
+    # 新規作成
+    cat > "$ENV_FILE" << EOF
 # PostgreSQL Configuration
 POSTGRES_PASSWORD=${ADMIN_PASSWORD}
 POSTGRES_DB=cicddb
@@ -161,7 +163,57 @@ RUNNER_TOKEN=
 EC2_PUBLIC_IP=${EC2_HOST}
 EOF
 
-echo "  ✓ .env ファイルを作成しました"
+    echo "  ✓ .env ファイルを作成しました"
+else
+    # 既存のファイルがある場合は、必要な項目のみ更新
+    echo "  ✓ 既存の .env ファイルを保持します"
+
+    # 既存のトークンを読み込み
+    source "$ENV_FILE"
+    EXISTING_SONAR_TOKEN="${SONAR_TOKEN}"
+    EXISTING_RUNNER_TOKEN="${RUNNER_TOKEN}"
+
+    # バックアップ作成
+    cp "$ENV_FILE" "${ENV_FILE}.backup.$(date +%Y%m%d%H%M%S)"
+
+    # 既存のトークンを保持しながら更新
+    cat > "$ENV_FILE" << EOF
+# PostgreSQL Configuration
+POSTGRES_PASSWORD=${ADMIN_PASSWORD}
+POSTGRES_DB=cicddb
+POSTGRES_USER=cicduser
+
+# SonarQube Database
+SONAR_DB_PASSWORD=${ADMIN_PASSWORD}
+
+# Sample App Database
+SAMPLE_DB_PASSWORD=${ADMIN_PASSWORD}
+
+# pgAdmin Configuration
+PGADMIN_EMAIL=admin@example.com
+PGADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+# Nexus Configuration
+NEXUS_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+# SonarQube Configuration
+SONARQUBE_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+# GitLab Configuration
+GITLAB_ROOT_PASSWORD=${ADMIN_PASSWORD}
+
+# SonarQube Token (初回セットアップ後に更新)
+SONAR_TOKEN=${EXISTING_SONAR_TOKEN}
+
+# GitLab Runner Token (GitLab UIから取得して設定)
+RUNNER_TOKEN=${EXISTING_RUNNER_TOKEN}
+
+# External Access
+EC2_PUBLIC_IP=${EC2_HOST}
+EOF
+
+    echo "  ✓ .env ファイルを更新しました（トークンは保持）"
+fi
 
 # 7. Docker Composeファイルの確認
 echo "[8/12] Docker Compose設定を確認中..."
@@ -219,14 +271,23 @@ EOFSERVICE
 echo "[11/12] Maven設定を作成中..."
 mkdir -p /root/.m2 /home/ec2-user/.m2 /home/gitlab-runner/.m2
 
-# .envから管理者パスワードを読み込んでMaven settings.xmlを生成
+# .envから管理者パスワードとドメイン名を読み込んでMaven settings.xmlを生成
 if [ -f "${BASE_DIR}/config/maven/settings.xml" ]; then
-    # settings.xmlのパスワードを環境変数の値で置換
-    sed "s/Degital2026!/${ADMIN_PASSWORD}/g" "${BASE_DIR}/config/maven/settings.xml" > /root/.m2/settings.xml
-    sed "s/Degital2026!/${ADMIN_PASSWORD}/g" "${BASE_DIR}/config/maven/settings.xml" > /home/ec2-user/.m2/settings.xml
-    sudo sed "s/Degital2026!/${ADMIN_PASSWORD}/g" "${BASE_DIR}/config/maven/settings.xml" > /home/gitlab-runner/.m2/settings.xml
+    # settings.xmlのパスワードとIPアドレスを環境変数の値で置換
+    sed -e "s/Degital2026!/${ADMIN_PASSWORD}/g" \
+        -e "s/34\.205\.156\.203/${EC2_HOST}/g" \
+        "${BASE_DIR}/config/maven/settings.xml" > /root/.m2/settings.xml
+
+    sed -e "s/Degital2026!/${ADMIN_PASSWORD}/g" \
+        -e "s/34\.205\.156\.203/${EC2_HOST}/g" \
+        "${BASE_DIR}/config/maven/settings.xml" > /home/ec2-user/.m2/settings.xml
+
+    sudo sed -e "s/Degital2026!/${ADMIN_PASSWORD}/g" \
+            -e "s/34\.205\.156\.203/${EC2_HOST}/g" \
+            "${BASE_DIR}/config/maven/settings.xml" > /home/gitlab-runner/.m2/settings.xml
+
     sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.m2 2>/dev/null || true
-    echo "  ✓ Maven settings.xml を配置しました"
+    echo "  ✓ Maven settings.xml を配置しました（パスワード、ドメイン名を置換）"
 else
     echo "  ⚠ Maven settings.xml が見つかりません"
 fi

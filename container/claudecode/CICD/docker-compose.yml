@@ -65,7 +65,7 @@ services:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://${EC2_PUBLIC_IP}:5003'
         nginx['listen_port'] = 80
-        gitlab_rails['initial_root_password'] = 'password123!'
+        gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD}'
         gitlab_rails['gitlab_shell_ssh_port'] = 2223
         # Mattermost無効化（独立コンテナで稼働）
         mattermost['enable'] = false
