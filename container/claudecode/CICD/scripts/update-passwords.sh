@@ -23,6 +23,7 @@ show_help() {
   --sonarqube <password>      SonarQube adminパスワードを更新
   --postgres <password>       PostgreSQLパスワードを更新
   --pgadmin <password>        pgAdminパスワードを更新
+  --mattermost <password>     Mattermost DBパスワードを更新
   --sonar-db <password>       SonarQube DBパスワードを更新
   --sample-db <password>      Sample App DBパスワードを更新
   --sonar-token <token>       SonarQubeトークンを更新
@@ -114,6 +115,7 @@ show_current_settings() {
     echo "  PGADMIN_PASSWORD:          ${PGADMIN_PASSWORD:0:4}****"
     echo "  SONAR_DB_PASSWORD:         ${SONAR_DB_PASSWORD:0:4}****"
     echo "  SAMPLE_DB_PASSWORD:        ${SAMPLE_DB_PASSWORD:0:4}****"
+    echo "  MATTERMOST_DB_PASSWORD:    ${MATTERMOST_DB_PASSWORD:0:4}****"
     echo ""
     echo "【トークン】"
     echo "  SONAR_TOKEN:               ${SONAR_TOKEN:0:10}****"
@@ -144,6 +146,7 @@ update_all_passwords() {
     update_password "PGADMIN_PASSWORD" "$password" "pgAdmin"
     update_password "SONAR_DB_PASSWORD" "$password" "SonarQube DB"
     update_password "SAMPLE_DB_PASSWORD" "$password" "Sample App DB"
+    update_password "MATTERMOST_DB_PASSWORD" "$password" "Mattermost DB"
 
     echo ""
     echo "==========================================="
@@ -233,6 +236,20 @@ main() {
             echo "  podman-compose restart pgadmin"
             ;;
 
+        --mattermost)
+            if [ -z "$2" ]; then
+                echo "エラー: パスワードを指定してください"
+                exit 1
+            fi
+            backup_env
+            update_password "MATTERMOST_DB_PASSWORD" "$2" "Mattermost DB"
+            echo ""
+            echo "✓ Mattermostデータベースパスワードを更新しました"
+            echo ""
+            echo "⚠️ 変更を反映するには、Mattermostコンテナの再起動が必要です:"
+            echo "  podman-compose restart mattermost"
+            ;;
+
         --sonar-db)
             if [ -z "$2" ]; then
                 echo "エラー: パスワードを指定してください"
@@ -287,6 +304,19 @@ main() {
             fi
             backup_env
             update_password "EC2_PUBLIC_IP" "$2" "EC2 ドメイン名/IPアドレス"
+
+            # Maven POM ファイルのNexus URLも更新
+            if [ -f "${BASE_DIR}/sample-app/pom.xml" ]; then
+                echo ""
+                echo "【Maven POM ファイル更新】"
+                echo "  sample-app/pom.xml のNexus URLを更新中..."
+                # 現在のIPアドレスを検索して新しいものに置換
+                sed -i.backup "s|http://[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+:8082|http://$2:8082|g" "${BASE_DIR}/sample-app/pom.xml"
+                # ドメイン名の場合も対応
+                sed -i "s|http://ec2-[^:]*\.compute[^:]*\.amazonaws\.com:8082|http://$2:8082|g" "${BASE_DIR}/sample-app/pom.xml"
+                echo "  ✓ Maven POM ファイルのNexus URLを更新しました"
+            fi
+
             echo ""
             echo "✓ EC2ドメイン名/IPアドレスを更新しました: $2"
             echo ""

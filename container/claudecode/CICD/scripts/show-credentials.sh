@@ -101,6 +101,12 @@ generate_credentials() {
         "admin" \
         "⚠️ 初回ログイン後、必ずパスワード変更が必要です"
 
+    print_service "Mattermost" \
+        "http://${EC2_PUBLIC_IP}:5004" \
+        "admin" \
+        "（初回セットアップで設定）" \
+        "チームコラボレーションツール"
+
     print_header "2. データベース管理"
 
     print_service "pgAdmin" \
@@ -142,6 +148,10 @@ generate_credentials() {
     echo "  4. sample_app   - サンプルアプリ用データベース"
     echo "     ユーザー:    sampleuser"
     echo "     パスワード:  ${SAMPLE_DB_PASSWORD}"
+    echo ""
+    echo "  5. mattermost   - Mattermost用データベース"
+    echo "     ユーザー:    mattermostuser"
+    echo "     パスワード:  ${MATTERMOST_DB_PASSWORD}"
 
     print_header "4. CI/CD設定情報"
 

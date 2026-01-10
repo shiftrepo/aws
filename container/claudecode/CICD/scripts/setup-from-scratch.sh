@@ -265,7 +265,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user root
+ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user root
 Restart=always
 RestartSec=10
 
@@ -296,6 +296,15 @@ if [ -f "${BASE_DIR}/config/maven/settings.xml" ]; then
     echo "  ✓ Maven settings.xml を配置しました（パスワード、ドメイン名を置換）"
 else
     echo "  ⚠ Maven settings.xml が見つかりません"
+fi
+
+# Maven POM ファイルのNexus URLを更新
+if [ -f "${BASE_DIR}/sample-app/pom.xml" ]; then
+    echo "  Maven POM ファイルのNexus URLを更新中..."
+    sed -i.backup "s|http://34\.205\.156\.203:8082|http://${EC2_HOST}:8082|g" "${BASE_DIR}/sample-app/pom.xml"
+    echo "  ✓ Maven POM ファイルのNexus URLを更新しました"
+else
+    echo "  ⚠ sample-app/pom.xml が見つかりません"
 fi
 
 # 11. 完了メッセージ
