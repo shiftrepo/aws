@@ -374,18 +374,22 @@ sudo systemctl status gitlab-runner
 ```
 
 **セットアップ内容（6ステップ）**:
-1. **認証情報の確認・更新** - Nexusパスワード、SonarQubeトークンの取得・更新
-2. **GitLab Runner登録** - Registration Token入力で自動登録・起動
-3. **GitLabプロジェクト作成** - Personal Access Tokenで自動作成
+1. **認証情報の確認** - Nexusパスワード疎通確認、SonarQubeトークン自動生成
+2. **GitLab Runner登録** - Registration Token自動生成・登録・起動
+3. **GitLabプロジェクト作成** - Personal Access Token自動生成・プロジェクト作成
 4. **CI/CD環境変数設定** - SONAR_TOKEN、NEXUS_ADMIN_PASSWORD等を自動設定
-5. **sample-appプッシュ** - リモートURL設定とプッシュでパイプライン起動
+5. **sample-appプッシュ** - SSH鍵自動生成・登録、認証なしプッシュ
 6. **セットアップ完了確認** - Runner状態、パイプライン実行状況確認
 
-**ユーザー入力が必要な項目**:
-- Nexus新パスワード（変更した場合のみ）
-- SonarQubeトークン（My Account → Security → Generate Token）
-- GitLab Runner Registration Token（Settings → CI/CD → Runners）
-- GitLab Personal Access Token（User Settings → Access Tokens）
+**事前準備が必要な項目**:
+- **Nexusパスワード変更**: admin/admin123 → admin/Degital2026! (事前実施)
+- **SonarQubeパスワード変更**: admin/admin → admin/Degital2026! (事前実施)
+
+**完全自動化されたトークン**:
+- SonarQubeトークン (SonarQube API経由)
+- GitLab Personal Access Token (GitLab Rails Console経由)
+- GitLab Runner Registration Token (GitLab Rails Console経由)
+- SSH鍵ペア (Ed25519自動生成・GitLab登録)
 
 ### 5. 手動でのサンプルアプリケーションプッシュ（オプション）
 

@@ -85,18 +85,25 @@ echo "=========================================="
 echo "[1/6] 認証情報の確認・更新"
 echo "=========================================="
 
-print_info "Nexusパスワードを確認してください"
-echo "  1. http://${EC2_PUBLIC_IP}:8082 にアクセス"
-echo "  2. admin/admin123 でログイン"
-echo "  3. パスワード変更後、新しいパスワードを入力してください"
-echo ""
-read -s -p "Nexus新パスワード (変更していない場合はEnter): " NEW_NEXUS_PASSWORD
-echo ""
-if [ -n "$NEW_NEXUS_PASSWORD" ]; then
-    # パスワード更新
-    sed -i "s/NEXUS_ADMIN_PASSWORD=.*/NEXUS_ADMIN_PASSWORD=${NEW_NEXUS_PASSWORD}/" "$ENV_FILE"
-    source "$ENV_FILE"
-    print_success "Nexusパスワードを更新しました"
+print_info "Nexusパスワード設定確認中..."
+echo "  前提: admin/admin123 → admin/Degital2026! への変更完了済み"
+echo "  使用パスワード: ${NEXUS_ADMIN_PASSWORD}"
+
+# Nexusパスワード確認（疎通確認）
+if curl -s -u admin:${NEXUS_ADMIN_PASSWORD} "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/status" > /dev/null; then
+    print_success "Nexusパスワード確認完了 (admin/${NEXUS_ADMIN_PASSWORD})"
+else
+    print_warning "Nexusパスワード確認に失敗しました"
+    echo "  確認事項:"
+    echo "  1. http://${EC2_PUBLIC_IP}:8082 にアクセス"
+    echo "  2. admin/admin123 → admin/Degital2026! への変更完了"
+    echo "  3. Nexusサービスが正常に起動していることを確認"
+    echo ""
+    read -p "続行しますか？ (yes/no): " NEXUS_CONTINUE
+    if [ "$NEXUS_CONTINUE" != "yes" ]; then
+        print_error "Nexusパスワード設定を完了してから再実行してください"
+        exit 1
+    fi
 fi
 
 # SonarQubeトークン自動生成
