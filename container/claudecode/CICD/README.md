@@ -314,17 +314,47 @@ sudo yum install -y \
 
 ## 🚀 クイックスタート
 
+### スクリプト実行方法一覧
+
+すべてのスクリプトは`scripts/`ディレクトリに配置されています。実行前に必ず実行権限を付与してください。
+
+```bash
+# 実行権限の付与（初回のみ）
+cd /root/aws.git/container/claudecode/CICD
+chmod +x scripts/*.sh
+```
+
+#### スクリプト実行権限一覧表
+
+| スクリプト名 | 実行コマンド | 必須権限 | 用途 |
+|------------|------------|---------|------|
+| `setup-from-scratch.sh` | `sudo ./scripts/setup-from-scratch.sh` | **sudo必須** | 初回環境構築（12ステップ） |
+| `show-credentials.sh` | `./scripts/show-credentials.sh` | 通常ユーザー | 認証情報表示 |
+| `update-passwords.sh` | `./scripts/update-passwords.sh [オプション]` | 通常ユーザー | パスワード/トークン更新 |
+| `backup-all.sh` | `sudo ./scripts/backup-all.sh` | **sudo必須** | 完全バックアップ |
+| `restore-all.sh` | `sudo ./scripts/restore-all.sh <backup-dir>` | **sudo必須** | バックアップから復元 |
+| `cleanup-all.sh` | `sudo ./scripts/cleanup-all.sh` | **sudo必須** | 全リソース削除 |
+| `deploy-oneclick.sh` | `sudo ./scripts/deploy-oneclick.sh` | **sudo必須** | ワンクリック再デプロイ |
+| `setup-cicd.sh` | `sudo ./scripts/setup-cicd.sh` | **sudo必須** | CI/CD環境自動構築 |
+| `setup-sample-app.sh` | `./scripts/setup-sample-app.sh` | 通常ユーザー | CI/CD検証（推奨） |
+| `setup-gitlab-variables.sh` | `./scripts/setup-gitlab-variables.sh` | 通常ユーザー | GitLab環境変数設定ガイド |
+
+**重要な注意事項:**
+- **sudo が必要なスクリプト**: コンテナ操作、システム設定変更を行うスクリプト
+- **通常ユーザーで実行するスクリプト**: 設定確認、環境変数更新、GitLab操作を行うスクリプト
+- `setup-sample-app.sh`は通常ユーザーでの実行を推奨しますが、環境によっては sudo が必要な場合があります
+
 ### 1. ゼロからセットアップ
 
 ```bash
 # リポジトリをクローン（または既存ディレクトリに移動）
 cd /root/aws.git/container/claudecode/CICD
 
-# スクリプトに実行権限を付与
+# スクリプトに実行権限を付与（初回のみ）
 chmod +x scripts/*.sh
 
-# セットアップ実行（対話的にパスワード設定）
-./scripts/setup-from-scratch.sh
+# セットアップ実行（sudoで実行）
+sudo ./scripts/setup-from-scratch.sh
 ```
 
 **セットアップ内容（12ステップ）**:
@@ -382,8 +412,8 @@ sudo systemctl status gitlab-runner
 **前提条件**: コンテナ起動完了、基本パスワード設定完了
 
 ```bash
-# CI/CD環境の完全自動セットアップ
-./scripts/setup-cicd.sh
+# CI/CD環境の完全自動セットアップ（sudoで実行）
+sudo ./scripts/setup-cicd.sh
 ```
 
 **セットアップ内容（6ステップ）**:
@@ -901,8 +931,8 @@ curl -u admin:${NEXUS_ADMIN_PASSWORD} \
 ### 1. バックアップ
 
 ```bash
-# 完全バックアップ実行
-./scripts/backup-all.sh
+# 完全バックアップ実行（sudoで実行）
+sudo ./scripts/backup-all.sh
 
 # バックアップ内容
 # - 全設定ファイル（docker-compose.yml、.env、config/）
@@ -923,8 +953,8 @@ curl -u admin:${NEXUS_ADMIN_PASSWORD} \
 # バックアップアーカイブの展開
 tar xzf backup-20260110-075148.tar.gz
 
-# 復元実行
-./scripts/restore-all.sh backup-20260110-075148
+# 復元実行（sudoで実行）
+sudo ./scripts/restore-all.sh backup-20260110-075148
 
 # 復元内容
 # - コンテナ停止＆削除
@@ -939,8 +969,8 @@ tar xzf backup-20260110-075148.tar.gz
 ### 3. クリーンアップ
 
 ```bash
-# 全リソース削除（確認プロンプトあり）
-./scripts/cleanup-all.sh
+# 全リソース削除（確認プロンプトあり、sudoで実行）
+sudo ./scripts/cleanup-all.sh
 
 # 削除対象
 # - 全コンテナ（cicd-*）
@@ -953,8 +983,8 @@ tar xzf backup-20260110-075148.tar.gz
 ### 4. ワンクリック再デプロイ
 
 ```bash
-# バックアップ → クリーンアップ → セットアップを一括実行
-./scripts/deploy-oneclick.sh
+# バックアップ → クリーンアップ → セットアップを一括実行（sudoで実行）
+sudo ./scripts/deploy-oneclick.sh
 
 # 処理フロー
 # 1. 現在の環境を完全バックアップ
@@ -1267,8 +1297,8 @@ find backup-* -type f -mtime +30 -delete
 
 #### 方法1: セットアップスクリプトで更新（推奨）
 ```bash
-# セットアップ時にドメイン名/IPを再入力
-./scripts/setup-from-scratch.sh
+# セットアップ時にドメイン名/IPを再入力（sudoで実行）
+sudo ./scripts/setup-from-scratch.sh
 
 # ステップ6で新しいドメイン名/IPを入力
 # 例: ec2-34-205-156-203.compute-1.amazonaws.com
@@ -1294,8 +1324,8 @@ vi .env
 # EC2_PUBLIC_IP の値を更新
 EC2_PUBLIC_IP=ec2-34-205-156-203.compute-1.amazonaws.com
 
-# Maven設定も更新
-./scripts/setup-from-scratch.sh  # ステップ11でMaven設定を再生成
+# Maven設定も更新（sudoで実行）
+sudo ./scripts/setup-from-scratch.sh  # ステップ11でMaven設定を再生成
 ```
 
 **影響範囲と追加対応**:
@@ -1334,8 +1364,8 @@ sudo gitlab-runner register \
 # 再セットアップ前
 cat .env | grep -E "SONAR_TOKEN|RUNNER_TOKEN"
 
-# 再セットアップ実行
-./scripts/setup-from-scratch.sh
+# 再セットアップ実行（sudoで実行）
+sudo ./scripts/setup-from-scratch.sh
 
 # 再セットアップ後（トークンが保持されていることを確認）
 cat .env | grep -E "SONAR_TOKEN|RUNNER_TOKEN"
@@ -1495,15 +1525,23 @@ podman logs cicd-sonarqube
 
 ---
 
-**最終更新日**: 2026-01-10
-**バージョン**: 2.1.1
+**最終更新日**: 2026-01-11
+**バージョン**: 2.1.2
 
-**変更履歴 (v2.1.1 - 最新)**:
+**変更履歴 (v2.1.2 - 最新)**:
+- ✅ **.gitlab-ci.yml YAML構文修正** - SonarQubeステージのコロン含むecho文を引用符で修正
+- ✅ **SonarQube マルチモジュール対応** - `-pl backend`オプション削除、親POMから実行
+- ✅ **GitLab Runner設定修正** - `tag_list`と`run_untagged`設定追加
+- ✅ **CI/CD環境変数設定完全自動化** - GitLab Rails Consoleによる5変数自動登録
+- ✅ **README スクリプト実行方法明確化** - sudo必須/通常ユーザー実行の明示、一覧表追加
+- ✅ **パイプライン全6ステージ動作確認完了** - build/test/coverage/sonarqube/package/deploy
+
+**変更履歴 (v2.1.1)**:
 - ✅ **EC2 IP変動対応** - 固定IPアドレスを環境変数参照に変更、自動取得機能
 - ✅ **setup-sample-app.sh 複数回実行対応** - 自動クリーンアップ、競合解決、パイプライン監視
 - ✅ **厳密ソフトウェアバージョン明記** - RHEL 9.7, Java 17.0.17, Spring Boot 3.2.1等
 - ✅ **CI/CD検証手順の自動化** - 8ステップの完全自動検証スクリプト（引数不要）
-- ✅ **パイプライン監視機能** - リアルタイム進捗表示、全5ステージ成功確認
+- ✅ **パイプライン監視機能** - リアルタイム進捗表示、全6ステージ成功確認
 - ✅ **動作検証済み環境の明確化** - Podman 5.6.0, Maven 3.6.3, PostgreSQL 16等
 
 **変更履歴 (v2.1.0)**:
