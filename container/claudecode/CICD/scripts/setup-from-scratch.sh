@@ -140,6 +140,9 @@ SONAR_DB_PASSWORD=${ADMIN_PASSWORD}
 # Sample App Database
 SAMPLE_DB_PASSWORD=${ADMIN_PASSWORD}
 
+# Mattermost Database
+MATTERMOST_DB_PASSWORD=${ADMIN_PASSWORD}
+
 # pgAdmin Configuration
 PGADMIN_EMAIL=admin@example.com
 PGADMIN_PASSWORD=${ADMIN_PASSWORD}
@@ -188,6 +191,9 @@ SONAR_DB_PASSWORD=${ADMIN_PASSWORD}
 
 # Sample App Database
 SAMPLE_DB_PASSWORD=${ADMIN_PASSWORD}
+
+# Mattermost Database
+MATTERMOST_DB_PASSWORD=${ADMIN_PASSWORD}
 
 # pgAdmin Configuration
 PGADMIN_EMAIL=admin@example.com
@@ -259,7 +265,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user root
+ExecStart=/usr/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user root
 Restart=always
 RestartSec=10
 

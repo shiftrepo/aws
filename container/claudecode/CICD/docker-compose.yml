@@ -174,7 +174,7 @@ services:
       - "5004:8065"
     environment:
       MM_SQLSETTINGS_DRIVERNAME: postgres
-      MM_SQLSETTINGS_DATASOURCE: postgres://mattermostuser:mattermost_pass_2026@postgres:5432/mattermostdb?sslmode=disable&connect_timeout=10
+      MM_SQLSETTINGS_DATASOURCE: postgres://mattermostuser:${MATTERMOST_DB_PASSWORD}@postgres:5432/mattermostdb?sslmode=disable&connect_timeout=10
       MM_SERVICESETTINGS_SITEURL: http://${EC2_PUBLIC_IP}:5004
       TZ: Asia/Tokyo
     volumes:
