@@ -99,17 +99,53 @@ if [ -n "$NEW_NEXUS_PASSWORD" ]; then
     print_success "Nexusパスワードを更新しました"
 fi
 
-print_info "SonarQubeトークンを取得してください"
-echo "  1. http://${EC2_PUBLIC_IP}:8000 にアクセス"
-echo "  2. My Account → Security → Generate Token"
-echo "  3. Name: gitlab-ci, Type: Project Analysis Token"
-echo ""
-read -p "SonarQubeトークン: " NEW_SONAR_TOKEN
-if [ -n "$NEW_SONAR_TOKEN" ]; then
+# SonarQubeトークン自動生成
+print_info "SonarQubeトークンを自動生成中..."
+echo "  方法: SonarQube API経由 (admin権限)"
+
+# SonarQubeトークン自動生成関数
+generate_sonar_token() {
+    local token_name="gitlab-ci-auto-$(date +%Y%m%d%H%M%S)"
+    local response
+
+    # 既存トークンをクリーンアップ
+    curl -s -u admin:${SONARQUBE_ADMIN_PASSWORD} -X POST \
+        "http://${EC2_PUBLIC_IP}:8000/api/user_tokens/revoke" \
+        -d "name=gitlab-ci-auto" > /dev/null 2>&1 || true
+
+    # 新しいトークンを生成
+    response=$(curl -s -u admin:${SONARQUBE_ADMIN_PASSWORD} -X POST \
+        "http://${EC2_PUBLIC_IP}:8000/api/user_tokens/generate" \
+        -d "name=${token_name}" \
+        -d "type=GLOBAL_ANALYSIS_TOKEN")
+
+    if echo "$response" | grep -q '"token"'; then
+        echo "$response" | sed 's/.*"token":"\([^"]*\)".*/\1/'
+        return 0
+    else
+        return 1
+    fi
+}
+
+# トークン自動生成を試行
+if NEW_SONAR_TOKEN=$(generate_sonar_token); then
     # トークン更新
     sed -i "s/SONAR_TOKEN=.*/SONAR_TOKEN=${NEW_SONAR_TOKEN}/" "$ENV_FILE"
     source "$ENV_FILE"
-    print_success "SonarQubeトークンを更新しました"
+    print_success "SonarQubeトークンを自動生成・更新しました"
+    echo "  トークン: ${NEW_SONAR_TOKEN:0:20}..."
+else
+    print_warning "SonarQubeトークン自動生成に失敗しました。手動で取得してください"
+    echo "  1. http://${EC2_PUBLIC_IP}:8000 にアクセス"
+    echo "  2. My Account → Security → Generate Token"
+    echo "  3. Name: gitlab-ci, Type: Project Analysis Token"
+    echo ""
+    read -p "SonarQubeトークン: " NEW_SONAR_TOKEN
+    if [ -n "$NEW_SONAR_TOKEN" ]; then
+        sed -i "s/SONAR_TOKEN=.*/SONAR_TOKEN=${NEW_SONAR_TOKEN}/" "$ENV_FILE"
+        source "$ENV_FILE"
+        print_success "SonarQubeトークンを更新しました"
+    fi
 fi
 
 # ========================================================================
@@ -125,13 +161,48 @@ if sudo /usr/local/bin/gitlab-runner list 2>/dev/null | grep -q "CICD Shell Runn
     print_warning "GitLab Runnerは既に登録されています"
     sudo /usr/local/bin/gitlab-runner list
 else
-    print_info "GitLab Runner Registration Tokenを取得してください"
-    echo "  1. http://${EC2_PUBLIC_IP}:5003 にアクセス"
-    echo "  2. root/${GITLAB_ROOT_PASSWORD} でログイン"
-    echo "  3. Settings → CI/CD → Runners → New instance runner"
-    echo "  4. 「Create runner」をクリックしてトークンを取得"
-    echo ""
-    read -p "Registration Token: " RUNNER_REG_TOKEN
+    # GitLab Runner Registration Token自動生成
+    print_info "GitLab Runner Registration Tokenを自動生成中..."
+    echo "  方法: GitLab Rails Console経由 (root権限)"
+
+    # GitLab Runner Registration Token自動生成関数
+    generate_runner_token() {
+        local token
+
+        token=$(podman exec -i cicd-gitlab gitlab-rails console <<EOF 2>/dev/null | grep "^runner_token=" | cut -d= -f2
+runner = Ci::Runner.new(
+  runner_type: :instance_type,
+  description: 'CICD Shell Runner Auto-Generated',
+  tag_list: ['shell', 'cicd']
+)
+runner.set_token
+runner.save!
+puts "runner_token=#{runner.token}" if runner.persisted?
+exit
+EOF
+        )
+
+        if [ -n "$token" ]; then
+            echo "$token"
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    # トークン自動生成を試行
+    if RUNNER_REG_TOKEN=$(generate_runner_token); then
+        print_success "GitLab Runner Registration Tokenを自動生成しました"
+        echo "  トークン: ${RUNNER_REG_TOKEN:0:20}..."
+    else
+        print_warning "GitLab Runner Registration Token自動生成に失敗しました。手動で取得してください"
+        echo "  1. http://${EC2_PUBLIC_IP}:5003 にアクセス"
+        echo "  2. root/${GITLAB_ROOT_PASSWORD} でログイン"
+        echo "  3. Settings → CI/CD → Runners → New instance runner"
+        echo "  4. 「Create runner」をクリックしてトークンを取得"
+        echo ""
+        read -p "Registration Token: " RUNNER_REG_TOKEN
+    fi
 
     if [ -n "$RUNNER_REG_TOKEN" ]; then
         print_info "GitLab Runnerを登録中..."
@@ -173,14 +244,48 @@ if [ -n "$PROJECT_EXISTS" ]; then
 else
     print_info "GitLabにsample-appプロジェクトを作成中..."
 
-    # Personal Access Token作成の指示
-    print_info "GitLab Personal Access Tokenを作成してください"
-    echo "  1. http://${EC2_PUBLIC_IP}:5003/-/user_settings/personal_access_tokens"
-    echo "  2. Token name: cicd-automation"
-    echo "  3. Scopes: api, read_repository, write_repository"
-    echo "  4. Create personal access token をクリック"
-    echo ""
-    read -s -p "Personal Access Token: " GITLAB_TOKEN
+    # Personal Access Token自動生成
+    print_info "GitLab Personal Access Tokenを自動生成中..."
+    echo "  方法: GitLab Rails Console経由 (root権限)"
+
+    # GitLab Personal Access Token自動生成関数
+    generate_gitlab_token() {
+        local token_name="cicd-automation-$(date +%Y%m%d%H%M%S)"
+        local token
+
+        token=$(podman exec -i cicd-gitlab gitlab-rails console <<EOF 2>/dev/null | grep "^token=" | cut -d= -f2
+user = User.find_by(username: 'root')
+token = user.personal_access_tokens.create(
+  name: '${token_name}',
+  scopes: ['api', 'read_repository', 'write_repository'],
+  expires_at: 1.year.from_now
+)
+puts "token=#{token.token}" if token.persisted?
+exit
+EOF
+        )
+
+        if [ -n "$token" ]; then
+            echo "$token"
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    # トークン自動生成を試行
+    if GITLAB_TOKEN=$(generate_gitlab_token); then
+        print_success "GitLab Personal Access Tokenを自動生成しました"
+        echo "  トークン: ${GITLAB_TOKEN:0:20}..."
+    else
+        print_warning "GitLab Personal Access Token自動生成に失敗しました。手動で取得してください"
+        echo "  1. http://${EC2_PUBLIC_IP}:5003/-/user_settings/personal_access_tokens"
+        echo "  2. Token name: cicd-automation"
+        echo "  3. Scopes: api, read_repository, write_repository"
+        echo "  4. Create personal access token をクリック"
+        echo ""
+        read -s -p "Personal Access Token: " GITLAB_TOKEN
+    fi
     echo ""
 
     if [ -n "$GITLAB_TOKEN" ]; then
