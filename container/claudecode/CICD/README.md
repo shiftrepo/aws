@@ -39,9 +39,10 @@
 ```
 /root/aws.git/container/claudecode/CICD/
 ├── docker-compose.yml              # 全サービス統合定義
-├── .env                            # 環境変数（パスワード含む）
-├── .gitignore                      # Git除外設定
+├── .env                            # 環境変数（パスワード含む、Git除外）
+├── .gitignore                      # Git除外設定（credentials.txt、.env.backup.*含む）
 ├── README.md                       # 本ドキュメント
+├── CREDENTIALS.md                  # 認証情報管理ガイド
 ├── QUICKSTART.md                   # クイックスタートガイド
 │
 ├── config/                         # サービス設定ファイル
@@ -63,7 +64,9 @@
 │   └── pgadmin-data/
 │
 ├── scripts/                        # 運用スクリプト
-│   ├── setup-from-scratch.sh      # ゼロからセットアップ（パスワード設定含む）
+│   ├── setup-from-scratch.sh      # ゼロからセットアップ（パスワード設定、EC2ドメイン入力、トークン保持）
+│   ├── show-credentials.sh        # 全サービスの認証情報表示・ファイル出力
+│   ├── update-passwords.sh        # パスワード・トークン・EC2ホスト更新
 │   ├── backup-all.sh              # 完全バックアップ
 │   ├── restore-all.sh             # バックアップから復元
 │   ├── cleanup-all.sh             # 全リソース削除
@@ -311,18 +314,24 @@ chmod +x scripts/*.sh
 ./scripts/setup-from-scratch.sh
 ```
 
-**セットアップ内容（11ステップ）**:
+**セットアップ内容（12ステップ）**:
 1. システムパッケージのインストール
 2. SELinux設定の調整
 3. Podmanソケットの有効化
 4. ディレクトリ構造の作成
-5. **管理者パスワードの設定**（対話的入力）
-6. 環境変数ファイル（.env）の生成
-7. Docker Compose設定の確認
-8. コンテナの起動
-9. GitLab Runnerのインストール
-10. Maven設定の配置
-11. セットアップ完了チェック
+5. **管理者パスワードの設定**（対話的入力、確認入力で誤入力防止）
+6. **EC2ドメイン名/IPアドレスの設定**（対話的入力、自動検出対応）
+7. 環境変数ファイル（.env）の生成・更新（既存トークンを自動保持）
+8. Docker Compose設定の確認
+9. コンテナの起動
+10. GitLab Runnerのインストール
+11. Maven設定の配置（EC2ドメイン名とパスワードを動的置換）
+12. セットアップ完了チェック
+
+**重要な機能**:
+- **トークン保持**: 既存の `.env` ファイルがある場合、SONAR_TOKEN と RUNNER_TOKEN を自動保持
+- **バックアップ作成**: .env 更新時、自動的にバックアップ（.env.backup.YYYYMMDDHHMMSS）を作成
+- **EC2ドメイン対応**: 入力なしの場合、EC2メタデータサービスから自動検出（169.254.169.254）
 
 ### 2. サービス状態確認
 
@@ -672,11 +681,64 @@ SonarQubeで設定された品質基準:
 
 | スクリプト | 説明 | 用途 |
 |----------|------|------|
-| `setup-from-scratch.sh` | ゼロから完全環境構築（11ステップ） | 新規環境セットアップ |
+| `setup-from-scratch.sh` | ゼロから完全環境構築（12ステップ、トークン保持） | 新規環境セットアップ、再セットアップ |
+| `show-credentials.sh` | 全サービスの認証情報表示 | 認証情報確認、ファイル出力 |
+| `update-passwords.sh` | パスワード・トークン・EC2ホスト更新 | パスワード変更、EC2ドメイン変更 |
 | `backup-all.sh` | 完全バックアップ | 定期バックアップ、移行前 |
 | `restore-all.sh` | バックアップから復元 | 災害復旧、環境移行 |
 | `cleanup-all.sh` | 全リソース削除 | 環境クリーンアップ |
 | `deploy-oneclick.sh` | ワンクリック再デプロイ | 環境リフレッシュ |
+
+### 0. 認証情報管理
+
+#### 認証情報の表示
+
+```bash
+# 全サービスの認証情報を表示
+./scripts/show-credentials.sh
+
+# ファイルに出力（600パーミッション）
+./scripts/show-credentials.sh --file
+# 出力先: /root/aws.git/container/claudecode/CICD/credentials.txt
+
+# 表示内容:
+# - CI/CDサービス（GitLab、Nexus、SonarQube、pgAdmin）
+# - PostgreSQLスキーマ別認証情報（4データベース）
+# - CI/CDトークン（SONAR_TOKEN、RUNNER_TOKEN）
+# - 初回ログイン手順（パスワード変更が必要なサービス）
+```
+
+#### パスワード・設定の更新
+
+```bash
+# 現在の設定を表示
+./scripts/update-passwords.sh --show
+
+# 個別更新
+./scripts/update-passwords.sh --gitlab NewPassword123!
+./scripts/update-passwords.sh --nexus NewPassword123!
+./scripts/update-passwords.sh --sonarqube NewPassword123!
+
+# SonarQubeトークン更新
+./scripts/update-passwords.sh --sonar-token sqa_xxxxxxxxxxxxxxxx
+
+# EC2ドメイン名/IPアドレス更新
+./scripts/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
+./scripts/update-passwords.sh --ec2-host 192.168.1.100
+
+# 全パスワード一括更新（トークンを除く）
+./scripts/update-passwords.sh --all Degital2026!
+
+# 更新内容:
+# - 自動バックアップ作成（.env.backup.YYYYMMDDHHMMSS）
+# - .envファイルの該当項目を更新
+# - 変更後の再起動が必要な場合は案内表示
+```
+
+**重要**:
+- パスワード変更後、関連サービスの再起動が必要な場合があります
+- EC2ドメイン名変更後、sample-appのgit remoteも更新してください
+- GitLab CI/CD環境変数（SONAR_TOKEN、NEXUS_ADMIN_PASSWORD）も合わせて更新
 
 ### 1. バックアップ
 
@@ -962,6 +1024,101 @@ find backup-* -type f -mtime +30 -delete
 # Nexus UI → Repository → maven-snapshots → Cleanup Policies
 ```
 
+### 8. EC2インスタンス再作成時のドメイン名/IP変更
+
+**症状**: EC2インスタンスを再作成したら、IPアドレスが変わってサービスにアクセスできない
+
+**対策**:
+
+#### 方法1: セットアップスクリプトで更新（推奨）
+```bash
+# セットアップ時にドメイン名/IPを再入力
+./scripts/setup-from-scratch.sh
+
+# ステップ6で新しいドメイン名/IPを入力
+# 例: ec2-34-205-156-203.compute-1.amazonaws.com
+# 例: 192.168.1.100
+
+# 既存の.envファイルがある場合、トークンは自動保持されます
+```
+
+#### 方法2: 更新スクリプトを使用
+```bash
+# EC2ドメイン名/IPのみ更新
+./scripts/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
+
+# 自動でバックアップが作成されます
+# .env.backup.YYYYMMDDHHMMSS
+```
+
+#### 方法3: 手動更新
+```bash
+# .envファイルを編集
+vi .env
+
+# EC2_PUBLIC_IP の値を更新
+EC2_PUBLIC_IP=ec2-34-205-156-203.compute-1.amazonaws.com
+
+# Maven設定も更新
+./scripts/setup-from-scratch.sh  # ステップ11でMaven設定を再生成
+```
+
+**影響範囲と追加対応**:
+```bash
+# 1. sample-appのgit remoteを更新
+cd sample-app
+git remote set-url origin http://NEW_IP:5003/root/sample-app.git
+
+# 2. GitLab Runnerの再登録（必要に応じて）
+sudo gitlab-runner unregister --all-runners
+sudo gitlab-runner register \
+  --url http://NEW_IP:5003 \
+  --token YOUR_TOKEN \
+  --executor shell \
+  --description "CICD Shell Runner"
+
+# 3. 認証情報の確認
+./scripts/show-credentials.sh
+```
+
+### 9. 再セットアップ時のトークン消失
+
+**症状**: setup-from-scratch.sh を再実行したら、SonarQubeトークンやGitLab Runnerトークンが消えた
+
+**原因**: 旧バージョンでは .env ファイルが上書きされていました
+
+**解決済み**:
+- **最新版では自動的にトークンを保持します**
+- 既存の .env ファイルがある場合、以下のトークンを自動保持:
+  - `SONAR_TOKEN`
+  - `RUNNER_TOKEN`
+- 自動バックアップも作成されます: `.env.backup.YYYYMMDDHHMMSS`
+
+**確認方法**:
+```bash
+# 再セットアップ前
+cat .env | grep -E "SONAR_TOKEN|RUNNER_TOKEN"
+
+# 再セットアップ実行
+./scripts/setup-from-scratch.sh
+
+# 再セットアップ後（トークンが保持されていることを確認）
+cat .env | grep -E "SONAR_TOKEN|RUNNER_TOKEN"
+
+# バックアップも確認可能
+ls -la .env.backup.*
+```
+
+**手動復元が必要な場合**:
+```bash
+# 最新のバックアップから復元
+cp .env.backup.20260110123456 .env
+
+# または、個別更新スクリプトで設定
+./scripts/update-passwords.sh --sonar-token sqa_xxxxxxxxxxxxx
+./scripts/update-passwords.sh --runner-token glrt-xxxxxxxxxxxxx
+```
+
 ---
 
 ## 🔐 セキュリティ
@@ -977,6 +1134,10 @@ SONARQUBE_ADMIN_PASSWORD=your_strong_password
 
 # .envファイルは .gitignore に含まれている
 # Gitリポジトリにコミットされない
+
+# 機密情報も .gitignore で保護
+# - credentials.txt（認証情報ファイル）
+# - .env.backup.*（自動バックアップ）
 ```
 
 #### 2. 初回セットアップ時の設定
@@ -985,6 +1146,11 @@ SONARQUBE_ADMIN_PASSWORD=your_strong_password
 # - 最低8文字
 # - 確認入力による誤入力防止
 # - 英数字記号の組み合わせ推奨
+
+# 再セットアップ時の安全機能
+# - 既存.envファイル検出時、トークンを自動保持
+# - .env.backup.YYYYMMDDHHMMSS 形式でバックアップ
+# - SONAR_TOKEN、RUNNER_TOKENは消失しない
 ```
 
 #### 3. CI/CDでの取り扱い
@@ -1014,8 +1180,13 @@ sudo firewall-cmd --permanent --add-port=8082/tcp  # Nexus
 sudo firewall-cmd --permanent --add-port=8000/tcp  # SonarQube
 sudo firewall-cmd --reload
 
-# .env ファイルのパーミッション
-chmod 600 .env
+# 機密ファイルのパーミッション
+chmod 600 .env                  # 環境変数ファイル
+chmod 600 .env.backup.*         # 自動バックアップ
+chmod 600 credentials.txt       # 認証情報（show-credentials.sh --file で作成時）
+
+# 使用後は認証情報ファイルを削除
+rm -f credentials.txt
 ```
 
 #### 3. バックアップの暗号化
@@ -1088,4 +1259,12 @@ podman logs cicd-sonarqube
 ---
 
 **最終更新日**: 2026-01-10
-**バージョン**: 2.0.0
+**バージョン**: 2.1.0
+
+**変更履歴 (v2.1.0)**:
+- ✅ トークン保持機能（SONAR_TOKEN、RUNNER_TOKEN）
+- ✅ EC2ドメイン名/IP動的設定
+- ✅ 認証情報管理スクリプト（show-credentials.sh、update-passwords.sh）
+- ✅ 自動バックアップ機能（.env.backup.*）
+- ✅ GitLabパスワード環境変数化
+- ✅ Maven設定の動的置換（パスワード、EC2ドメイン）
