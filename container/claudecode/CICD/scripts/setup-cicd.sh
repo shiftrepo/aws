@@ -164,10 +164,10 @@ echo "[2/6] GitLab Runner登録"
 echo "=========================================="
 
 # Runner状態確認
-# CRITICAL: GitLabRunnerパスは /usr/local/bin/gitlab-runner 固定 - 変更禁止
-if sudo /usr/local/bin/gitlab-runner list 2>/dev/null | grep -q "CICD Shell Runner"; then
+# CRITICAL: GitLabRunnerパスは /usr/bin/gitlab-runner 固定 - 変更禁止
+if sudo /usr/bin/gitlab-runner list 2>/dev/null | grep -q "CICD Shell Runner"; then
     print_warning "GitLab Runnerは既に登録されています"
-    sudo /usr/local/bin/gitlab-runner list
+    sudo /usr/bin/gitlab-runner list
 else
     # GitLab Runner Registration Token自動生成
     print_info "GitLab Runner Registration Tokenを自動生成中..."
@@ -214,7 +214,7 @@ EOF
 
     if [ -n "$RUNNER_REG_TOKEN" ]; then
         print_info "GitLab Runnerを登録中..."
-        sudo /usr/local/bin/gitlab-runner register \
+        sudo /usr/bin/gitlab-runner register \
             --non-interactive \
             --url "http://${EC2_PUBLIC_IP}:5003" \
             --token "$RUNNER_REG_TOKEN" \
@@ -228,7 +228,7 @@ EOF
         sed -i "s/RUNNER_TOKEN=.*/RUNNER_TOKEN=${RUNNER_REG_TOKEN}/" "$ENV_FILE"
 
         print_success "GitLab Runnerを登録・起動しました"
-        sudo /usr/local/bin/gitlab-runner list
+        sudo /usr/bin/gitlab-runner list
     else
         print_error "Registration Tokenが入力されませんでした"
         exit 1
@@ -530,8 +530,8 @@ echo "=========================================="
 print_info "GitLab Runner状態確認..."
 if sudo systemctl is-active --quiet gitlab-runner; then
     print_success "GitLab Runnerが正常に動作しています"
-    # CRITICAL: GitLabRunnerパスは /usr/local/bin/gitlab-runner 固定 - 変更禁止
-    sudo /usr/local/bin/gitlab-runner list
+    # CRITICAL: GitLabRunnerパスは /usr/bin/gitlab-runner 固定 - 変更禁止
+    sudo /usr/bin/gitlab-runner list
 else
     print_warning "GitLab Runnerが停止しています"
     sudo systemctl status gitlab-runner --no-pager
