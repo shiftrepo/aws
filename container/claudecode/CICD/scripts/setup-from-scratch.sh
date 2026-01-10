@@ -277,12 +277,13 @@ After=network.target
 
 [Service]
 Type=simple
-User=gitlab-runner
+User=root
 # CRITICAL: GitLabRunnerのパスは /usr/local/bin/gitlab-runner が正しい
 # /usr/bin/gitlab-runner は存在しない - 絶対に変更禁止
 # 確認コマンド: which gitlab-runner → /usr/local/bin/gitlab-runner
 # 実行ファイル: /usr/local/bin/gitlab-runner (ELF 64-bit LSB executable)
-ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user gitlab-runner
+# FIXED: User=root に変更 - Maven build時の権限問題を解決
+ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user root
 Restart=always
 RestartSec=10
 
@@ -367,7 +368,12 @@ echo "       --url http://${EC2_HOST}:5003 \\"
 echo "       --executor shell \\"
 echo "       --description 'CICD Shell Runner'"
 echo ""
-echo "  5. sample-appプロジェクトをGitLabにプッシュ:"
+echo "  5. GitLab CI/CD 環境変数の設定:"
+echo "     プロジェクト > Settings > CI/CD > Variables で以下を追加:"
+echo "     NEXUS_ADMIN_PASSWORD (Masked): ${ADMIN_PASSWORD}"
+echo "     SONAR_TOKEN (Masked): <SonarQubeで生成したトークン>"
+echo ""
+echo "  6. sample-appプロジェクトをGitLabにプッシュ:"
 echo "     cd ${BASE_DIR}/sample-app"
 echo "     git remote set-url origin http://${EC2_HOST}:5003/root/sample-app.git"
 echo "     git push -u origin master"

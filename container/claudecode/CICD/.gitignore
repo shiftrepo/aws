@@ -50,3 +50,4 @@ credentials.txt
 # 動的生成ファイル (セットアップ時に自動作成)
 config/postgres/init-runtime.sql
 sample-app/pom.xml.backup
+sample-app-repo/
