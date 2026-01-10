@@ -278,7 +278,7 @@ After=network.target
 [Service]
 Type=simple
 User=gitlab-runner
-ExecStart=/usr/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user gitlab-runner
+ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user gitlab-runner
 Restart=always
 RestartSec=10
 

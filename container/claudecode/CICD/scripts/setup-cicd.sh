@@ -405,23 +405,110 @@ else
     print_info "コミットする変更がありません"
 fi
 
-# リモートURL設定
-print_info "GitLabリモートURLを設定中..."
-git remote set-url origin "http://${EC2_PUBLIC_IP}:5003/root/sample-app.git"
-print_success "リモートURLを設定しました: http://${EC2_PUBLIC_IP}:5003/root/sample-app.git"
+# SSH認証セットアップとプッシュ実行
+print_info "SSH認証を設定してGitLabにプッシュ中..."
+echo "  方法: SSH鍵自動生成・登録経由"
 
-# プッシュ実行
-print_info "GitLabにプッシュ中..."
-if git push -u origin master; then
-    print_success "GitLabへのプッシュが完了しました"
-    print_info "CI/CDパイプラインが自動実行されます"
+# SSH鍵ペア自動生成・登録関数
+setup_ssh_authentication() {
+    local ssh_key_path="$HOME/.ssh/gitlab_cicd_ed25519"
+    local ssh_config="$HOME/.ssh/config"
+
+    # SSH ディレクトリ作成
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+
+    # SSH鍵ペア生成（既存がない場合のみ）
+    if [ ! -f "${ssh_key_path}" ]; then
+        print_info "SSH鍵ペアを生成中..."
+        ssh-keygen -t ed25519 -f "${ssh_key_path}" -N "" -C "cicd-automation@${EC2_PUBLIC_IP}"
+        chmod 600 "${ssh_key_path}"
+        chmod 644 "${ssh_key_path}.pub"
+        print_success "SSH鍵ペアを生成しました: ${ssh_key_path}"
+    else
+        print_info "既存のSSH鍵を使用します: ${ssh_key_path}"
+    fi
+
+    # SSH設定ファイル更新
+    if ! grep -q "Host gitlab-cicd" "${ssh_config}" 2>/dev/null; then
+        cat >> "${ssh_config}" << EOF
+
+# GitLab CICD Configuration (Auto-Generated)
+Host gitlab-cicd
+    HostName ${EC2_PUBLIC_IP}
+    Port 2223
+    User git
+    IdentityFile ${ssh_key_path}
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+        chmod 600 "${ssh_config}"
+        print_success "SSH設定を更新しました: ${ssh_config}"
+    fi
+
+    # GitLab APIでSSH鍵を登録
+    if [ -n "$GITLAB_TOKEN" ]; then
+        local public_key=$(cat "${ssh_key_path}.pub")
+        local key_title="CICD-Auto-$(date +%Y%m%d%H%M%S)"
+
+        # 既存SSH鍵の重複チェック
+        local existing_keys=$(curl -s -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            "${GITLAB_API}/user/keys" | grep -o '"title":"CICD-Auto-[^"]*"' || echo "")
+
+        if [ -z "$existing_keys" ]; then
+            # SSH鍵をGitLabに登録
+            local ssh_response=$(curl -s -X POST \
+                -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "{\"title\": \"${key_title}\", \"key\": \"${public_key}\"}" \
+                "${GITLAB_API}/user/keys")
+
+            if echo "$ssh_response" | grep -q '"id"'; then
+                print_success "SSH公開鍵をGitLabに登録しました: ${key_title}"
+            else
+                print_warning "SSH鍵登録に失敗しました: $ssh_response"
+                return 1
+            fi
+        else
+            print_info "既存のSSH鍵が登録済みです"
+        fi
+    else
+        print_warning "GitLab Personal Access Tokenがないため、手動でSSH鍵を登録してください"
+        print_info "SSH公開鍵: ${ssh_key_path}.pub"
+        cat "${ssh_key_path}.pub"
+        return 1
+    fi
+
+    return 0
+}
+
+# SSH認証セットアップ実行
+if setup_ssh_authentication; then
+    # SSH形式のリモートURL設定
+    print_info "GitLabリモートURL（SSH）を設定中..."
+    git remote set-url origin "git@gitlab-cicd:root/sample-app.git"
+    print_success "リモートURLを設定しました: git@gitlab-cicd:root/sample-app.git"
+
+    # SSH経由でプッシュ実行
+    print_info "SSH経由でGitLabにプッシュ中..."
+    if git push -u origin master 2>/dev/null; then
+        print_success "GitLabへのプッシュが完了しました"
+        print_info "CI/CDパイプラインが自動実行されます"
+    else
+        print_warning "SSH経由のプッシュに失敗しました"
+        echo "  デバッグ情報:"
+        echo "    SSH鍵: $HOME/.ssh/gitlab_cicd_ed25519"
+        echo "    接続テスト: ssh -T git@gitlab-cicd"
+        echo "  手動プッシュ:"
+        echo "    cd ${BASE_DIR}/sample-app"
+        echo "    git push -u origin master"
+    fi
 else
-    print_warning "プッシュに失敗しました。認証が必要です"
-    echo "  1. http://${EC2_PUBLIC_IP}:5003/root/sample-app にアクセス"
-    echo "  2. Clone → Clone with HTTPS のURLを確認"
-    echo "  3. 以下のコマンドで手動プッシュしてください:"
-    echo "     cd ${BASE_DIR}/sample-app"
-    echo "     git push -u origin master"
+    print_warning "SSH認証セットアップに失敗しました。手動でSSH鍵を設定してください"
+    echo "  1. SSH鍵生成: ssh-keygen -t ed25519 -f ~/.ssh/gitlab_cicd_ed25519"
+    echo "  2. 公開鍵をGitLabに登録: User Settings → SSH Keys"
+    echo "  3. リモートURL変更: git remote set-url origin git@${EC2_PUBLIC_IP}:root/sample-app.git"
+    echo "  4. プッシュ実行: git push -u origin master"
 fi
 
 # ========================================================================
