@@ -39,6 +39,10 @@ backup-*/
 
 # Environment secrets (公開する場合は削除)
 # .env
+.env.backup.*
+
+# Credentials file (認証情報ファイル)
+credentials.txt
 
 # Maven local settings (個人設定)
 .m2/

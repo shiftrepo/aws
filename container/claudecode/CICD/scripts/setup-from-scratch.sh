@@ -235,3 +235,16 @@ podman ps --format "table {{.Names}}\t{{.Status}}"
 echo ""
 echo "環境変数ファイル: ${ENV_FILE}"
 echo ""
+
+# 認証情報をファイルに出力
+echo "認証情報をファイルに出力中..."
+if [ -f "${SCRIPT_DIR}/show-credentials.sh" ]; then
+    bash "${SCRIPT_DIR}/show-credentials.sh" --file
+    echo ""
+    echo "✓ 認証情報ファイル: ${BASE_DIR}/credentials.txt"
+    echo "  内容を確認: cat ${BASE_DIR}/credentials.txt"
+    echo "  確認後は削除推奨: rm ${BASE_DIR}/credentials.txt"
+else
+    echo "⚠️ show-credentials.sh が見つかりません"
+fi
+echo ""
