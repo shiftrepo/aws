@@ -7,9 +7,46 @@
 
 set -e
 
+# Bash環境最適化設定（permission denied エラー対策）
+export SHELL=/bin/bash
+export LC_ALL=C
+umask 0022
+
+# 権限確保と環境チェック
+if [ "$(id -u)" -ne 0 ]; then
+    echo "❌ このスクリプトはroot権限で実行してください"
+    echo "実行方法: sudo $0"
+    exit 1
+fi
+
+# シェル環境の権限確認
+chmod +x "$0" 2>/dev/null || true
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="${BASE_DIR}/.env"
+
+# スクリプトディレクトリ内のファイルに実行権限を付与（permission denied対策）
+if [ -d "${SCRIPT_DIR}" ]; then
+    find "${SCRIPT_DIR}" -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
+fi
+
+# エラーハンドリング関数（permission denied エラー対策）
+handle_command_error() {
+    local exit_code=$1
+    local command="$2"
+    if [ $exit_code -eq 126 ]; then
+        echo "  ⚠ Permission denied エラーが発生しました"
+        echo "  コマンド: $command"
+        echo "  対処: 権限を確認して再実行してください"
+        return 1
+    elif [ $exit_code -ne 0 ]; then
+        echo "  ❌ コマンドエラー (終了コード: $exit_code)"
+        echo "  コマンド: $command"
+        return $exit_code
+    fi
+    return 0
+}
 
 echo "=========================================="
 echo "CICD環境完全セットアップ"
@@ -351,8 +388,9 @@ echo ""
 echo "次のステップ:"
 echo "  1. Nexusにログイン:"
 echo "     http://${EC2_HOST}:8082"
-echo "     ユーザー名: admin / パスワード: admin123"
-echo "     初回ログイン時にパスワード変更が必須です"
+echo "     ユーザー名: admin"
+echo "     パスワード: ${ADMIN_PASSWORD}"
+echo "     ※ 初回起動時は admin123 ですが、手動で変更してください"
 echo ""
 echo "  2. SonarQubeにログイン:"
 echo "     http://${EC2_HOST}:8000"
@@ -374,8 +412,16 @@ echo "     NEXUS_ADMIN_PASSWORD (Masked): ${ADMIN_PASSWORD}"
 echo "     SONAR_TOKEN (Masked): <SonarQubeで生成したトークン>"
 echo ""
 echo "  6. sample-appプロジェクトをGitLabにプッシュ:"
-echo "     cd ${BASE_DIR}/sample-app"
-echo "     git remote set-url origin http://${EC2_HOST}:5003/root/sample-app.git"
+echo "     # 独立したディレクトリでGitLab登録（ユーザーリポジトリと分離）"
+echo "     ${BASE_DIR}/scripts/setup-sample-app.sh ${EC2_HOST} ${ADMIN_PASSWORD}"
+echo ""
+echo "     ※ 自動スクリプトが実行されます（手動実行の場合）:"
+echo "     mkdir -p /tmp/gitlab-sample-app"
+echo "     cp -r ${BASE_DIR}/sample-app/* /tmp/gitlab-sample-app/"
+echo "     cd /tmp/gitlab-sample-app"
+echo "     git init && git add ."
+echo "     git commit -m 'Initial commit for GitLab CI/CD'"
+echo "     git remote add origin http://${EC2_HOST}:5003/root/sample-app.git"
 echo "     git push -u origin master"
 echo ""
 echo "コンテナ状態:"
