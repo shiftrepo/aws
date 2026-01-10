@@ -1,0 +1,268 @@
+version: '3.8'
+
+services:
+  # ========================================
+  # PostgreSQL Database
+  # ========================================
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: cicd-postgres
+    restart: always
+    ports:
+      - "5001:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro,z
+    networks:
+      - cicd-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    shm_size: '256mb'
+
+  # ========================================
+  # pgAdmin - PostgreSQL GUI
+  # ========================================
+  pgadmin:
+    image: docker.io/dpage/pgadmin4:latest
+    container_name: cicd-pgadmin
+    restart: always
+    ports:
+      - "5002:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro,z
+    networks:
+      - cicd-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ========================================
+  # GitLab CE
+  # ========================================
+  gitlab:
+    image: docker.io/gitlab/gitlab-ce:latest
+    container_name: cicd-gitlab
+    restart: always
+    hostname: gitlab
+    ports:
+      - "5003:80"
+      - "5005:5050"
+      - "8443:443"
+      - "2223:22"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://${EC2_PUBLIC_IP}:5003'
+        nginx['listen_port'] = 80
+        gitlab_rails['initial_root_password'] = 'password123!'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2223
+        # Mattermost無効化（独立コンテナで稼働）
+        mattermost['enable'] = false
+        # コンテナレジストリ有効化
+        registry_external_url 'http://${EC2_PUBLIC_IP}:5005'
+        registry_nginx['listen_port'] = 5050
+        gitlab_rails['registry_enabled'] = true
+        # パフォーマンス設定
+        gitlab_rails['time_zone'] = 'Asia/Tokyo'
+        prometheus_monitoring['enable'] = false
+        gitlab_rails['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000'}
+        puma['worker_processes'] = 2
+        sidekiq['max_concurrency'] = 10
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    networks:
+      - cicd-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/-/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
+    shm_size: '256mb'
+
+  # ========================================
+  # GitLab Runner
+  # ========================================
+  gitlab-runner:
+    image: docker.io/gitlab/gitlab-runner:latest
+    container_name: cicd-gitlab-runner
+    restart: always
+    volumes:
+      - ./config/gitlab-runner:/etc/gitlab-runner:z
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cicd-network
+    depends_on:
+      gitlab:
+        condition: service_healthy
+
+  # ========================================
+  # Nexus Repository
+  # ========================================
+  nexus:
+    image: docker.io/sonatype/nexus3:latest
+    container_name: cicd-nexus
+    restart: always
+    ports:
+      - "8082:8081"      # Nexus UI/Maven
+      - "8083:8083"      # Docker Registry
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: "-Xms1024m -Xmx2048m -XX:MaxDirectMemorySize=2048m"
+      NEXUS_SECURITY_RANDOMPASSWORD: "false"
+    volumes:
+      - nexus-data:/nexus-data
+    networks:
+      - cicd-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ========================================
+  # SonarQube
+  # ========================================
+  sonarqube:
+    image: docker.io/library/sonarqube:10-community
+    container_name: cicd-sonarqube
+    restart: always
+    ports:
+      - "8000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/sonardb
+      SONAR_JDBC_USERNAME: sonaruser
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+    networks:
+      - cicd-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/api/system/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ========================================
+  # Mattermost (独立コンテナ)
+  # ========================================
+  mattermost:
+    image: docker.io/mattermost/mattermost-team-edition:latest
+    container_name: cicd-mattermost
+    restart: always
+    ports:
+      - "5004:8065"
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mattermostuser:mattermost_pass_2026@postgres:5432/mattermostdb?sslmode=disable&connect_timeout=10
+      MM_SERVICESETTINGS_SITEURL: http://${EC2_PUBLIC_IP}:5004
+      TZ: Asia/Tokyo
+    volumes:
+      - mattermost-config:/mattermost/config
+      - mattermost-data:/mattermost/data
+      - mattermost-logs:/mattermost/logs
+      - mattermost-plugins:/mattermost/plugins
+      - mattermost-client-plugins:/mattermost/client/plugins
+    networks:
+      - cicd-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8065/api/v4/system/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ========================================
+  # Sample Backend (Spring Boot)
+  # ========================================
+  sample-backend:
+    build:
+      context: ./sample-app/backend
+      dockerfile: Dockerfile
+    image: sample-backend:latest
+    container_name: sample-backend
+    restart: always
+    ports:
+      - "8501:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sampledb
+      SPRING_DATASOURCE_USERNAME: sampleuser
+      SPRING_DATASOURCE_PASSWORD: ${SAMPLE_DB_PASSWORD}
+    networks:
+      - cicd-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - app
+
+  # ========================================
+  # Sample Frontend (React + Vite)
+  # ========================================
+  sample-frontend:
+    build:
+      context: ./sample-app/frontend
+      dockerfile: Dockerfile
+    image: sample-frontend:latest
+    container_name: sample-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_BASE_URL: http://${EC2_PUBLIC_IP}:8501/api
+    networks:
+      - cicd-network
+    depends_on:
+      - sample-backend
+    profiles:
+      - app
+
+# ========================================
+# Networks
+# ========================================
+networks:
+  cicd-network:
+    driver: bridge
+
+# ========================================
+# Volumes (named volumes for persistence)
+# ========================================
+volumes:
+  postgres-data:
+  pgadmin-data:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  nexus-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:
+  mattermost-config:
+  mattermost-data:
+  mattermost-logs:
+  mattermost-plugins:
+  mattermost-client-plugins:

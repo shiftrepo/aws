@@ -1,0 +1,40 @@
+# Volumes (persistent data)
+volumes/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Maven
+**/target/
+**/.m2/
+
+# Node
+**/node_modules/
+**/dist/
+**/build/
+
+# Test
+**/coverage/
+**/playwright-report/
+**/test-results/
+
+# Backup
+*.bak
+*.backup
+
+# Temp files
+*.tmp
+*.swp
+*~

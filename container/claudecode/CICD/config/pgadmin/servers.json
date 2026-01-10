@@ -1,0 +1,34 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "CICD PostgreSQL",
+      "Group": "CI/CD Environment",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "cicddb",
+      "Username": "cicduser",
+      "SSLMode": "prefer",
+      "Comment": "Main CICD PostgreSQL database"
+    },
+    "2": {
+      "Name": "SonarQube DB",
+      "Group": "CI/CD Environment",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "sonardb",
+      "Username": "sonaruser",
+      "SSLMode": "prefer",
+      "Comment": "SonarQube database"
+    },
+    "3": {
+      "Name": "Sample App DB",
+      "Group": "CI/CD Environment",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "sampledb",
+      "Username": "sampleuser",
+      "SSLMode": "prefer",
+      "Comment": "Sample application database"
+    }
+  }
+}
