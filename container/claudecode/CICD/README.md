@@ -364,7 +364,32 @@ sudo systemctl enable --now gitlab-runner
 sudo systemctl status gitlab-runner
 ```
 
-### 4. サンプルアプリケーションのプッシュ
+### 4. CI/CD環境セットアップ（自動化）
+
+**前提条件**: コンテナ起動完了、基本パスワード設定完了
+
+```bash
+# CI/CD環境の完全自動セットアップ
+./scripts/setup-cicd.sh
+```
+
+**セットアップ内容（6ステップ）**:
+1. **認証情報の確認・更新** - Nexusパスワード、SonarQubeトークンの取得・更新
+2. **GitLab Runner登録** - Registration Token入力で自動登録・起動
+3. **GitLabプロジェクト作成** - Personal Access Tokenで自動作成
+4. **CI/CD環境変数設定** - SONAR_TOKEN、NEXUS_ADMIN_PASSWORD等を自動設定
+5. **sample-appプッシュ** - リモートURL設定とプッシュでパイプライン起動
+6. **セットアップ完了確認** - Runner状態、パイプライン実行状況確認
+
+**ユーザー入力が必要な項目**:
+- Nexus新パスワード（変更した場合のみ）
+- SonarQubeトークン（My Account → Security → Generate Token）
+- GitLab Runner Registration Token（Settings → CI/CD → Runners）
+- GitLab Personal Access Token（User Settings → Access Tokens）
+
+### 5. 手動でのサンプルアプリケーションプッシュ（オプション）
+
+CI/CDスクリプトを使用しない場合の手動手順：
 
 ```bash
 cd sample-app
@@ -686,6 +711,7 @@ SonarQubeで設定された品質基準:
 | スクリプト | 説明 | 用途 |
 |----------|------|------|
 | `setup-from-scratch.sh` | ゼロから完全環境構築（12ステップ、トークン保持） | 新規環境セットアップ、再セットアップ |
+| `setup-cicd.sh` | CI/CD環境自動セットアップ（6ステップ、Runner登録・プロジェクト作成） | CI/CDパイプライン構築、sample-app連携 |
 | `show-credentials.sh` | 全サービスの認証情報表示 | 認証情報確認、ファイル出力 |
 | `update-passwords.sh` | パスワード・トークン・EC2ホスト更新 | パスワード変更、EC2ドメイン変更 |
 | `backup-all.sh` | 完全バックアップ | 定期バックアップ、移行前 |
