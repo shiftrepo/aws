@@ -92,8 +92,8 @@ generate_credentials() {
     print_service "Nexus Repository" \
         "http://${EC2_PUBLIC_IP}:8082" \
         "admin" \
-        "${NEXUS_ADMIN_PASSWORD}" \
-        "初回ログイン後、パスワード変更が求められる場合があります"
+        "admin123 (初期固定パスワード)" \
+        "初回ログイン時にパスワード変更が必須です"
 
     print_service "SonarQube" \
         "http://${EC2_PUBLIC_IP}:8000" \
@@ -183,9 +183,10 @@ generate_credentials() {
     echo ""
     echo "【Nexus Repository】"
     echo "  1. http://${EC2_PUBLIC_IP}:8082 にアクセス"
-    echo "  2. admin / Degital2026! でログイン"
-    echo "  3. セットアップウィザードが表示された場合、指示に従う"
-    echo "  4. パスワード変更を求められた場合:"
+    echo "  2. admin / admin123 でログイン"
+    echo "  3. 初回ログイン時、必ずパスワード変更が求められます"
+    echo "  4. 新しいパスワードを設定（推奨: Degital2026!）"
+    echo "  5. パスワード変更後、環境変数を更新:"
     echo "     ./scripts/update-passwords.sh --nexus <新しいパスワード>"
     echo ""
     echo "【GitLab Runner】"

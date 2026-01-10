@@ -419,12 +419,16 @@ URL: http://YOUR_IP:5003
 ```
 URL: http://YOUR_IP:8082
 ユーザー名: admin
-パスワード: ${NEXUS_ADMIN_PASSWORD} (デフォルト: Degital2026!)
+初期パスワード: admin123 (固定)
 ```
 - **初回ログイン後の対応**:
-  - "Sign in with the default credentials" をクリック
-  - セットアップウィザードが表示された場合、パスワード変更を求められることがあります
-  - その場合は `.env` ファイルの `NEXUS_ADMIN_PASSWORD` も同じ値に更新してください
+  - **必須**: 初回ログイン時にパスワード変更が求められます
+  - 新しいパスワードを設定（推奨: Degital2026!）
+  - セットアップウィザードに従って初期設定を完了
+  - **重要**: パスワード変更後、`.env` ファイルの `NEXUS_ADMIN_PASSWORD` を更新:
+    ```bash
+    ./scripts/update-passwords.sh --nexus 新しいパスワード
+    ```
 
 #### 3. SonarQube
 ```
