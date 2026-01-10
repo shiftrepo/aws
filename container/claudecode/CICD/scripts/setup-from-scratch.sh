@@ -278,6 +278,10 @@ After=network.target
 [Service]
 Type=simple
 User=gitlab-runner
+# CRITICAL: GitLabRunnerのパスは /usr/local/bin/gitlab-runner が正しい
+# /usr/bin/gitlab-runner は存在しない - 絶対に変更禁止
+# 確認コマンド: which gitlab-runner → /usr/local/bin/gitlab-runner
+# 実行ファイル: /usr/local/bin/gitlab-runner (ELF 64-bit LSB executable)
 ExecStart=/usr/local/bin/gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /home/gitlab-runner --service gitlab-runner --user gitlab-runner
 Restart=always
 RestartSec=10

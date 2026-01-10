@@ -157,6 +157,7 @@ echo "[2/6] GitLab Runner登録"
 echo "=========================================="
 
 # Runner状態確認
+# CRITICAL: GitLabRunnerパスは /usr/local/bin/gitlab-runner 固定 - 変更禁止
 if sudo /usr/local/bin/gitlab-runner list 2>/dev/null | grep -q "CICD Shell Runner"; then
     print_warning "GitLab Runnerは既に登録されています"
     sudo /usr/local/bin/gitlab-runner list
@@ -522,6 +523,7 @@ echo "=========================================="
 print_info "GitLab Runner状態確認..."
 if sudo systemctl is-active --quiet gitlab-runner; then
     print_success "GitLab Runnerが正常に動作しています"
+    # CRITICAL: GitLabRunnerパスは /usr/local/bin/gitlab-runner 固定 - 変更禁止
     sudo /usr/local/bin/gitlab-runner list
 else
     print_warning "GitLab Runnerが停止しています"
