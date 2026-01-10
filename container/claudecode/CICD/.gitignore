@@ -1,13 +1,22 @@
-# Volumes (persistent data)
-volumes/
-
-# Environment variables
-.env
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
 
 # IDE
-.vscode/
 .idea/
 *.iml
+.vscode/
+.settings/
+.classpath
+.project
 
 # OS
 .DS_Store
@@ -16,25 +25,20 @@ Thumbs.db
 # Logs
 *.log
 
-# Maven
-**/target/
-**/.m2/
-
-# Node
-**/node_modules/
-**/dist/
-**/build/
-
 # Test
-**/coverage/
-**/playwright-report/
-**/test-results/
+.pytest_cache/
+*.pyc
 
-# Backup
-*.bak
-*.backup
+# Docker volumes (永続化データ)
+volumes/
 
-# Temp files
-*.tmp
-*.swp
-*~
+# Backup files
+backup-*/
+*.tar.gz
+*.bundle
+
+# Environment secrets (公開する場合は削除)
+# .env
+
+# Maven local settings (個人設定)
+.m2/
