@@ -230,6 +230,19 @@ if [ ! -f "${BASE_DIR}/docker-compose.yml" ]; then
 fi
 echo "  ✓ docker-compose.yml が存在します"
 
+# 8.5. PostgreSQL初期化スクリプトの生成
+echo "PostgreSQL初期化スクリプトを生成中..."
+if [ -f "${BASE_DIR}/config/postgres/init.sql" ]; then
+    # プレースホルダーを環境変数で置換
+    sed -e "s/__SONAR_DB_PASSWORD__/${ADMIN_PASSWORD}/g" \
+        -e "s/__SAMPLE_DB_PASSWORD__/${ADMIN_PASSWORD}/g" \
+        -e "s/__MATTERMOST_DB_PASSWORD__/${ADMIN_PASSWORD}/g" \
+        "${BASE_DIR}/config/postgres/init.sql" > "${BASE_DIR}/config/postgres/init-runtime.sql"
+    echo "  ✓ PostgreSQL初期化スクリプトを生成しました"
+else
+    echo "  ⚠ PostgreSQL初期化スクリプトのテンプレートが見つかりません"
+fi
+
 # 8. コンテナの起動
 echo "[9/12] コンテナを起動中..."
 cd "${BASE_DIR}"

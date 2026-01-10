@@ -46,3 +46,7 @@ credentials.txt
 
 # Maven local settings (個人設定)
 .m2/
+
+# 動的生成ファイル (セットアップ時に自動作成)
+config/postgres/init-runtime.sql
+sample-app/pom.xml.backup

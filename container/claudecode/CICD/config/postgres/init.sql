@@ -3,12 +3,12 @@
 
 -- SonarQube用データベース
 CREATE DATABASE sonardb;
-CREATE USER sonaruser WITH ENCRYPTED PASSWORD 'Degital2026!';
+CREATE USER sonaruser WITH ENCRYPTED PASSWORD '__SONAR_DB_PASSWORD__';
 GRANT ALL PRIVILEGES ON DATABASE sonardb TO sonaruser;
 
 -- サンプルアプリケーション用データベース
 CREATE DATABASE sampledb;
-CREATE USER sampleuser WITH ENCRYPTED PASSWORD 'Degital2026!';
+CREATE USER sampleuser WITH ENCRYPTED PASSWORD '__SAMPLE_DB_PASSWORD__';
 GRANT ALL PRIVILEGES ON DATABASE sampledb TO sampleuser;
 
 -- sampledb に接続して権限設定
@@ -29,7 +29,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO sonaruser;
 
 -- Mattermost用データベース
 CREATE DATABASE mattermostdb;
-CREATE USER mattermostuser WITH ENCRYPTED PASSWORD 'Degital2026!';
+CREATE USER mattermostuser WITH ENCRYPTED PASSWORD '__MATTERMOST_DB_PASSWORD__';
 GRANT ALL PRIVILEGES ON DATABASE mattermostdb TO mattermostuser;
 
 -- mattermostdb に接続して権限設定
