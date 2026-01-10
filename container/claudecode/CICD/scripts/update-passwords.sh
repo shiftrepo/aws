@@ -27,6 +27,7 @@ show_help() {
   --sample-db <password>      Sample App DBパスワードを更新
   --sonar-token <token>       SonarQubeトークンを更新
   --runner-token <token>      GitLab Runnerトークンを更新
+  --ec2-host <hostname/ip>    EC2ドメイン名/IPアドレスを更新
   --all <password>            すべてのパスワードを一括更新（トークンを除く）
   --show                      現在の設定値を表示
   -h, --help                  このヘルプを表示
@@ -43,6 +44,10 @@ show_help() {
 
   # SonarQubeトークンを更新
   $0 --sonar-token sqa_1234567890abcdef
+
+  # EC2ドメイン名/IPアドレスを更新
+  $0 --ec2-host ec2-xx-xx-xx-xx.compute-1.amazonaws.com
+  $0 --ec2-host 192.168.1.100
 
 注意:
   - パスワードに特殊文字が含まれる場合、シングルクォートで囲んでください
@@ -273,6 +278,25 @@ main() {
             update_password "RUNNER_TOKEN" "$2" "GitLab Runner Token"
             echo ""
             echo "✓ GitLab Runnerトークンを更新しました"
+            ;;
+
+        --ec2-host)
+            if [ -z "$2" ]; then
+                echo "エラー: ドメイン名/IPアドレスを指定してください"
+                exit 1
+            fi
+            backup_env
+            update_password "EC2_PUBLIC_IP" "$2" "EC2 ドメイン名/IPアドレス"
+            echo ""
+            echo "✓ EC2ドメイン名/IPアドレスを更新しました: $2"
+            echo ""
+            echo "⚠️ 変更後の確認方法:"
+            echo "  ./scripts/show-credentials.sh"
+            echo ""
+            echo "⚠️ コンテナの再起動は不要ですが、GitLabなどのURL設定が変わります"
+            echo "  sample-appのリモートURLも更新してください:"
+            echo "  cd sample-app"
+            echo "  git remote set-url origin http://$2:5003/root/sample-app.git"
             ;;
 
         --all)

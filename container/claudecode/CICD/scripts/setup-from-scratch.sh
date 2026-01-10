@@ -24,7 +24,7 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 # 1. システム前提条件のインストール
-echo "[1/11] システムパッケージをインストール中..."
+echo "[1/12] システムパッケージをインストール中..."
 sudo yum update -y
 sudo yum install -y git wget curl podman podman-compose maven java-17-openjdk-devel python3 python3-pip
 
@@ -36,7 +36,7 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 # 2. SELinux設定
-echo "[2/11] SELinux設定を調整中..."
+echo "[2/12] SELinux設定を調整中..."
 if [ "$(getenforce)" != "Disabled" ]; then
     sudo setenforce 0
     sudo sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
@@ -44,16 +44,16 @@ if [ "$(getenforce)" != "Disabled" ]; then
 fi
 
 # 3. Podmanソケットの有効化
-echo "[3/11] Podmanソケットを有効化中..."
+echo "[3/12] Podmanソケットを有効化中..."
 sudo systemctl enable --now podman.socket
 sudo systemctl status podman.socket --no-pager | head -5
 
 # 4. 必要なディレクトリの作成
-echo "[4/11] ディレクトリ構造を作成中..."
+echo "[4/12] ディレクトリ構造を作成中..."
 mkdir -p "${BASE_DIR}"/{config/{gitlab,nexus,sonarqube,postgres,pgadmin,gitlab-runner,maven},volumes,scripts}
 
 # 5. 管理者パスワードの設定
-echo "[5/11] 管理者パスワードを設定中..."
+echo "[5/12] 管理者パスワードを設定中..."
 if [ ! -f "$ENV_FILE" ] || ! grep -q "GITLAB_ROOT_PASSWORD" "$ENV_FILE"; then
     echo ""
     echo "管理者パスワードを設定してください（GitLab、Nexus、SonarQubeで共通使用）"
@@ -84,25 +84,63 @@ else
     ADMIN_PASSWORD="${GITLAB_ROOT_PASSWORD}"
 fi
 
-# 6. 環境変数ファイルの作成または更新
-echo "[6/11] 環境変数ファイルを作成中..."
-EC2_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "localhost")
+# 6. EC2ドメイン名/IPアドレスの設定
+echo "[6/12] EC2ドメイン名/IPアドレスを設定中..."
+if [ ! -f "$ENV_FILE" ] || ! grep -q "EC2_PUBLIC_IP" "$ENV_FILE"; then
+    echo ""
+    echo "EC2インスタンスのドメイン名またはIPアドレスを入力してください"
+    echo "例: ec2-xx-xx-xx-xx.compute-1.amazonaws.com"
+    echo "例: 192.168.1.100"
+    echo ""
+    echo "※ 入力しない場合は自動検出します（EC2メタデータから取得）"
+    echo ""
+
+    read -p "ドメイン名/IPアドレス: " EC2_HOST
+
+    if [ -z "$EC2_HOST" ]; then
+        # 入力がない場合は自動検出
+        echo "  自動検出を試行中..."
+        EC2_HOST=$(curl -s --connect-timeout 3 http://169.254.169.254/latest/meta-data/public-ipv4 || echo "")
+
+        if [ -z "$EC2_HOST" ]; then
+            echo "  ⚠️ 自動検出に失敗しました。localhostを使用します"
+            EC2_HOST="localhost"
+        else
+            echo "  ✓ 自動検出成功: $EC2_HOST"
+        fi
+    else
+        # 入力があった場合は検証
+        echo "  入力されたホスト: $EC2_HOST"
+        echo "  ✓ ドメイン名/IPアドレスを設定しました"
+    fi
+else
+    echo "  ✓ 既存の .env ファイルからドメイン名/IPを読み込みます"
+    source "$ENV_FILE"
+    EC2_HOST="${EC2_PUBLIC_IP}"
+fi
+
+echo ""
+echo "  使用するホスト: $EC2_HOST"
+echo ""
+
+# 7. 環境変数ファイルの作成または更新
+echo "[7/12] 環境変数ファイルを作成中..."
 
 cat > "$ENV_FILE" << EOF
 # PostgreSQL Configuration
-POSTGRES_PASSWORD=cicd_postgres_pass_2026
+POSTGRES_PASSWORD=${ADMIN_PASSWORD}
 POSTGRES_DB=cicddb
 POSTGRES_USER=cicduser
 
 # SonarQube Database
-SONAR_DB_PASSWORD=sonar_db_pass_2026
+SONAR_DB_PASSWORD=${ADMIN_PASSWORD}
 
 # Sample App Database
-SAMPLE_DB_PASSWORD=sample_app_pass_2026
+SAMPLE_DB_PASSWORD=${ADMIN_PASSWORD}
 
 # pgAdmin Configuration
 PGADMIN_EMAIL=admin@example.com
-PGADMIN_PASSWORD=pgadmin_pass_2026
+PGADMIN_PASSWORD=${ADMIN_PASSWORD}
 
 # Nexus Configuration
 NEXUS_ADMIN_PASSWORD=${ADMIN_PASSWORD}
@@ -120,13 +158,13 @@ SONAR_TOKEN=
 RUNNER_TOKEN=
 
 # External Access
-EC2_PUBLIC_IP=${EC2_IP}
+EC2_PUBLIC_IP=${EC2_HOST}
 EOF
 
 echo "  ✓ .env ファイルを作成しました"
 
 # 7. Docker Composeファイルの確認
-echo "[7/11] Docker Compose設定を確認中..."
+echo "[8/12] Docker Compose設定を確認中..."
 if [ ! -f "${BASE_DIR}/docker-compose.yml" ]; then
     echo "  ✗ docker-compose.yml が見つかりません"
     echo "  バックアップから復元するか、手動で作成してください"
@@ -135,7 +173,7 @@ fi
 echo "  ✓ docker-compose.yml が存在します"
 
 # 8. コンテナの起動
-echo "[8/11] コンテナを起動中..."
+echo "[9/12] コンテナを起動中..."
 cd "${BASE_DIR}"
 podman-compose down 2>/dev/null || true
 podman-compose up -d
@@ -147,7 +185,7 @@ sleep 90
 podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 # 9. GitLab Runnerのインストール
-echo "[9/11] GitLab Runnerをインストール中..."
+echo "[10/12] GitLab Runnerをインストール中..."
 if ! command -v gitlab-runner &> /dev/null; then
     curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh" | sudo bash
     sudo yum install -y gitlab-runner
@@ -178,7 +216,7 @@ WantedBy=multi-user.target
 EOFSERVICE
 
 # 10. Maven設定
-echo "[10/11] Maven設定を作成中..."
+echo "[11/12] Maven設定を作成中..."
 mkdir -p /root/.m2 /home/ec2-user/.m2 /home/gitlab-runner/.m2
 
 # .envから管理者パスワードを読み込んでMaven settings.xmlを生成
@@ -194,7 +232,7 @@ else
 fi
 
 # 11. 完了メッセージ
-echo "[11/11] セットアップ完了チェック..."
+echo "[12/12] セットアップ完了チェック..."
 sleep 5
 
 echo ""
@@ -208,26 +246,26 @@ echo "  パスワード: [設定したパスワード]"
 echo ""
 echo "次のステップ:"
 echo "  1. Nexusにログイン:"
-echo "     http://${EC2_IP}:8082"
+echo "     http://${EC2_HOST}:8082"
 echo "     初回ログイン後、パスワード変更が求められる場合があります"
 echo ""
 echo "  2. SonarQubeにログイン:"
-echo "     http://${EC2_IP}:8000"
+echo "     http://${EC2_HOST}:8000"
 echo "     初回ログイン後、パスワード変更が必要です"
 echo ""
 echo "  3. GitLabにログイン:"
-echo "     http://${EC2_IP}:5003"
+echo "     http://${EC2_HOST}:5003"
 echo "     rootユーザーでログインしてください"
 echo ""
 echo "  4. GitLab Runnerの登録:"
 echo "     sudo gitlab-runner register \\"
-echo "       --url http://${EC2_IP}:5003 \\"
+echo "       --url http://${EC2_HOST}:5003 \\"
 echo "       --executor shell \\"
 echo "       --description 'CICD Shell Runner'"
 echo ""
 echo "  5. sample-appプロジェクトをGitLabにプッシュ:"
 echo "     cd ${BASE_DIR}/sample-app"
-echo "     git remote set-url origin http://${EC2_IP}:5003/root/sample-app.git"
+echo "     git remote set-url origin http://${EC2_HOST}:5003/root/sample-app.git"
 echo "     git push -u origin master"
 echo ""
 echo "コンテナ状態:"

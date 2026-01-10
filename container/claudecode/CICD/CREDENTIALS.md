@@ -8,6 +8,7 @@
 - [認証情報一覧の確認](#認証情報一覧の確認)
 - [パスワード更新方法](#パスワード更新方法)
 - [初回ログイン後の対応](#初回ログイン後の対応)
+- [EC2ドメイン名/IPアドレスの変更](#ec2ドメイン名ipアドレスの変更)
 - [データベース認証情報](#データベース認証情報)
 - [セキュリティベストプラクティス](#セキュリティベストプラクティス)
 
@@ -281,6 +282,263 @@ sudo systemctl enable --now gitlab-runner
 
 # 5. トークンを環境変数に保存（任意）
 ./scripts/update-passwords.sh --runner-token 'YOUR_REGISTRATION_TOKEN'
+```
+
+---
+
+## 🌐 EC2ドメイン名/IPアドレスの変更
+
+### EC2インスタンス再作成時の対応
+
+EC2インスタンスを再作成した場合、IPアドレスやドメイン名が変わります。このセクションでは、ドメイン名/IPアドレスの変更方法を説明します。
+
+### 変更が必要なケース
+
+1. **EC2インスタンスの再作成**: 新しいインスタンスで異なるIPアドレスが割り当てられる
+2. **Elastic IPの変更**: Elastic IPを変更または削除した場合
+3. **ドメイン名の設定**: Route 53などでドメイン名を設定した場合
+4. **開発環境の移行**: 別のEC2インスタンスに環境を移行する場合
+
+### 方法1: 初回セットアップ時に入力
+
+`setup-from-scratch.sh` 実行時にドメイン名/IPアドレスを入力できます。
+
+```bash
+cd /root/aws.git/container/claudecode/CICD
+./scripts/setup-from-scratch.sh
+
+# ...
+# [6/12] EC2ドメイン名/IPアドレスを設定中...
+#
+# EC2インスタンスのドメイン名またはIPアドレスを入力してください
+# 例: ec2-xx-xx-xx-xx.compute-1.amazonaws.com
+# 例: 192.168.1.100
+#
+# ※ 入力しない場合は自動検出します（EC2メタデータから取得）
+#
+# ドメイン名/IPアドレス: [ここに入力]
+```
+
+**入力例**:
+```bash
+# EC2パブリックDNS名
+ec2-34-205-156-203.compute-1.amazonaws.com
+
+# Elastic IP
+54.123.456.789
+
+# カスタムドメイン
+cicd.example.com
+
+# ローカル開発環境
+192.168.1.100
+```
+
+### 方法2: 既存環境のドメイン名を更新
+
+既に環境が稼働している場合、`update-passwords.sh` を使用して変更できます。
+
+```bash
+# ドメイン名/IPアドレスを更新
+./scripts/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
+
+# または
+./scripts/update-passwords.sh --ec2-host 54.123.456.789
+```
+
+**実行結果**:
+```
+【EC2 ドメイン名/IPアドレス】
+  変数名: EC2_PUBLIC_IP
+  新しい値: ec2-****
+
+  ✓ 更新完了
+
+✓ EC2ドメイン名/IPアドレスを更新しました: ec2-34-205-156-203.compute-1.amazonaws.com
+
+⚠️ 変更後の確認方法:
+  ./scripts/show-credentials.sh
+
+⚠️ コンテナの再起動は不要ですが、GitLabなどのURL設定が変わります
+  sample-appのリモートURLも更新してください:
+  cd sample-app
+  git remote set-url origin http://ec2-34-205-156-203.compute-1.amazonaws.com:5003/root/sample-app.git
+```
+
+### 方法3: .envファイルを直接編集
+
+```bash
+# .envファイルを編集
+vi .env
+
+# EC2_PUBLIC_IPの値を変更
+# 変更前: EC2_PUBLIC_IP=34.205.156.203
+# 変更後: EC2_PUBLIC_IP=ec2-34-205-156-203.compute-1.amazonaws.com
+
+# 保存して終了
+```
+
+### 変更後の確認
+
+#### 1. 環境変数の確認
+
+```bash
+# 現在の設定を表示
+./scripts/update-passwords.sh --show
+
+# または
+cat .env | grep EC2_PUBLIC_IP
+```
+
+#### 2. 認証情報の確認
+
+```bash
+# すべてのサービスURLを確認
+./scripts/show-credentials.sh
+
+# ファイルに出力して確認
+./scripts/show-credentials.sh --file
+cat credentials.txt
+rm credentials.txt
+```
+
+#### 3. サービスへのアクセス確認
+
+```bash
+# 新しいドメイン名/IPアドレスでアクセス確認
+NEW_HOST="ec2-34-205-156-203.compute-1.amazonaws.com"
+
+curl http://${NEW_HOST}:5003/  # GitLab
+curl http://${NEW_HOST}:8082/  # Nexus
+curl http://${NEW_HOST}:8000/  # SonarQube
+curl http://${NEW_HOST}:5002/  # pgAdmin
+```
+
+### 関連設定の更新
+
+#### GitLab sample-app リモートURL
+
+```bash
+cd sample-app
+
+# 現在のリモートURLを確認
+git remote -v
+
+# リモートURLを更新
+git remote set-url origin http://NEW_HOST:5003/root/sample-app.git
+
+# 確認
+git remote -v
+
+# プッシュテスト
+git push origin master
+```
+
+#### GitLab Runner の再登録
+
+ドメイン名が変わった場合、GitLab Runnerの再登録が必要な場合があります。
+
+```bash
+# 既存のRunnerを削除
+sudo gitlab-runner unregister --all-runners
+
+# 新しいURLで再登録
+sudo gitlab-runner register \
+  --url http://NEW_HOST:5003 \
+  --token YOUR_REGISTRATION_TOKEN \
+  --executor shell \
+  --description "CICD Shell Runner"
+
+# Runner起動
+sudo systemctl restart gitlab-runner
+```
+
+#### ブラウザのブックマーク更新
+
+- GitLab: `http://NEW_HOST:5003`
+- Nexus: `http://NEW_HOST:8082`
+- SonarQube: `http://NEW_HOST:8000`
+- pgAdmin: `http://NEW_HOST:5002`
+
+### トラブルシューティング
+
+#### ドメイン名が解決できない場合
+
+```bash
+# DNS解決確認
+nslookup ec2-34-205-156-203.compute-1.amazonaws.com
+
+# pingテスト
+ping ec2-34-205-156-203.compute-1.amazonaws.com
+
+# 名前解決できない場合は、IPアドレスを使用
+./scripts/update-passwords.sh --ec2-host 34.205.156.203
+```
+
+#### GitLabにアクセスできない場合
+
+```bash
+# セキュリティグループ確認
+# AWS Console → EC2 → Security Groups
+# インバウンドルールで以下のポートが開いているか確認:
+# - 5003 (GitLab)
+# - 8082 (Nexus)
+# - 8000 (SonarQube)
+# - 5002 (pgAdmin)
+
+# GitLabコンテナの状態確認
+podman ps | grep gitlab
+podman logs cicd-gitlab | tail -20
+```
+
+#### CI/CDパイプラインが失敗する場合
+
+```bash
+# GitLab CI/CD環境変数のURLを確認
+# GitLab → Settings → CI/CD → Variables
+
+# .ci-settings.xml.template のURLは環境変数を使用するため、
+# 自動的に更新されます（変更不要）
+```
+
+### ベストプラクティス
+
+#### 1. Elastic IPの使用
+
+IPアドレスが変わらないようにするため、Elastic IPを割り当てることを推奨します。
+
+```bash
+# AWS Console → EC2 → Elastic IPs
+# 1. Elastic IPを割り当て
+# 2. EC2インスタンスに関連付け
+# 3. .envファイルを更新
+./scripts/update-passwords.sh --ec2-host YOUR_ELASTIC_IP
+```
+
+#### 2. Route 53でドメイン名を設定
+
+覚えやすいドメイン名を使用することを推奨します。
+
+```bash
+# Route 53でAレコードを作成
+# cicd.example.com → Elastic IP
+
+# .envファイルを更新
+./scripts/update-passwords.sh --ec2-host cicd.example.com
+```
+
+#### 3. 変更履歴の記録
+
+```bash
+# .envファイルのバックアップ（自動作成）
+# update-passwords.sh実行時に自動的にバックアップされます:
+# .env.backup.YYYYMMDDHHMMSS
+
+# バックアップファイルの一覧
+ls -lt .env.backup.*
+
+# 以前のドメイン名を確認
+cat .env.backup.20260110120000 | grep EC2_PUBLIC_IP
 ```
 
 ---
