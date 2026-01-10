@@ -411,13 +411,13 @@ chmod +x scripts/*.sh
 | `cleanup-all.sh` | `sudo ./scripts/cleanup-all.sh` | **sudo必須** | 全リソース削除 |
 | `deploy-oneclick.sh` | `sudo ./scripts/deploy-oneclick.sh` | **sudo必須** | ワンクリック再デプロイ |
 | `setup-cicd.sh` | `sudo ./scripts/setup-cicd.sh` | **sudo必須** | CI/CD環境自動構築 |
-| `setup-sample-app.sh` | `./scripts/setup-sample-app.sh` | 通常ユーザー | CI/CD検証（推奨） |
+| `setup-sample-app.sh` | `sudo ./scripts/setup-sample-app.sh` | **sudo必須** | CI/CD検証（推奨） |
 | `setup-gitlab-variables.sh` | `./scripts/setup-gitlab-variables.sh` | 通常ユーザー | GitLab環境変数設定ガイド |
 
 **重要な注意事項:**
 - **sudo が必要なスクリプト**: コンテナ操作、システム設定変更を行うスクリプト
 - **通常ユーザーで実行するスクリプト**: 設定確認、環境変数更新、GitLab操作を行うスクリプト
-- `setup-sample-app.sh`は通常ユーザーでの実行を推奨しますが、環境によっては sudo が必要な場合があります
+- `setup-sample-app.sh`は **sudo実行が必須** です（GitLab Runnerログアクセスのため）
 
 ### 1. ゼロからセットアップ
 
@@ -455,7 +455,7 @@ sudo ./scripts/setup-from-scratch.sh
 
 ```bash
 # コンテナ起動確認
-podman ps
+sudo podman ps
 
 # サービス接続確認
 curl http://localhost:5003/  # GitLab
@@ -1086,23 +1086,23 @@ EOF
 ```bash
 # 全サービス起動
 cd /root/aws.git/container/claudecode/CICD
-podman-compose up -d
+sudo podman-compose up -d
 
 # 全サービス停止
-podman-compose down
+sudo podman-compose down
 
 # 特定サービスの再起動
-podman-compose restart gitlab
-podman-compose restart nexus
-podman-compose restart sonarqube
+sudo podman-compose restart gitlab
+sudo podman-compose restart nexus
+sudo podman-compose restart sonarqube
 
 # ログ確認
-podman-compose logs -f gitlab
-podman-compose logs -f nexus
-podman-compose logs -f sonarqube
+sudo podman-compose logs -f gitlab
+sudo podman-compose logs -f nexus
+sudo podman-compose logs -f sonarqube
 
 # リソース使用状況
-podman stats
+sudo podman stats
 ```
 
 ---
@@ -1188,7 +1188,7 @@ sudo gitlab-runner register \
 
 ### 1. コンテナが起動しない
 
-**症状**: `podman-compose up -d` 後、コンテナがすぐに停止する
+**症状**: `sudo podman-compose up -d` 後、コンテナがすぐに停止する
 
 **原因と対策**:
 
@@ -1227,15 +1227,15 @@ echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
 **対策**:
 ```bash
 # コンテナの状態確認
-podman ps -a | grep gitlab
+sudo podman ps -a | grep gitlab
 
 # GitLab初期化完了まで待機（5-10分）
-podman logs -f cicd-gitlab
+sudo podman logs -f cicd-gitlab
 
 # "gitlab Reconfigured!" が表示されるまで待つ
 
 # 初期パスワード確認（24時間以内）
-podman exec -it cicd-gitlab cat /etc/gitlab/initial_root_password
+sudo podman exec -it cicd-gitlab cat /etc/gitlab/initial_root_password
 ```
 
 ### 3. CI/CDパイプラインが失敗する
@@ -1271,7 +1271,7 @@ mvn test -Dtest=OrganizationServiceTest
 curl http://localhost:8000/api/system/status
 
 # SonarQubeログ確認
-podman logs cicd-sonarqube
+sudo podman logs cicd-sonarqube
 ```
 
 ##### Deploy ステージ失敗（401 Unauthorized）
@@ -1313,7 +1313,7 @@ sudo journalctl -u gitlab-runner -f
 
 ```bash
 # PostgreSQL起動確認
-podman ps | grep postgres
+sudo podman ps | grep postgres
 
 # PostgreSQL接続テスト
 psql -h localhost -p 5001 -U cicduser -d cicddb
@@ -1352,10 +1352,10 @@ open backend/target/site/jacoco/index.html
 df -h
 
 # Podman未使用イメージ削除
-podman image prune -a
+sudo podman image prune -a
 
 # Podman未使用ボリューム削除
-podman volume prune
+sudo podman volume prune
 
 # 古いバックアップ削除
 find backup-* -type f -mtime +30 -delete
@@ -1541,13 +1541,13 @@ gpg --decrypt backup-20260110-075148.tar.gz.gpg > backup-20260110-075148.tar.gz
 #### 4. 監査ログ
 ```bash
 # GitLabアクセスログ
-podman exec cicd-gitlab cat /var/log/gitlab/nginx/gitlab_access.log
+sudo podman exec cicd-gitlab cat /var/log/gitlab/nginx/gitlab_access.log
 
 # Nexusログ
-podman logs cicd-nexus
+sudo podman logs cicd-nexus
 
 # SonarQubeログ
-podman logs cicd-sonarqube
+sudo podman logs cicd-sonarqube
 ```
 
 ---
@@ -1595,7 +1595,7 @@ podman logs cicd-sonarqube
 問題が発生した場合:
 
 1. [トラブルシューティング](#トラブルシューティング)セクションを確認
-2. ログを確認（`podman logs <container_name>`）
+2. ログを確認（`sudo podman logs <container_name>`）
 3. GitLabプロジェクトのIssuesに報告
 
 ---
