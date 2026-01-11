@@ -94,20 +94,23 @@ services:
     shm_size: '256mb'
 
   # ========================================
-  # GitLab Runner
+  # GitLab Runner (Disabled - Using Host Runner with Java/Maven)
   # ========================================
-  gitlab-runner:
-    image: docker.io/gitlab/gitlab-runner:latest
-    container_name: cicd-gitlab-runner
-    restart: always
-    volumes:
-      - ./config/gitlab-runner:/etc/gitlab-runner:z
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - cicd-network
-    depends_on:
-      gitlab:
-        condition: service_healthy
+  # gitlab-runner:
+  #   image: docker.io/gitlab/gitlab-runner:latest
+  #   container_name: cicd-gitlab-runner
+  #   restart: always
+  #   volumes:
+  #     - ./config/gitlab-runner:/etc/gitlab-runner:z
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - cicd-network
+  #   depends_on:
+  #     gitlab:
+  #       condition: service_healthy
+  #
+  # Note: Container GitLab Runner lacks Java/Maven environment
+  # Using host-based GitLab Runner instead for Maven pipeline execution
 
   # ========================================
   # Nexus Repository
