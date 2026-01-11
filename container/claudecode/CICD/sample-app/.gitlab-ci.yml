@@ -4,7 +4,7 @@
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version --settings ./.m2/settings.xml"
+  MAVEN_SETTINGS: "--settings ./.m2/settings.xml"
 
 # 全ステージ共通のMaven設定（匿名アクセス有効）
 before_script:
@@ -47,7 +47,7 @@ build:
   stage: build
   script:
     - echo "🏗️ Maven マルチモジュール プロジェクトをビルド中..."
-    - mvn $MAVEN_CLI_OPTS clean compile
+    - mvn -B -e -fae -V $MAVEN_SETTINGS clean compile
     - echo "✅ ビルド完了"
   artifacts:
     paths:
@@ -63,7 +63,7 @@ test:
   stage: test
   script:
     - echo "🧪 JUnit テストを実行中..."
-    - mvn $MAVEN_CLI_OPTS test
+    - mvn -B -e -fae -V $MAVEN_SETTINGS test
     - echo "✅ テスト完了"
   artifacts:
     reports:
@@ -82,7 +82,7 @@ coverage:
   stage: coverage
   script:
     - echo "📊 JaCoCo カバレッジレポートを生成中..."
-    - mvn $MAVEN_CLI_OPTS jacoco:report
+    - mvn -B -e -fae -V $MAVEN_SETTINGS jacoco:report
     - echo "📈 カバレッジ結果を確認中..."
     - ls -la backend/target/site/jacoco/ || echo "カバレッジディレクトリが見つかりません"
     - echo "✅ カバレッジ分析完了"
@@ -127,20 +127,20 @@ sonarqube:
       echo "🔍 SonarQube個別解析実行中（全モジュール）..."
 
       # 各モジュールを順次実行
-      mvn $MAVEN_CLI_OPTS sonar:sonar \
+      mvn -B -e -fae -V $MAVEN_SETTINGS sonar:sonar \
         -Dsonar.host.url="${SONAR_HOST_URL:-http://${EC2_PUBLIC_IP:-localhost}:8000}" \
         -Dsonar.token="$SONAR_TOKEN"
 
       echo "📊 Common モジュール分析中..."
       cd common
-      mvn $MAVEN_CLI_OPTS sonar:sonar \
+      mvn -B -e -fae -V $MAVEN_SETTINGS sonar:sonar \
         -Dsonar.host.url="${SONAR_HOST_URL:-http://${EC2_PUBLIC_IP:-localhost}:8000}" \
         -Dsonar.token="$SONAR_TOKEN"
       cd ..
 
       echo "🚀 Backend モジュール分析中..."
       cd backend
-      mvn $MAVEN_CLI_OPTS sonar:sonar \
+      mvn -B -e -fae -V $MAVEN_SETTINGS sonar:sonar \
         -Dsonar.host.url="${SONAR_HOST_URL:-http://${EC2_PUBLIC_IP:-localhost}:8000}" \
         -Dsonar.token="$SONAR_TOKEN"
       cd ..
@@ -157,7 +157,7 @@ package:
   stage: package
   script:
     - echo "📦 JARファイルをパッケージ中..."
-    - mvn $MAVEN_CLI_OPTS package -DskipTests
+    - mvn -B -e -fae -V $MAVEN_SETTINGS package -DskipTests
     - echo "✅ パッケージ完了"
     - ls -lh backend/target/*.jar || echo "JARファイルが見つかりません"
   dependencies:
@@ -190,7 +190,7 @@ deploy:
     - echo "Nexus URL $NEXUS_URL"
     - curl -f -s "$NEXUS_URL/service/rest/v1/status" > /dev/null || (echo "⚠️ Nexus Repository への接続に失敗しました" && exit 1)
     - echo "✅ Nexus Repository 接続確認完了"
-    - mvn $MAVEN_CLI_OPTS deploy -DskipTests --settings .ci-settings.xml
+    - mvn -B -e -fae -V deploy -DskipTests --settings .ci-settings.xml
     - echo "✅ デプロイ完了"
     - echo "🌐 Nexus Repository http://${EC2_PUBLIC_IP:-localhost}:8082/#browse/browse:maven-snapshots"
   dependencies:
