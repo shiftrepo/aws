@@ -62,6 +62,17 @@ sonarqube:
         echo "GitLab Settings → CI/CD → Variables でSONAR_TOKENを設定してください"
         exit 1
       fi
+
+      # トークン形式確認（セキュリティのため先頭のみ表示）
+      echo "🔑 SONAR_TOKEN形式確認: $(echo $SONAR_TOKEN | head -c 15)..."
+
+      # SonarQube認証テスト
+      echo "🔐 SonarQube認証テスト実行中..."
+      if curl -s -u "admin:Degital2026!" "${SONAR_HOST_URL:-http://localhost:8000}/api/authentication/validate" | grep -q '"valid":true'; then
+        echo "✅ SonarQube管理者認証成功"
+      else
+        echo "⚠️ SonarQube管理者認証失敗（トークン認証を試行）"
+      fi
     - |
       # SonarQube接続テスト
       SONAR_URL="${SONAR_HOST_URL:-http://localhost:8000}"
@@ -87,7 +98,22 @@ sonarqube:
         exit 1
       fi
     - echo "✅ SonarQube 解析完了"
-    - echo "🌐 SonarQube Dashboard: http://localhost:8000/dashboard?id=${SONAR_PROJECT_KEY:-sample-org-management}"
+    - |
+      # 解析結果確認
+      echo "📊 SonarQube解析結果確認中..."
+      sleep 5  # SonarQubeでの処理完了を待機
+
+      PROJECT_KEY="${SONAR_PROJECT_KEY:-sample-org-management}"
+      SONAR_URL="${SONAR_HOST_URL:-http://localhost:8000}"
+
+      # プロジェクト存在確認
+      if curl -s -u "admin:Degital2026!" "$SONAR_URL/api/projects/search?projects=$PROJECT_KEY" | grep -q "\"key\":\"$PROJECT_KEY\""; then
+        echo "✅ SonarQubeプロジェクトが正常に作成されました: $PROJECT_KEY"
+        echo "🌐 SonarQube Dashboard: http://13.219.95.96:8000/dashboard?id=$PROJECT_KEY"
+      else
+        echo "⚠️ SonarQubeプロジェクトの作成確認ができませんでした"
+        echo "🔍 手動確認: http://13.219.95.96:8000/projects"
+      fi
 
 package:
   stage: package
