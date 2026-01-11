@@ -20,7 +20,7 @@ before_script:
         <mirror>
           <id>nexus-mirror</id>
           <mirrorOf>*</mirrorOf>
-          <url>http://localhost:8082/repository/maven-public/</url>
+          <url>http://13.219.95.96:8082/repository/maven-public/</url>
         </mirror>
       </mirrors>
     </settings>
@@ -68,14 +68,14 @@ sonarqube:
 
       # SonarQube認証テスト
       echo "🔐 SonarQube認証テスト実行中..."
-      if curl -s -u "admin:Degital2026!" "${SONAR_HOST_URL:-http://localhost:8000}/api/authentication/validate" | grep -q '"valid":true'; then
+      if curl -s -u "admin:Degital2026!" "http://13.219.95.96:8000/api/authentication/validate" | grep -q '"valid":true'; then
         echo "✅ SonarQube管理者認証成功"
       else
-        echo "⚠️ SonarQube管理者認証失敗（トークン認証を試行）"
+        echo "⚠️ SonarQube管理者認証失敗"
       fi
     - |
       # SonarQube接続テスト
-      SONAR_URL="${SONAR_HOST_URL:-http://localhost:8000}"
+      SONAR_URL="http://13.219.95.96:8000"
       echo "🔗 SonarQubeサーバー接続テスト: $SONAR_URL"
       if ! curl -s -f "$SONAR_URL/api/system/status" > /dev/null; then
         echo "❌ SonarQubeサーバーに接続できません: $SONAR_URL"
@@ -87,10 +87,13 @@ sonarqube:
       echo "🔍 SonarQube解析実行中..."
       set -e  # エラー時に即座に停止
 
-      if mvn -B -e -fae -V -s ./.m2/settings.xml sonar:sonar \
-        -Dsonar.host.url="${SONAR_HOST_URL:-http://localhost:8000}" \
-        -Dsonar.token="$SONAR_TOKEN" \
-        -Dsonar.projectKey="${SONAR_PROJECT_KEY:-sample-org-management}"; then
+      # ⚠️ 変更禁止: clean verify sonar:sonar を同じJobで実行することで
+      # target/classes とカバレッジデータが確実に生成される
+      if mvn -B -s ./.m2/settings.xml clean verify sonar:sonar \
+        -Dsonar.host.url="http://13.219.95.96:8000" \
+        -Dsonar.login="admin" \
+        -Dsonar.password="Degital2026!" \
+        -Dsonar.projectKey="sample-org-management"; then
         echo "✅ SonarQube解析が正常に完了しました"
       else
         echo "❌ SonarQube解析が失敗しました"
@@ -103,8 +106,8 @@ sonarqube:
       echo "📊 SonarQube解析結果確認中..."
       sleep 5  # SonarQubeでの処理完了を待機
 
-      PROJECT_KEY="${SONAR_PROJECT_KEY:-sample-org-management}"
-      SONAR_URL="${SONAR_HOST_URL:-http://localhost:8000}"
+      PROJECT_KEY="sample-org-management"
+      SONAR_URL="http://13.219.95.96:8000"
 
       # プロジェクト存在確認
       if curl -s -u "admin:Degital2026!" "$SONAR_URL/api/projects/search?projects=$PROJECT_KEY" | grep -q "\"key\":\"$PROJECT_KEY\""; then

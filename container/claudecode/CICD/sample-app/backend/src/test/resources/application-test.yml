@@ -1,0 +1,25 @@
+# ⚠️ 変更禁止: 統合テスト用データベース設定
+# - 実データベース接続（モック不使用）
+# - 外部IP経由でコンテナ接続
+spring:
+  datasource:
+    url: jdbc:postgresql://13.219.95.96:5001/sampledb
+    username: sampleuser
+    password: Degital2026!
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+logging:
+  level:
+    org.springframework.web: INFO
+    com.example: DEBUG

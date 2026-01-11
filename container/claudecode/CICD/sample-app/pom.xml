@@ -45,8 +45,9 @@
         <sonar.scanner.skip>false</sonar.scanner.skip>
 
         <!-- JaCoCo Coverage Thresholds -->
-        <jacoco.line.ratio>0.80</jacoco.line.ratio>
-        <jacoco.branch.ratio>0.70</jacoco.branch.ratio>
+        <!-- Entity/DTO除外後: Service/Controller層で高カバレッジ目標 -->
+        <jacoco.line.ratio>0.90</jacoco.line.ratio>
+        <jacoco.branch.ratio>0.90</jacoco.branch.ratio>
 
         <!-- Nexus Repository Settings -->
         <nexus.url>http://localhost:8082</nexus.url>
@@ -99,6 +100,8 @@
                     <configuration>
                         <source>17</source>
                         <target>17</target>
+                        <!-- ⚠️ 変更禁止: @PathVariableパラメータ名リフレクション取得に必須 -->
+                        <parameters>true</parameters>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>
@@ -139,6 +142,13 @@
                             <goals>
                                 <goal>report</goal>
                             </goals>
+                            <configuration>
+                                <excludes>
+                                    <!-- Lombok生成コード（Entity）を除外 -->
+                                    <exclude>**/entity/**</exclude>
+                                    <exclude>**/dto/**</exclude>
+                                </excludes>
+                            </configuration>
                         </execution>
                         <execution>
                             <id>check</id>
@@ -147,6 +157,11 @@
                                 <goal>check</goal>
                             </goals>
                             <configuration>
+                                <excludes>
+                                    <!-- Lombok生成コード（Entity）を除外 -->
+                                    <exclude>**/entity/**</exclude>
+                                    <exclude>**/dto/**</exclude>
+                                </excludes>
                                 <rules>
                                     <rule>
                                         <element>BUNDLE</element>
