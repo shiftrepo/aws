@@ -360,8 +360,8 @@ cicd.example.com
   ./scripts/utils/show-credentials.sh
 
 ⚠️ コンテナの再起動は不要ですが、GitLabなどのURL設定が変わります
-  sample-appのリモートURLも更新してください:
-  cd sample-app
+  GitLab作業ディレクトリのリモートURLも更新してください:
+  cd /tmp/gitlab-sample-app
   git remote set-url origin http://ec2-34-205-156-203.compute-1.amazonaws.com:5003/root/sample-app.git
 ```
 
@@ -424,7 +424,8 @@ cd sample-app
 # 現在のリモートURLを確認
 git remote -v
 
-# リモートURLを更新
+# GitLab作業ディレクトリのリモートURLを更新
+cd /tmp/gitlab-sample-app
 git remote set-url origin http://NEW_HOST:5003/root/sample-app.git
 
 # 確認

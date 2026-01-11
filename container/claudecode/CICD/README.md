@@ -555,9 +555,10 @@ cd /root/aws.git/container/claudecode/CICD
 CI/CD検証スクリプトを使用しない場合の手動手順：
 
 ```bash
-cd sample-app
+# GitLab作業ディレクトリでの操作（/tmp/gitlab-sample-app/）
+cd /tmp/gitlab-sample-app
 
-# リモートURLの設定（初回のみ）
+# リモートURLの設定（GitLab CI/CD用）
 git remote set-url origin http://${EC2_PUBLIC_IP}:5003/root/sample-app.git
 
 # プッシュしてCI/CDパイプライン起動
@@ -1405,8 +1406,8 @@ sudo ./scripts/setup-from-scratch.sh  # ステップ11でMaven設定を再生成
 
 **影響範囲と追加対応**:
 ```bash
-# 1. sample-appのgit remoteを更新
-cd sample-app
+# 1. GitLab作業ディレクトリのリモートURLを更新
+cd /tmp/gitlab-sample-app
 git remote set-url origin http://NEW_IP:5003/root/sample-app.git
 
 # 2. GitLab Runnerの再登録（必要に応じて）

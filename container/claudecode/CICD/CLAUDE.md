@@ -194,7 +194,7 @@ sudo systemctl status gitlab-runner
 sudo gitlab-runner list
 
 # Push to trigger pipeline
-cd sample-app
+cd /tmp/gitlab-sample-app
 git remote set-url origin http://YOUR_IP:5003/root/sample-app.git
 git push -u origin master
 ```
@@ -223,7 +223,7 @@ git push -u origin master
 
 **When EC2 Instance is Recreated**:
 1. Run `setup-from-scratch.sh` (tokens preserved) OR `update-passwords.sh --ec2-host`
-2. Update sample-app git remote: `git remote set-url origin http://NEW_IP:5003/root/sample-app.git`
+2. Update GitLab working copy git remote: `git remote set-url origin http://NEW_IP:5003/root/sample-app.git`
 3. Re-register GitLab Runner with new IP
 
 ### 3. Password Architecture
@@ -346,7 +346,7 @@ PostgreSQL (port 5001) has 4 databases initialized via `config/postgres/init.sql
 
 ### EC2 IP Changed After Instance Recreation
 - Run `./scripts/utils/update-passwords.sh --ec2-host NEW_IP` OR re-run `setup-from-scratch.sh`
-- Update git remote: `git remote set-url origin http://NEW_IP:5003/root/sample-app.git`
+- Update GitLab working copy git remote: `git remote set-url origin http://NEW_IP:5003/root/sample-app.git`
 - Re-register GitLab Runner
 
 ### SonarQube Quality Gate Fails

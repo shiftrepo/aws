@@ -351,7 +351,9 @@ main() {
             echo "  ./show-credentials.sh"
             echo ""
             echo "⚠️ コンテナの再起動は不要ですが、GitLabなどのURL設定が変わります"
-            echo "⚠️ 注意: マスターリポジトリのリモートは絶対に変更禁止です"
+            echo "  GitLab作業ディレクトリのリモートURLも更新してください:"
+            echo "  cd /tmp/gitlab-sample-app"
+            echo "  git remote set-url origin http://$2:5003/root/sample-app.git"
             ;;
 
         --all)
