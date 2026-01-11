@@ -74,10 +74,18 @@ sonarqube:
     - |
       # SonarQube解析実行
       echo "🔍 SonarQube解析実行中..."
-      mvn -B -e -fae -V -s ./.m2/settings.xml sonar:sonar \
+      set -e  # エラー時に即座に停止
+
+      if mvn -B -e -fae -V -s ./.m2/settings.xml sonar:sonar \
         -Dsonar.host.url="${SONAR_HOST_URL:-http://localhost:8000}" \
         -Dsonar.token="$SONAR_TOKEN" \
-        -Dsonar.projectKey="${SONAR_PROJECT_KEY:-sample-org-management}"
+        -Dsonar.projectKey="${SONAR_PROJECT_KEY:-sample-org-management}"; then
+        echo "✅ SonarQube解析が正常に完了しました"
+      else
+        echo "❌ SonarQube解析が失敗しました"
+        echo "認証情報やネットワーク接続を確認してください"
+        exit 1
+      fi
     - echo "✅ SonarQube 解析完了"
     - echo "🌐 SonarQube Dashboard: http://localhost:8000/dashboard?id=${SONAR_PROJECT_KEY:-sample-org-management}"
 
