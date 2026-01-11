@@ -88,12 +88,60 @@ fi
 
 echo "  ✓ プロジェクトID: $PROJECT_ID"
 
+# SonarQubeトークン自動取得関数
+get_or_generate_sonar_token() {
+    local sonar_url="http://$EC2_HOST:8000"
+    local admin_password="Degital2026!"
+
+    echo "🔑 SonarQubeトークン自動取得中..." >&2
+
+    # 既存トークンを.envファイルから確認
+    if [ -n "${SONAR_TOKEN}" ] && [ "${SONAR_TOKEN}" != "squ_placeholder" ]; then
+        echo "✅ 既存SONAR_TOKEN使用: $(echo $SONAR_TOKEN | head -c 15)..." >&2
+        echo "$SONAR_TOKEN"
+        return 0
+    fi
+
+    # SonarQube認証テスト
+    if ! curl -s -u "admin:$admin_password" "$sonar_url/api/authentication/validate" | grep -q '"valid":true'; then
+        echo "❌ SonarQube認証失敗: admin/$admin_password" >&2
+        echo "SonarQubeセットアップが未完了です。手動設定してください。" >&2
+        echo "squ_placeholder"  # プレースホルダーを返す
+        return 1
+    fi
+
+    # 新しいトークン生成
+    echo "🔐 新しいSONAR_TOKEN生成中..." >&2
+    local token_name="cicd-pipeline-$(date +%Y%m%d-%H%M%S)"
+    local new_token=$(curl -s -u "admin:$admin_password" -X POST \
+        "$sonar_url/api/user_tokens/generate" \
+        -d "name=$token_name" | jq -r '.token // empty' 2>/dev/null)
+
+    if [ -n "$new_token" ] && [ "$new_token" != "null" ] && [ "$new_token" != "empty" ]; then
+        echo "✅ SONAR_TOKEN生成成功: $(echo $new_token | head -c 15)..." >&2
+
+        # .envファイルに保存
+        if [ -f "${BASE_DIR}/.env" ]; then
+            sed -i "s/SONAR_TOKEN=.*/SONAR_TOKEN=$new_token/" "${BASE_DIR}/.env"
+            echo "💾 .envファイルにSONAR_TOKEN保存完了" >&2
+        fi
+
+        echo "$new_token"
+        return 0
+    else
+        echo "❌ SONAR_TOKEN生成失敗" >&2
+        echo "手動でSonarQubeからトークンを生成してください" >&2
+        echo "squ_placeholder"
+        return 1
+    fi
+}
+
 # CI/CD環境変数を設定
 echo "  🔧 CI/CD環境変数を設定中..."
 declare -A CI_VARIABLES=(
     ["SONAR_HOST_URL"]="http://$EC2_HOST:8000"
     ["SONAR_PROJECT_KEY"]="sample-app-backend"
-    ["SONAR_TOKEN"]="${SONAR_TOKEN:-squ_placeholder}"
+    ["SONAR_TOKEN"]="$(get_or_generate_sonar_token)"
     ["EC2_PUBLIC_IP"]="$EC2_HOST"
     ["NEXUS_ADMIN_PASSWORD"]="${NEXUS_ADMIN_PASSWORD:-Degital2026!}"
     ["NEXUS_URL"]="http://$EC2_HOST:8082"
