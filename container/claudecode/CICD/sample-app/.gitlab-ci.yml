@@ -1,7 +1,5 @@
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  # ⚠️ 重要: localhostは使用禁止 - 外部IPを環境変数で管理
-  # EC2インスタンス再作成時は GitLab Settings → CI/CD → Variables で更新すること
   EC2_PUBLIC_IP: "13.219.95.96"
 
 cache:
@@ -12,7 +10,6 @@ cache:
 before_script:
   - echo "🔧 Maven設定を準備中..."
   - mkdir -p ./.m2
-  # ⚠️ 重要: localhostは使用禁止 - 環境変数 EC2_PUBLIC_IP を使用
   - |
     cat > ./.m2/settings.xml << XMLEOF
     <?xml version="1.0" encoding="UTF-8"?>
@@ -20,7 +17,6 @@ before_script:
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
               xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
               http://maven.apache.org/xsd/settings-1.0.0.xsd">
-      <localRepository>./.m2/repository</localRepository>
       <mirrors>
         <mirror>
           <id>nexus-mirror</id>
@@ -30,7 +26,7 @@ before_script:
       </mirrors>
     </settings>
     XMLEOF
-  - echo "✅ Maven設定完了 (Nexus: http://${EC2_PUBLIC_IP}:8082)"
+  - echo "✅ Maven設定完了"
 
 stages:
   - build
@@ -59,10 +55,8 @@ sonarqube:
   stage: sonarqube
   script:
     - echo "🔍 SonarQube 静的解析を実行中..."
-    # ⚠️ 重要: localhostは使用禁止 - 環境変数 EC2_PUBLIC_IP を使用
-    - SONARQUBE_URL="http://${EC2_PUBLIC_IP}:8000"
-    - echo "SonarQube Host: ${SONARQUBE_URL}"
-    - echo "Project Key: ${SONAR_PROJECT_KEY:-sample-org-management}"
+    - echo "SonarQube Host ${SONAR_HOST_URL:-http://localhost:8000}"
+    - echo "Project Key ${SONAR_PROJECT_KEY:-sample-org-management}"
     - |
       if [ -z "$SONAR_TOKEN" ]; then
         echo "❌ SONAR_TOKEN が設定されていません"
@@ -75,16 +69,17 @@ sonarqube:
 
       # SonarQube認証テスト
       echo "🔐 SonarQube認証テスト実行中..."
-      if curl -s -u "admin:Degital2026!" "${SONARQUBE_URL}/api/authentication/validate" | grep -q '"valid":true'; then
+      if curl -s -u "admin:Degital2026!" "http://${EC2_PUBLIC_IP}:8000/api/authentication/validate" | grep -q '"valid":true'; then
         echo "✅ SonarQube管理者認証成功"
       else
         echo "⚠️ SonarQube管理者認証失敗"
       fi
     - |
       # SonarQube接続テスト
-      echo "🔗 SonarQubeサーバー接続テスト: ${SONARQUBE_URL}"
-      if ! curl -s -f "${SONARQUBE_URL}/api/system/status" > /dev/null; then
-        echo "❌ SonarQubeサーバーに接続できません: ${SONARQUBE_URL}"
+      SONAR_URL="http://${EC2_PUBLIC_IP}:8000"
+      echo "🔗 SonarQubeサーバー接続テスト: $SONAR_URL"
+      if ! curl -s -f "$SONAR_URL/api/system/status" > /dev/null; then
+        echo "❌ SonarQubeサーバーに接続できません: $SONAR_URL"
         exit 1
       fi
       echo "✅ SonarQubeサーバー接続確認完了"
@@ -96,7 +91,7 @@ sonarqube:
       # ⚠️ 変更禁止: clean verify sonar:sonar を同じJobで実行することで
       # target/classes とカバレッジデータが確実に生成される
       if mvn -B -s ./.m2/settings.xml clean verify sonar:sonar \
-        -Dsonar.host.url="${SONARQUBE_URL}" \
+        -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
         -Dsonar.login="admin" \
         -Dsonar.password="Degital2026!" \
         -Dsonar.projectKey="sample-org-management"; then
@@ -113,14 +108,15 @@ sonarqube:
       sleep 5  # SonarQubeでの処理完了を待機
 
       PROJECT_KEY="sample-org-management"
+      SONAR_URL="http://${EC2_PUBLIC_IP}:8000"
 
       # プロジェクト存在確認
-      if curl -s -u "admin:Degital2026!" "${SONARQUBE_URL}/api/projects/search?projects=$PROJECT_KEY" | grep -q "\"key\":\"$PROJECT_KEY\""; then
+      if curl -s -u "admin:Degital2026!" "$SONAR_URL/api/projects/search?projects=$PROJECT_KEY" | grep -q "\"key\":\"$PROJECT_KEY\""; then
         echo "✅ SonarQubeプロジェクトが正常に作成されました: $PROJECT_KEY"
-        echo "🌐 SonarQube Dashboard: ${SONARQUBE_URL}/dashboard?id=$PROJECT_KEY"
+        echo "🌐 SonarQube Dashboard: http://${EC2_PUBLIC_IP}:8000/dashboard?id=$PROJECT_KEY"
       else
         echo "⚠️ SonarQubeプロジェクトの作成確認ができませんでした"
-        echo "🔍 手動確認: ${SONARQUBE_URL}/projects"
+        echo "🔍 手動確認: http://${EC2_PUBLIC_IP}:8000/projects"
       fi
 
 package:
@@ -132,20 +128,15 @@ deploy:
   stage: deploy
   script:
     - echo "🚀 Nexus Repository にデプロイ中..."
-    # ⚠️ 重要: localhostは使用禁止 - 環境変数 EC2_PUBLIC_IP を使用
-    - NEXUS_URL="http://${EC2_PUBLIC_IP}:8082"
-    - echo "Nexus URL: ${NEXUS_URL}"
     - |
       if [ ! -f ".ci-settings.xml.template" ]; then
         echo "❌ .ci-settings.xml.template ファイルが見つかりません"
         exit 1
       fi
-    # パスワードとNexus URLを環境変数で置換
-    - |
-      sed -e "s|__NEXUS_PASSWORD__|${NEXUS_ADMIN_PASSWORD}|g" \
-          -e "s|__NEXUS_URL__|${NEXUS_URL}|g" \
-          .ci-settings.xml.template > .ci-settings.xml
-    - curl -f -s "${NEXUS_URL}/service/rest/v1/status" > /dev/null || (echo "⚠️ Nexus Repository への接続に失敗しました" && exit 1)
+    - sed "s|__NEXUS_PASSWORD__|${NEXUS_ADMIN_PASSWORD}|g" .ci-settings.xml.template > .ci-settings.xml
+    - NEXUS_URL="http://${EC2_PUBLIC_IP}:8082"
+    - echo "Nexus URL $NEXUS_URL"
+    - curl -f -s "$NEXUS_URL/service/rest/v1/status" > /dev/null || (echo "⚠️ Nexus Repository への接続に失敗しました" && exit 1)
     - echo "✅ Nexus Repository 接続確認完了"
     - mvn -B -e -fae -V deploy -DskipTests --settings .ci-settings.xml
     - echo "✅ デプロイ完了"
