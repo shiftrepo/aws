@@ -20,7 +20,7 @@ before_script:
         <mirror>
           <id>nexus-mirror</id>
           <mirrorOf>*</mirrorOf>
-          <url>http://cicd-nexus:8081/repository/maven-public/</url>
+          <url>http://localhost:8082/repository/maven-public/</url>
         </mirror>
       </mirrors>
     </settings>
@@ -54,7 +54,7 @@ sonarqube:
   stage: sonarqube
   script:
     - echo "🔍 SonarQube 静的解析を実行中..."
-    - echo "SonarQube Host ${SONAR_HOST_URL:-http://cicd-sonarqube:9000}"
+    - echo "SonarQube Host ${SONAR_HOST_URL:-http://localhost:8000}"
     - echo "Project Key ${SONAR_PROJECT_KEY:-sample-org-management}"
     - |
       if [ -z "$SONAR_TOKEN" ]; then
@@ -64,7 +64,7 @@ sonarqube:
       fi
     - |
       # SonarQube接続テスト
-      SONAR_URL="${SONAR_HOST_URL:-http://cicd-sonarqube:9000}"
+      SONAR_URL="${SONAR_HOST_URL:-http://localhost:8000}"
       echo "🔗 SonarQubeサーバー接続テスト: $SONAR_URL"
       if ! curl -s -f "$SONAR_URL/api/system/status" > /dev/null; then
         echo "❌ SonarQubeサーバーに接続できません: $SONAR_URL"
@@ -75,11 +75,11 @@ sonarqube:
       # SonarQube解析実行
       echo "🔍 SonarQube解析実行中..."
       mvn -B -e -fae -V -s ./.m2/settings.xml sonar:sonar \
-        -Dsonar.host.url="${SONAR_HOST_URL:-http://cicd-sonarqube:9000}" \
+        -Dsonar.host.url="${SONAR_HOST_URL:-http://localhost:8000}" \
         -Dsonar.token="$SONAR_TOKEN" \
         -Dsonar.projectKey="${SONAR_PROJECT_KEY:-sample-org-management}"
     - echo "✅ SonarQube 解析完了"
-    - echo "🌐 SonarQube Dashboard: http://cicd-sonarqube:9000/dashboard?id=${SONAR_PROJECT_KEY:-sample-org-management}"
+    - echo "🌐 SonarQube Dashboard: http://localhost:8000/dashboard?id=${SONAR_PROJECT_KEY:-sample-org-management}"
 
 package:
   stage: package
@@ -96,7 +96,7 @@ deploy:
         exit 1
       fi
     - sed "s|__NEXUS_PASSWORD__|${NEXUS_ADMIN_PASSWORD}|g" .ci-settings.xml.template > .ci-settings.xml
-    - NEXUS_URL="http://cicd-nexus:8081"
+    - NEXUS_URL="http://localhost:8082"
     - echo "Nexus URL $NEXUS_URL"
     - curl -f -s "$NEXUS_URL/service/rest/v1/status" > /dev/null || (echo "⚠️ Nexus Repository への接続に失敗しました" && exit 1)
     - echo "✅ Nexus Repository 接続確認完了"
