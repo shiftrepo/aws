@@ -150,6 +150,7 @@ services:
       SONAR_JDBC_USERNAME: sonaruser
       SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
       SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+      SONAR_SECURITY_ADMIN_PASSWORD: ${SONARQUBE_ADMIN_PASSWORD}
     volumes:
       - sonarqube-data:/opt/sonarqube/data
       - sonarqube-logs:/opt/sonarqube/logs
