@@ -1,0 +1,15 @@
+# Simple GitLab Runner Test - 動作確認済み
+stages:
+  - test
+
+simple_test:
+  stage: test
+  script:
+    - echo "GitLab Runner test started"
+    - whoami
+    - pwd
+    - ls -la
+    - echo "✅ GitLab Runner is working correctly!"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
