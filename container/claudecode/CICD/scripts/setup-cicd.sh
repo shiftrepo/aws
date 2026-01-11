@@ -543,10 +543,9 @@ EOF
 
 # SSH認証セットアップ実行
 if setup_ssh_authentication; then
-    # SSH形式のリモートURL設定
-    print_info "GitLabリモートURL（SSH）を設定中..."
-    git remote set-url origin "git@gitlab-cicd:root/sample-app.git"
-    print_success "リモートURLを設定しました: git@gitlab-cicd:root/sample-app.git"
+    # SSH形式のリモートURL設定 - REMOVED: マスターリポジトリのリモートは絶対に変更禁止
+    print_info "GitLabリモートURL設定をスキップ（マスターリポジトリ保護）"
+    print_warning "⚠️ マスターリポジトリのリモートは変更されません"
 
     # SSH経由でプッシュ実行
     print_info "SSH経由でGitLabにプッシュ中..."
@@ -566,7 +565,7 @@ else
     print_warning "SSH認証セットアップに失敗しました。手動でSSH鍵を設定してください"
     echo "  1. SSH鍵生成: ssh-keygen -t ed25519 -f ~/.ssh/gitlab_cicd_ed25519"
     echo "  2. 公開鍵をGitLabに登録: User Settings → SSH Keys"
-    echo "  3. リモートURL変更: git remote set-url origin git@${EC2_PUBLIC_IP}:root/sample-app.git"
+    echo "  3. ⚠️ 注意: マスターリポジトリのリモートは絶対に変更禁止"
     echo "  4. プッシュ実行: git push -u origin master"
 fi
 
