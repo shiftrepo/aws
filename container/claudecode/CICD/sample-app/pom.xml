@@ -36,15 +36,13 @@
         <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
         <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
 
-        <!-- SonarQube Settings (Multi-Module with Common Exclusion) -->
-        <sonar.projectKey>sample-org-management</sonar.projectKey>
-        <sonar.projectName>Sample Organization Management App</sonar.projectName>
-        <!-- CI環境では動的に上書きされる設定 -->
+        <!-- SonarQube Settings (Parent - Common Configuration) -->
         <sonar.host.url>http://localhost:8000</sonar.host.url>
-        <!-- Commonモジュールを除外してBackendのみ解析 -->
-        <sonar.exclusions>common/**/*</sonar.exclusions>
-        <sonar.coverage.exclusions>common/**/*</sonar.coverage.exclusions>
-        <sonar.coverage.jacoco.xmlReportPaths>backend/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.projectKey>sample-org-management</sonar.projectKey>
+        <sonar.projectName>Sample Organization Management</sonar.projectName>
+
+        <!-- 親POMも分析対象とする -->
+        <sonar.scanner.skip>false</sonar.scanner.skip>
 
         <!-- JaCoCo Coverage Thresholds -->
         <jacoco.line.ratio>0.80</jacoco.line.ratio>

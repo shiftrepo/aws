@@ -17,6 +17,12 @@
     <name>Sample App Common</name>
     <description>Common DTOs and shared components for Sample App</description>
 
+    <properties>
+        <!-- SonarQube Settings: 親キー + モジュール名 -->
+        <sonar.projectKey>sample-org-management-common</sonar.projectKey>
+        <sonar.projectName>Sample Organization Management - Common</sonar.projectName>
+    </properties>
+
     <dependencies>
         <!-- Lombok -->
         <dependency>

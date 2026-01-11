@@ -17,6 +17,15 @@
     <name>Sample App Backend</name>
     <description>Spring Boot Backend for Sample Organization Management App</description>
 
+    <properties>
+        <!-- SonarQube Settings: 親キー + モジュール名 -->
+        <sonar.projectKey>sample-org-management-backend</sonar.projectKey>
+        <sonar.projectName>Sample Organization Management - Backend</sonar.projectName>
+
+        <!-- Coverage settings -->
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    </properties>
+
     <dependencies>
         <!-- Common Module -->
         <dependency>
