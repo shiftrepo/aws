@@ -219,6 +219,33 @@ echo "=========================================="
 if sudo /usr/local/bin/gitlab-runner list 2>/dev/null | grep -q "CICD Shell Runner"; then
     print_warning "GitLab Runnerは既に登録されています"
     sudo /usr/local/bin/gitlab-runner list
+
+    # 既存Runnerの設定最適化（パイプライン実行問題を解決）
+    print_info "既存GitLab Runner設定を最適化中..."
+
+    # 現在の設定でrun_untaggedがあるかチェック
+    if sudo grep -q "run_untagged = true" /etc/gitlab-runner/config.toml; then
+        print_success "GitLab Runnerは既に最適化済みです"
+    else
+        # config.tomlの設定を最適化
+        sudo cp /etc/gitlab-runner/config.toml /etc/gitlab-runner/config.toml.backup
+
+        # run_untaggedとtag_listを追加
+        if sudo sed -i '/executor = "shell"/a\  run_untagged = true\n  tag_list = ["shell", "cicd"]\n  request_concurrency = 2' /etc/gitlab-runner/config.toml; then
+            print_success "既存GitLab Runner設定の最適化完了"
+            echo "  ✅ run_untagged = true (タグなしジョブ実行可能)"
+            echo "  ✅ tag_list = [\"shell\", \"cicd\"] (明示的タグ対応)"
+            echo "  ✅ request_concurrency = 2 (パフォーマンス向上)"
+            echo "  📁 バックアップ: /etc/gitlab-runner/config.toml.backup"
+
+            # Runner再起動（設定反映）
+            sudo systemctl restart gitlab-runner
+            print_success "GitLab Runner設定を再起動しました"
+        else
+            print_warning "Runner設定の最適化に失敗しました。バックアップから復元します"
+            sudo mv /etc/gitlab-runner/config.toml.backup /etc/gitlab-runner/config.toml
+        fi
+    fi
 else
     # GitLab Runner Registration Token自動生成
     print_info "GitLab Runner Registration Tokenを自動生成中..."
@@ -269,16 +296,36 @@ EOF
             --non-interactive \
             --url "http://${EC2_PUBLIC_IP}:5003" \
             --token "$RUNNER_REG_TOKEN" \
-            --executor shell
+            --executor shell \
+            --run-untagged \
+            --tag-list "shell,cicd"
+
+        # Runner設定の最適化（パイプライン実行問題を解決）
+        print_info "GitLab Runner設定を最適化中..."
+
+        # config.tomlの設定を最適化
+        sudo cp /etc/gitlab-runner/config.toml /etc/gitlab-runner/config.toml.backup
+
+        # run_untaggedとtag_listを追加
+        if sudo sed -i '/executor = "shell"/a\  run_untagged = true\n  tag_list = ["shell", "cicd"]\n  request_concurrency = 2' /etc/gitlab-runner/config.toml; then
+            print_success "GitLab Runner設定の最適化完了"
+            echo "  ✅ run_untagged = true (タグなしジョブ実行可能)"
+            echo "  ✅ tag_list = [\"shell\", \"cicd\"] (明示的タグ対応)"
+            echo "  ✅ request_concurrency = 2 (パフォーマンス向上)"
+            echo "  📁 バックアップ: /etc/gitlab-runner/config.toml.backup"
+        else
+            print_warning "Runner設定の最適化に失敗しました。バックアップから復元します"
+            sudo mv /etc/gitlab-runner/config.toml.backup /etc/gitlab-runner/config.toml
+        fi
 
         # Runner起動
-        sudo systemctl start gitlab-runner
+        sudo systemctl restart gitlab-runner  # 設定反映のため再起動
         sudo systemctl enable gitlab-runner
 
         # トークン保存
         sed -i "s/RUNNER_TOKEN=.*/RUNNER_TOKEN=${RUNNER_REG_TOKEN}/" "$ENV_FILE"
 
-        print_success "GitLab Runnerを登録・起動しました"
+        print_success "GitLab Runnerを登録・最適化・起動しました"
         sudo /usr/local/bin/gitlab-runner list
     else
         print_error "Registration Tokenが入力されませんでした"
