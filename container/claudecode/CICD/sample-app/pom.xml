@@ -43,20 +43,9 @@
         <sonar.host.url>http://localhost:8000</sonar.host.url>
         <!-- マルチモジュール対応カバレッジ設定 -->
         <sonar.coverage.jacoco.xmlReportPaths>
-            ${project.basedir}/backend/target/site/jacoco/jacoco.xml
+            backend/target/site/jacoco/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
-        <sonar.java.binaries>
-            ${project.basedir}/backend/target/classes,${project.basedir}/common/target/classes
-        </sonar.java.binaries>
-        <sonar.sources>
-            ${project.basedir}/backend/src/main/java,${project.basedir}/common/src/main/java
-        </sonar.sources>
-        <sonar.tests>
-            ${project.basedir}/backend/src/test/java
-        </sonar.tests>
-        <sonar.java.test.binaries>
-            ${project.basedir}/backend/target/test-classes
-        </sonar.java.test.binaries>
+        <!-- 各モジュールが自動的にスキャンされるため、明示的なパス指定は不要 -->
 
         <!-- JaCoCo Coverage Thresholds -->
         <jacoco.line.ratio>0.80</jacoco.line.ratio>
