@@ -61,10 +61,10 @@ SAMPLE_DB_PASSWORD=Degital2026!
 
 ```bash
 # ターミナルに表示
-./scripts/show-credentials.sh
+./scripts/utils/show-credentials.sh
 
 # ファイルに出力
-./scripts/show-credentials.sh --file
+./scripts/utils/show-credentials.sh --file
 
 # 出力されたファイルを確認
 cat credentials.txt
@@ -77,7 +77,7 @@ rm credentials.txt
 
 ```bash
 # 現在の設定を表示
-./scripts/update-passwords.sh --show
+./scripts/utils/update-passwords.sh --show
 
 # または .env ファイルを直接確認
 cat .env
@@ -108,42 +108,42 @@ cat .env
 
 ```bash
 # GitLabパスワードを更新
-./scripts/update-passwords.sh --gitlab 'NewPassword123!'
+./scripts/utils/update-passwords.sh --gitlab 'NewPassword123!'
 
 # Nexusパスワードを更新
-./scripts/update-passwords.sh --nexus 'NewPassword123!'
+./scripts/utils/update-passwords.sh --nexus 'NewPassword123!'
 
 # SonarQubeパスワードを更新
-./scripts/update-passwords.sh --sonarqube 'NewPassword123!'
+./scripts/utils/update-passwords.sh --sonarqube 'NewPassword123!'
 
 # PostgreSQLパスワードを更新
-./scripts/update-passwords.sh --postgres 'NewPassword123!'
+./scripts/utils/update-passwords.sh --postgres 'NewPassword123!'
 
 # pgAdminパスワードを更新
-./scripts/update-passwords.sh --pgadmin 'NewPassword123!'
+./scripts/utils/update-passwords.sh --pgadmin 'NewPassword123!'
 ```
 
 #### 2. すべてのパスワードを一括更新
 
 ```bash
 # すべてのパスワードを同じ値に統一
-./scripts/update-passwords.sh --all 'Degital2026!'
+./scripts/utils/update-passwords.sh --all 'Degital2026!'
 ```
 
 #### 3. トークンを更新
 
 ```bash
 # SonarQubeトークンを更新
-./scripts/update-passwords.sh --sonar-token 'sqa_1234567890abcdef'
+./scripts/utils/update-passwords.sh --sonar-token 'sqa_1234567890abcdef'
 
 # GitLab Runnerトークンを更新
-./scripts/update-passwords.sh --runner-token 'glrt-xxxxxxxxxxxx'
+./scripts/utils/update-passwords.sh --runner-token 'glrt-xxxxxxxxxxxx'
 ```
 
 #### 4. 現在の設定を確認
 
 ```bash
-./scripts/update-passwords.sh --show
+./scripts/utils/update-passwords.sh --show
 ```
 
 ### パスワード更新後の対応
@@ -152,7 +152,7 @@ cat .env
 
 ```bash
 # 1. .envファイルを更新
-./scripts/update-passwords.sh --nexus 'NewPassword123!'
+./scripts/utils/update-passwords.sh --nexus 'NewPassword123!'
 
 # 2. GitLab CI/CD環境変数を更新
 # GitLab → Settings → CI/CD → Variables → NEXUS_ADMIN_PASSWORD
@@ -165,7 +165,7 @@ cat .env
 
 ```bash
 # 1. .envファイルを更新
-./scripts/update-passwords.sh --postgres 'NewPassword123!'
+./scripts/utils/update-passwords.sh --postgres 'NewPassword123!'
 
 # 2. コンテナを再起動
 cd /root/aws.git/container/claudecode/CICD
@@ -177,13 +177,13 @@ podman-compose up -d
 
 ```bash
 # 1. .envファイルを更新
-./scripts/update-passwords.sh --sonarqube 'NewPassword123!'
+./scripts/utils/update-passwords.sh --sonarqube 'NewPassword123!'
 
 # 2. SonarQubeトークンを再生成
 # SonarQube → My Account → Security → Generate Token
 
 # 3. トークンを更新
-./scripts/update-passwords.sh --sonar-token 'sqa_新しいトークン'
+./scripts/utils/update-passwords.sh --sonar-token 'sqa_新しいトークン'
 
 # 4. GitLab CI/CD環境変数を更新
 # GitLab → Settings → CI/CD → Variables → SONAR_TOKEN
@@ -210,7 +210,7 @@ SonarQubeは初回ログイン時に必ずパスワード変更が求められ�
 # 3. 新しいパスワードを設定（推奨: Degital2026!）
 
 # 4. 環境変数を更新
-./scripts/update-passwords.sh --sonarqube 'Degital2026!'
+./scripts/utils/update-passwords.sh --sonarqube 'Degital2026!'
 
 # 5. SonarQubeトークンを生成
 # My Account → Security → Generate Token
@@ -218,7 +218,7 @@ SonarQubeは初回ログイン時に必ずパスワード変更が求められ�
 # Type: Global Analysis Token
 
 # 6. トークンを環境変数に設定
-./scripts/update-passwords.sh --sonar-token 'sqa_xxxxxxxxxxxxxxxxxxxxx'
+./scripts/utils/update-passwords.sh --sonar-token 'sqa_xxxxxxxxxxxxxxxxxxxxx'
 
 # 7. GitLab CI/CD環境変数を更新
 # GitLab → Settings → CI/CD → Variables
@@ -248,7 +248,7 @@ Nexusは初回アクセス時にセットアップウィザードが表示され
 # - "Finish" をクリック
 
 # 4. パスワードを変更した場合は、環境変数を更新
-./scripts/update-passwords.sh --nexus '新しいパスワード'
+./scripts/utils/update-passwords.sh --nexus '新しいパスワード'
 
 # 5. GitLab CI/CD環境変数も更新
 # GitLab → Settings → CI/CD → Variables → NEXUS_ADMIN_PASSWORD
@@ -281,7 +281,7 @@ sudo gitlab-runner register \
 sudo systemctl enable --now gitlab-runner
 
 # 5. トークンを環境変数に保存（任意）
-./scripts/update-passwords.sh --runner-token 'YOUR_REGISTRATION_TOKEN'
+./scripts/utils/update-passwords.sh --runner-token 'YOUR_REGISTRATION_TOKEN'
 ```
 
 ---
@@ -340,10 +340,10 @@ cicd.example.com
 
 ```bash
 # ドメイン名/IPアドレスを更新
-./scripts/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
+./scripts/utils/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
 
 # または
-./scripts/update-passwords.sh --ec2-host 54.123.456.789
+./scripts/utils/update-passwords.sh --ec2-host 54.123.456.789
 ```
 
 **実行結果**:
@@ -357,7 +357,7 @@ cicd.example.com
 ✓ EC2ドメイン名/IPアドレスを更新しました: ec2-34-205-156-203.compute-1.amazonaws.com
 
 ⚠️ 変更後の確認方法:
-  ./scripts/show-credentials.sh
+  ./scripts/utils/show-credentials.sh
 
 ⚠️ コンテナの再起動は不要ですが、GitLabなどのURL設定が変わります
   sample-appのリモートURLも更新してください:
@@ -384,7 +384,7 @@ vi .env
 
 ```bash
 # 現在の設定を表示
-./scripts/update-passwords.sh --show
+./scripts/utils/update-passwords.sh --show
 
 # または
 cat .env | grep EC2_PUBLIC_IP
@@ -394,10 +394,10 @@ cat .env | grep EC2_PUBLIC_IP
 
 ```bash
 # すべてのサービスURLを確認
-./scripts/show-credentials.sh
+./scripts/utils/show-credentials.sh
 
 # ファイルに出力して確認
-./scripts/show-credentials.sh --file
+./scripts/utils/show-credentials.sh --file
 cat credentials.txt
 rm credentials.txt
 ```
@@ -472,7 +472,7 @@ nslookup ec2-34-205-156-203.compute-1.amazonaws.com
 ping ec2-34-205-156-203.compute-1.amazonaws.com
 
 # 名前解決できない場合は、IPアドレスを使用
-./scripts/update-passwords.sh --ec2-host 34.205.156.203
+./scripts/utils/update-passwords.sh --ec2-host 34.205.156.203
 ```
 
 #### GitLabにアクセスできない場合
@@ -512,7 +512,7 @@ IPアドレスが変わらないようにするため、Elastic IPを割り当�
 # 1. Elastic IPを割り当て
 # 2. EC2インスタンスに関連付け
 # 3. .envファイルを更新
-./scripts/update-passwords.sh --ec2-host YOUR_ELASTIC_IP
+./scripts/utils/update-passwords.sh --ec2-host YOUR_ELASTIC_IP
 ```
 
 #### 2. Route 53でドメイン名を設定
@@ -524,7 +524,7 @@ IPアドレスが変わらないようにするため、Elastic IPを割り当�
 # cicd.example.com → Elastic IP
 
 # .envファイルを更新
-./scripts/update-passwords.sh --ec2-host cicd.example.com
+./scripts/utils/update-passwords.sh --ec2-host cicd.example.com
 ```
 
 #### 3. 変更履歴の記録
@@ -621,9 +621,9 @@ ALTER USER sampleuser WITH PASSWORD '新しいパスワード';
 \q
 
 # 5. .env ファイルを更新
-./scripts/update-passwords.sh --postgres '新しいパスワード'
-./scripts/update-passwords.sh --sonar-db '新しいパスワード'
-./scripts/update-passwords.sh --sample-db '新しいパスワード'
+./scripts/utils/update-passwords.sh --postgres '新しいパスワード'
+./scripts/utils/update-passwords.sh --sonar-db '新しいパスワード'
+./scripts/utils/update-passwords.sh --sample-db '新しいパスワード'
 
 # 6. コンテナを再起動
 podman-compose down
@@ -648,7 +648,7 @@ podman-compose up -d
 例:
 ```bash
 # 強力なパスワードに変更
-./scripts/update-passwords.sh --all 'Xk9#mP2$vL8@qR5!'
+./scripts/utils/update-passwords.sh --all 'Xk9#mP2$vL8@qR5!'
 ```
 
 #### 定期的なパスワード変更
@@ -657,7 +657,7 @@ podman-compose up -d
 
 ```bash
 # 定期的にすべてのパスワードを更新
-./scripts/update-passwords.sh --all '新しい強力なパスワード'
+./scripts/utils/update-passwords.sh --all '新しい強力なパスワード'
 ```
 
 ### 2. ファイル管理
@@ -677,12 +677,12 @@ ls -la .env
 
 ```bash
 # 認証情報ファイルは確認後すぐに削除
-./scripts/show-credentials.sh --file
+./scripts/utils/show-credentials.sh --file
 cat credentials.txt
 rm credentials.txt
 
 # または自動削除付きで表示
-./scripts/show-credentials.sh --file && cat credentials.txt && rm credentials.txt
+./scripts/utils/show-credentials.sh --file && cat credentials.txt && rm credentials.txt
 ```
 
 #### .env のバックアップ暗号化
@@ -818,7 +818,7 @@ cp .env.backup.YYYYMMDDHHMMSS .env
 
 ```bash
 # すべてのパスワードをデフォルトに戻す
-./scripts/update-passwords.sh --all 'Degital2026!'
+./scripts/utils/update-passwords.sh --all 'Degital2026!'
 
 # コンテナを再起動
 podman-compose down
@@ -829,7 +829,7 @@ podman-compose up -d
 
 ```bash
 # 1. .env ファイルの内容を確認
-./scripts/update-passwords.sh --show
+./scripts/utils/update-passwords.sh --show
 
 # 2. サービスの再起動
 podman-compose restart <service_name>
@@ -847,8 +847,8 @@ podman logs cicd-<service_name>
 
 - [README.md](README.md) - プロジェクト全体のガイド
 - [QUICKSTART.md](QUICKSTART.md) - クイックスタートガイド
-- [scripts/show-credentials.sh](scripts/show-credentials.sh) - 認証情報表示スクリプト
-- [scripts/update-passwords.sh](scripts/update-passwords.sh) - パスワード更新スクリプト
+- [scripts/utils/show-credentials.sh](scripts/utils/show-credentials.sh) - 認証情報表示スクリプト
+- [scripts/utils/update-passwords.sh](scripts/utils/update-passwords.sh) - パスワード更新スクリプト
 - [scripts/setup-from-scratch.sh](scripts/setup-from-scratch.sh) - セットアップスクリプト
 
 ---

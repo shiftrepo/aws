@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(dirname "$SCRIPT_DIR")"
+BASE_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 ENV_FILE="${BASE_DIR}/.env"
 OUTPUT_FILE="${BASE_DIR}/credentials.txt"
 
@@ -176,10 +176,10 @@ generate_credentials() {
     echo "  3. 新しいパスワードを設定（推奨: Degital2026!）"
     echo "  4. 環境変数を更新:"
     echo "     cd ${BASE_DIR}"
-    echo "     ./scripts/update-passwords.sh --sonarqube <新しいパスワード>"
+    echo "     ./update-passwords.sh --sonarqube <新しいパスワード>"
     echo "  5. SonarQubeトークンを生成:"
     echo "     My Account → Security → Generate Token"
-    echo "     ./scripts/update-passwords.sh --sonar-token <生成されたトークン>"
+    echo "     ./update-passwords.sh --sonar-token <生成されたトークン>"
     echo ""
     echo "【Nexus Repository】"
     echo "  1. http://${EC2_PUBLIC_IP}:8082 にアクセス"
@@ -187,7 +187,7 @@ generate_credentials() {
     echo "  3. 初回ログイン時、必ずパスワード変更が求められます"
     echo "  4. 新しいパスワードを設定（推奨: Degital2026!）"
     echo "  5. パスワード変更後、環境変数を更新:"
-    echo "     ./scripts/update-passwords.sh --nexus <新しいパスワード>"
+    echo "     ./update-passwords.sh --nexus <新しいパスワード>"
     echo ""
     echo "【GitLab Runner】"
     echo "  1. GitLab → Settings → CI/CD → Runners からトークンを取得"
@@ -198,7 +198,7 @@ generate_credentials() {
     echo "       --executor shell \\"
     echo "       --description \"CICD Shell Runner\""
     echo "  3. 環境変数を更新:"
-    echo "     ./scripts/update-passwords.sh --runner-token <YOUR_TOKEN>"
+    echo "     ./update-passwords.sh --runner-token <YOUR_TOKEN>"
 
     print_header "6. 接続確認コマンド"
 

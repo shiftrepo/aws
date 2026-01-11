@@ -21,7 +21,7 @@ chmod +x scripts/*.sh
 ### 2. 現在の環境をバックアップ
 
 ```bash
-./scripts/backup-all.sh
+./scripts/utils/backup-all.sh
 ```
 
 バックアップされるもの:
@@ -43,7 +43,7 @@ chmod +x scripts/*.sh
 tar xzf backup-20260110-075148.tar.gz
 
 # 復元実行
-./scripts/restore-all.sh backup-20260110-075148
+./scripts/utils/restore-all.sh backup-20260110-075148
 ```
 
 ### 4. 完全クリーンアップ
@@ -64,7 +64,7 @@ tar xzf backup-20260110-075148.tar.gz
 バックアップ → クリーンアップ → セットアップを一括実行:
 
 ```bash
-./scripts/deploy-oneclick.sh
+./scripts/utils/deploy-oneclick.sh
 ```
 
 ## 📋 スクリプト一覧
@@ -72,10 +72,10 @@ tar xzf backup-20260110-075148.tar.gz
 | スクリプト | 説明 |
 |----------|------|
 | `setup-from-scratch.sh` | ゼロから完全環境セットアップ |
-| `backup-all.sh` | 現在の環境を完全バックアップ |
-| `restore-all.sh` | バックアップから復元 |
+| `utils/backup-all.sh` | 現在の環境を完全バックアップ |
+| `utils/restore-all.sh` | バックアップから復元 |
 | `cleanup-all.sh` | 環境を完全クリーンアップ |
-| `deploy-oneclick.sh` | ワンクリック再デプロイ |
+| `utils/deploy-oneclick.sh` | ワンクリック再デプロイ |
 
 ## 🔧 セットアップ後の初期設定
 
@@ -167,7 +167,7 @@ git push origin master
 
 1. 旧環境でバックアップ実行
 ```bash
-./scripts/backup-all.sh
+./scripts/utils/backup-all.sh
 ```
 
 2. バックアップファイルを新環境にコピー
@@ -182,7 +182,7 @@ cd /root
 tar xzf backup-YYYYMMDD-HHMMSS.tar.gz
 cd CICD
 ./scripts/setup-from-scratch.sh
-./scripts/restore-all.sh ../backup-YYYYMMDD-HHMMSS
+./scripts/utils/restore-all.sh ../backup-YYYYMMDD-HHMMSS
 ```
 
 ### シナリオ2: 定期バックアップの自動化
@@ -190,7 +190,7 @@ cd CICD
 cronで毎日自動バックアップ:
 ```bash
 # /etc/cron.d/cicd-backup
-0 3 * * * ec2-user ./scripts/backup-all.sh
+0 3 * * * ec2-user ./scripts/utils/backup-all.sh
 ```
 
 ### シナリオ3: 災害復旧

@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(dirname "$SCRIPT_DIR")"
+BASE_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 BACKUP_DIR="${BASE_DIR}/backup-$(date +%Y%m%d-%H%M%S)"
 
 echo "=========================================="
@@ -118,5 +118,5 @@ echo "復元方法:"
 echo "  1. バックアップを新環境にコピー"
 echo "  2. tar xzf backup-YYYYMMDD-HHMMSS.tar.gz"
 echo "  3. cd backup-YYYYMMDD-HHMMSS"
-echo "  4. ../scripts/restore-all.sh"
+echo "  4. ./restore-all.sh backup-YYYYMMDD-HHMMSS"
 echo ""

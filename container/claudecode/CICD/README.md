@@ -404,12 +404,12 @@ chmod +x scripts/*.sh
 | スクリプト名 | 実行コマンド | 必須権限 | 用途 |
 |------------|------------|---------|------|
 | `setup-from-scratch.sh` | `sudo ./scripts/setup-from-scratch.sh` | **sudo必須** | 初回環境構築（12ステップ） |
-| `show-credentials.sh` | `./scripts/show-credentials.sh` | 通常ユーザー | 認証情報表示 |
-| `update-passwords.sh` | `./scripts/update-passwords.sh [オプション]` | 通常ユーザー | パスワード/トークン更新 |
-| `backup-all.sh` | `sudo ./scripts/backup-all.sh` | **sudo必須** | 完全バックアップ |
-| `restore-all.sh` | `sudo ./scripts/restore-all.sh <backup-dir>` | **sudo必須** | バックアップから復元 |
+| `show-credentials.sh` | `./scripts/utils/show-credentials.sh` | 通常ユーザー | 認証情報表示 |
+| `update-passwords.sh` | `./scripts/utils/update-passwords.sh [オプション]` | 通常ユーザー | パスワード/トークン更新 |
+| `backup-all.sh` | `sudo ./scripts/utils/backup-all.sh` | **sudo必須** | 完全バックアップ |
+| `restore-all.sh` | `sudo ./scripts/utils/restore-all.sh <backup-dir>` | **sudo必須** | バックアップから復元 |
 | `cleanup-all.sh` | `sudo ./scripts/cleanup-all.sh` | **sudo必須** | 全リソース削除 |
-| `deploy-oneclick.sh` | `sudo ./scripts/deploy-oneclick.sh` | **sudo必須** | ワンクリック再デプロイ |
+| `deploy-oneclick.sh` | `sudo ./scripts/utils/deploy-oneclick.sh` | **sudo必須** | ワンクリック再デプロイ |
 | `setup-cicd.sh` | `sudo ./scripts/setup-cicd.sh` | **sudo必須** | CI/CD環境自動構築 |
 | `setup-sample-app.sh` | `sudo ./scripts/setup-sample-app.sh` | **sudo必須** | CI/CD検証（推奨） |
 | `setup-gitlab-variables.sh` | `./scripts/setup-gitlab-variables.sh` | 通常ユーザー | GitLab環境変数設定ガイド |
@@ -615,7 +615,7 @@ URL: http://${EC2_PUBLIC_IP}:8082
   - セットアップウィザードに従って初期設定を完了
   - **重要**: パスワード変更後、`.env` ファイルの `NEXUS_ADMIN_PASSWORD` を更新:
     ```bash
-    ./scripts/update-passwords.sh --nexus 新しいパスワード
+    ./scripts/utils/update-passwords.sh --nexus 新しいパスワード
     ```
 
 #### 3. SonarQube
@@ -958,10 +958,10 @@ curl -u admin:${NEXUS_ADMIN_PASSWORD} \
 
 ```bash
 # 全サービスの認証情報を表示
-./scripts/show-credentials.sh
+./scripts/utils/show-credentials.sh
 
 # ファイルに出力（600パーミッション）
-./scripts/show-credentials.sh --file
+./scripts/utils/show-credentials.sh --file
 # 出力先: /root/aws.git/container/claudecode/CICD/credentials.txt
 
 # 表示内容:
@@ -975,22 +975,22 @@ curl -u admin:${NEXUS_ADMIN_PASSWORD} \
 
 ```bash
 # 現在の設定を表示
-./scripts/update-passwords.sh --show
+./scripts/utils/update-passwords.sh --show
 
 # 個別更新
-./scripts/update-passwords.sh --gitlab NewPassword123!
-./scripts/update-passwords.sh --nexus NewPassword123!
-./scripts/update-passwords.sh --sonarqube NewPassword123!
+./scripts/utils/update-passwords.sh --gitlab NewPassword123!
+./scripts/utils/update-passwords.sh --nexus NewPassword123!
+./scripts/utils/update-passwords.sh --sonarqube NewPassword123!
 
 # SonarQubeトークン更新
-./scripts/update-passwords.sh --sonar-token sqa_xxxxxxxxxxxxxxxx
+./scripts/utils/update-passwords.sh --sonar-token sqa_xxxxxxxxxxxxxxxx
 
 # EC2ドメイン名/IPアドレス更新
-./scripts/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
-./scripts/update-passwords.sh --ec2-host 192.168.1.100
+./scripts/utils/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
+./scripts/utils/update-passwords.sh --ec2-host 192.168.1.100
 
 # 全パスワード一括更新（トークンを除く）
-./scripts/update-passwords.sh --all Degital2026!
+./scripts/utils/update-passwords.sh --all Degital2026!
 
 # 更新内容:
 # - 自動バックアップ作成（.env.backup.YYYYMMDDHHMMSS）
@@ -1007,7 +1007,7 @@ curl -u admin:${NEXUS_ADMIN_PASSWORD} \
 
 ```bash
 # 完全バックアップ実行（sudoで実行）
-sudo ./scripts/backup-all.sh
+sudo ./scripts/utils/backup-all.sh
 
 # バックアップ内容
 # - 全設定ファイル（docker-compose.yml、.env、config/）
@@ -1029,7 +1029,7 @@ sudo ./scripts/backup-all.sh
 tar xzf backup-20260110-075148.tar.gz
 
 # 復元実行（sudoで実行）
-sudo ./scripts/restore-all.sh backup-20260110-075148
+sudo ./scripts/utils/restore-all.sh backup-20260110-075148
 
 # 復元内容
 # - コンテナ停止＆削除
@@ -1059,7 +1059,7 @@ sudo ./scripts/cleanup-all.sh
 
 ```bash
 # バックアップ → クリーンアップ → セットアップを一括実行（sudoで実行）
-sudo ./scripts/deploy-oneclick.sh
+sudo ./scripts/utils/deploy-oneclick.sh
 
 # 処理フロー
 # 1. 現在の環境を完全バックアップ
@@ -1073,7 +1073,7 @@ sudo ./scripts/deploy-oneclick.sh
 ```bash
 # cronで毎日午前3時にバックアップ
 sudo tee /etc/cron.d/cicd-backup > /dev/null <<'EOF'
-0 3 * * * ec2-user /root/aws.git/container/claudecode/CICD/scripts/backup-all.sh
+0 3 * * * ec2-user /root/aws.git/container/claudecode/CICD/scripts/utils/backup-all.sh
 EOF
 
 # 古いバックアップの削除（30日以前）
@@ -1385,7 +1385,7 @@ sudo ./scripts/setup-from-scratch.sh
 #### 方法2: 更新スクリプトを使用
 ```bash
 # EC2ドメイン名/IPのみ更新
-./scripts/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
+./scripts/utils/update-passwords.sh --ec2-host ec2-34-205-156-203.compute-1.amazonaws.com
 
 # 自動でバックアップが作成されます
 # .env.backup.YYYYMMDDHHMMSS
@@ -1418,7 +1418,7 @@ sudo gitlab-runner register \
   --description "CICD Shell Runner"
 
 # 3. 認証情報の確認
-./scripts/show-credentials.sh
+./scripts/utils/show-credentials.sh
 ```
 
 ### 9. 再セットアップ時のトークン消失
@@ -1455,8 +1455,8 @@ ls -la .env.backup.*
 cp .env.backup.20260110123456 .env
 
 # または、個別更新スクリプトで設定
-./scripts/update-passwords.sh --sonar-token sqa_xxxxxxxxxxxxx
-./scripts/update-passwords.sh --runner-token glrt-xxxxxxxxxxxxx
+./scripts/utils/update-passwords.sh --sonar-token sqa_xxxxxxxxxxxxx
+./scripts/utils/update-passwords.sh --runner-token glrt-xxxxxxxxxxxxx
 ```
 
 ---

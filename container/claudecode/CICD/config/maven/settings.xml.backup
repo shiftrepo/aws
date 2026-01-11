@@ -26,7 +26,7 @@
         <mirror>
             <id>nexus-mirror</id>
             <mirrorOf>*</mirrorOf>
-            <url>http://13.219.95.96:8082/repository/maven-public/</url>
+            <url>http://34.205.156.203:8082/repository/maven-public/</url>
         </mirror>
     </mirrors>
 
@@ -37,7 +37,7 @@
             <repositories>
                 <repository>
                     <id>central</id>
-                    <url>http://13.219.95.96:8082/repository/maven-public/</url>
+                    <url>http://34.205.156.203:8082/repository/maven-public/</url>
                     <releases>
                         <enabled>true</enabled>
                     </releases>
@@ -49,7 +49,7 @@
             <pluginRepositories>
                 <pluginRepository>
                     <id>central</id>
-                    <url>http://13.219.95.96:8082/repository/maven-public/</url>
+                    <url>http://34.205.156.203:8082/repository/maven-public/</url>
                     <releases>
                         <enabled>true</enabled>
                     </releases>

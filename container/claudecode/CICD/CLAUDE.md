@@ -102,24 +102,24 @@ git push -u origin master
 ./scripts/setup-from-scratch.sh
 
 # View all credentials (services, databases, tokens)
-./scripts/show-credentials.sh
-./scripts/show-credentials.sh --file  # Output to credentials.txt (600 perms)
+./scripts/utils/show-credentials.sh
+./scripts/utils/show-credentials.sh --file  # Output to credentials.txt (600 perms)
 
 # Update passwords/tokens/EC2 host
-./scripts/update-passwords.sh --show
-./scripts/update-passwords.sh --gitlab 'NewPassword123!'
-./scripts/update-passwords.sh --nexus 'NewPassword123!'
-./scripts/update-passwords.sh --sonarqube 'NewPassword123!'
-./scripts/update-passwords.sh --sonar-token 'sqa_xxxx'
-./scripts/update-passwords.sh --runner-token 'glrt-xxxx'
-./scripts/update-passwords.sh --ec2-host 'ec2-xx-xx-xx-xx.compute-1.amazonaws.com'
-./scripts/update-passwords.sh --all 'Degital2026!'  # Bulk update
+./scripts/utils/update-passwords.sh --show
+./scripts/utils/update-passwords.sh --gitlab 'NewPassword123!'
+./scripts/utils/update-passwords.sh --nexus 'NewPassword123!'
+./scripts/utils/update-passwords.sh --sonarqube 'NewPassword123!'
+./scripts/utils/update-passwords.sh --sonar-token 'sqa_xxxx'
+./scripts/utils/update-passwords.sh --runner-token 'glrt-xxxx'
+./scripts/utils/update-passwords.sh --ec2-host 'ec2-xx-xx-xx-xx.compute-1.amazonaws.com'
+./scripts/utils/update-passwords.sh --all 'Degital2026!'  # Bulk update
 
 # Backup and restore
-./scripts/backup-all.sh       # Creates backup-YYYYMMDD-HHMMSS.tar.gz
-./scripts/restore-all.sh backup-YYYYMMDD-HHMMSS
+./scripts/utils/backup-all.sh       # Creates backup-YYYYMMDD-HHMMSS.tar.gz
+./scripts/utils/restore-all.sh backup-YYYYMMDD-HHMMSS
 ./scripts/cleanup-all.sh      # Delete all containers/volumes
-./scripts/deploy-oneclick.sh  # Backup → cleanup → restore
+./scripts/utils/deploy-oneclick.sh  # Backup → cleanup → restore
 ```
 
 ### Container Management
@@ -319,8 +319,8 @@ PostgreSQL (port 5001) has 4 databases initialized via `config/postgres/init.sql
 
 1. Add to `docker-compose.yml` with `${ENV_VAR}` references
 2. Add variables to `.env`
-3. Update `scripts/show-credentials.sh` to display new credentials
-4. Update `scripts/update-passwords.sh` with new `--service` option
+3. Update `scripts/utils/show-credentials.sh` to display new credentials
+4. Update `scripts/utils/update-passwords.sh` with new `--service` option
 5. Document in `CREDENTIALS.md`
 
 ### When Modifying CI/CD Pipeline
@@ -345,7 +345,7 @@ PostgreSQL (port 5001) has 4 databases initialized via `config/postgres/init.sql
 - Manual restore: `cp .env.backup.YYYYMMDDHHMMSS .env`
 
 ### EC2 IP Changed After Instance Recreation
-- Run `./scripts/update-passwords.sh --ec2-host NEW_IP` OR re-run `setup-from-scratch.sh`
+- Run `./scripts/utils/update-passwords.sh --ec2-host NEW_IP` OR re-run `setup-from-scratch.sh`
 - Update git remote: `git remote set-url origin http://NEW_IP:5003/root/sample-app.git`
 - Re-register GitLab Runner
 

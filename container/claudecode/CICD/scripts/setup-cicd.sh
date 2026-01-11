@@ -35,6 +35,57 @@ fi
 # 環境変数読み込み
 source "$ENV_FILE"
 
+# ========================================================================
+# EC2アドレス自動更新機能
+# ========================================================================
+print_info "EC2アドレスを確認・更新中..."
+
+# 現在のEC2パブリックIPを取得
+CURRENT_EC2_IP=$(curl -s --connect-timeout 3 http://169.254.169.254/latest/meta-data/public-ipv4 || echo "")
+
+if [ -n "$CURRENT_EC2_IP" ]; then
+    if [ "$EC2_PUBLIC_IP" != "$CURRENT_EC2_IP" ]; then
+        print_warning "EC2アドレスが変更されています"
+        echo "  設定値: ${EC2_PUBLIC_IP}"
+        echo "  実際値: ${CURRENT_EC2_IP}"
+
+        # 自動バックアップ作成
+        BACKUP_SUFFIX=$(date +%Y%m%d%H%M%S)
+        cp "$ENV_FILE" "${ENV_FILE}.backup.${BACKUP_SUFFIX}"
+        print_info "バックアップ作成: ${ENV_FILE}.backup.${BACKUP_SUFFIX}"
+
+        # .envファイル内のEC2_PUBLIC_IPを更新
+        sed -i "s|EC2_PUBLIC_IP=.*|EC2_PUBLIC_IP=${CURRENT_EC2_IP}|" "$ENV_FILE"
+
+        # SONAR_HOST_URLも更新
+        sed -i "s|SONAR_HOST_URL=.*|SONAR_HOST_URL=http://${CURRENT_EC2_IP}:8000|" "$ENV_FILE"
+
+        # GitLab Runner設定ファイル更新
+        RUNNER_CONFIG="${BASE_DIR}/config/gitlab-runner/config.toml"
+        if [ -f "$RUNNER_CONFIG" ]; then
+            sed -i "s|url = \"http://[^\"]*:5003\"|url = \"http://${CURRENT_EC2_IP}:5003\"|" "$RUNNER_CONFIG"
+            print_info "GitLab Runner設定を更新: $RUNNER_CONFIG"
+        fi
+
+        # Maven設定ファイル更新
+        MAVEN_CONFIG="${BASE_DIR}/config/maven/settings.xml"
+        if [ -f "$MAVEN_CONFIG" ]; then
+            sed -i "s|http://[^/]*:8082|http://${CURRENT_EC2_IP}:8082|g" "$MAVEN_CONFIG"
+            print_info "Maven設定を更新: $MAVEN_CONFIG"
+        fi
+
+        # 環境変数を再読み込み
+        source "$ENV_FILE"
+
+        print_success "EC2アドレスを自動更新しました: ${EC2_PUBLIC_IP}"
+    else
+        print_success "EC2アドレスは最新です: ${EC2_PUBLIC_IP}"
+    fi
+else
+    print_warning "EC2メタデータからの自動取得に失敗しました"
+    print_info "既存設定を使用します: ${EC2_PUBLIC_IP}"
+fi
+
 # コンテナ起動確認
 print_info "サービス起動状況を確認中..."
 REQUIRED_CONTAINERS=("cicd-gitlab" "cicd-nexus" "cicd-sonarqube" "cicd-postgres")
@@ -568,11 +619,11 @@ echo ""
 echo "🔧 管理用コマンド:"
 echo "  - Runner確認: sudo systemctl status gitlab-runner"
 echo "  - ログ確認: sudo journalctl -u gitlab-runner -f"
-echo "  - 環境変数確認: ${BASE_DIR}/scripts/show-credentials.sh"
+echo "  - 環境変数確認: ${BASE_DIR}/scripts/utils/show-credentials.sh"
 echo ""
 
 # 認証情報の最終表示
 print_info "更新された認証情報を表示中..."
-"${SCRIPT_DIR}/show-credentials.sh"
+"${SCRIPT_DIR}/utils/show-credentials.sh"
 
 print_success "CI/CD環境セットアップが完了しました！"

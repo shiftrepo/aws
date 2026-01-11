@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(dirname "$SCRIPT_DIR")"
+BASE_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 echo "=========================================="
 echo "CICD環境ワンクリックデプロイメント"
@@ -31,7 +31,7 @@ if [ -f "${BASE_DIR}/docker-compose.yml" ] && podman ps | grep -q cicd; then
     echo "=========================================="
     echo "Step 1: 既存環境のバックアップ"
     echo "=========================================="
-    "${SCRIPT_DIR}/backup-all.sh"
+    "${SCRIPT_DIR}/utils/backup-all.sh"
 else
     echo ""
     echo "Step 1: スキップ（既存環境なし）"

@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(dirname "$SCRIPT_DIR")"
+BASE_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 ENV_FILE="${BASE_DIR}/.env"
 
 # ヘルプ表示
@@ -305,6 +305,33 @@ main() {
             backup_env
             update_password "EC2_PUBLIC_IP" "$2" "EC2 ドメイン名/IPアドレス"
 
+            # SONAR_HOST_URLも更新
+            echo ""
+            echo "【SonarQube設定更新】"
+            echo "  SONAR_HOST_URL を更新中..."
+            sed -i "s|SONAR_HOST_URL=.*|SONAR_HOST_URL=http://$2:8000|" "$ENV_FILE"
+            echo "  ✓ SONAR_HOST_URL を更新しました"
+
+            # GitLab Runner設定ファイル更新
+            RUNNER_CONFIG="${BASE_DIR}/config/gitlab-runner/config.toml"
+            if [ -f "$RUNNER_CONFIG" ]; then
+                echo ""
+                echo "【GitLab Runner設定更新】"
+                echo "  $RUNNER_CONFIG を更新中..."
+                sed -i.backup "s|url = \"http://[^\"]*:5003\"|url = \"http://$2:5003\"|" "$RUNNER_CONFIG"
+                echo "  ✓ GitLab Runner設定を更新しました"
+            fi
+
+            # Maven設定ファイル更新
+            MAVEN_CONFIG="${BASE_DIR}/config/maven/settings.xml"
+            if [ -f "$MAVEN_CONFIG" ]; then
+                echo ""
+                echo "【Maven設定更新】"
+                echo "  $MAVEN_CONFIG を更新中..."
+                sed -i.backup "s|http://[^/]*:8082|http://$2:8082|g" "$MAVEN_CONFIG"
+                echo "  ✓ Maven設定ファイルを更新しました"
+            fi
+
             # Maven POM ファイルのNexus URLも更新
             if [ -f "${BASE_DIR}/sample-app/pom.xml" ]; then
                 echo ""
@@ -321,7 +348,7 @@ main() {
             echo "✓ EC2ドメイン名/IPアドレスを更新しました: $2"
             echo ""
             echo "⚠️ 変更後の確認方法:"
-            echo "  ./scripts/show-credentials.sh"
+            echo "  ./show-credentials.sh"
             echo ""
             echo "⚠️ コンテナの再起動は不要ですが、GitLabなどのURL設定が変わります"
             echo "  sample-appのリモートURLも更新してください:"
