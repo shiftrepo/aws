@@ -37,7 +37,7 @@
         <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
 
         <!-- SonarQube Settings (Parent - Common Configuration) -->
-        <sonar.host.url>http://localhost:8000</sonar.host.url>
+        <sonar.host.url>http://13.219.95.96:8000</sonar.host.url>
         <sonar.projectKey>sample-org-management</sonar.projectKey>
         <sonar.projectName>Sample Organization Management</sonar.projectName>
 
@@ -45,11 +45,12 @@
         <sonar.scanner.skip>false</sonar.scanner.skip>
 
         <!-- JaCoCo Coverage Thresholds -->
-        <jacoco.line.ratio>0.80</jacoco.line.ratio>
-        <jacoco.branch.ratio>0.70</jacoco.branch.ratio>
+        <!-- Entity/DTO除外後: Service/Controller層で高カバレッジ目標 -->
+        <jacoco.line.ratio>0.90</jacoco.line.ratio>
+        <jacoco.branch.ratio>0.90</jacoco.branch.ratio>
 
         <!-- Nexus Repository Settings -->
-        <nexus.url>http://localhost:8082</nexus.url>
+        <nexus.url>http://54.208.146.176:8082</nexus.url>
     </properties>
 
     <dependencyManagement>
@@ -99,6 +100,8 @@
                     <configuration>
                         <source>17</source>
                         <target>17</target>
+                        <!-- ⚠️ 変更禁止: @PathVariableパラメータ名リフレクション取得に必須 -->
+                        <parameters>true</parameters>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>
@@ -139,6 +142,13 @@
                             <goals>
                                 <goal>report</goal>
                             </goals>
+                            <configuration>
+                                <excludes>
+                                    <!-- Lombok生成コード（Entity）を除外 -->
+                                    <exclude>**/entity/**</exclude>
+                                    <exclude>**/dto/**</exclude>
+                                </excludes>
+                            </configuration>
                         </execution>
                         <execution>
                             <id>check</id>
@@ -147,6 +157,11 @@
                                 <goal>check</goal>
                             </goals>
                             <configuration>
+                                <excludes>
+                                    <!-- Lombok生成コード（Entity）を除外 -->
+                                    <exclude>**/entity/**</exclude>
+                                    <exclude>**/dto/**</exclude>
+                                </excludes>
                                 <rules>
                                     <rule>
                                         <element>BUNDLE</element>
