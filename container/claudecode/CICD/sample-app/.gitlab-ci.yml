@@ -17,6 +17,18 @@ before_script:
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
               xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
               http://maven.apache.org/xsd/settings-1.0.0.xsd">
+      <servers>
+        <server>
+          <id>nexus-snapshots</id>
+          <username>admin</username>
+          <password>Degital2026!</password>
+        </server>
+        <server>
+          <id>nexus-releases</id>
+          <username>admin</username>
+          <password>Degital2026!</password>
+        </server>
+      </servers>
       <mirrors>
         <mirror>
           <id>nexus-mirror</id>
