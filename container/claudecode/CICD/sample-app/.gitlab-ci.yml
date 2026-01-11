@@ -14,7 +14,7 @@ before_script:
   - mkdir -p ./.m2
   # ⚠️ 重要: localhostは使用禁止 - 環境変数 EC2_PUBLIC_IP を使用
   - |
-    cat > ./.m2/settings.xml << 'XMLEOF'
+    cat > ./.m2/settings.xml << XMLEOF
     <?xml version="1.0" encoding="UTF-8"?>
     <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
