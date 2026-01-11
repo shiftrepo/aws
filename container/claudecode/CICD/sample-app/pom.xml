@@ -36,13 +36,27 @@
         <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
         <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
 
-        <!-- SonarQube Settings -->
+        <!-- SonarQube Settings (Multi-Module Project) -->
         <sonar.projectKey>sample-app-backend</sonar.projectKey>
-        <sonar.projectName>Sample App Backend</sonar.projectName>
+        <sonar.projectName>Sample Organization Management App</sonar.projectName>
+        <!-- CI環境では動的に上書きされる設定 -->
         <sonar.host.url>http://localhost:8000</sonar.host.url>
+        <!-- マルチモジュール対応カバレッジ設定 -->
         <sonar.coverage.jacoco.xmlReportPaths>
             ${project.basedir}/backend/target/site/jacoco/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.java.binaries>
+            ${project.basedir}/backend/target/classes,${project.basedir}/common/target/classes
+        </sonar.java.binaries>
+        <sonar.sources>
+            ${project.basedir}/backend/src/main/java,${project.basedir}/common/src/main/java
+        </sonar.sources>
+        <sonar.tests>
+            ${project.basedir}/backend/src/test/java
+        </sonar.tests>
+        <sonar.java.test.binaries>
+            ${project.basedir}/backend/target/test-classes
+        </sonar.java.test.binaries>
 
         <!-- JaCoCo Coverage Thresholds -->
         <jacoco.line.ratio>0.80</jacoco.line.ratio>
