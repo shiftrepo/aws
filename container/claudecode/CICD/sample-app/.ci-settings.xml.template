@@ -6,7 +6,6 @@
 
   <!-- CI/CD用Maven設定ファイル (テンプレート) -->
   <!-- __NEXUS_PASSWORD__ プレースホルダーはCI/CDパイプラインで実際のパスワードに置換される -->
-  <!-- ⚠️ 重要: localhostは使用禁止 - CI/CD環境ではコンテナ外部IPを使用すること -->
 
   <servers>
     <server>
@@ -31,7 +30,7 @@
       <id>nexus-public-mirror</id>
       <mirrorOf>*</mirrorOf>
       <name>Nexus Public Repository Mirror</name>
-      <url>__NEXUS_URL__/repository/maven-public/</url>
+      <url>http://localhost:8082/repository/maven-public/</url>
     </mirror>
   </mirrors>
 
@@ -42,7 +41,7 @@
         <repository>
           <id>nexus-public</id>
           <name>Nexus Public Repository</name>
-          <url>__NEXUS_URL__/repository/maven-public/</url>
+          <url>http://localhost:8082/repository/maven-public/</url>
           <releases>
             <enabled>true</enabled>
           </releases>
@@ -55,7 +54,7 @@
         <pluginRepository>
           <id>nexus-public</id>
           <name>Nexus Public Repository</name>
-          <url>__NEXUS_URL__/repository/maven-public/</url>
+          <url>http://localhost:8082/repository/maven-public/</url>
           <releases>
             <enabled>true</enabled>
           </releases>
