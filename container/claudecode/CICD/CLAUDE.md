@@ -66,32 +66,37 @@ This is a complete CI/CD infrastructure project running GitLab, Nexus, SonarQube
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Role of `setup-sample-app.sh`
+### Pipeline Execution Script: `run-sample-app-pipeline.sh`
 
-This script prepares the working copy for CI/CD testing:
+**Replaced `setup-sample-app.sh` in v2.1.0** - This is the current recommended method:
+
+This script executes CI/CD pipeline testing:
 
 1. **Copy**: Copies `sample-app/` from master to `/tmp/gitlab-sample-app/`
-2. **Configure**: Initializes git repository with GitLab remote
-3. **Setup CI/CD**: Generates `.gitlab-ci.yml`, `.ci-settings.xml.template`
-4. **Push**: Initial push to GitLab to register project
+2. **Git Init**: Initializes fresh git repository with GitLab remote
+3. **Branch**: Creates timestamped feature branch (`feature/cicd-test-YYYYMMDD-HHMMSS`)
+4. **Push**: Pushes to GitLab → triggers pipeline automatically
 
 **Key Operations**:
 ```bash
-# Copy sample-app to /tmp
-cp -r sample-app /tmp/gitlab-sample-app
+cd /root/aws.git/container/claudecode/CICD
+./scripts/run-sample-app-pipeline.sh
 
-# Configure git remote
-cd /tmp/gitlab-sample-app
-git init
-git remote add origin http://${EC2_PUBLIC_IP}:5003/root/sample-app.git
-
-# Push to trigger first pipeline
-git add .
-git commit -m "Initial commit"
-git push -u origin master
+# What it does:
+# 1. rm -rf /tmp/gitlab-sample-app
+# 2. rsync -a sample-app/ /tmp/gitlab-sample-app/
+# 3. cd /tmp/gitlab-sample-app && git init
+# 4. git remote add origin http://root:${GITLAB_ROOT_PASSWORD}@${EC2_PUBLIC_IP}:5003/root/sample-app.git
+# 5. git checkout -b feature/cicd-test-$(date +%Y%m%d-%H%M%S)
+# 6. git add . && git commit -m "pipeline: パイプライン実行 - $(date)"
+# 7. git push -u origin $BRANCH_NAME
 ```
 
-**Important**: This script does NOT modify the master repository (`/root/aws.git/`). It only creates a working copy for CI/CD testing.
+**Important**:
+- This script does NOT modify the master repository
+- Creates fresh working copy each time (no state contamination)
+- Automatic pipeline trigger on push
+- View results: http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/pipelines
 
 ## Core Commands
 
@@ -248,8 +253,8 @@ SAMPLE_DB_PASSWORD=Degital2026!
 ### 4. Multi-Module Maven Architecture
 
 **Parent POM** (`sample-app/pom.xml`):
-- Defines JaCoCo thresholds: 80% line coverage, 70% branch coverage
-- Nexus repositories configured: `${nexus.url}` (http://34.205.156.203:8082)
+- Defines JaCoCo thresholds: **90%** line coverage, **90%** branch coverage
+- Nexus repositories configured: `${nexus.url}` (uses `${env.EC2_PUBLIC_IP}`)
 - Distribution management for snapshots/releases
 - Plugin management: compiler, surefire, jacoco, sonar-maven-plugin
 
@@ -261,8 +266,18 @@ SAMPLE_DB_PASSWORD=Degital2026!
 - 6 stages: build → test → coverage → sonarqube → package → deploy
 - Shell executor (uses host Maven, not Docker images)
 - Cache: `.m2/repository`, `backend/target`
-- Deploy stage: Uses `.ci-settings.xml.template` with `sed` substitution for `NEXUS_ADMIN_PASSWORD`
-- Only master branch deploys to Nexus
+- **before_script generates settings.xml with authentication**:
+  ```yaml
+  <servers>
+    <server>
+      <id>nexus-snapshots</id>
+      <username>admin</username>
+      <password>Degital2026!</password>
+    </server>
+  </servers>
+  ```
+- Deploy stage: Uses same `./.m2/settings.xml` (no separate template needed)
+- **CRITICAL**: `<id>` in settings.xml MUST match pom.xml distributionManagement `<id>`
 
 ### 5. Database Schema Architecture
 
@@ -327,18 +342,73 @@ PostgreSQL (port 5001) has 4 databases initialized via `config/postgres/init.sql
 
 **GitLab Runner Requirement**: This project uses **shell executor**, NOT docker executor. All `image:` directives in `.gitlab-ci.yml` are commented out. Commands run directly on the host using installed Maven/Java.
 
-**Quality Gate Enforcement**: SonarQube stage has `allow_failure: false` - pipeline will fail if coverage < 80% or critical bugs exist.
+**Quality Gate Enforcement**: SonarQube stage has `allow_failure: false` - pipeline will fail if coverage < 90% or critical bugs exist.
 
-**Deploy Stage Security**: Never hardcode passwords. Always use template substitution:
+**Localhost Prohibition**:
+- ❌ NEVER use `localhost` in CI/CD files
+- ✅ ALWAYS use `${EC2_PUBLIC_IP}` environment variable
+- Files affected: `.gitlab-ci.yml`, `pom.xml`, `.ci-settings.xml.template`
+
+**HEREDOC Variable Expansion**:
 ```yaml
-- sed "s|__NEXUS_PASSWORD__|${NEXUS_ADMIN_PASSWORD}|g" .ci-settings.xml.template > .ci-settings.xml
+# ❌ Wrong - variables not expanded
+cat > settings.xml << 'EOF'
+  <url>http://${EC2_PUBLIC_IP}:8082</url>
+EOF
+
+# ✅ Correct - variables expanded
+cat > settings.xml << EOF
+  <url>http://${EC2_PUBLIC_IP}:8082</url>
+EOF
+```
+
+**Nexus Authentication Pattern**:
+```yaml
+before_script:
+  - |
+    cat > ./.m2/settings.xml << EOF
+    <settings>
+      <servers>
+        <server>
+          <id>nexus-snapshots</id>  <!-- Must match pom.xml -->
+          <username>admin</username>
+          <password>Degital2026!</password>
+        </server>
+      </servers>
+      <mirrors>
+        <mirror>
+          <id>nexus-mirror</id>
+          <mirrorOf>*</mirrorOf>
+          <url>http://${EC2_PUBLIC_IP}:8082/repository/maven-public/</url>
+        </mirror>
+      </mirrors>
+    </settings>
+    EOF
+
+deploy:
+  script:
+    - mvn deploy -DskipTests -s ./.m2/settings.xml  # Reuse same settings
 ```
 
 ## Common Troubleshooting Contexts
 
 ### Pipeline Fails with 401 on Deploy Stage
-- Check `NEXUS_ADMIN_PASSWORD` in GitLab CI/CD Variables matches `.env`
-- Verify `.ci-settings.xml.template` has `__NEXUS_PASSWORD__` placeholder
+
+**Root Cause**: Maven deploy requires authentication for `PUT` operations (uploads), while `GET` (downloads) can be anonymous.
+
+**Diagnosis**:
+```bash
+# Check if server ID matches in both files
+grep "<id>nexus-snapshots</id>" sample-app/pom.xml
+grep "<id>nexus-snapshots</id>" sample-app/.gitlab-ci.yml
+```
+
+**Critical Requirements**:
+1. **ID Match**: pom.xml `<snapshotRepository><id>` MUST exactly match settings.xml `<server><id>`
+2. **Authentication in before_script**: `.gitlab-ci.yml` must generate settings.xml with `<servers>` section
+3. **Deploy uses correct settings**: `mvn deploy -s ./.m2/settings.xml` (not separate template)
+
+**Fixed in v2.1.0**: before_script now automatically generates authenticated settings.xml
 
 ### Re-setup Lost Tokens
 - **Fixed in v2.1.0**: `setup-from-scratch.sh` now preserves tokens automatically
@@ -379,7 +449,16 @@ PostgreSQL (port 5001) has 4 databases initialized via `config/postgres/init.sql
 
 ## Version History Context
 
-**v2.1.0** (Current):
+**v2.1.1** (Current - 2026-01-11):
+- **Localhost Elimination**: All CI/CD files use `${EC2_PUBLIC_IP}` environment variable
+- **Nexus Authentication Fix**: before_script generates authenticated settings.xml with `<servers>` section
+- **Deploy Stage Simplification**: Uses unified `./.m2/settings.xml` (removed separate template dependency)
+- **Coverage Threshold Increase**: 90% line/branch coverage (from 80%/70%)
+- **HEREDOC Fix**: Removed single quotes to enable variable expansion
+- **Pipeline Execution Script**: `run-sample-app-pipeline.sh` replaces `setup-sample-app.sh`
+- **README Complete Rewrite**: 348-line comprehensive project documentation
+
+**v2.1.0**:
 - Token preservation on re-setup (SONAR_TOKEN, RUNNER_TOKEN)
 - EC2 domain name dynamic configuration
 - Credential management scripts (show-credentials.sh, update-passwords.sh)
@@ -391,5 +470,39 @@ PostgreSQL (port 5001) has 4 databases initialized via `config/postgres/init.sql
 - Initial complete implementation
 - GitLab + Nexus + SonarQube + PostgreSQL integration
 - Sample Spring Boot + React application
-- 6-stage CI/CD pipeline with 80% coverage requirement
+- 6-stage CI/CD pipeline
 - Backup/restore/cleanup scripts
+
+## Key Lessons Learned
+
+### Maven Deploy 401 Errors
+**Problem**: `mvn deploy` shows "Uploading" but returns 401 Unauthorized
+
+**Root Cause**:
+- GET operations (dependency downloads) can be anonymous via mirrors
+- PUT operations (artifact uploads) ALWAYS require authentication
+- Maven uses `<server><id>` to match with `<distributionManagement><id>`
+
+**Solution**:
+1. Generate settings.xml in before_script with `<servers>` section
+2. Ensure exact ID match: `nexus-snapshots` in both pom.xml and settings.xml
+3. Include credentials: username=admin, password=Degital2026!
+4. Reuse same settings.xml in deploy stage: `-s ./.m2/settings.xml`
+
+### Localhost vs Environment Variables
+**Problem**: Hardcoded localhost/IP breaks on EC2 instance changes
+
+**Solution**:
+- Define `EC2_PUBLIC_IP` variable in `.gitlab-ci.yml`
+- Use `${EC2_PUBLIC_IP}` in all URLs (Nexus, SonarQube)
+- Use `${env.EC2_PUBLIC_IP}` in pom.xml properties
+- HEREDOC without quotes for variable expansion
+
+### Master vs Working Copy Confusion
+**Problem**: Editing `/tmp/gitlab-sample-app/` without syncing to master
+
+**Solution**:
+- ALWAYS edit master: `/root/aws.git/container/claudecode/CICD/sample-app/`
+- Use `run-sample-app-pipeline.sh` to copy master → /tmp → GitLab
+- Verify sync: `diff -r sample-app/ /tmp/gitlab-sample-app/ --exclude=.git`
+- Script uses `rsync -a` to preserve all files including hidden ones
