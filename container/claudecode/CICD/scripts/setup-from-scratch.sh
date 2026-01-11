@@ -461,56 +461,14 @@ echo ""
 echo "環境変数ファイル: ${ENV_FILE}"
 echo ""
 
-# Step 13: Nexus匿名アクセス有効化とGitLab Runner権限設定（CI/CD最適化）
+# Step 13: GitLab Runner権限設定（CI/CD最適化）
 echo ""
 echo "=========================================="
-echo "Step 13: CI/CD最適化設定"
+echo "Step 13: GitLab Runner権限設定"
 echo "=========================================="
-
-# Nexus匿名アクセス有効化（Maven依存関係の認証問題解決）
-echo "[13-1] Nexus Repository 匿名アクセスを有効化中..."
-echo "  💡 目的: CI/CDパイプラインでのMaven依存関係ダウンロード時の認証エラー防止"
-
-# Nexusサービスが起動するまで待機
-echo "  ⏳ Nexusサービスの起動完了を待機中..."
-for i in {1..30}; do
-    if curl -s -f "http://${EC2_HOST}:8082/service/rest/v1/status" >/dev/null 2>&1; then
-        echo "  ✓ Nexusサービス起動完了"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo "  ⚠️ Nexusサービスの起動確認がタイムアウトしました"
-        echo "     手動で匿名アクセスを有効化してください:"
-        echo "     curl -u admin:${ADMIN_PASSWORD} -X PUT \"http://${EC2_HOST}:8082/service/rest/v1/security/anonymous\" -H \"Content-Type: application/json\" -d '{\"enabled\": true}'"
-    else
-        echo "    待機中... (${i}/30)"
-        sleep 10
-    fi
-done
-
-# 匿名アクセス有効化実行
-if curl -s -f "http://${EC2_HOST}:8082/service/rest/v1/status" >/dev/null 2>&1; then
-    echo "  🔧 匿名アクセスを有効化中..."
-    ANONYMOUS_RESULT=$(curl -s -u admin:${ADMIN_PASSWORD} -X PUT \
-        "http://${EC2_HOST}:8082/service/rest/v1/security/anonymous" \
-        -H "Content-Type: application/json" \
-        -d '{"enabled": true}' 2>/dev/null || echo "error")
-
-    if echo "$ANONYMOUS_RESULT" | grep -q '"enabled" : true'; then
-        echo "  ✅ Nexus匿名アクセス有効化完了"
-        echo "     CI/CDパイプラインでのMaven認証エラーが解決されました"
-    else
-        echo "  ⚠️ 匿名アクセス有効化に失敗しました"
-        echo "     結果: $ANONYMOUS_RESULT"
-        echo "     GitLab CI/CD実行時にMaven認証エラーが発生する可能性があります"
-    fi
-else
-    echo "  ⚠️ Nexusサービスに接続できません"
-fi
 
 # GitLab Runner Mavenディレクトリ権限設定
-echo ""
-echo "[13-2] GitLab Runner権限を設定中..."
+echo "GitLab Runner権限を設定中..."
 echo "  💡 目的: Maven Local Repository権限エラーの防止"
 
 # gitlab-runnerユーザーの存在確認
@@ -534,12 +492,8 @@ else
 fi
 
 echo ""
-echo "✅ CI/CD最適化設定完了"
-echo ""
-echo "📋 実施された最適化:"
-echo "  1. Nexus Repository匿名アクセス有効化 - Maven認証エラー防止"
-echo "  2. GitLab Runner権限設定 - Maven Local Repository権限エラー防止"
-echo "  3. これらの設定により、CI/CDパイプラインの主要なブロッカーが解決されました"
+echo "✅ GitLab Runner権限設定完了"
+echo "  📋 Maven権限エラー防止策が適用されました"
 echo ""
 
 # 認証情報をファイルに出力

@@ -622,6 +622,57 @@ echo "  - ログ確認: sudo journalctl -u gitlab-runner -f"
 echo "  - 環境変数確認: ${BASE_DIR}/scripts/utils/show-credentials.sh"
 echo ""
 
+# ========================================================================
+# ステップ6: CI/CD最適化設定
+# ========================================================================
+echo ""
+echo "=========================================="
+echo "[6/6] CI/CD最適化設定"
+echo "=========================================="
+
+# Nexus匿名アクセス有効化（Maven依存関係の認証問題解決）
+print_info "Nexus Repository 匿名アクセスを有効化中..."
+echo "  💡 目的: CI/CDパイプラインでのMaven依存関係ダウンロード時の認証エラー防止"
+
+# Nexusサービスが起動するまで待機
+print_info "Nexusサービスの起動完了を待機中..."
+for i in {1..15}; do
+    if curl -s -f "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/status" >/dev/null 2>&1; then
+        print_success "Nexusサービス起動完了"
+        break
+    fi
+    if [ $i -eq 15 ]; then
+        print_warning "Nexusサービスの起動確認がタイムアウトしました"
+        echo "  手動で匿名アクセスを有効化してください:"
+        echo "  curl -u admin:${NEXUS_ADMIN_PASSWORD} -X PUT \"http://${EC2_PUBLIC_IP}:8082/service/rest/v1/security/anonymous\" -H \"Content-Type: application/json\" -d '{\"enabled\": true}'"
+    else
+        echo "  待機中... (${i}/15)"
+        sleep 5
+    fi
+done
+
+# 匿名アクセス有効化実行
+if curl -s -f "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/status" >/dev/null 2>&1; then
+    print_info "匿名アクセスを有効化中..."
+    ANONYMOUS_RESULT=$(curl -s -u admin:${NEXUS_ADMIN_PASSWORD} -X PUT \
+        "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/security/anonymous" \
+        -H "Content-Type: application/json" \
+        -d '{"enabled": true}' 2>/dev/null || echo "error")
+
+    if echo "$ANONYMOUS_RESULT" | grep -q '"enabled" : true'; then
+        print_success "Nexus匿名アクセス有効化完了"
+        echo "  ✅ CI/CDパイプラインでのMaven認証エラーが解決されました"
+    else
+        print_warning "匿名アクセス有効化に失敗しました"
+        echo "  結果: $ANONYMOUS_RESULT"
+        echo "  GitLab CI/CD実行時にMaven認証エラーが発生する可能性があります"
+    fi
+else
+    print_warning "Nexusサービスに接続できません"
+fi
+
+print_success "CI/CD最適化設定完了"
+
 # 認証情報の最終表示
 print_info "更新された認証情報を表示中..."
 "${SCRIPT_DIR}/utils/show-credentials.sh"
