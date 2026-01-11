@@ -5,7 +5,7 @@
           http://maven.apache.org/xsd/settings-1.0.0.xsd">
 
   <!-- CI/CD用Maven設定ファイル (テンプレート) -->
-  <!-- __NEXUS_PASSWORD__ プレースホルダーはCI/CDパイプラインで実際のパスワードに置換される -->
+  <!-- __NEXUS_PASSWORD__ と __NEXUS_URL__ はCI/CDパイプラインで実際の値に置換される -->
 
   <servers>
     <server>
@@ -30,7 +30,7 @@
       <id>nexus-public-mirror</id>
       <mirrorOf>*</mirrorOf>
       <name>Nexus Public Repository Mirror</name>
-      <url>http://localhost:8082/repository/maven-public/</url>
+      <url>__NEXUS_URL__/repository/maven-public/</url>
     </mirror>
   </mirrors>
 
@@ -41,7 +41,7 @@
         <repository>
           <id>nexus-public</id>
           <name>Nexus Public Repository</name>
-          <url>http://localhost:8082/repository/maven-public/</url>
+          <url>__NEXUS_URL__/repository/maven-public/</url>
           <releases>
             <enabled>true</enabled>
           </releases>
@@ -54,7 +54,7 @@
         <pluginRepository>
           <id>nexus-public</id>
           <name>Nexus Public Repository</name>
-          <url>http://localhost:8082/repository/maven-public/</url>
+          <url>__NEXUS_URL__/repository/maven-public/</url>
           <releases>
             <enabled>true</enabled>
           </releases>
