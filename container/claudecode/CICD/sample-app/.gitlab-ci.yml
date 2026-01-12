@@ -1,6 +1,6 @@
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  EC2_PUBLIC_IP: "13.219.95.96"
+  EC2_PUBLIC_IP: "3.91.188.223"
 
 cache:
   paths:

@@ -99,7 +99,7 @@ public class UserService {
         User saved = userRepository.save(user);
         log.debug("ユーザー作成完了: ID={}", saved.getId());
 
-        return convertToDto(saved);
+        return convertToDto(saved, department);
     }
 
     /**
@@ -112,9 +112,8 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("ユーザーが見つかりません。ID: " + id));
 
         // 部門存在確認
-        if (!departmentRepository.existsById(dto.getDepartmentId())) {
-            throw new EntityNotFoundException("部門が見つかりません。ID: " + dto.getDepartmentId());
-        }
+        Department department = departmentRepository.findById(dto.getDepartmentId())
+                .orElseThrow(() -> new EntityNotFoundException("部門が見つかりません。ID: " + dto.getDepartmentId()));
 
         // メールアドレスの重複チェック（自分以外）
         if (userRepository.existsByEmailAndIdNot(dto.getEmail(), id)) {
@@ -129,7 +128,7 @@ public class UserService {
         User updated = userRepository.save(user);
         log.debug("ユーザー更新完了: ID={}", id);
 
-        return convertToDto(updated);
+        return convertToDto(updated, department);
     }
 
     /**
@@ -147,7 +146,32 @@ public class UserService {
     }
 
     /**
-     * Entity → DTO変換
+     * Entity → DTO変換（既に取得済みの関連エンティティを使用）
+     */
+    private UserDto convertToDto(User user, Department department) {
+        String departmentName = department != null ? department.getName() : null;
+        Long organizationId = department != null ? department.getOrganizationId() : null;
+        String organizationName = null;
+        if (department != null && department.getOrganization() != null) {
+            organizationName = department.getOrganization().getName();
+        }
+
+        return UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .departmentId(user.getDepartmentId())
+                .departmentName(departmentName)
+                .organizationId(organizationId)
+                .organizationName(organizationName)
+                .position(user.getPosition())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Entity → DTO変換（従来版 - findAll等で使用）
      */
     private UserDto convertToDto(User user) {
         // 部門情報を取得

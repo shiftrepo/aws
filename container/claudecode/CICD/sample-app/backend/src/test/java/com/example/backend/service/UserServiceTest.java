@@ -262,7 +262,7 @@ class UserServiceTest {
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
-        when(departmentRepository.existsById(1L)).thenReturn(true);
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(sampleDepartment));
         when(userRepository.existsByEmailAndIdNot("updated@example.com", 1L)).thenReturn(false);
         when(userRepository.save(any(User.class))).thenReturn(updatedUser);
 
@@ -274,7 +274,7 @@ class UserServiceTest {
         assertThat(result.getName()).isEqualTo("更新ユーザー");
         assertThat(result.getEmail()).isEqualTo("updated@example.com");
         verify(userRepository).findById(1L);
-        verify(departmentRepository).existsById(1L);
+        verify(departmentRepository).findById(1L);
         verify(userRepository).existsByEmailAndIdNot("updated@example.com", 1L);
         verify(userRepository).save(any(User.class));
     }
@@ -312,7 +312,7 @@ class UserServiceTest {
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
-        when(departmentRepository.existsById(999L)).thenReturn(false);
+        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userService.update(1L, updateDto))
@@ -320,7 +320,7 @@ class UserServiceTest {
                 .hasMessage("部門が見つかりません。ID: 999");
 
         verify(userRepository).findById(1L);
-        verify(departmentRepository).existsById(999L);
+        verify(departmentRepository).findById(999L);
     }
 
     @Test
@@ -335,7 +335,7 @@ class UserServiceTest {
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
-        when(departmentRepository.existsById(1L)).thenReturn(true);
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(sampleDepartment));
         when(userRepository.existsByEmailAndIdNot("duplicate@example.com", 1L)).thenReturn(true);
 
         // When & Then
@@ -344,7 +344,7 @@ class UserServiceTest {
                 .hasMessage("メールアドレスが既に存在します: duplicate@example.com");
 
         verify(userRepository).findById(1L);
-        verify(departmentRepository).existsById(1L);
+        verify(departmentRepository).findById(1L);
         verify(userRepository).existsByEmailAndIdNot("duplicate@example.com", 1L);
     }
 

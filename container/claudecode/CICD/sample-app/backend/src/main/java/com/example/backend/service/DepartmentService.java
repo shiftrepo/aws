@@ -78,10 +78,10 @@ public class DepartmentService {
         }
 
         // 親部門の存在確認
+        Department parentDepartment = null;
         if (dto.getParentDepartmentId() != null) {
-            if (!departmentRepository.existsById(dto.getParentDepartmentId())) {
-                throw new EntityNotFoundException("親部門が見つかりません。ID: " + dto.getParentDepartmentId());
-            }
+            parentDepartment = departmentRepository.findById(dto.getParentDepartmentId())
+                    .orElseThrow(() -> new EntityNotFoundException("親部門が見つかりません。ID: " + dto.getParentDepartmentId()));
         }
 
         Department department = Department.builder()
@@ -94,7 +94,7 @@ public class DepartmentService {
         Department saved = departmentRepository.save(department);
         log.debug("部門作成完了: ID={}", saved.getId());
 
-        return convertToDto(saved);
+        return convertToDto(saved, organization, parentDepartment);
     }
 
     /**
@@ -112,10 +112,10 @@ public class DepartmentService {
         }
 
         // 親部門の存在確認
+        Department parentDepartment = null;
         if (dto.getParentDepartmentId() != null) {
-            if (!departmentRepository.existsById(dto.getParentDepartmentId())) {
-                throw new EntityNotFoundException("親部門が見つかりません。ID: " + dto.getParentDepartmentId());
-            }
+            parentDepartment = departmentRepository.findById(dto.getParentDepartmentId())
+                    .orElseThrow(() -> new EntityNotFoundException("親部門が見つかりません。ID: " + dto.getParentDepartmentId()));
             // 循環参照チェック（自分自身を親にできない）
             if (dto.getParentDepartmentId().equals(id)) {
                 throw new IllegalArgumentException("自分自身を親部門に設定できません");
@@ -129,7 +129,10 @@ public class DepartmentService {
         Department updated = departmentRepository.save(department);
         log.debug("部門更新完了: ID={}", id);
 
-        return convertToDto(updated);
+        // 組織情報を取得
+        Organization organization = organizationRepository.findById(updated.getOrganizationId()).orElse(null);
+
+        return convertToDto(updated, organization, parentDepartment);
     }
 
     /**
@@ -153,7 +156,27 @@ public class DepartmentService {
     }
 
     /**
-     * Entity → DTO変換
+     * Entity → DTO変換（既に取得済みの関連エンティティを使用）
+     */
+    private DepartmentDto convertToDto(Department department, Organization organization, Department parentDepartment) {
+        String organizationName = organization != null ? organization.getName() : null;
+        String parentDepartmentName = parentDepartment != null ? parentDepartment.getName() : null;
+
+        return DepartmentDto.builder()
+                .id(department.getId())
+                .name(department.getName())
+                .description(department.getDescription())
+                .organizationId(department.getOrganizationId())
+                .organizationName(organizationName)
+                .parentDepartmentId(department.getParentDepartmentId())
+                .parentDepartmentName(parentDepartmentName)
+                .createdAt(department.getCreatedAt())
+                .updatedAt(department.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Entity → DTO変換（従来版 - findAll等で使用）
      */
     private DepartmentDto convertToDto(Department department) {
         // 組織名を取得

@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 /**
  * DepartmentService のテストクラス
@@ -383,7 +384,7 @@ class DepartmentServiceTest {
 
         when(organizationRepository.findById(1L)).thenReturn(Optional.of(sampleOrganization));
         when(departmentRepository.existsByOrganizationIdAndName(1L, "子部門")).thenReturn(false);
-        when(departmentRepository.existsById(1L)).thenReturn(true);
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(parentDepartment));
         when(departmentRepository.save(any(Department.class))).thenReturn(savedDepartment);
 
         // When
@@ -395,7 +396,7 @@ class DepartmentServiceTest {
         assertThat(result.getParentDepartmentId()).isEqualTo(1L);
         verify(organizationRepository).findById(1L);
         verify(departmentRepository).existsByOrganizationIdAndName(1L, "子部門");
-        verify(departmentRepository).existsById(1L);
+        verify(departmentRepository).findById(1L);
         verify(departmentRepository).save(any(Department.class));
     }
 
@@ -412,7 +413,7 @@ class DepartmentServiceTest {
 
         when(organizationRepository.findById(1L)).thenReturn(Optional.of(sampleOrganization));
         when(departmentRepository.existsByOrganizationIdAndName(1L, "子部門")).thenReturn(false);
-        when(departmentRepository.existsById(999L)).thenReturn(false);
+        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> departmentService.create(createDto))
@@ -421,7 +422,7 @@ class DepartmentServiceTest {
 
         verify(organizationRepository).findById(1L);
         verify(departmentRepository).existsByOrganizationIdAndName(1L, "子部門");
-        verify(departmentRepository).existsById(999L);
+        verify(departmentRepository).findById(999L);
     }
 
     @Test
@@ -433,6 +434,12 @@ class DepartmentServiceTest {
                 .description("親部門を設定します")
                 .organizationId(1L)
                 .parentDepartmentId(2L)
+                .build();
+
+        Department parentDepartment = Department.builder()
+                .id(2L)
+                .name("親部門")
+                .organizationId(1L)
                 .build();
 
         Department updatedDepartment = Department.builder()
@@ -447,8 +454,9 @@ class DepartmentServiceTest {
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(sampleDepartment));
         when(departmentRepository.existsByOrganizationIdAndNameAndIdNot(1L, "更新部門", 1L)).thenReturn(false);
-        when(departmentRepository.existsById(2L)).thenReturn(true);
+        when(departmentRepository.findById(2L)).thenReturn(Optional.of(parentDepartment));
         when(departmentRepository.save(any(Department.class))).thenReturn(updatedDepartment);
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(sampleOrganization));
 
         // When
         DepartmentDto result = departmentService.update(1L, updateDto);
@@ -459,8 +467,9 @@ class DepartmentServiceTest {
         assertThat(result.getParentDepartmentId()).isEqualTo(2L);
         verify(departmentRepository).findById(1L);
         verify(departmentRepository).existsByOrganizationIdAndNameAndIdNot(1L, "更新部門", 1L);
-        verify(departmentRepository).existsById(2L);
+        verify(departmentRepository).findById(2L);
         verify(departmentRepository).save(any(Department.class));
+        verify(organizationRepository).findById(1L);
     }
 
     @Test
@@ -482,7 +491,7 @@ class DepartmentServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("自分自身を親部門に設定できません");
 
-        verify(departmentRepository).findById(1L);
+        verify(departmentRepository, times(2)).findById(1L);
         verify(departmentRepository).existsByOrganizationIdAndNameAndIdNot(1L, "更新部門", 1L);
     }
 
@@ -499,7 +508,7 @@ class DepartmentServiceTest {
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(sampleDepartment));
         when(departmentRepository.existsByOrganizationIdAndNameAndIdNot(1L, "更新部門", 1L)).thenReturn(false);
-        when(departmentRepository.existsById(999L)).thenReturn(false);
+        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> departmentService.update(1L, updateDto))
@@ -508,6 +517,6 @@ class DepartmentServiceTest {
 
         verify(departmentRepository).findById(1L);
         verify(departmentRepository).existsByOrganizationIdAndNameAndIdNot(1L, "更新部門", 1L);
-        verify(departmentRepository).existsById(999L);
+        verify(departmentRepository, times(1)).findById(999L);
     }
 }
