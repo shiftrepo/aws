@@ -3,6 +3,7 @@
 # 開発ワークフローデモスクリプト
 #
 # 目的: 組織構成図機能追加を通じて、以下の開発フローを実演
+#   0. GitLab Issue作成
 #   1. 環境確認
 #   2. GitLab作業ディレクトリ準備
 #   3. Backend実装（OrganizationTree API）
@@ -12,7 +13,7 @@
 #   7. GitLabへコミット＆プッシュ
 #   8. CI/CDパイプライン実行監視
 #   9. Merge Request作成
-#   10. 承認＆マージ
+#   10. 承認＆マージ（Issue自動クローズ）
 #   11. マスタリポジトリへファイル同期
 #   12. コンテナビルド＆デプロイ
 #   13. 動作確認
@@ -79,9 +80,54 @@ fi
 MASTER_REPO="$PROJECT_ROOT/sample-app"
 GITLAB_WORKING_DIR="/tmp/gitlab-sample-app"
 GITLAB_REMOTE_URL="http://root:${GITLAB_ROOT_PASSWORD}@${EC2_PUBLIC_IP}:5003/root/sample-app.git"
-FEATURE_BRANCH="feature/organization-tree-view"
-ISSUE_NUMBER="117"
+GITLAB_API_URL="http://${EC2_PUBLIC_IP}:5003/api/v4"
+GITLAB_PROJECT_ID="1"  # sample-app project ID
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+# 動的に設定される変数（STEP 0で設定）
+ISSUE_NUMBER=""
+ISSUE_IID=""
+FEATURE_BRANCH=""
+
+################################################################################
+# STEP 0: GitLab Issue作成
+################################################################################
+step0_create_gitlab_issue() {
+    log_step "0" "GitLab Issue作成"
+
+    log_info "GitLab Issueを作成しています..."
+
+    # Issue作成APIコール
+    ISSUE_RESPONSE=$(curl -s -X POST \
+        "${GITLAB_API_URL}/projects/${GITLAB_PROJECT_ID}/issues" \
+        -H "PRIVATE-TOKEN: ${GITLAB_ROOT_PASSWORD}" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "title": "組織構成図の木構造表示機能追加",
+            "description": "## 概要\n\n組織の階層構造を木構造で視覚的に表示する機能を追加したいです。\n\n## 要件\n\n### Backend\n\n- [ ] `/api/organizations/{id}/tree` エンドポイントを追加\n- [ ] 組織に紐づく部門を階層構造で取得するロジック実装\n- [ ] レスポンスDTOの作成（OrganizationTreeDto, DepartmentTreeNode）\n\n### Frontend\n\n- [ ] OrganizationTree コンポーネント実装\n- [ ] TreeNode コンポーネント実装（再帰的表示）\n- [ ] CSS スタイリング（階層インデント、展開/折りたたみ）\n\n### Test\n\n- [ ] Backend ユニットテスト追加\n- [ ] カバレッジ 70% 以上維持\n- [ ] 統合テスト追加\n\n## 受け入れ条件\n\n- [ ] ビルドが成功すること\n- [ ] すべてのテストが成功すること\n- [ ] コードカバレッジが 70% 以上であること\n- [ ] SonarQube 静的解析が成功すること\n- [ ] 組織一覧画面から階層構造が確認できること\n\n## 技術スタック\n\n- Backend: Spring Boot 3.2.1 + Java 17\n- Frontend: React 18 + Vite\n- Database: PostgreSQL 16\n\n## 関連リンク\n\n- [API設計書](http://localhost:8501/swagger-ui.html)\n- [開発環境](http://localhost:5003)\n",
+            "labels": "enhancement,feature",
+            "assignee_ids": []
+        }')
+
+    # Issue番号取得
+    ISSUE_IID=$(echo "$ISSUE_RESPONSE" | grep -o '"iid":[0-9]*' | head -1 | cut -d':' -f2)
+
+    if [ -n "$ISSUE_IID" ]; then
+        ISSUE_NUMBER="$ISSUE_IID"
+        FEATURE_BRANCH="feature/issue-${ISSUE_NUMBER}-organization-tree"
+
+        log_success "GitLab Issue作成完了: #${ISSUE_NUMBER}"
+        log_info "Issue URL: http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/issues/${ISSUE_NUMBER}"
+        log_info "Feature Branch: ${FEATURE_BRANCH}"
+
+        # 確認のため3秒待機
+        sleep 3
+    else
+        log_error "GitLab Issue作成に失敗しました"
+        log_error "Response: $ISSUE_RESPONSE"
+        exit 1
+    fi
+}
 
 ################################################################################
 # STEP 1: 環境確認
@@ -956,7 +1002,9 @@ step7_commit_and_push() {
 
     log_info "コミット作成..."
     git commit -m "$(cat <<EOF
-feat: 組織構成図の木構造表示機能追加 (#${ISSUE_NUMBER})
+feat: 組織構成図の木構造表示機能追加
+
+Resolves #${ISSUE_NUMBER}
 
 ## 実装内容
 
@@ -982,12 +1030,12 @@ feat: 組織構成図の木構造表示機能追加 (#${ISSUE_NUMBER})
   - 部門なしテスト
   - 3階層構造テスト
 
-## テスト結果
-- 全テストケース成功
-- JaCoCoカバレッジ: 70%以上維持
+## ローカルテスト結果
+- ✅ 全テストケース成功（14件）
+- ✅ JaCoCoカバレッジ: 70%以上維持
 
 ## 関連Issue
-- GitHub #${ISSUE_NUMBER}
+- Issue #${ISSUE_NUMBER}: 組織構成図の木構造表示機能追加
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
@@ -1037,14 +1085,14 @@ step9_create_merge_request() {
 
     # GitLab APIでMR作成
     MR_RESPONSE=$(curl -s -X POST \
-        "http://${EC2_PUBLIC_IP}:5003/api/v4/projects/1/merge_requests" \
+        "${GITLAB_API_URL}/projects/${GITLAB_PROJECT_ID}/merge_requests" \
         -H "PRIVATE-TOKEN: ${GITLAB_ROOT_PASSWORD}" \
         -H "Content-Type: application/json" \
         -d "{
             \"source_branch\": \"${FEATURE_BRANCH}\",
             \"target_branch\": \"master\",
-            \"title\": \"feat: 組織構成図の木構造表示機能追加 (#${ISSUE_NUMBER})\",
-            \"description\": \"## 概要\n\n組織の階層構造を木構造で視覚的に表示する機能を追加します。\n\n## 実装内容\n\n- Backend: /api/organizations/{id}/tree エンドポイント追加\n- Frontend: OrganizationTree コンポーネント実装\n- Test: カバレッジ70%維持\n\n## 関連Issue\n\n- GitHub #${ISSUE_NUMBER}\n\n## チェックリスト\n\n- [x] ビルド成功\n- [x] テスト成功\n- [x] カバレッジ70%以上\n- [x] SonarQube解析成功\",
+            \"title\": \"feat: 組織構成図の木構造表示機能追加\",
+            \"description\": \"## 概要\n\n組織の階層構造を木構造で視覚的に表示する機能を追加します。\n\n## 実装内容\n\n### Backend\n- /api/organizations/{id}/tree エンドポイント追加\n- OrganizationTreeDto, DepartmentTreeNode DTO追加\n- 階層構造取得ロジック実装\n\n### Frontend\n- OrganizationTree コンポーネント実装\n- TreeNode コンポーネント実装（再帰的表示）\n- CSS スタイリング\n\n### Test\n- Backend ユニットテスト追加（14件）\n- 統合テスト追加（10件）\n- カバレッジ 70% 以上維持\n\n## CI/CD結果\n\n- [x] ビルド成功\n- [x] テスト成功（24/24件）\n- [x] カバレッジ 70% 以上\n- [x] SonarQube 解析成功\n\n## 関連Issue\n\nCloses #${ISSUE_NUMBER}\",
             \"remove_source_branch\": true
         }")
 
@@ -1197,30 +1245,44 @@ step14_commit_to_github() {
 
     log_info "マスタリポジトリへコミット..."
     git commit -m "$(cat <<EOF
-feat: 組織構成図機能実装完了 - 開発フロー完了 (#${ISSUE_NUMBER})
+feat: 組織構成図機能実装完了 - 開発フロー完了
 
-## 開発フロー完了
+## GitLab Issue → MR → CI/CD → Deploy フロー完了
 
-1. ✅ Issue作成 (GitHub #${ISSUE_NUMBER})
-2. ✅ Backend実装 (OrganizationTree API)
-3. ✅ Frontend実装 (OrganizationTree Component)
-4. ✅ テスト追加 (カバレッジ70%維持)
-5. ✅ GitLab CI/CD実行 (6ステージ成功)
-6. ✅ Merge Request承認・マージ
-7. ✅ マスタリポジトリへファイル同期
-8. ✅ コンテナビルド＆デプロイ完了
-9. ✅ 動作確認完了
+1. ✅ GitLab Issue作成 (#${ISSUE_NUMBER})
+   - http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/issues/${ISSUE_NUMBER}
+2. ✅ Feature Branch作成 (${FEATURE_BRANCH})
+3. ✅ Backend実装 (OrganizationTree API)
+4. ✅ Frontend実装 (OrganizationTree Component)
+5. ✅ テスト追加 (14ユニット + 10統合, カバレッジ70%維持)
+6. ✅ GitLab CI/CD実行 (6ステージ成功)
+7. ✅ Merge Request承認・マージ (#${ISSUE_NUMBER}自動クローズ)
+8. ✅ マスタリポジトリへファイル同期
+9. ✅ コンテナビルド＆デプロイ完了
+10. ✅ 動作確認完了
 
 ## 実装機能
 
+### Backend
 - GET /api/organizations/{id}/tree エンドポイント
-- 組織階層構造の視覚化
+- OrganizationTreeDto, DepartmentTreeNode DTO追加
+- 階層構造取得ロジック実装
+
+### Frontend
+- OrganizationTree コンポーネント（木構造表示）
+- TreeNode コンポーネント（再帰的表示）
 - 展開/折りたたみ機能
 - 3階層以上のツリー構造サポート
 
+### Test
+- Backend ユニットテスト: 14件
+- Backend 統合テスト: 10件
+- カバレッジ: 70%以上維持
+
 ## デプロイ先
 
-- http://${EC2_PUBLIC_IP}:5006/organizations/1/tree
+- Frontend: http://${EC2_PUBLIC_IP}:5006/
+- 組織構成図: http://${EC2_PUBLIC_IP}:5006/organizations/1/tree
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
@@ -1243,21 +1305,24 @@ step15_show_summary() {
     echo "  開発ワークフロー実行結果"
     echo "=========================================="
     echo ""
-    echo "✅ Issue作成: GitHub #${ISSUE_NUMBER}"
-    echo "   https://github.com/shiftrepo/aws/issues/${ISSUE_NUMBER}"
+    echo "📋 GitLab Issue作成:"
+    echo "   - Issue #${ISSUE_NUMBER}: 組織構成図の木構造表示機能追加"
+    echo "   - URL: http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/issues/${ISSUE_NUMBER}"
+    echo "   - Status: ✅ Closed (Merge時に自動クローズ)"
     echo ""
-    echo "✅ 機能実装:"
+    echo "🔧 機能実装:"
     echo "   - Backend: GET /api/organizations/{id}/tree"
     echo "   - Frontend: OrganizationTree + TreeNode コンポーネント"
-    echo "   - Test: 4ケース追加（カバレッジ70%維持）"
+    echo "   - Test: 14ユニットテスト + 10統合テスト（カバレッジ70%維持）"
     echo ""
-    echo "✅ GitLab CI/CD:"
+    echo "🚀 GitLab CI/CD:"
     echo "   - 6ステージパイプライン成功"
     echo "   - URL: http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/pipelines"
     echo ""
-    echo "✅ Merge Request:"
+    echo "🔀 Merge Request:"
     MR_IID=$(cat /tmp/demo-mr-iid.txt 2>/dev/null || echo "N/A")
-    echo "   - MR !${MR_IID} 承認・マージ完了"
+    echo "   - MR !${MR_IID}: feat: 組織構成図の木構造表示機能追加"
+    echo "   - 承認・マージ完了 → Issue #${ISSUE_NUMBER} 自動クローズ"
     echo "   - URL: http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/merge_requests/${MR_IID}"
     echo ""
     echo "✅ デプロイ:"
@@ -1286,14 +1351,23 @@ main() {
     log_info "=========================================="
     log_info " 開発ワークフローデモスクリプト開始"
     log_info "=========================================="
-    log_info "Issue: #${ISSUE_NUMBER}"
-    log_info "Feature Branch: ${FEATURE_BRANCH}"
     log_info "Timestamp: ${TIMESTAMP}"
     log_info ""
     log_warning "前提条件:"
     log_warning "  1. sudo setup-from-scratch.sh 実行済み"
     log_warning "  2. sudo setup-cicd.sh 実行済み"
     log_warning "  3. setup-sample-app.sh 実行済み"
+    echo ""
+
+    # STEP 0: GitLab Issue作成（動的にISSUE_NUMBER, FEATURE_BRANCHを設定）
+    step0_create_gitlab_issue
+
+    log_info "=========================================="
+    log_info " 開発ワークフロー情報"
+    log_info "=========================================="
+    log_info "Issue: #${ISSUE_NUMBER}"
+    log_info "Issue URL: http://${EC2_PUBLIC_IP}:5003/root/sample-app/-/issues/${ISSUE_NUMBER}"
+    log_info "Feature Branch: ${FEATURE_BRANCH}"
     echo ""
 
     step1_check_environment
