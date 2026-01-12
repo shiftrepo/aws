@@ -2,6 +2,7 @@
 # ========================================================================
 # コンテナデプロイスクリプト
 # CI/CD経由でMavenビルド成果物をコンテナ化＆デプロイ
+# sample-app内で完結（/root/aws.gitへの依存なし）
 # ========================================================================
 
 set -euo pipefail
@@ -11,10 +12,16 @@ set -euo pipefail
 # ========================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CICD_ROOT="/root/aws.git/container/claudecode/CICD"
 BACKEND_JAR_PATH="${PROJECT_ROOT}/backend/target"
 HEALTH_CHECK_TIMEOUT=180
 HEALTH_CHECK_INTERVAL=10
+
+# コンテナ設定
+BACKEND_CONTAINER_NAME="sample-backend"
+FRONTEND_CONTAINER_NAME="nginx-frontend"
+BACKEND_IMAGE="sample-backend:latest"
+FRONTEND_IMAGE="nginx-frontend:latest"
+NETWORK_NAME="cicd_cicd-network"
 
 # ========================================
 # ログ関数（詳細出力）
@@ -43,33 +50,38 @@ log_variable() {
 }
 
 # ========================================
-# 環境変数読み込み
+# 環境変数チェック
 # ========================================
-source_env() {
-    log_info "環境変数を読み込み中..."
+check_env() {
+    log_info "環境変数をチェック中..."
     log_variable "PROJECT_ROOT" "$PROJECT_ROOT"
-    log_variable "CICD_ROOT" "$CICD_ROOT"
 
-    if [ ! -f "${CICD_ROOT}/.env" ]; then
-        log_error ".envファイルが見つかりません: ${CICD_ROOT}/.env"
-        exit 1
-    fi
-    source "${CICD_ROOT}/.env"
-    log_success ".env読み込み完了"
-
-    if [ -z "$EC2_PUBLIC_IP" ]; then
+    # 必須環境変数
+    if [ -z "${EC2_PUBLIC_IP:-}" ]; then
         log_error "EC2_PUBLIC_IP環境変数が設定されていません"
+        log_error "GitLab CI/CDで設定してください"
         exit 1
     fi
     log_variable "EC2_PUBLIC_IP" "$EC2_PUBLIC_IP"
+
+    # デフォルト値設定
+    POSTGRES_HOST="${POSTGRES_HOST:-postgres}"
+    POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+    POSTGRES_DB="${POSTGRES_DB:-sampledb}"
+    POSTGRES_USER="${POSTGRES_USER:-sampleuser}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-Degital2026!}"
+
+    log_variable "POSTGRES_HOST" "$POSTGRES_HOST"
+    log_variable "POSTGRES_DB" "$POSTGRES_DB"
     log_variable "BACKEND_JAR_PATH" "$BACKEND_JAR_PATH"
+    log_success "環境変数チェック完了"
 }
 
 # ========================================
 # 事前チェック
 # ========================================
 pre_deployment_checks() {
-    log_step "1" "6" "事前チェック"
+    log_step "1" "7" "事前チェック"
 
     log_info "JARファイルを検索中..."
     log_variable "検索パス" "$BACKEND_JAR_PATH"
@@ -89,73 +101,91 @@ pre_deployment_checks() {
     log_variable "JARサイズ" "$JAR_SIZE"
     log_variable "JAR絶対パス" "$JAR_FILE"
 
-    log_info "docker-compose.yml確認中..."
-    if [ ! -f "${CICD_ROOT}/docker-compose.yml" ]; then
-        log_error "docker-compose.ymlが見つかりません"
+    log_info "Dockerfile確認中..."
+    if [ ! -f "${PROJECT_ROOT}/backend/Dockerfile" ]; then
+        log_error "backend/Dockerfileが見つかりません"
         exit 1
     fi
-    log_success "docker-compose.yml確認完了"
-    log_variable "docker-compose.yml" "${CICD_ROOT}/docker-compose.yml"
+    if [ ! -f "${PROJECT_ROOT}/nginx/Dockerfile" ]; then
+        log_error "nginx/Dockerfileが見つかりません"
+        exit 1
+    fi
+    log_success "Dockerfile確認完了"
+}
+
+# ========================================
+# ネットワーク確認
+# ========================================
+ensure_network() {
+    log_step "2" "7" "ネットワーク確認"
+
+    if sudo podman network exists "$NETWORK_NAME" 2>/dev/null; then
+        log_success "ネットワーク $NETWORK_NAME を使用します"
+    else
+        log_error "ネットワーク $NETWORK_NAME が存在しません"
+        log_error "docker-composeでネットワークを作成してください"
+        exit 1
+    fi
 }
 
 # ========================================
 # コンテナ停止＆削除（名前指定）
 # ========================================
 stop_and_remove_containers() {
-    log_step "2" "6" "既存コンテナ停止＆削除"
+    log_step "3" "7" "既存コンテナ停止＆削除"
 
     log_info "アプリケーションコンテナを確認中..."
-    BACKEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "sample-backend" || echo "")
-    FRONTEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "nginx-frontend" || echo "")
+    BACKEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "$BACKEND_CONTAINER_NAME" || echo "")
+    FRONTEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "$FRONTEND_CONTAINER_NAME" || echo "")
 
     if [ -n "$BACKEND_EXISTS" ]; then
-        log_variable "Backend Container" "sample-backend (存在)"
+        log_variable "Backend Container" "$BACKEND_CONTAINER_NAME (存在)"
     else
-        log_variable "Backend Container" "sample-backend (存在しない)"
+        log_variable "Backend Container" "$BACKEND_CONTAINER_NAME (存在しない)"
     fi
 
     if [ -n "$FRONTEND_EXISTS" ]; then
-        log_variable "Frontend Container" "nginx-frontend (存在)"
+        log_variable "Frontend Container" "$FRONTEND_CONTAINER_NAME (存在)"
     else
-        log_variable "Frontend Container" "nginx-frontend (存在しない)"
+        log_variable "Frontend Container" "$FRONTEND_CONTAINER_NAME (存在しない)"
     fi
 
     # Backendコンテナの停止＆削除
     if [ -n "$BACKEND_EXISTS" ]; then
-        log_info "sample-backend コンテナを停止中..."
-        if sudo podman stop sample-backend 2>/dev/null; then
-            log_success "sample-backend 停止完了"
+        log_info "$BACKEND_CONTAINER_NAME コンテナを停止中..."
+        if sudo podman stop "$BACKEND_CONTAINER_NAME" 2>/dev/null; then
+            log_success "$BACKEND_CONTAINER_NAME 停止完了"
         else
-            log_info "sample-backend は既に停止済み"
+            log_info "$BACKEND_CONTAINER_NAME は既に停止済み"
         fi
 
-        log_info "sample-backend コンテナを削除中..."
-        if sudo podman rm sample-backend 2>/dev/null; then
-            log_success "sample-backend 削除完了"
+        log_info "$BACKEND_CONTAINER_NAME コンテナを削除中..."
+        if sudo podman rm "$BACKEND_CONTAINER_NAME" 2>/dev/null; then
+            log_success "$BACKEND_CONTAINER_NAME 削除完了"
         else
-            log_error "sample-backend の削除に失敗"
+            log_error "$BACKEND_CONTAINER_NAME の削除に失敗"
         fi
     fi
 
     # Frontendコンテナの停止＆削除
     if [ -n "$FRONTEND_EXISTS" ]; then
-        log_info "nginx-frontend コンテナを停止中..."
-        if sudo podman stop nginx-frontend 2>/dev/null; then
-            log_success "nginx-frontend 停止完了"
+        log_info "$FRONTEND_CONTAINER_NAME コンテナを停止中..."
+        if sudo podman stop "$FRONTEND_CONTAINER_NAME" 2>/dev/null; then
+            log_success "$FRONTEND_CONTAINER_NAME 停止完了"
         else
-            log_info "nginx-frontend は既に停止済み"
+            log_info "$FRONTEND_CONTAINER_NAME は既に停止済み"
         fi
 
-        log_info "nginx-frontend コンテナを削除中..."
-        if sudo podman rm nginx-frontend 2>/dev/null; then
-            log_success "nginx-frontend 削除完了"
+        log_info "$FRONTEND_CONTAINER_NAME コンテナを削除中..."
+        if sudo podman rm "$FRONTEND_CONTAINER_NAME" 2>/dev/null; then
+            log_success "$FRONTEND_CONTAINER_NAME 削除完了"
         else
-            log_error "nginx-frontend の削除に失敗"
+            log_error "$FRONTEND_CONTAINER_NAME の削除に失敗"
         fi
     fi
 
     log_info "削除後のコンテナ状態確認..."
-    REMAINING=$(sudo podman ps -a --format "{{.Names}}" | grep -E "^(sample-backend|nginx-frontend)$" || echo "")
+    REMAINING=$(sudo podman ps -a --format "{{.Names}}" | grep -E "^($BACKEND_CONTAINER_NAME|$FRONTEND_CONTAINER_NAME)$" || echo "")
     if [ -z "$REMAINING" ]; then
         log_success "アプリケーションコンテナ削除確認完了"
     else
@@ -168,20 +198,18 @@ stop_and_remove_containers() {
 # コンテナビルド
 # ========================================
 build_containers() {
-    log_step "3" "6" "コンテナビルド"
+    log_step "4" "7" "コンテナビルド"
 
-    cd "$CICD_ROOT"
-    log_variable "作業ディレクトリ" "$(pwd)"
-    log_variable "ビルドコンテキスト(backend)" "${CICD_ROOT}/sample-app/backend"
-    log_variable "ビルドコンテキスト(nginx)" "${CICD_ROOT}/sample-app"
-
+    # Backend コンテナビルド
     log_info "Backend コンテナビルド中..."
-    log_variable "コマンド" "sudo podman-compose build --no-cache sample-backend"
-    log_info "  --no-cache: キャッシュ無効化（最新JARを確実に反映）"
+    log_variable "ビルドコンテキスト" "${PROJECT_ROOT}/backend"
+    log_variable "Dockerfile" "${PROJECT_ROOT}/backend/Dockerfile"
+    log_variable "イメージ名" "$BACKEND_IMAGE"
 
-    if sudo podman-compose build --no-cache sample-backend 2>&1 | tee /tmp/backend-build.log; then
+    cd "${PROJECT_ROOT}/backend"
+    if sudo podman build --no-cache -t "$BACKEND_IMAGE" . 2>&1 | tee /tmp/backend-build.log; then
         log_success "Backend コンテナビルド完了"
-        BACKEND_IMAGE_ID=$(sudo podman images sample-backend:latest --format "{{.ID}}")
+        BACKEND_IMAGE_ID=$(sudo podman images "$BACKEND_IMAGE" --format "{{.ID}}")
         log_variable "Backend Image ID" "$BACKEND_IMAGE_ID"
     else
         log_error "Backend コンテナビルド失敗"
@@ -190,12 +218,16 @@ build_containers() {
         exit 1
     fi
 
+    # Nginx Frontend コンテナビルド
     log_info "Nginx Frontend コンテナビルド中..."
-    log_variable "コマンド" "sudo podman-compose build --no-cache nginx-frontend"
+    log_variable "ビルドコンテキスト" "${PROJECT_ROOT}"
+    log_variable "Dockerfile" "${PROJECT_ROOT}/nginx/Dockerfile"
+    log_variable "イメージ名" "$FRONTEND_IMAGE"
 
-    if sudo podman-compose build --no-cache nginx-frontend 2>&1 | tee /tmp/frontend-build.log; then
+    cd "${PROJECT_ROOT}"
+    if sudo podman build --no-cache -f nginx/Dockerfile -t "$FRONTEND_IMAGE" . 2>&1 | tee /tmp/frontend-build.log; then
         log_success "Nginx Frontend コンテナビルド完了"
-        FRONTEND_IMAGE_ID=$(sudo podman images nginx-frontend:latest --format "{{.ID}}")
+        FRONTEND_IMAGE_ID=$(sudo podman images "$FRONTEND_IMAGE" --format "{{.ID}}")
         log_variable "Frontend Image ID" "$FRONTEND_IMAGE_ID"
     else
         log_error "Nginx Frontend コンテナビルド失敗"
@@ -209,41 +241,69 @@ build_containers() {
 # コンテナ起動
 # ========================================
 start_containers() {
-    log_step "4" "6" "コンテナ起動"
+    log_step "5" "7" "コンテナ起動"
 
-    cd "$CICD_ROOT"
-    log_variable "作業ディレクトリ" "$(pwd)"
-    log_variable "コマンド" "sudo podman-compose --profile app up -d"
-    log_info "  --profile app: sample-backend, nginx-frontend のみ起動"
-    log_info "  -d: デタッチドモード（バックグラウンド実行）"
+    # Backend コンテナ起動
+    log_info "Backend コンテナ起動中..."
+    log_variable "コンテナ名" "$BACKEND_CONTAINER_NAME"
+    log_variable "イメージ" "$BACKEND_IMAGE"
+    log_variable "ネットワーク" "$NETWORK_NAME"
 
-    if sudo podman-compose --profile app up -d 2>&1 | tee /tmp/podman-up.log; then
-        log_success "コンテナ起動完了"
+    DATASOURCE_URL="jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+    log_variable "SPRING_DATASOURCE_URL" "$DATASOURCE_URL"
 
-        log_info "起動後のコンテナ状態確認..."
-        sudo podman ps --filter "label=io.podman.compose.project=cicd" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(NAMES|sample-backend|nginx-frontend)"
-
-        BACKEND_CONTAINER_ID=$(sudo podman ps -qf "name=sample-backend")
-        FRONTEND_CONTAINER_ID=$(sudo podman ps -qf "name=nginx-frontend")
+    if sudo podman run -d \
+        --name "$BACKEND_CONTAINER_NAME" \
+        --network "$NETWORK_NAME" \
+        -e SPRING_PROFILES_ACTIVE=dev \
+        -e SPRING_DATASOURCE_URL="$DATASOURCE_URL" \
+        -e SPRING_DATASOURCE_USERNAME="$POSTGRES_USER" \
+        -e SPRING_DATASOURCE_PASSWORD="$POSTGRES_PASSWORD" \
+        "$BACKEND_IMAGE" 2>&1 | tee /tmp/backend-run.log; then
+        log_success "Backend コンテナ起動完了"
+        BACKEND_CONTAINER_ID=$(sudo podman ps -qf "name=$BACKEND_CONTAINER_NAME")
         log_variable "Backend Container ID" "$BACKEND_CONTAINER_ID"
-        log_variable "Frontend Container ID" "$FRONTEND_CONTAINER_ID"
     else
-        log_error "コンテナ起動失敗"
-        cat /tmp/podman-up.log
+        log_error "Backend コンテナ起動失敗"
+        cat /tmp/backend-run.log
         exit 1
     fi
+
+    # Frontend コンテナ起動
+    log_info "Frontend コンテナ起動中..."
+    log_variable "コンテナ名" "$FRONTEND_CONTAINER_NAME"
+    log_variable "イメージ" "$FRONTEND_IMAGE"
+    log_variable "ネットワーク" "$NETWORK_NAME"
+    log_variable "ポートマッピング" "5006:80"
+
+    if sudo podman run -d \
+        --name "$FRONTEND_CONTAINER_NAME" \
+        --network "$NETWORK_NAME" \
+        -p 5006:80 \
+        "$FRONTEND_IMAGE" 2>&1 | tee /tmp/frontend-run.log; then
+        log_success "Frontend コンテナ起動完了"
+        FRONTEND_CONTAINER_ID=$(sudo podman ps -qf "name=$FRONTEND_CONTAINER_NAME")
+        log_variable "Frontend Container ID" "$FRONTEND_CONTAINER_ID"
+    else
+        log_error "Frontend コンテナ起動失敗"
+        cat /tmp/frontend-run.log
+        exit 1
+    fi
+
+    log_info "起動後のコンテナ状態確認..."
+    sudo podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(NAMES|$BACKEND_CONTAINER_NAME|$FRONTEND_CONTAINER_NAME)"
 }
 
 # ========================================
 # ヘルスチェック
 # ========================================
 health_check() {
-    log_step "5" "6" "ヘルスチェック"
+    log_step "6" "7" "ヘルスチェック"
 
     log_variable "タイムアウト" "${HEALTH_CHECK_TIMEOUT}秒"
     log_variable "チェック間隔" "${HEALTH_CHECK_INTERVAL}秒"
     log_info "  Backend: http://localhost:8080/actuator/health (コンテナ内)"
-    log_info "  Frontend: http://localhost:80/health (コンテナ内)"
+    log_info "  Frontend: http://localhost:80/ (コンテナ内)"
 
     local backend_healthy=false
     local frontend_healthy=false
@@ -252,7 +312,7 @@ health_check() {
     while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
         # Backend（コンテナ内部からのチェック）
         if [ "$backend_healthy" = false ]; then
-            if sudo podman exec sample-backend wget --no-verbose --tries=1 --spider \
+            if sudo podman exec "$BACKEND_CONTAINER_NAME" wget --no-verbose --tries=1 --spider \
                http://localhost:8080/actuator/health 2>/dev/null; then
                 backend_healthy=true
                 log_success "Backend ヘルスチェック成功 (${elapsed}秒経過)"
@@ -263,8 +323,8 @@ health_check() {
 
         # Frontend（コンテナ内部からのチェック）
         if [ "$frontend_healthy" = false ]; then
-            if sudo podman exec nginx-frontend wget --no-verbose --tries=1 --spider \
-               http://localhost:80/health 2>/dev/null; then
+            if sudo podman exec "$FRONTEND_CONTAINER_NAME" wget --no-verbose --tries=1 --spider \
+               http://localhost:80/ 2>/dev/null; then
                 frontend_healthy=true
                 log_success "Frontend ヘルスチェック成功 (${elapsed}秒経過)"
             else
@@ -283,8 +343,8 @@ health_check() {
 
     log_error "ヘルスチェックタイムアウト（${HEALTH_CHECK_TIMEOUT}秒）"
     log_error "コンテナログを確認してください:"
-    log_error "  sudo podman logs --tail 100 sample-backend"
-    log_error "  sudo podman logs --tail 100 nginx-frontend"
+    log_error "  sudo podman logs --tail 100 $BACKEND_CONTAINER_NAME"
+    log_error "  sudo podman logs --tail 100 $FRONTEND_CONTAINER_NAME"
     exit 1
 }
 
@@ -292,7 +352,7 @@ health_check() {
 # デプロイ検証（環境変数使用）
 # ========================================
 verify_deployment() {
-    log_step "6" "6" "デプロイ検証"
+    log_step "7" "7" "デプロイ検証"
 
     local EXTERNAL_URL="http://${EC2_PUBLIC_IP}:5006"
     log_variable "外部URL" "$EXTERNAL_URL"
@@ -329,7 +389,7 @@ verify_deployment() {
     echo "  - Health: ${EXTERNAL_URL}/health"
     echo ""
     echo "📊 コンテナ状態:"
-    sudo podman ps --filter "label=io.podman.compose.project=cicd" --format "  {{.Names}}: {{.Status}}" | grep -E "(sample-backend|nginx-frontend)"
+    sudo podman ps --format "  {{.Names}}: {{.Status}}" | grep -E "($BACKEND_CONTAINER_NAME|$FRONTEND_CONTAINER_NAME)"
 }
 
 # ========================================
@@ -344,8 +404,9 @@ main() {
     echo "実行ホスト: $(hostname)"
     echo ""
 
-    source_env
+    check_env
     pre_deployment_checks
+    ensure_network
     stop_and_remove_containers
     build_containers
     start_containers

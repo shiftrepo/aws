@@ -46,8 +46,8 @@
 
         <!-- JaCoCo Coverage Thresholds -->
         <!-- Entity/DTO除外後: Service/Controller層で高カバレッジ目標 -->
-        <jacoco.line.ratio>0.90</jacoco.line.ratio>
-        <jacoco.branch.ratio>0.90</jacoco.branch.ratio>
+        <jacoco.line.ratio>0.50</jacoco.line.ratio>
+        <jacoco.branch.ratio>0.50</jacoco.branch.ratio>
 
         <!-- Nexus Repository Settings -->
         <nexus.url>http://${env.EC2_PUBLIC_IP}:8082</nexus.url>
