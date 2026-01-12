@@ -99,32 +99,69 @@ pre_deployment_checks() {
 }
 
 # ========================================
-# コンテナ停止＆削除
+# コンテナ停止＆削除（名前指定）
 # ========================================
 stop_and_remove_containers() {
     log_step "2" "6" "既存コンテナ停止＆削除"
 
-    cd "$CICD_ROOT"
-    log_variable "作業ディレクトリ" "$(pwd)"
+    log_info "アプリケーションコンテナを確認中..."
+    BACKEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "sample-backend" || echo "")
+    FRONTEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "nginx-frontend" || echo "")
 
-    log_info "profile=app のコンテナを確認中..."
-    sudo podman ps -a --filter "label=io.podman.compose.project=cicd" --format "{{.Names}}" | grep -E "(sample-backend|nginx-frontend)" || echo "  （起動中のコンテナなし）"
-
-    log_info "コンテナ停止＆削除を実行中..."
-    log_variable "コマンド" "sudo podman-compose --profile app down -v --remove-orphans"
-    log_info "  --profile app: sample-backend, nginx-frontend のみ対象"
-    log_info "  -v: 匿名ボリューム削除（これらのコンテナにはvolumesなし）"
-    log_info "  --remove-orphans: 孤立コンテナ削除"
-    log_info "  ⚠️ postgres, gitlab, nexus等は影響を受けません"
-
-    if sudo podman-compose --profile app down -v --remove-orphans 2>&1 | tee /tmp/podman-down.log; then
-        log_success "コンテナ停止＆削除完了"
+    if [ -n "$BACKEND_EXISTS" ]; then
+        log_variable "Backend Container" "sample-backend (存在)"
     else
-        log_info "コンテナ停止実行（既に停止済みの可能性あり）"
+        log_variable "Backend Container" "sample-backend (存在しない)"
+    fi
+
+    if [ -n "$FRONTEND_EXISTS" ]; then
+        log_variable "Frontend Container" "nginx-frontend (存在)"
+    else
+        log_variable "Frontend Container" "nginx-frontend (存在しない)"
+    fi
+
+    # Backendコンテナの停止＆削除
+    if [ -n "$BACKEND_EXISTS" ]; then
+        log_info "sample-backend コンテナを停止中..."
+        if sudo podman stop sample-backend 2>/dev/null; then
+            log_success "sample-backend 停止完了"
+        else
+            log_info "sample-backend は既に停止済み"
+        fi
+
+        log_info "sample-backend コンテナを削除中..."
+        if sudo podman rm sample-backend 2>/dev/null; then
+            log_success "sample-backend 削除完了"
+        else
+            log_error "sample-backend の削除に失敗"
+        fi
+    fi
+
+    # Frontendコンテナの停止＆削除
+    if [ -n "$FRONTEND_EXISTS" ]; then
+        log_info "nginx-frontend コンテナを停止中..."
+        if sudo podman stop nginx-frontend 2>/dev/null; then
+            log_success "nginx-frontend 停止完了"
+        else
+            log_info "nginx-frontend は既に停止済み"
+        fi
+
+        log_info "nginx-frontend コンテナを削除中..."
+        if sudo podman rm nginx-frontend 2>/dev/null; then
+            log_success "nginx-frontend 削除完了"
+        else
+            log_error "nginx-frontend の削除に失敗"
+        fi
     fi
 
     log_info "削除後のコンテナ状態確認..."
-    sudo podman ps -a --filter "label=io.podman.compose.project=cicd" --format "{{.Names}}" | grep -E "(sample-backend|nginx-frontend)" && log_error "コンテナが残っています" || log_success "アプリケーションコンテナ削除確認"
+    REMAINING=$(sudo podman ps -a --format "{{.Names}}" | grep -E "^(sample-backend|nginx-frontend)$" || echo "")
+    if [ -z "$REMAINING" ]; then
+        log_success "アプリケーションコンテナ削除確認完了"
+    else
+        log_error "コンテナが残っています: $REMAINING"
+        exit 1
+    fi
 }
 
 # ========================================
