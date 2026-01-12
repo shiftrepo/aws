@@ -1055,20 +1055,14 @@ step10_approve_and_merge() {
 }
 
 ################################################################################
-# STEP 11: コンテナビルド＆デプロイ
+# STEP 12: コンテナビルド＆デプロイ
 ################################################################################
 step11_deploy_containers() {
-    log_step "11" "コンテナビルド＆デプロイ"
+    log_step "12" "コンテナビルド＆デプロイ"
 
     cd "$PROJECT_ROOT"
-
-    log_info "最新のmasterブランチを取得..."
-    cd "$GITLAB_WORKING_DIR"
-    git checkout master
-    git pull origin master
 
     log_info "Backendコンテナビルド..."
-    cd "$PROJECT_ROOT"
     sudo podman build -t sample-backend:latest \
         -f sample-app/backend/Dockerfile \
         sample-app/backend/
@@ -1091,10 +1085,10 @@ step11_deploy_containers() {
 }
 
 ################################################################################
-# STEP 12: 動作確認
+# STEP 13: 動作確認
 ################################################################################
 step12_verify_deployment() {
-    log_step "12" "動作確認"
+    log_step "13" "動作確認"
 
     log_info "APIエンドポイント動作確認..."
 
@@ -1125,10 +1119,10 @@ step12_verify_deployment() {
 }
 
 ################################################################################
-# STEP 13: マスタリポジトリへ同期
+# STEP 11: マスタリポジトリへ同期
 ################################################################################
 step13_sync_to_master() {
-    log_step "13" "マスタリポジトリへ同期"
+    log_step "11" "マスタリポジトリへ同期"
 
     log_info "GitLabワーキングディレクトリからマスタへrsync..."
 
