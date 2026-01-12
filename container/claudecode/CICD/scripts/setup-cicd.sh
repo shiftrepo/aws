@@ -214,6 +214,15 @@ echo "=========================================="
 echo "[2/6] GitLab Runner登録"
 echo "=========================================="
 
+# GitLab Runnerのシンボリックリンク確認・作成
+if [ -f /usr/bin/gitlab-runner ] && [ ! -f /usr/local/bin/gitlab-runner ]; then
+    sudo ln -sf /usr/bin/gitlab-runner /usr/local/bin/gitlab-runner
+    print_success "GitLab Runnerシンボリックリンクを作成しました"
+elif [ ! -f /usr/local/bin/gitlab-runner ]; then
+    print_error "GitLab Runnerが見つかりません (/usr/bin/gitlab-runner または /usr/local/bin/gitlab-runner)"
+    exit 1
+fi
+
 # Runner状態確認
 # CRITICAL: GitLabRunnerパスは /usr/local/bin/gitlab-runner 固定 - 変更禁止
 if sudo /usr/local/bin/gitlab-runner list 2>/dev/null | grep -q "CICD Shell Runner"; then

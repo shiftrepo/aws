@@ -333,6 +333,14 @@ else
     echo "  ✓ GitLab Runnerは既にインストール済みです"
 fi
 
+# GitLab Runnerのシンボリックリンク作成
+if [ -f /usr/bin/gitlab-runner ] && [ ! -f /usr/local/bin/gitlab-runner ]; then
+    sudo ln -sf /usr/bin/gitlab-runner /usr/local/bin/gitlab-runner
+    echo "  ✓ GitLab Runnerシンボリックリンクを作成しました"
+elif [ -f /usr/local/bin/gitlab-runner ]; then
+    echo "  ✓ GitLab Runnerシンボリックリンクは既に存在します"
+fi
+
 # GitLab Runnerサービスの設定
 sudo mkdir -p /home/gitlab-runner/builds
 sudo useradd --system --shell /bin/bash --home /home/gitlab-runner gitlab-runner 2>/dev/null || true
