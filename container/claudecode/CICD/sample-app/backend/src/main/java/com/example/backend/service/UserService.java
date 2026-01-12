@@ -163,17 +163,15 @@ public class UserService {
                 organizationName = dept.getOrganization().getName();
             }
         } else if (user.getDepartmentId() != null) {
-            departmentRepository.findById(user.getDepartmentId()).ifPresent(dept -> {
-                // ローカル変数として扱うため、効果的にfinalな配列を使用
-                final String[] names = new String[2];
-                final Long[] orgId = new Long[1];
-
-                names[0] = dept.getName();
-                orgId[0] = dept.getOrganizationId();
+            // 部門情報を取得して設定
+            Department dept = departmentRepository.findById(user.getDepartmentId()).orElse(null);
+            if (dept != null) {
+                departmentName = dept.getName();
+                organizationId = dept.getOrganizationId();
                 if (dept.getOrganization() != null) {
-                    names[1] = dept.getOrganization().getName();
+                    organizationName = dept.getOrganization().getName();
                 }
-            });
+            }
         }
 
         return UserDto.builder()
