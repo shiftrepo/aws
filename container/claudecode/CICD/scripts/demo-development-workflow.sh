@@ -1119,10 +1119,10 @@ step12_verify_deployment() {
 }
 
 ################################################################################
-# STEP 11: マスタリポジトリへ同期
+# STEP 11: マスタリポジトリへファイル同期
 ################################################################################
-step13_sync_to_master() {
-    log_step "11" "マスタリポジトリへ同期"
+step11_sync_files_only() {
+    log_step "11" "マスタリポジトリへファイル同期"
 
     log_info "GitLabワーキングディレクトリからマスタへrsync..."
 
@@ -1140,6 +1140,16 @@ step13_sync_to_master() {
         --exclude='*.log' \
         "$GITLAB_WORKING_DIR/" "$MASTER_REPO/"
 
+    log_success "ファイル同期完了"
+    log_info "同期先: $MASTER_REPO"
+}
+
+################################################################################
+# STEP 14: GitHubへコミット＆プッシュ
+################################################################################
+step14_commit_to_github() {
+    log_step "14" "GitHubへコミット＆プッシュ"
+
     log_info "マスタリポジトリでgit追跡..."
     cd "$PROJECT_ROOT"
 
@@ -1150,7 +1160,7 @@ step13_sync_to_master() {
 
     log_info "マスタリポジトリへコミット..."
     git commit -m "$(cat <<EOF
-feat: 組織構成図機能実装完了 - GitLabからマスタへ同期 (#${ISSUE_NUMBER})
+feat: 組織構成図機能実装完了 - 開発フロー完了 (#${ISSUE_NUMBER})
 
 ## 開発フロー完了
 
@@ -1160,8 +1170,9 @@ feat: 組織構成図機能実装完了 - GitLabからマスタへ同期 (#${ISS
 4. ✅ テスト追加 (カバレッジ70%維持)
 5. ✅ GitLab CI/CD実行 (6ステージ成功)
 6. ✅ Merge Request承認・マージ
-7. ✅ コンテナデプロイ
-8. ✅ 動作確認完了
+7. ✅ マスタリポジトリへファイル同期
+8. ✅ コンテナビルド＆デプロイ完了
+9. ✅ 動作確認完了
 
 ## 実装機能
 
@@ -1181,14 +1192,14 @@ EOF
     log_info "GitHubへプッシュ..."
     git push origin main
 
-    log_success "マスタリポジトリ同期完了"
+    log_success "GitHub同期完了"
 }
 
 ################################################################################
-# STEP 14: サマリー表示
+# STEP 15: サマリー表示
 ################################################################################
-step14_show_summary() {
-    log_step "14" "開発ワークフロー完了サマリー"
+step15_show_summary() {
+    log_step "15" "開発ワークフロー完了サマリー"
 
     echo ""
     echo "=========================================="
@@ -1258,10 +1269,11 @@ main() {
     step8_monitor_pipeline
     step9_create_merge_request
     step10_approve_and_merge
-    step13_sync_to_master
+    step11_sync_files_only
     step11_deploy_containers
     step12_verify_deployment
-    step14_show_summary
+    step14_commit_to_github
+    step15_show_summary
 
     log_success "開発ワークフローデモ完了"
 }
