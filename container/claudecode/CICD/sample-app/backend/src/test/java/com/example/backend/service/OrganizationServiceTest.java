@@ -24,6 +24,15 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
+import com.example.backend.repository.DepartmentRepository;
+import com.example.common.dto.OrganizationTreeDto;
+import com.example.common.dto.DepartmentTreeNode;
+import com.example.backend.entity.Department;
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * OrganizationService のテストクラス
@@ -35,6 +44,9 @@ class OrganizationServiceTest {
 
     @Mock
     private OrganizationRepository organizationRepository;
+
+    @Mock
+    private DepartmentRepository departmentRepository;
 
     @InjectMocks
     private OrganizationService organizationService;
@@ -255,5 +267,152 @@ class OrganizationServiceTest {
                 .hasMessage("組織が見つかりません。ID: 999");
 
         verify(organizationRepository).existsById(999L);
+    }
+
+    /**
+     * 組織階層構造取得 - 正常系
+     */
+    @Test
+    @DisplayName("組織階層構造取得 - 正常系")
+    void getOrganizationTree_Success() {
+        // Arrange
+        Organization org = Organization.builder()
+                .id(1L)
+                .name("本社")
+                .description("本社組織")
+                .build();
+
+        Department dept1 = Department.builder()
+                .id(1L)
+                .name("営業本部")
+                .organizationId(1L)
+                .parentDepartmentId(null)
+                .build();
+
+        Department dept2 = Department.builder()
+                .id(2L)
+                .name("東日本営業部")
+                .organizationId(1L)
+                .parentDepartmentId(1L)
+                .build();
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(org));
+        when(departmentRepository.findByOrganizationId(1L)).thenReturn(Arrays.asList(dept1, dept2));
+
+        // Act
+        OrganizationTreeDto result = organizationService.getOrganizationTree(1L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("本社", result.getName());
+        assertEquals(1, result.getDepartments().size());
+
+        DepartmentTreeNode root = result.getDepartments().get(0);
+        assertEquals("営業本部", root.getName());
+        assertEquals(1, root.getChildren().size());
+        assertEquals("東日本営業部", root.getChildren().get(0).getName());
+
+        verify(organizationRepository, times(1)).findById(1L);
+        verify(departmentRepository, times(1)).findByOrganizationId(1L);
+    }
+
+    /**
+     * 組織階層構造取得 - 組織が存在しない
+     */
+    @Test
+    @DisplayName("組織階層構造取得 - 組織が存在しない")
+    void getOrganizationTree_OrganizationNotFound() {
+        // Arrange
+        when(organizationRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> {
+            organizationService.getOrganizationTree(999L);
+        });
+
+        verify(organizationRepository, times(1)).findById(999L);
+        verify(departmentRepository, never()).findByOrganizationId(anyLong());
+    }
+
+    /**
+     * 組織階層構造取得 - 部門が存在しない
+     */
+    @Test
+    @DisplayName("組織階層構造取得 - 部門が存在しない")
+    void getOrganizationTree_NoDepartments() {
+        // Arrange
+        Organization org = Organization.builder()
+                .id(1L)
+                .name("本社")
+                .build();
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(org));
+        when(departmentRepository.findByOrganizationId(1L)).thenReturn(Collections.emptyList());
+
+        // Act
+        OrganizationTreeDto result = organizationService.getOrganizationTree(1L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertTrue(result.getDepartments().isEmpty());
+    }
+
+    /**
+     * 組織階層構造取得 - 3階層構造
+     */
+    @Test
+    @DisplayName("組織階層構造取得 - 3階層構造")
+    void getOrganizationTree_ThreeLevels() {
+        // Arrange
+        Organization org = Organization.builder()
+                .id(1L)
+                .name("本社")
+                .build();
+
+        Department dept1 = Department.builder()
+                .id(1L)
+                .name("営業本部")
+                .organizationId(1L)
+                .parentDepartmentId(null)
+                .build();
+
+        Department dept2 = Department.builder()
+                .id(2L)
+                .name("東日本営業部")
+                .organizationId(1L)
+                .parentDepartmentId(1L)
+                .build();
+
+        Department dept3 = Department.builder()
+                .id(3L)
+                .name("東京営業課")
+                .organizationId(1L)
+                .parentDepartmentId(2L)
+                .build();
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(org));
+        when(departmentRepository.findByOrganizationId(1L))
+                .thenReturn(Arrays.asList(dept1, dept2, dept3));
+
+        // Act
+        OrganizationTreeDto result = organizationService.getOrganizationTree(1L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getDepartments().size());
+
+        DepartmentTreeNode level1 = result.getDepartments().get(0);
+        assertEquals("営業本部", level1.getName());
+        assertEquals(1, level1.getChildren().size());
+
+        DepartmentTreeNode level2 = level1.getChildren().get(0);
+        assertEquals("東日本営業部", level2.getName());
+        assertEquals(1, level2.getChildren().size());
+
+        DepartmentTreeNode level3 = level2.getChildren().get(0);
+        assertEquals("東京営業課", level3.getName());
+        assertEquals(0, level3.getChildren().size());
     }
 }

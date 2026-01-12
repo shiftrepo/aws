@@ -2,6 +2,13 @@ package com.example.backend.service;
 
 import com.example.backend.entity.Organization;
 import com.example.backend.repository.OrganizationRepository;
+import com.example.backend.repository.DepartmentRepository;
+import com.example.common.dto.OrganizationTreeDto;
+import com.example.common.dto.DepartmentTreeNode;
+import com.example.backend.entity.Department;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import com.example.common.dto.OrganizationDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +30,7 @@ import java.util.stream.Collectors;
 public class OrganizationService {
 
     private final OrganizationRepository organizationRepository;
+    private final DepartmentRepository departmentRepository;
 
     /**
      * 全組織一覧取得
@@ -117,5 +125,78 @@ public class OrganizationService {
                 .createdAt(organization.getCreatedAt())
                 .updatedAt(organization.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * 組織の階層構造取得
+     * @param organizationId 組織ID
+     * @return 組織階層構造
+     */
+    public OrganizationTreeDto getOrganizationTree(Long organizationId) {
+        log.debug("組織階層構造取得開始: organizationId={}", organizationId);
+
+        // 組織存在確認
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new IllegalArgumentException("組織が見つかりません: ID=" + organizationId));
+
+        // 組織配下の全部門取得
+        List<Department> departments = departmentRepository.findByOrganizationId(organizationId);
+        log.debug("部門数: {}", departments.size());
+
+        // 階層構造構築
+        List<DepartmentTreeNode> rootNodes = buildDepartmentTree(departments);
+
+        // DTOに変換
+        OrganizationTreeDto treeDto = OrganizationTreeDto.builder()
+                .id(organization.getId())
+                .name(organization.getName())
+                .description(organization.getDescription())
+                .createdAt(organization.getCreatedAt())
+                .updatedAt(organization.getUpdatedAt())
+                .departments(rootNodes)
+                .build();
+
+        log.debug("組織階層構造取得完了: ルート部門数={}", rootNodes.size());
+        return treeDto;
+    }
+
+    /**
+     * 部門の階層構造を構築
+     * @param departments 部門リスト
+     * @return ルート部門ノードリスト
+     */
+    private List<DepartmentTreeNode> buildDepartmentTree(List<Department> departments) {
+        // 全部門をMapに格納（高速アクセス用）
+        Map<Long, DepartmentTreeNode> nodeMap = new HashMap<>();
+        for (Department dept : departments) {
+            DepartmentTreeNode node = DepartmentTreeNode.builder()
+                    .id(dept.getId())
+                    .name(dept.getName())
+                    .description(dept.getDescription())
+                    .organizationId(dept.getOrganizationId())
+                    .parentDepartmentId(dept.getParentDepartmentId())
+                    .createdAt(dept.getCreatedAt())
+                    .updatedAt(dept.getUpdatedAt())
+                    .children(new ArrayList<>())
+                    .build();
+            nodeMap.put(dept.getId(), node);
+        }
+
+        // 親子関係を構築
+        List<DepartmentTreeNode> rootNodes = new ArrayList<>();
+        for (DepartmentTreeNode node : nodeMap.values()) {
+            if (node.getParentDepartmentId() == null) {
+                // ルートノード
+                rootNodes.add(node);
+            } else {
+                // 子ノード
+                DepartmentTreeNode parent = nodeMap.get(node.getParentDepartmentId());
+                if (parent != null) {
+                    parent.addChild(node);
+                }
+            }
+        }
+
+        return rootNodes;
     }
 }

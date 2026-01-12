@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.service.OrganizationService;
 import com.example.common.dto.OrganizationDto;
+import com.example.common.dto.OrganizationTreeDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -68,6 +69,22 @@ public class OrganizationController {
         log.debug("組織更新API呼び出し: ID={}", id);
         OrganizationDto updated = organizationService.update(id, organizationDto);
         return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * 組織削除
+     * DELETE /api/organizations/{id}
+     */
+    @DeleteMapping("/{id}")
+    /**
+     * 組織の階層構造取得
+     * GET /api/organizations/{id}/tree
+     */
+    @GetMapping("/{id}/tree")
+    public ResponseEntity<OrganizationTreeDto> getOrganizationTree(@PathVariable Long id) {
+        log.debug("組織階層構造取得API呼び出し: ID={}", id);
+        OrganizationTreeDto tree = organizationService.getOrganizationTree(id);
+        return ResponseEntity.ok(tree);
     }
 
     /**

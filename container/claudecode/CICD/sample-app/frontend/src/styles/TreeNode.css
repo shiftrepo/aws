@@ -1,0 +1,59 @@
+/* TreeNode.css */
+
+.tree-node {
+  margin: 2px 0;
+}
+
+.tree-node-content {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: default;
+}
+
+.tree-node-content:hover {
+  background-color: #f5f5f5;
+}
+
+.tree-node-toggle {
+  cursor: pointer;
+  margin-right: 8px;
+  user-select: none;
+  font-size: 12px;
+  color: #666;
+  min-width: 16px;
+  display: inline-block;
+}
+
+.tree-node-toggle:hover {
+  color: #333;
+}
+
+.tree-node-spacer {
+  margin-right: 8px;
+  min-width: 16px;
+  display: inline-block;
+}
+
+.tree-node-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.tree-node-description {
+  color: #666;
+  font-size: 0.9em;
+  margin-left: 8px;
+}
+
+.tree-node-count {
+  color: #999;
+  font-size: 0.85em;
+  margin-left: 4px;
+}
+
+.tree-node-children {
+  margin-left: 0;
+}

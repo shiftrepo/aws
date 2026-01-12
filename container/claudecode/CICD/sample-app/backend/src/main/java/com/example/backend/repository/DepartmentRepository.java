@@ -19,6 +19,11 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     /**
      * 組織IDで部門一覧を取得
      */
+    /**
+     * 組織IDで部門一覧を取得（ソートなし）
+     */
+    List<Department> findByOrganizationId(Long organizationId);
+
     List<Department> findByOrganizationIdOrderByName(Long organizationId);
 
     /**
