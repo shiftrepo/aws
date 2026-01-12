@@ -3,13 +3,21 @@
 # 開発ワークフローデモスクリプト
 #
 # 目的: 組織構成図機能追加を通じて、以下の開発フローを実演
-#   1. Issue作成（GitHub）
-#   2. 機能実装（Backend + Frontend）
-#   3. テスト追加（100%カバレッジ維持）
-#   4. GitLabへpush → CI/CD自動実行
-#   5. Merge Request作成
-#   6. 承認 → デプロイ
-#   7. マスタリポジトリへ同期
+#   1. 環境確認
+#   2. GitLab作業ディレクトリ準備
+#   3. Backend実装（OrganizationTree API）
+#   4. Backend テスト追加（カバレッジ70%維持）
+#   5. Frontend実装（OrganizationTree Component）
+#   6. ローカルビルド＆テスト
+#   7. GitLabへコミット＆プッシュ
+#   8. CI/CDパイプライン実行監視
+#   9. Merge Request作成
+#   10. 承認＆マージ
+#   11. マスタリポジトリへファイル同期
+#   12. コンテナビルド＆デプロイ
+#   13. 動作確認
+#   14. GitHubへコミット＆プッシュ
+#   15. サマリー表示
 #
 # 使用方法:
 #   ./scripts/demo-development-workflow.sh
@@ -1055,6 +1063,32 @@ step10_approve_and_merge() {
 }
 
 ################################################################################
+# STEP 11: マスタリポジトリへファイル同期
+################################################################################
+step11_sync_files_only() {
+    log_step "11" "マスタリポジトリへファイル同期"
+
+    log_info "GitLabワーキングディレクトリからマスタへrsync..."
+
+    cd "$GITLAB_WORKING_DIR"
+    git checkout master
+    git pull origin master
+
+    rsync -av --delete \
+        --exclude='.git/' \
+        --exclude='target/' \
+        --exclude='node_modules/' \
+        --exclude='.m2/' \
+        --exclude='*.class' \
+        --exclude='.DS_Store' \
+        --exclude='*.log' \
+        "$GITLAB_WORKING_DIR/" "$MASTER_REPO/"
+
+    log_success "ファイル同期完了"
+    log_info "同期先: $MASTER_REPO"
+}
+
+################################################################################
 # STEP 12: コンテナビルド＆デプロイ
 ################################################################################
 step12_deploy_containers() {
@@ -1116,32 +1150,6 @@ step13_verify_deployment() {
     echo "  - 組織構成図: http://${EC2_PUBLIC_IP}:5006/organizations/1/tree"
 
     log_success "デプロイ検証完了"
-}
-
-################################################################################
-# STEP 11: マスタリポジトリへファイル同期
-################################################################################
-step11_sync_files_only() {
-    log_step "11" "マスタリポジトリへファイル同期"
-
-    log_info "GitLabワーキングディレクトリからマスタへrsync..."
-
-    cd "$GITLAB_WORKING_DIR"
-    git checkout master
-    git pull origin master
-
-    rsync -av --delete \
-        --exclude='.git/' \
-        --exclude='target/' \
-        --exclude='node_modules/' \
-        --exclude='.m2/' \
-        --exclude='*.class' \
-        --exclude='.DS_Store' \
-        --exclude='*.log' \
-        "$GITLAB_WORKING_DIR/" "$MASTER_REPO/"
-
-    log_success "ファイル同期完了"
-    log_info "同期先: $MASTER_REPO"
 }
 
 ################################################################################
