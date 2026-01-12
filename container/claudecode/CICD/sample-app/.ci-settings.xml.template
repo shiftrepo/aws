@@ -30,7 +30,7 @@
       <id>nexus-public-mirror</id>
       <mirrorOf>*</mirrorOf>
       <name>Nexus Public Repository Mirror</name>
-      <url>http://13.219.95.96:8082/repository/maven-public/</url>
+      <url>http://__EC2_PUBLIC_IP__:8082/repository/maven-public/</url>
     </mirror>
   </mirrors>
 
@@ -41,7 +41,7 @@
         <repository>
           <id>nexus-public</id>
           <name>Nexus Public Repository</name>
-          <url>http://13.219.95.96:8082/repository/maven-public/</url>
+          <url>http://__EC2_PUBLIC_IP__:8082/repository/maven-public/</url>
           <releases>
             <enabled>true</enabled>
           </releases>
@@ -54,7 +54,7 @@
         <pluginRepository>
           <id>nexus-public</id>
           <name>Nexus Public Repository</name>
-          <url>http://13.219.95.96:8082/repository/maven-public/</url>
+          <url>http://__EC2_PUBLIC_IP__:8082/repository/maven-public/</url>
           <releases>
             <enabled>true</enabled>
           </releases>

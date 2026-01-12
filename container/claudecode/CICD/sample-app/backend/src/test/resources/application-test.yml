@@ -1,9 +1,9 @@
 # ⚠️ 変更禁止: 統合テスト用データベース設定
 # - 実データベース接続（モック不使用）
-# - 外部IP経由でコンテナ接続
+# - GitLab Runner (shell executor) がホスト上で実行するためlocalhostを使用
 spring:
   datasource:
-    url: jdbc:postgresql://13.219.95.96:5001/sampledb
+    url: jdbc:postgresql://localhost:5001/sampledb
     username: sampleuser
     password: Degital2026!
     driver-class-name: org.postgresql.Driver

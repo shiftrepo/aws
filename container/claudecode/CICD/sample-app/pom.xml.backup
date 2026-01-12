@@ -37,7 +37,7 @@
         <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
 
         <!-- SonarQube Settings (Parent - Common Configuration) -->
-        <sonar.host.url>http://13.219.95.96:8000</sonar.host.url>
+        <sonar.host.url>http://${env.EC2_PUBLIC_IP}:8000</sonar.host.url>
         <sonar.projectKey>sample-org-management</sonar.projectKey>
         <sonar.projectName>Sample Organization Management</sonar.projectName>
 
@@ -50,7 +50,7 @@
         <jacoco.branch.ratio>0.90</jacoco.branch.ratio>
 
         <!-- Nexus Repository Settings -->
-        <nexus.url>http://54.208.146.176:8082</nexus.url>
+        <nexus.url>http://${env.EC2_PUBLIC_IP}:8082</nexus.url>
     </properties>
 
     <dependencyManagement>

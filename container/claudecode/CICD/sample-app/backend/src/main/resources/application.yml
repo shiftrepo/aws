@@ -9,7 +9,8 @@ spring:
     # ⚠️ 本番環境: 環境変数 SPRING_DATASOURCE_URL で上書きされる
     # CI/CD: export SPRING_DATASOURCE_URL=jdbc:postgresql://${EC2_PUBLIC_IP}:5001/sampledb
     # Local: localhost:5001 でローカルPostgreSQLコンテナに接続
-    url: jdbc:postgresql://localhost:5001/sampledb
+    # Container: docker-compose.yml が postgres:5432 に設定
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5001/sampledb}
     username: sampleuser
     password: Degital2026!
     driver-class-name: org.postgresql.Driver
