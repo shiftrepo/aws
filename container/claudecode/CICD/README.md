@@ -92,6 +92,7 @@
 - [初回ログイン情報](#初回ログイン情報)
 - [サンプルアプリケーション](#サンプルアプリケーション)
 - [CI/CDパイプライン](#cicdパイプライン)
+- [開発ワークフローデモ](#開発ワークフローデモ)
 - [運用管理](#運用管理)
 - [トラブルシューティング](#トラブルシューティング)
 - [セキュリティ](#セキュリティ)
@@ -1601,7 +1602,134 @@ sudo podman logs cicd-sonarqube
 
 ---
 
-**最終更新日**: 2026-01-11
+## 🚀 開発ワークフローデモ
+
+### 概要
+
+Issue作成からデプロイまでの完全な開発フローを自動化するデモスクリプトを提供しています。組織構成図機能の追加を例に、以下のプロセスを実演します：
+
+```
+Issue作成 → 実装 → テスト → CI/CD → MR → 承認 → デプロイ → マスタ同期
+```
+
+### デモワークフロー全体像
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ 1. Issue作成 (GitHub #117)                                     │
+│ 2. 開発環境準備 (/tmp/gitlab-sample-app)                      │
+│ 3. Backend実装 (OrganizationTree API)                         │
+│ 4. Backend テスト追加 (100%カバレッジ維持)                    │
+│ 5. Frontend実装 (OrganizationTree Component)                  │
+│ 6. ローカルビルド＆テスト                                      │
+│ 7. GitLabへプッシュ                                           │
+│ 8. CI/CDパイプライン自動実行 (6ステージ)                      │
+│ 9. Merge Request作成                                          │
+│ 10. 承認＆マージ                                              │
+│ 11. コンテナビルド＆デプロイ                                  │
+│ 12. 動作確認                                                  │
+│ 13. マスタリポジトリへ同期                                    │
+│ 14. 完了サマリー表示                                          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### 実行方法
+
+```bash
+cd /root/aws.git/container/claudecode/CICD
+
+# 開発ワークフロー全体を自動実行
+./scripts/demo-development-workflow.sh
+```
+
+### 実装される機能
+
+**組織構成図の木構造表示機能**:
+- Backend: `GET /api/organizations/{id}/tree` エンドポイント
+- Frontend: 階層構造の視覚化（展開/折りたたみ機能付き）
+- Test: 4ケース追加（正常系、エラー系、3階層構造）
+
+### スクラッチビルドからの実行手順
+
+EC2インスタンスを新規作成した場合やクリーンな状態から実行する手順：
+
+#### 1. CI/CD環境のセットアップ
+
+```bash
+# 初回セットアップ（12ステップ）
+./scripts/setup-from-scratch.sh
+
+# GitLab Runner登録
+sudo gitlab-runner register \
+  --url http://YOUR_IP:5003 \
+  --token YOUR_REGISTRATION_TOKEN \
+  --executor shell \
+  --description "CICD Shell Runner"
+
+sudo systemctl enable --now gitlab-runner
+```
+
+#### 2. sample-appプロジェクトの初期化
+
+```bash
+# sample-appプロジェクトをGitLabへ登録
+./scripts/run-sample-app-pipeline.sh
+```
+
+#### 3. 開発ワークフローデモの実行
+
+```bash
+# 組織構成図機能の開発フロー実演
+./scripts/demo-development-workflow.sh
+```
+
+### デモで実行される処理
+
+1. **環境確認**: GitLab, Nexus, SonarQube, PostgreSQLの稼働確認
+2. **Git準備**: フィーチャーブランチ作成 (`feature/organization-tree-view`)
+3. **Backend実装**: DTO、Service、Controller自動生成
+4. **テスト追加**: 4テストケース自動追加（カバレッジ70%維持）
+5. **Frontend実装**: React コンポーネント、CSS自動生成
+6. **ローカルテスト**: Maven ビルド＆テスト実行
+7. **GitLab push**: 自動コミット＆プッシュ
+8. **CI/CD実行**: 6ステージパイプライン（build → test → coverage → sonarqube → package → deploy）
+9. **MR作成**: GitLab APIで自動作成
+10. **承認・マージ**: 自動承認＆masterマージ
+11. **コンテナデプロイ**: Backend + Frontend自動ビルド＆起動
+12. **動作確認**: API＆フロントエンド確認
+13. **マスタ同期**: GitLab → GitHub完全同期
+14. **サマリー**: 実行結果一覧表示
+
+### 成果物の確認
+
+- **GitHub Issue**: https://github.com/shiftrepo/aws/issues/117
+- **GitLab MR**: http://YOUR_IP:5003/root/sample-app/-/merge_requests/N
+- **CI/CD Pipeline**: http://YOUR_IP:5003/root/sample-app/-/pipelines
+- **デプロイ済みアプリ**: http://YOUR_IP:5006/organizations/1/tree
+
+### 詳細ドキュメント
+
+完全な手順とトラブルシューティングについては、以下を参照してください：
+
+📖 **[DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)**
+
+### 教育的価値
+
+このデモスクリプトは以下の開発プラクティスを実演します：
+
+1. **Issue Driven Development**: GitHubのIssueから開発開始
+2. **Feature Branch Workflow**: フィーチャーブランチで独立した開発
+3. **Test Driven Development**: テストカバレッジ70%維持
+4. **Continuous Integration**: 全変更でCI/CDパイプライン実行
+5. **Code Review Process**: Merge Requestによるレビュー
+6. **Automated Deployment**: 承認後の自動デプロイ
+7. **Repository Synchronization**: GitLab（開発） → GitHub（マスタ）同期
+
+新しいメンバーへのオンボーディングやCI/CDデモンストレーションに最適です。
+
+---
+
+**最終更新日**: 2026-01-12
 **バージョン**: 2.1.2
 
 **変更履歴 (v2.1.2 - 最新)**:
