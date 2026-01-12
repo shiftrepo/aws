@@ -111,9 +111,8 @@ cd /root/aws.git/container/claudecode/CICD
 すべてのCI/CDサービス（GitLab, Nexus, SonarQube, PostgreSQL）の稼働状態を確認します。
 
 #### STEP 2: GitLab作業ディレクトリ準備
-- `/tmp/gitlab-sample-app` をクリーンアップ
-- マスタリポジトリからコピー
-- Git初期化とリモート設定
+- `/tmp/gitlab-sample-app` の存在確認（setup-sample-app.sh で作成済み）
+- 最新のmasterブランチを取得
 - フィーチャーブランチ作成: `feature/organization-tree-view`
 
 #### STEP 3: Backend実装
@@ -219,11 +218,22 @@ sudo gitlab-runner register \
 sudo systemctl enable --now gitlab-runner
 ```
 
-### 2. sample-appプロジェクトの初期化
+### 2. CI/CD環境設定
 
 ```bash
-# sample-appプロジェクトをGitLabへ登録
-./scripts/run-sample-app-pipeline.sh
+# CI/CD環境変数設定（sudo必須）
+sudo ./scripts/setup-cicd.sh
+```
+
+このスクリプトは以下を実行します：
+- GitLab CI/CD変数の自動設定
+- 環境変数の検証
+
+### 3. sample-appプロジェクトの初期化
+
+```bash
+# sample-appプロジェクトをGitLabへ登録（通常ユーザー）
+./scripts/setup-sample-app.sh
 ```
 
 このスクリプトは以下を実行します：
@@ -232,12 +242,14 @@ sudo systemctl enable --now gitlab-runner
 - 初回コミット＆プッシュ
 - CI/CDパイプライン自動実行
 
-### 3. 開発ワークフローデモの実行
+### 4. 開発ワークフローデモの実行
 
 ```bash
-# 組織構成図機能の開発フロー実演
+# 組織構成図機能の開発フロー実演（通常ユーザー）
 ./scripts/demo-development-workflow.sh
 ```
+
+**重要**: 上記の順序（1→2→3→4）は必須です。特に、demo-development-workflow.sh は setup-sample-app.sh の実行後に /tmp/gitlab-sample-app が存在することを前提としています。
 
 ## トラブルシューティング
 

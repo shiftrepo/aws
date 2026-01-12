@@ -1653,11 +1653,11 @@ cd /root/aws.git/container/claudecode/CICD
 
 EC2インスタンスを新規作成した場合やクリーンな状態から実行する手順：
 
-#### 1. CI/CD環境のセットアップ
+#### 1. CI/CD環境のセットアップ（sudo必須）
 
 ```bash
 # 初回セットアップ（12ステップ）
-./scripts/setup-from-scratch.sh
+sudo ./scripts/setup-from-scratch.sh
 
 # GitLab Runner登録
 sudo gitlab-runner register \
@@ -1669,24 +1669,33 @@ sudo gitlab-runner register \
 sudo systemctl enable --now gitlab-runner
 ```
 
-#### 2. sample-appプロジェクトの初期化
+#### 2. CI/CD環境設定（sudo必須）
+
+```bash
+# CI/CD環境変数設定
+sudo ./scripts/setup-cicd.sh
+```
+
+#### 3. sample-appプロジェクトの初期化（通常ユーザー）
 
 ```bash
 # sample-appプロジェクトをGitLabへ登録
-./scripts/run-sample-app-pipeline.sh
+./scripts/setup-sample-app.sh
 ```
 
-#### 3. 開発ワークフローデモの実行
+#### 4. 開発ワークフローデモの実行（通常ユーザー）
 
 ```bash
 # 組織構成図機能の開発フロー実演
 ./scripts/demo-development-workflow.sh
 ```
 
+**重要**: 上記の順序（1→2→3→4）は必須です。
+
 ### デモで実行される処理
 
-1. **環境確認**: GitLab, Nexus, SonarQube, PostgreSQLの稼働確認
-2. **Git準備**: フィーチャーブランチ作成 (`feature/organization-tree-view`)
+1. **環境確認**: GitLab, Nexus, SonarQube, PostgreSQLの稼働確認、/tmp/gitlab-sample-app 存在確認
+2. **Git準備**: 最新のmasterブランチ取得、フィーチャーブランチ作成 (`feature/organization-tree-view`)
 3. **Backend実装**: DTO、Service、Controller自動生成
 4. **テスト追加**: 4テストケース自動追加（カバレッジ70%維持）
 5. **Frontend実装**: React コンポーネント、CSS自動生成

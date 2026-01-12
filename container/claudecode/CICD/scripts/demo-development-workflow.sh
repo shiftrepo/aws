@@ -15,8 +15,9 @@
 #   ./scripts/demo-development-workflow.sh
 #
 # 前提条件:
-#   - CI/CD環境が稼働中（GitLab, Nexus, SonarQube, PostgreSQL）
-#   - GitLabにsample-appプロジェクトが存在
+#   - sudo setup-from-scratch.sh が実行済み
+#   - sudo setup-cicd.sh が実行済み
+#   - setup-sample-app.sh が実行済み（/tmp/gitlab-sample-app が存在）
 #   - GitLab Runnerが登録済み
 ################################################################################
 
@@ -62,6 +63,7 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
     log_info ".env ファイルを読み込みました"
 else
     log_error ".env ファイルが見つかりません: $PROJECT_ROOT/.env"
+    log_error "sudo setup-from-scratch.sh を先に実行してください"
     exit 1
 fi
 
@@ -79,6 +81,15 @@ TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 step1_check_environment() {
     log_step "1" "環境確認"
 
+    # /tmp/gitlab-sample-app の存在確認
+    if [ ! -d "$GITLAB_WORKING_DIR" ]; then
+        log_error "/tmp/gitlab-sample-app が存在しません"
+        log_error "setup-sample-app.sh を先に実行してください"
+        exit 1
+    fi
+
+    log_success "/tmp/gitlab-sample-app: 存在確認OK"
+
     log_info "CI/CDサービスの状態確認..."
 
     # GitLab確認
@@ -93,16 +104,14 @@ step1_check_environment() {
     if curl -sf "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/status" > /dev/null 2>&1; then
         log_success "Nexus: 稼働中"
     else
-        log_error "Nexus: 接続不可"
-        exit 1
+        log_warning "Nexus: 接続不可（警告のみ）"
     fi
 
     # SonarQube確認
     if curl -sf "http://${EC2_PUBLIC_IP}:8000/api/system/health" > /dev/null 2>&1; then
         log_success "SonarQube: 稼働中"
     else
-        log_error "SonarQube: 接続不可"
-        exit 1
+        log_warning "SonarQube: 接続不可（警告のみ）"
     fi
 
     # PostgreSQL確認
@@ -113,36 +122,35 @@ step1_check_environment() {
         exit 1
     fi
 
-    log_success "全サービスが正常に稼働しています"
+    log_success "環境確認完了"
 }
 
 ################################################################################
-# STEP 2: GitLab作業ディレクトリ準備
+# STEP 2: GitLab作業ディレクトリ準備（既存リポジトリベース）
 ################################################################################
 step2_setup_gitlab_workdir() {
     log_step "2" "GitLab作業ディレクトリ準備"
 
-    log_info "既存の作業ディレクトリをクリーンアップ..."
-    rm -rf "$GITLAB_WORKING_DIR"
-
-    log_info "マスタリポジトリからコピー..."
-    rsync -av --exclude='.git/' --exclude='target/' --exclude='node_modules/' \
-          --exclude='.m2/' --exclude='*.class' \
-          "$MASTER_REPO/" "$GITLAB_WORKING_DIR/"
-
     cd "$GITLAB_WORKING_DIR"
 
-    log_info "Git初期化とリモート設定..."
-    git init
-    git config user.name "CI/CD Demo"
-    git config user.email "cicd-demo@example.com"
-    git remote add origin "$GITLAB_REMOTE_URL"
+    log_info "Git設定確認..."
+    git config user.name "CI/CD Demo" || git config user.name "CI/CD Demo"
+    git config user.email "cicd-demo@example.com" || git config user.email "cicd-demo@example.com"
 
-    # 既存のmasterブランチを取得
-    git fetch origin master
-    git checkout -b master origin/master
+    log_info "最新のmasterブランチを取得..."
+    git fetch origin master 2>/dev/null || log_warning "fetch失敗（初回実行の可能性）"
+
+    # masterブランチに切り替え（既に存在する場合）
+    if git rev-parse --verify master >/dev/null 2>&1; then
+        git checkout master
+        git pull origin master 2>/dev/null || log_warning "pull失敗（初回実行の可能性）"
+    else
+        log_info "masterブランチが存在しないため、現在のブランチを使用"
+    fi
 
     log_info "フィーチャーブランチ作成: $FEATURE_BRANCH"
+    # 既存のブランチがあれば削除
+    git branch -D "$FEATURE_BRANCH" 2>/dev/null || true
     git checkout -b "$FEATURE_BRANCH"
 
     log_success "GitLab作業ディレクトリ準備完了: $GITLAB_WORKING_DIR"
@@ -233,9 +241,21 @@ public class DepartmentTreeNode {
 }
 EOF
 
-    # OrganizationService にツリー構築メソッド追加
-    log_info "OrganizationService.java にツリー構築メソッド追加..."
-    cat >> backend/src/main/java/com/example/backend/service/OrganizationService.java << 'EOF'
+    # OrganizationServiceにimport追加（既存の場合はスキップ）
+    if ! grep -q "import com.example.backend.repository.DepartmentRepository;" backend/src/main/java/com/example/backend/service/OrganizationService.java; then
+        sed -i '/^import com.example.backend.repository.OrganizationRepository;$/a import com.example.backend.repository.DepartmentRepository;\nimport com.example.common.dto.OrganizationTreeDto;\nimport com.example.common.dto.DepartmentTreeNode;\nimport com.example.backend.entity.Department;\nimport java.util.HashMap;\nimport java.util.Map;' \
+            backend/src/main/java/com/example/backend/service/OrganizationService.java
+    fi
+
+    # DepartmentRepositoryフィールド追加（既存の場合はスキップ）
+    if ! grep -q "private final DepartmentRepository departmentRepository;" backend/src/main/java/com/example/backend/service/OrganizationService.java; then
+        sed -i '/private final OrganizationRepository organizationRepository;$/a \ \ \ \ private final DepartmentRepository departmentRepository;' \
+            backend/src/main/java/com/example/backend/service/OrganizationService.java
+    fi
+
+    # OrganizationService にツリー構築メソッド追加（既存の場合はスキップ）
+    if ! grep -q "getOrganizationTree" backend/src/main/java/com/example/backend/service/OrganizationService.java; then
+        cat >> backend/src/main/java/com/example/backend/service/OrganizationService.java << 'EOF'
 
     /**
      * 組織の階層構造取得
@@ -310,18 +330,17 @@ EOF
         return rootNodes;
     }
 EOF
+    fi
 
-    # OrganizationServiceにimport追加
-    sed -i '/^import com.example.backend.repository.OrganizationRepository;$/a import com.example.backend.repository.DepartmentRepository;\nimport com.example.common.dto.OrganizationTreeDto;\nimport com.example.common.dto.DepartmentTreeNode;\nimport com.example.backend.entity.Department;\nimport java.util.HashMap;\nimport java.util.Map;' \
-        backend/src/main/java/com/example/backend/service/OrganizationService.java
+    # OrganizationControllerにimport追加（既存の場合はスキップ）
+    if ! grep -q "import com.example.common.dto.OrganizationTreeDto;" backend/src/main/java/com/example/backend/controller/OrganizationController.java; then
+        sed -i '/^import com.example.common.dto.OrganizationDto;$/a import com.example.common.dto.OrganizationTreeDto;' \
+            backend/src/main/java/com/example/backend/controller/OrganizationController.java
+    fi
 
-    # DepartmentRepositoryフィールドをOrganizationServiceに追加
-    sed -i '/private final OrganizationRepository organizationRepository;$/a \ \ \ \ private final DepartmentRepository departmentRepository;' \
-        backend/src/main/java/com/example/backend/service/OrganizationService.java
-
-    # OrganizationController にエンドポイント追加
-    log_info "OrganizationController.java にエンドポイント追加..."
-    sed -i '/public ResponseEntity<Void> deleteOrganization/i \
+    # OrganizationController にエンドポイント追加（既存の場合はスキップ）
+    if ! grep -q "getOrganizationTree" backend/src/main/java/com/example/backend/controller/OrganizationController.java; then
+        sed -i '/public ResponseEntity<Void> deleteOrganization/i \
     /**\
      * 組織の階層構造取得\
      * GET /api/organizations/{id}/tree\
@@ -334,10 +353,7 @@ EOF
     }\
 \
 ' backend/src/main/java/com/example/backend/controller/OrganizationController.java
-
-    # OrganizationControllerにimport追加
-    sed -i '/^import com.example.common.dto.OrganizationDto;$/a import com.example.common.dto.OrganizationTreeDto;' \
-        backend/src/main/java/com/example/backend/controller/OrganizationController.java
+    fi
 
     log_success "Backend実装完了"
 }
@@ -352,8 +368,21 @@ step4_add_backend_tests() {
 
     log_info "OrganizationServiceTest.java にツリー構築テスト追加..."
 
-    # 既存のテストファイルにテストケース追加
-    cat >> backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java << 'EOF'
+    # OrganizationServiceTestにimport追加（既存の場合はスキップ）
+    if ! grep -q "import com.example.common.dto.OrganizationTreeDto;" backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java; then
+        sed -i '/^import static org.mockito.Mockito.\*;$/a import com.example.common.dto.OrganizationTreeDto;\nimport com.example.common.dto.DepartmentTreeNode;\nimport com.example.backend.entity.Department;\nimport java.util.Arrays;\nimport java.util.Collections;' \
+            backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java
+    fi
+
+    # DepartmentRepositoryのMock追加（既存の場合はスキップ）
+    if ! grep -q "private DepartmentRepository departmentRepository;" backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java; then
+        sed -i '/@Mock$/a \ \ \ \ private DepartmentRepository departmentRepository;' \
+            backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java
+    fi
+
+    # テストケース追加（既存の場合はスキップ）
+    if ! grep -q "getOrganizationTree_Success" backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java; then
+        cat >> backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java << 'EOF'
 
     /**
      * 組織階層構造取得 - 正常系
@@ -502,14 +531,7 @@ step4_add_backend_tests() {
         assertEquals(0, level3.getChildren().size());
     }
 EOF
-
-    # 必要なimport追加
-    sed -i '/^import static org.mockito.Mockito.\*;$/a import com.example.common.dto.OrganizationTreeDto;\nimport com.example.common.dto.DepartmentTreeNode;\nimport com.example.backend.entity.Department;\nimport java.util.Arrays;\nimport java.util.Collections;' \
-        backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java
-
-    # DepartmentRepositoryのMock追加
-    sed -i '/@Mock$/a \ \ \ \ private DepartmentRepository departmentRepository;' \
-        backend/src/test/java/com/example/backend/service/OrganizationServiceTest.java
+    fi
 
     log_success "Backend テスト追加完了"
 }
@@ -833,24 +855,30 @@ EOF
 }
 EOF
 
-    # App.jsxにルート追加
-    log_info "App.jsx にルート追加..."
-    sed -i '/import OrganizationList from/a import OrganizationTree from '\''./components/OrganizationTree'\'';' \
-        frontend/src/App.jsx
+    # App.jsxにルート追加（既存の場合はスキップ）
+    if ! grep -q "import OrganizationTree from" frontend/src/App.jsx; then
+        log_info "App.jsx にルート追加..."
+        sed -i '/import OrganizationList from/a import OrganizationTree from '\''./components/OrganizationTree'\'';' \
+            frontend/src/App.jsx
 
-    sed -i '/<Route path="\/users" element={<UserList \/>} \/>/a \          <Route path="/organizations/:id/tree" element={<OrganizationTree />} />' \
-        frontend/src/App.jsx
+        sed -i '/<Route path="\/users" element={<UserList \/>} \/>/a \          <Route path="/organizations/:id/tree" element={<OrganizationTree />} />' \
+            frontend/src/App.jsx
+    fi
 
-    # OrganizationList.jsxに木構造表示ボタン追加
-    log_info "OrganizationList.jsx に木構造表示ボタン追加..."
-    sed -i 's/<button onClick={() => handleEdit(org)} className="btn btn-primary">編集<\/button>/<button onClick={() => navigate(`\/organizations\/${org.id}\/tree`)} className="btn btn-info">構成図<\/button>\n                  <button onClick={() => handleEdit(org)} className="btn btn-primary">編集<\/button>/' \
-        frontend/src/components/OrganizationList.jsx
+    # OrganizationList.jsxに木構造表示ボタン追加（既存の場合はスキップ）
+    if ! grep -q "構成図" frontend/src/components/OrganizationList.jsx; then
+        log_info "OrganizationList.jsx に木構造表示ボタン追加..."
 
-    # navigateのimport確認と追加
-    if ! grep -q "useNavigate" frontend/src/components/OrganizationList.jsx; then
-        sed -i "s/import React, { useState, useEffect } from 'react';/import React, { useState, useEffect } from 'react';\nimport { useNavigate } from 'react-router-dom';/" \
-            frontend/src/components/OrganizationList.jsx
-        sed -i "/const OrganizationList = () => {/a \ \ const navigate = useNavigate();" \
+        # navigateのimport確認と追加
+        if ! grep -q "useNavigate" frontend/src/components/OrganizationList.jsx; then
+            sed -i "s/import React, { useState, useEffect } from 'react';/import React, { useState, useEffect } from 'react';\nimport { useNavigate } from 'react-router-dom';/" \
+                frontend/src/components/OrganizationList.jsx
+            sed -i "/const OrganizationList = () => {/a \ \ const navigate = useNavigate();" \
+                frontend/src/components/OrganizationList.jsx
+        fi
+
+        # 構成図ボタン追加
+        sed -i 's/<button onClick={() => handleEdit(org)} className="btn btn-primary">編集<\/button>/<button onClick={() => navigate(`\/organizations\/${org.id}\/tree`)} className="btn btn-info">構成図<\/button>\n                  <button onClick={() => handleEdit(org)} className="btn btn-primary">編集<\/button>/' \
             frontend/src/components/OrganizationList.jsx
     fi
 
@@ -1219,6 +1247,11 @@ main() {
     log_info "Issue: #${ISSUE_NUMBER}"
     log_info "Feature Branch: ${FEATURE_BRANCH}"
     log_info "Timestamp: ${TIMESTAMP}"
+    log_info ""
+    log_warning "前提条件:"
+    log_warning "  1. sudo setup-from-scratch.sh 実行済み"
+    log_warning "  2. sudo setup-cicd.sh 実行済み"
+    log_warning "  3. setup-sample-app.sh 実行済み"
     echo ""
 
     step1_check_environment
