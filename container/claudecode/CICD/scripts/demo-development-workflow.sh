@@ -1264,9 +1264,9 @@ main() {
     step8_monitor_pipeline
     step9_create_merge_request
     step10_approve_and_merge
+    step13_sync_to_master
     step11_deploy_containers
     step12_verify_deployment
-    step13_sync_to_master
     step14_show_summary
 
     log_success "開発ワークフローデモ完了"
