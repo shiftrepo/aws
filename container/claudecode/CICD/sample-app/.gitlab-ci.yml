@@ -136,7 +136,7 @@ package:
   script:
     - mvn -B -e -fae -V -s ./.m2/settings.xml package -DskipTests
 
-deploy:
+nexus-deploy:
   stage: deploy
   script:
     - echo "🚀 Nexus Repository にデプロイ中..."
@@ -146,7 +146,12 @@ deploy:
     - echo "✅ Nexus Repository 接続確認完了"
     - mvn -B -e -fae -V deploy -DskipTests -s ./.m2/settings.xml
     - echo "✅ Nexus デプロイ完了"
-    - echo ""
+
+container-deploy:
+  stage: deploy
+  script:
     - echo "🐳 コンテナビルド＆デプロイ中..."
-    - bash /root/aws.git/container/claudecode/CICD/scripts/deploy-containers.sh
+    - bash ./scripts/deploy-containers.sh
     - echo "✅ コンテナデプロイ完了"
+  needs:
+    - nexus-deploy
