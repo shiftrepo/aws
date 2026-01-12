@@ -1606,30 +1606,47 @@ sudo podman logs cicd-sonarqube
 
 ### 概要
 
-Issue作成からデプロイまでの完全な開発フローを自動化するデモスクリプトを提供しています。組織構成図機能の追加を例に、以下のプロセスを実演します：
+GitLab Issueの作成からデプロイまでの完全な開発フローを自動化するデモスクリプトを提供しています。組織構成図機能の追加を例に、以下のプロセスを実演します：
 
 ```
-Issue作成 → 実装 → テスト → CI/CD → MR → 承認 → デプロイ → マスタ同期
+GitLab Issue作成 → Feature Branch → 実装 → テスト → CI/CD → MR → 承認＆マージ（Issue自動クローズ） → デプロイ → マスタ同期
 ```
 
 ### デモワークフロー全体像
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ 1. Issue作成 (GitHub #117)                                     │
-│ 2. 開発環境準備 (/tmp/gitlab-sample-app)                      │
-│ 3. Backend実装 (OrganizationTree API)                         │
-│ 4. Backend テスト追加 (100%カバレッジ維持)                    │
-│ 5. Frontend実装 (OrganizationTree Component)                  │
-│ 6. ローカルビルド＆テスト                                      │
-│ 7. GitLabへプッシュ                                           │
-│ 8. CI/CDパイプライン自動実行 (6ステージ)                      │
-│ 9. Merge Request作成                                          │
-│ 10. 承認＆マージ                                              │
-│ 11. コンテナビルド＆デプロイ                                  │
-│ 12. 動作確認                                                  │
-│ 13. マスタリポジトリへ同期                                    │
-│ 14. 完了サマリー表示                                          │
+│ STEP 0: GitLab Issue作成（自動）                               │
+│         - Issues APIでIssue作成                                │
+│         - Issue番号を動的に取得                                │
+│         - Feature branchを自動命名 (issue-{N}-organization-tree)|
+│                                                                 │
+│ STEP 1: 環境確認                                               │
+│ STEP 2: GitLab作業ディレクトリ準備                            │
+│ STEP 3: Backend実装 (OrganizationTree API)                     │
+│ STEP 4: Backend テスト追加 (70%カバレッジ維持)                │
+│ STEP 5: Frontend実装 (OrganizationTree Component)              │
+│ STEP 6: ローカルビルド＆テスト                                │
+│ STEP 7: GitLabへコミット＆プッシュ                            │
+│         - Feature branchへ自動プッシュ                         │
+│         - コミットメッセージに "Resolves #N" 追加             │
+│                                                                 │
+│ STEP 8: CI/CDパイプライン実行監視 (6ステージ)                 │
+│         - build → test → coverage → sonarqube → package → deploy│
+│                                                                 │
+│ STEP 9: Merge Request作成                                       │
+│         - MR descriptionに "Closes #N" 追加                    │
+│         - パイプライン成功を確認後に作成                       │
+│                                                                 │
+│ STEP 10: Merge Request承認とマージ                             │
+│         - MR承認後に自動マージ                                 │
+│         - マージ時にIssueが自動クローズ                       │
+│                                                                 │
+│ STEP 11: マスタリポジトリへファイル同期                       │
+│ STEP 12: コンテナビルド＆デプロイ                             │
+│ STEP 13: 動作確認                                              │
+│ STEP 14: GitHubへコミット＆プッシュ                           │
+│ STEP 15: サマリー表示                                          │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1694,47 +1711,57 @@ sudo ./scripts/setup-cicd.sh
 
 ### デモで実行される処理
 
+0. **GitLab Issue作成**: GitLab Issues APIで自動作成、Issue番号を動的に取得、Feature branchを自動命名
 1. **環境確認**: GitLab, Nexus, SonarQube, PostgreSQLの稼働確認、/tmp/gitlab-sample-app 存在確認
-2. **Git準備**: 最新のmasterブランチ取得、フィーチャーブランチ作成 (`feature/organization-tree-view`)
+2. **Git準備**: 最新のmasterブランチ取得、フィーチャーブランチ作成 (`feature/issue-{N}-organization-tree`)
 3. **Backend実装**: DTO、Service、Controller自動生成
-4. **テスト追加**: 4テストケース自動追加（カバレッジ70%維持）
+4. **テスト追加**: 14ユニットテスト + 10統合テスト自動追加（カバレッジ70%維持）
 5. **Frontend実装**: React コンポーネント、CSS自動生成
 6. **ローカルテスト**: Maven ビルド＆テスト実行
-7. **GitLab push**: 自動コミット＆プッシュ
+7. **GitLab push**: 自動コミット（"Resolves #N" 追加）＆Feature branchへプッシュ
 8. **CI/CD実行**: 6ステージパイプライン（build → test → coverage → sonarqube → package → deploy）
-9. **MR作成**: GitLab APIで自動作成
-10. **承認・マージ**: 自動承認＆masterマージ
-11. **コンテナデプロイ**: Backend + Frontend自動ビルド＆起動
-12. **動作確認**: API＆フロントエンド確認
-13. **マスタ同期**: GitLab → GitHub完全同期
-14. **サマリー**: 実行結果一覧表示
+9. **MR作成**: GitLab APIで自動作成（"Closes #N" 追加）
+10. **承認・マージ**: 自動承認＆masterマージ → Issue自動クローズ
+11. **マスタ同期**: /tmp/gitlab-sample-app → /root/aws.git/container/claudecode/CICD/sample-app/
+12. **コンテナデプロイ**: Backend + Frontend自動ビルド＆起動
+13. **動作確認**: API疎通確認、組織構成図表示確認
+14. **GitHub同期**: マスタリポジトリへコミット＆プッシュ
+15. **サマリー表示**: Issue URL、MR URL、デプロイURL表示
 
 ### 成果物の確認
 
-- **GitHub Issue**: https://github.com/shiftrepo/aws/issues/117
-- **GitLab MR**: http://YOUR_IP:5003/root/sample-app/-/merge_requests/N
-- **CI/CD Pipeline**: http://YOUR_IP:5003/root/sample-app/-/pipelines
-- **デプロイ済みアプリ**: http://YOUR_IP:5006/organizations/1/tree
+デモスクリプト実行後、以下のURLで成果物を確認できます：
+
+- **GitLab Issue**: `http://YOUR_IP:5003/root/sample-app/-/issues/{N}`（自動作成）
+  - Issue番号は実行時に動的に割り当てられます
+  - マージ時に自動的にクローズされます
+- **Feature Branch**: `feature/issue-{N}-organization-tree`（自動命名）
+- **GitLab MR**: `http://YOUR_IP:5003/root/sample-app/-/merge_requests/{N}`（"Closes #N" 付き）
+- **CI/CD Pipeline**: `http://YOUR_IP:5003/root/sample-app/-/pipelines`
+- **デプロイ済みアプリ**: `http://YOUR_IP:5006/organizations/1/tree`
+- **GitHub Master**: `https://github.com/shiftrepo/aws`（自動同期）
 
 ### 詳細ドキュメント
 
 完全な手順とトラブルシューティングについては、以下を参照してください：
 
-📖 **[DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)**
+📖 **[CLAUDE.md](./CLAUDE.md)** - プロジェクト全体のアーキテクチャと開発ガイド
 
 ### 教育的価値
 
 このデモスクリプトは以下の開発プラクティスを実演します：
 
-1. **Issue Driven Development**: GitHubのIssueから開発開始
-2. **Feature Branch Workflow**: フィーチャーブランチで独立した開発
-3. **Test Driven Development**: テストカバレッジ70%維持
-4. **Continuous Integration**: 全変更でCI/CDパイプライン実行
-5. **Code Review Process**: Merge Requestによるレビュー
-6. **Automated Deployment**: 承認後の自動デプロイ
-7. **Repository Synchronization**: GitLab（開発） → GitHub（マスタ）同期
+1. **Issue Driven Development**: GitLab Issueから開発開始（自動作成）
+2. **Feature Branch Workflow**: Issue番号ベースのフィーチャーブランチ
+3. **Semantic Commit Messages**: "Resolves #N" / "Closes #N" による自動Issue管理
+4. **Test Driven Development**: テストカバレッジ70%維持
+5. **Continuous Integration**: 全変更で6ステージCI/CDパイプライン実行
+6. **Code Review Process**: Merge Requestによるレビュー＆承認
+7. **Automated Deployment**: 承認後の自動デプロイ
+8. **Issue Auto-Closing**: MRマージ時のIssue自動クローズ
+9. **Repository Synchronization**: GitLab（開発） → GitHub（マスタ）自動同期
 
-新しいメンバーへのオンボーディングやCI/CDデモンストレーションに最適です。
+新しいメンバーへのオンボーディング、CI/CDデモンストレーション、Issue駆動開発の教育に最適です。
 
 ---
 
