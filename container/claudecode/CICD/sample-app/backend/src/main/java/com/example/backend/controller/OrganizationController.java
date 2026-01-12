@@ -72,11 +72,6 @@ public class OrganizationController {
     }
 
     /**
-     * 組織削除
-     * DELETE /api/organizations/{id}
-     */
-    @DeleteMapping("/{id}")
-    /**
      * 組織の階層構造取得
      * GET /api/organizations/{id}/tree
      */
