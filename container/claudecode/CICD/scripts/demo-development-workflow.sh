@@ -1057,7 +1057,7 @@ step10_approve_and_merge() {
 ################################################################################
 # STEP 12: コンテナビルド＆デプロイ
 ################################################################################
-step11_deploy_containers() {
+step12_deploy_containers() {
     log_step "12" "コンテナビルド＆デプロイ"
 
     cd "$PROJECT_ROOT"
@@ -1087,7 +1087,7 @@ step11_deploy_containers() {
 ################################################################################
 # STEP 13: 動作確認
 ################################################################################
-step12_verify_deployment() {
+step13_verify_deployment() {
     log_step "13" "動作確認"
 
     log_info "APIエンドポイント動作確認..."
@@ -1270,8 +1270,8 @@ main() {
     step9_create_merge_request
     step10_approve_and_merge
     step11_sync_files_only
-    step11_deploy_containers
-    step12_verify_deployment
+    step12_deploy_containers
+    step13_verify_deployment
     step14_commit_to_github
     step15_show_summary
 
