@@ -51,19 +51,19 @@ echo "EC2ホスト: $EC2_HOST"
 echo "=========================================="
 
 # 1. 独立したディレクトリを作成（複数回実行対応）
-echo "[1/8] 独立ディレクトリ作成中... (実行ID: $EXECUTION_ID)"
+echo "[1/9] 独立ディレクトリ作成中... (実行ID: $EXECUTION_ID)"
 cleanup_previous_runs
 mkdir -p $TEMP_DIR
 echo "  ✓ 独立ディレクトリ作成完了: $TEMP_DIR"
 
 # 2. sample-appをコピー
-echo "[2/8] sample-appファイルをコピー中..."
+echo "[2/9] sample-appファイルをコピー中..."
 # 隠しファイル（.gitlab-ci.yml等）も含めてコピー
 cp -r $BASE_DIR/sample-app/. $TEMP_DIR/
 echo "  ✓ ファイルコピー完了（隠しファイル含む）"
 
 # 3. Gitリポジトリ初期化
-echo "[3/8] Gitリポジトリ初期化中..."
+echo "[3/9] Gitリポジトリ初期化中..."
 cd $TEMP_DIR
 git init
 git config user.name "CICD Admin"
@@ -71,7 +71,7 @@ git config user.email "admin@example.com"
 echo "  ✓ Gitリポジトリ初期化完了"
 
 # 4. 初期コミット作成
-echo "[4/8] 初期コミット作成中..."
+echo "[4/9] 初期コミット作成中..."
 git add .
 git commit -m "CI/CD Pipeline Test - Execution ID: $EXECUTION_ID
 
@@ -84,14 +84,14 @@ git commit -m "CI/CD Pipeline Test - Execution ID: $EXECUTION_ID
 echo "  ✓ 初期コミット作成完了"
 
 # 5. GitLabリモート設定（複数回実行対応）
-echo "[5/8] GitLabリモート設定中..."
+echo "[5/9] GitLabリモート設定中..."
 # 既存のリモートがある場合は削除
 git remote remove origin 2>/dev/null || true
 git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/sample-app.git
 echo "  ✓ GitLabリモート設定完了"
 
 # 6. GitLabにプッシュ（競合自動解決）
-echo "[6/8] GitLabにプッシュ中..."
+echo "[6/9] GitLabにプッシュ中..."
 if ! git push -u origin master 2>/dev/null; then
     echo "  リモートとの競合を検出しました。自動マージ中..."
     git config pull.rebase false
@@ -120,8 +120,86 @@ else
     echo "  ✓ GitLabプッシュ完了"
 fi
 
-# 7. CI/CDパイプライン開始確認
-echo "[7/8] CI/CDパイプライン開始確認中..."
+# 7. GitLab CI/CD変数自動設定
+echo "[7/9] GitLab CI/CD変数設定中..."
+
+# GitLab API認証トークン取得
+echo "  🔐 GitLab APIトークン取得中..."
+PRIVATE_TOKEN=$(curl -s --request POST \
+  --header "Content-Type: application/json" \
+  --data "{\"login\":\"root\",\"password\":\"${ADMIN_PASSWORD}\"}" \
+  "http://${EC2_HOST}:5003/api/v4/session" | grep -o '"private_token":"[^"]*"' | cut -d'"' -f4)
+
+if [ -z "$PRIVATE_TOKEN" ]; then
+    echo "  ⚠️  GitLab APIトークンの取得に失敗しました"
+    echo "     手動で設定してください: GitLab → Settings → CI/CD → Variables"
+    echo "     必要な変数: EC2_PUBLIC_IP=${EC2_HOST}"
+else
+    echo "  ✓ APIトークン取得成功"
+
+    # プロジェクトパス（URLエンコード: root/sample-app → root%2Fsample-app）
+    PROJECT_PATH="root%2Fsample-app"
+
+    # CI/CD変数設定関数
+    set_gitlab_variable() {
+        local key=$1
+        local value=$2
+        local masked=${3:-false}
+
+        # 既存変数確認
+        existing=$(curl -s --header "PRIVATE-TOKEN: ${PRIVATE_TOKEN}" \
+          "http://${EC2_HOST}:5003/api/v4/projects/${PROJECT_PATH}/variables/${key}" 2>/dev/null)
+
+        if echo "$existing" | grep -q "\"key\":\"${key}\""; then
+            # 既存変数を更新
+            result=$(curl -s --request PUT \
+              --header "PRIVATE-TOKEN: ${PRIVATE_TOKEN}" \
+              "http://${EC2_HOST}:5003/api/v4/projects/${PROJECT_PATH}/variables/${key}" \
+              --form "value=${value}" \
+              --form "masked=${masked}")
+
+            if echo "$result" | grep -q "\"key\":\"${key}\""; then
+                echo "    ✓ ${key} = ${value} (更新)"
+            else
+                echo "    ⚠️  ${key} 更新失敗: $(echo $result | head -c 100)"
+            fi
+        else
+            # 新規変数作成
+            result=$(curl -s --request POST \
+              --header "PRIVATE-TOKEN: ${PRIVATE_TOKEN}" \
+              "http://${EC2_HOST}:5003/api/v4/projects/${PROJECT_PATH}/variables" \
+              --form "key=${key}" \
+              --form "value=${value}" \
+              --form "masked=${masked}")
+
+            if echo "$result" | grep -q "\"key\":\"${key}\""; then
+                echo "    ✓ ${key} = ${value} (新規作成)"
+            else
+                echo "    ⚠️  ${key} 作成失敗: $(echo $result | head -c 100)"
+            fi
+        fi
+    }
+
+    # EC2_PUBLIC_IP設定（必須）
+    echo "  📝 CI/CD変数を設定中..."
+    set_gitlab_variable "EC2_PUBLIC_IP" "${EC2_HOST}" "false"
+
+    # 追加の変数（オプション - .envに存在する場合）
+    if [ -n "$SONAR_TOKEN" ]; then
+        set_gitlab_variable "SONAR_TOKEN" "${SONAR_TOKEN}" "true"
+    fi
+
+    if [ -n "$NEXUS_ADMIN_PASSWORD" ]; then
+        set_gitlab_variable "NEXUS_ADMIN_PASSWORD" "${NEXUS_ADMIN_PASSWORD}" "true"
+    fi
+
+    echo "  ✓ CI/CD変数設定完了"
+    echo "  🌐 確認: http://${EC2_HOST}:5003/root/sample-app/-/settings/ci_cd"
+fi
+echo ""
+
+# 8. CI/CDパイプライン開始確認
+echo "[8/9] CI/CDパイプライン開始確認中..."
 sleep 10
 if sudo journalctl -u gitlab-runner --since "30 seconds ago" --no-pager | grep -q "Checking for jobs.*received"; then
     echo "  ✓ GitLab RunnerがCI/CDジョブを受信しました"
@@ -129,8 +207,8 @@ else
     echo "  ⚠ CI/CDジョブの受信を確認できませんでした（Runner状況を確認してください）"
 fi
 
-# 8. CI/CDパイプライン実行状況監視（強化版）
-echo "[8/8] CI/CDパイプライン実行状況監視中..."
+# 9. CI/CDパイプライン実行状況監視（強化版）
+echo "[9/9] CI/CDパイプライン実行状況監視中..."
 echo "  🚀 6ステージパイプライン監視開始（最大5分）..."
 echo "     build → test → coverage → sonarqube → package → deploy"
 echo ""

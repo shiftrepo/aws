@@ -1,6 +1,6 @@
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  EC2_PUBLIC_IP: "3.91.188.223"
+  # EC2_PUBLIC_IP は GitLab CI/CD Variables で自動設定されます（setup-sample-app.sh経由）
 
 cache:
   paths:
