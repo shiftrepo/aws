@@ -1,44 +1,41 @@
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  # EC2_PUBLIC_IP は GitLab CI/CD Variables で自動設定されます（setup-sample-app.sh経由）
+  EC2_PUBLIC_IP: "${EC2_PUBLIC_IP}"
 
+# グローバルキャッシュ（ブランチごとに分離）
 cache:
-  - key: backend
-    paths:
-      - ./.m2/repository/
-      - backend/target/
-  - key: frontend
-    paths:
-      - frontend/node_modules/
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - ./.m2/repository/
+    - frontend/node_modules/
 
 stages:
-  - frontend-install
-  - frontend-lint
-  - frontend-test
-  - frontend-sonarqube
-  - frontend-build
-  - build
-  - test
-  - coverage
-  - sonarqube
-  - package
+  # Frontend
+  - fe-install
+  - fe-lint
+  - fe-test
+  - fe-sonar
+  - fe-build
+
+  # Backend
+  - be-build
+  - be-test
+  - be-coverage
+  - be-sonar
+  - be-package
   - deploy
 
-# ============================================
-# Frontend Pipeline (実行契機: frontend/**変更時)
-# ============================================
+####################################
+# Frontend Pipeline
+####################################
 
 frontend-install:
-  stage: frontend-install
+  stage: fe-install
   before_script:
     - echo "📦 Frontend依存関係インストール中..."
   script:
     - cd frontend
     - npm ci
-  cache:
-    key: frontend
-    paths:
-      - frontend/node_modules/
   only:
     changes:
       - frontend/**/*
@@ -48,7 +45,7 @@ frontend-install:
     expire_in: 1 hour
 
 frontend-lint:
-  stage: frontend-lint
+  stage: fe-lint
   before_script:
     - echo "🔍 ESLint実行中..."
   script:
@@ -57,11 +54,10 @@ frontend-lint:
   only:
     changes:
       - frontend/**/*
-  needs:
-    - frontend-install
+  needs: [frontend-install]
 
 frontend-test:
-  stage: frontend-test
+  stage: fe-test
   before_script:
     - echo "🧪 Jest + Coverage実行中..."
   script:
@@ -79,35 +75,44 @@ frontend-test:
   only:
     changes:
       - frontend/**/*
-  needs:
-    - frontend-install
+  needs: [frontend-install]
 
 frontend-sonarqube:
-  stage: frontend-sonarqube
+  stage: fe-sonar
   before_script:
     - echo "🔍 SonarQube Frontend解析実行中..."
+  rules:
+    # 手動実行: 初回セットアップ、または任意のタイミングで実行可能
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    # 通常: frontend/**/* 変更時に自動実行
+    - changes:
+        - frontend/**/*
+      when: on_success
+      allow_failure: true
+    - when: never
   script:
     - cd frontend
     - |
-      # SonarScanner実行（手動インストール前提）
-      if command -v sonar-scanner >/dev/null 2>&1; then
-        sonar-scanner \
-          -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
-          -Dsonar.login="admin" \
-          -Dsonar.password="Degital2026!"
-      else
-        echo "⚠️ SonarScannerがインストールされていません。スキップします。"
-        echo "インストール: npm install -g sonarqube-scanner"
+      # sonar-scannerをnpm経由でインストール
+      if ! command -v sonar-scanner &> /dev/null; then
+        echo "📥 sonar-scannerをインストール中..."
+        npm install -g sonarqube-scanner
       fi
-  only:
-    changes:
-      - frontend/**/*
-  needs:
-    - frontend-test
-  allow_failure: true
+    - |
+      # SonarQube解析実行
+      sonar-scanner \
+        -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
+        -Dsonar.login="admin" \
+        -Dsonar.password="Degital2026!" \
+        -Dsonar.projectKey="sample-app-frontend" \
+        -Dsonar.sources=src \
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+  needs: [frontend-test]
 
 frontend-build:
-  stage: frontend-build
+  stage: fe-build
   before_script:
     - echo "🏗️ Viteビルド実行中..."
   script:
@@ -121,17 +126,18 @@ frontend-build:
     changes:
       - frontend/**/*
   needs:
+    - frontend-lint   # Lintも通過していることを保証
     - frontend-test
 
-# ============================================
-# Backend Pipeline (実行契機: backend/**変更時)
-# ============================================
+####################################
+# Backend Pipeline
+####################################
 
 .backend_before_script: &backend_before_script
   - echo "🔧 Maven設定を準備中..."
   - mkdir -p ./.m2
   - |
-    cat > ./.m2/settings.xml << XMLEOF
+    cat > ./.m2/settings.xml <<EOF
     <?xml version="1.0" encoding="UTF-8"?>
     <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -151,63 +157,79 @@ frontend-build:
       </servers>
       <mirrors>
         <mirror>
-          <id>nexus-mirror</id>
+          <id>nexus</id>
           <mirrorOf>*</mirrorOf>
           <url>http://${EC2_PUBLIC_IP}:8082/repository/maven-public/</url>
         </mirror>
       </mirrors>
     </settings>
-    XMLEOF
+    EOF
   - echo "✅ Maven設定完了"
 
 build:
-  stage: build
+  stage: be-build
   before_script: *backend_before_script
   script:
-    - mvn -B -e -fae -V -s ./.m2/settings.xml clean compile
+    - echo "🏗️ Mavenコンパイル中..."
+    - mvn -B -s ./.m2/settings.xml clean compile
   only:
     changes:
       - backend/**/*
-      - pom.xml
       - common/**/*
+      - pom.xml
 
 test:
-  stage: test
+  stage: be-test
   before_script: *backend_before_script
   script:
-    - mvn -B -e -fae -V -s ./.m2/settings.xml test
+    - echo "🧪 JUnit テスト実行中..."
+    - mvn -B -s ./.m2/settings.xml test
   only:
     changes:
       - backend/**/*
-      - pom.xml
       - common/**/*
+      - pom.xml
 
 coverage:
-  stage: coverage
+  stage: be-coverage
   before_script: *backend_before_script
   script:
-    - mvn -B -e -fae -V -s ./.m2/settings.xml jacoco:report
+    - echo "📊 JaCoCo カバレッジレポート生成中..."
+    - mvn -B -s ./.m2/settings.xml jacoco:report
+  artifacts:
+    paths:
+      - backend/target/site/jacoco/
+    expire_in: 1 week
   only:
     changes:
       - backend/**/*
-      - pom.xml
       - common/**/*
+      - pom.xml
 
 sonarqube:
-  stage: sonarqube
+  stage: be-sonar
   before_script: *backend_before_script
+  rules:
+    # 手動実行: 初回セットアップ、または任意のタイミングで実行可能
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: false
+    # mainブランチへのマージ: 必ず実行
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "main"'
+      changes:
+        - backend/**/*
+        - common/**/*
+        - pom.xml
+      when: on_success
+    # 通常の開発ブランチ: backend/**/* 変更時に自動実行
+    - changes:
+        - backend/**/*
+        - common/**/*
+        - pom.xml
+      when: on_success
+    - when: never
   script:
-    - echo "🔍 SonarQube 静的解析を実行中..."
-    - echo "SonarQube Host ${SONAR_HOST_URL:-http://${EC2_PUBLIC_IP}:8000}"
-    - echo "Project Key ${SONAR_PROJECT_KEY:-sample-org-management}"
-    - |
-      # SonarQube認証テスト
-      echo "🔐 SonarQube認証テスト実行中..."
-      if curl -s -u "admin:Degital2026!" "http://${EC2_PUBLIC_IP}:8000/api/authentication/validate" | grep -q '"valid":true'; then
-        echo "✅ SonarQube管理者認証成功"
-      else
-        echo "⚠️ SonarQube管理者認証失敗"
-      fi
+    - echo "🔍 SonarQube Backend解析実行中..."
     - |
       # SonarQube接続テスト
       SONAR_URL="http://${EC2_PUBLIC_IP}:8000"
@@ -220,22 +242,12 @@ sonarqube:
     - |
       # SonarQube解析実行
       echo "🔍 SonarQube解析実行中..."
-      set -e  # エラー時に即座に停止
-
-      # ⚠️ 変更禁止: clean verify sonar:sonar を同じJobで実行することで
-      # target/classes とカバレッジデータが確実に生成される
-      if mvn -B -s ./.m2/settings.xml clean verify sonar:sonar \
+      mvn -B -s ./.m2/settings.xml clean verify sonar:sonar \
         -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
         -Dsonar.login="admin" \
         -Dsonar.password="Degital2026!" \
-        -Dsonar.projectKey="sample-org-management"; then
-        echo "✅ SonarQube解析が正常に完了しました"
-      else
-        echo "❌ SonarQube解析が失敗しました"
-        echo "認証情報やネットワーク接続を確認してください"
-        exit 1
-      fi
-    - echo "✅ SonarQube 解析完了"
+        -Dsonar.projectKey="sample-org-management"
+      echo "✅ SonarQube解析完了"
     - |
       # 解析結果確認
       echo "📊 SonarQube解析結果確認中..."
@@ -247,44 +259,50 @@ sonarqube:
       # プロジェクト存在確認
       if curl -s -u "admin:Degital2026!" "$SONAR_URL/api/projects/search?projects=$PROJECT_KEY" | grep -q "\"key\":\"$PROJECT_KEY\""; then
         echo "✅ SonarQubeプロジェクトが正常に作成されました: $PROJECT_KEY"
-        echo "🌐 SonarQube Dashboard: http://${EC2_PUBLIC_IP}:8000/dashboard?id=$PROJECT_KEY"
+        echo "🌐 SonarQube Dashboard: $SONAR_URL/dashboard?id=$PROJECT_KEY"
       else
         echo "⚠️ SonarQubeプロジェクトの作成確認ができませんでした"
-        echo "🔍 手動確認: http://${EC2_PUBLIC_IP}:8000/projects"
+        echo "🔍 手動確認: $SONAR_URL/projects"
       fi
-  only:
-    changes:
-      - backend/**/*
-      - pom.xml
-      - common/**/*
 
 package:
-  stage: package
+  stage: be-package
   before_script: *backend_before_script
   script:
-    - mvn -B -e -fae -V -s ./.m2/settings.xml package -DskipTests
+    - echo "📦 Maven パッケージング中..."
+    - mvn -B -s ./.m2/settings.xml package -DskipTests
+  artifacts:
+    paths:
+      - backend/target/*.jar
+      - common/target/*.jar
+    expire_in: 1 week
   only:
     changes:
       - backend/**/*
-      - pom.xml
       - common/**/*
+      - pom.xml
 
 nexus-deploy:
   stage: deploy
   before_script: *backend_before_script
   script:
     - echo "🚀 Nexus Repository にデプロイ中..."
-    - NEXUS_URL="http://${EC2_PUBLIC_IP}:8082"
-    - echo "Nexus URL $NEXUS_URL"
-    - curl -f -s "$NEXUS_URL/service/rest/v1/status" > /dev/null || (echo "⚠️ Nexus Repository への接続に失敗しました" && exit 1)
-    - echo "✅ Nexus Repository 接続確認完了"
-    - mvn -B -e -fae -V deploy -DskipTests -s ./.m2/settings.xml
+    - |
+      # Nexus接続確認
+      NEXUS_URL="http://${EC2_PUBLIC_IP}:8082"
+      echo "🔗 Nexus接続確認: $NEXUS_URL"
+      if ! curl -f -s "$NEXUS_URL/service/rest/v1/status" > /dev/null; then
+        echo "❌ Nexus Repository への接続に失敗しました"
+        exit 1
+      fi
+      echo "✅ Nexus Repository 接続確認完了"
+    - mvn -B -s ./.m2/settings.xml deploy -DskipTests
     - echo "✅ Nexus デプロイ完了"
   only:
     changes:
       - backend/**/*
-      - pom.xml
       - common/**/*
+      - pom.xml
 
 container-deploy:
   stage: deploy
@@ -292,18 +310,11 @@ container-deploy:
     - echo "🐳 コンテナデプロイ準備中..."
   script:
     - echo "🐳 コンテナビルド＆デプロイ中..."
-    - export EC2_PUBLIC_IP="${EC2_PUBLIC_IP}"
-    - export POSTGRES_HOST="cicd-postgres"
-    - export POSTGRES_PORT="5432"
-    - export POSTGRES_DB="sampledb"
-    - export POSTGRES_USER="sampleuser"
-    - export POSTGRES_PASSWORD="Degital2026!"
     - bash ./scripts/deploy-containers.sh
-    - echo "✅ コンテナデプロイ完了"
   only:
     changes:
       - backend/**/*
-      - pom.xml
       - common/**/*
+      - pom.xml
   needs:
     - nexus-deploy
