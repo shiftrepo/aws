@@ -86,14 +86,69 @@ git commit -m "Frontend Project - Execution ID: $EXECUTION_ID
 - CI/CD Pipeline (install → lint → test → sonar → build)"
 echo "  ✓ 初期コミット作成完了"
 
-# 4. GitLabリモート設定
-echo "[4/5] GitLabリモート設定中..."
+# 4. GitLab Personal Access Token 作成
+echo "[4/7] GitLab Personal Access Token 作成中..."
+GITLAB_TOKEN=$(sudo podman exec cicd-gitlab gitlab-rails runner "
+  user = User.find_by_username('root')
+  # 既存のトークンを削除
+  user.personal_access_tokens.where(name: 'CICD Setup Token').destroy_all
+  # 新しいトークンを作成
+  token = user.personal_access_tokens.create(
+    name: 'CICD Setup Token',
+    scopes: [:api, :read_api, :write_repository],
+    expires_at: 365.days.from_now
+  )
+  puts token.token
+" 2>/dev/null | tail -1)
+
+if [ -z "$GITLAB_TOKEN" ]; then
+    echo "  ⚠️ Personal Access Token の作成に失敗しました"
+    exit 1
+fi
+echo "  ✓ Personal Access Token 作成完了"
+
+# 5. GitLab API経由でプロジェクト作成
+echo "[5/7] GitLab APIでフロントエンドプロジェクト作成中..."
+curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects" \
+  -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  -F "name=$PROJECT_NAME_FRONTEND" \
+  -F "path=$PROJECT_NAME_FRONTEND" \
+  -F "visibility=private" \
+  -F "initialize_with_readme=false" > /dev/null
+echo "  ✓ プロジェクト作成完了"
+
+# 6. CI/CD Variables 設定（フロントエンド）
+echo "[6/7] フロントエンドプロジェクトに CI/CD Variables 設定中..."
+PROJECT_PATH_FRONTEND=$(echo "$PROJECT_NAME_FRONTEND" | sed 's/\//%2F/g')
+
+# EC2_PUBLIC_IP設定
+curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_FRONTEND}/variables" \
+  -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  -F "key=EC2_PUBLIC_IP" \
+  -F "value=$EC2_HOST" \
+  -F "masked=false" \
+  -F "protected=false" > /dev/null
+
+# SONAR_TOKEN設定
+SONAR_TOKEN=$(curl -s -u admin:Degital2026! \
+  -X POST "http://${EC2_PUBLIC_IP}:8000/api/user_tokens/generate" \
+  -d "name=frontend-ci-token-${EXECUTION_ID}" \
+  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+
+if [ -n "$SONAR_TOKEN" ]; then
+    curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_FRONTEND}/variables" \
+      -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+      -F "key=SONAR_TOKEN" \
+      -F "value=$SONAR_TOKEN" \
+      -F "masked=true" \
+      -F "protected=false" > /dev/null
+fi
+echo "  ✓ CI/CD Variables 設定完了"
+
+# 7. GitLabリモート設定とプッシュ
+echo "[7/7] GitLabリモート設定とプッシュ中..."
 git remote remove origin 2>/dev/null || true
 git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/${PROJECT_NAME_FRONTEND}.git
-echo "  ✓ GitLabリモート設定完了"
-
-# 5. GitLabにプッシュ
-echo "[5/5] GitLabにプッシュ中..."
 if ! git push -u origin master -f 2>&1; then
     echo "  ⚠️ プッシュに失敗しました"
     exit 1
@@ -137,113 +192,38 @@ git commit -m "Backend Project - Execution ID: $EXECUTION_ID
 - JaCoCo Coverage + Nexus Deploy"
 echo "  ✓ 初期コミット作成完了"
 
-# 4. GitLabリモート設定
-echo "[4/5] GitLabリモート設定中..."
+# 4. GitLab API経由でプロジェクト作成
+echo "[4/6] GitLab APIでバックエンドプロジェクト作成中..."
+curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects" \
+  -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  -F "name=$PROJECT_NAME_BACKEND" \
+  -F "path=$PROJECT_NAME_BACKEND" \
+  -F "visibility=private" \
+  -F "initialize_with_readme=false" > /dev/null
+echo "  ✓ プロジェクト作成完了"
+
+# 5. CI/CD Variables 設定（バックエンド）
+echo "[5/6] バックエンドプロジェクトに CI/CD Variables 設定中..."
+PROJECT_PATH_BACKEND=$(echo "$PROJECT_NAME_BACKEND" | sed 's/\//%2F/g')
+
+# EC2_PUBLIC_IP設定
+curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_BACKEND}/variables" \
+  -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  -F "key=EC2_PUBLIC_IP" \
+  -F "value=$EC2_HOST" \
+  -F "masked=false" \
+  -F "protected=false" > /dev/null
+echo "  ✓ CI/CD Variables 設定完了"
+
+# 6. GitLabリモート設定とプッシュ
+echo "[6/6] GitLabリモート設定とプッシュ中..."
 git remote remove origin 2>/dev/null || true
 git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/${PROJECT_NAME_BACKEND}.git
-echo "  ✓ GitLabリモート設定完了"
-
-# 5. GitLabにプッシュ
-echo "[5/5] GitLabにプッシュ中..."
 if ! git push -u origin master -f 2>&1; then
     echo "  ⚠️ プッシュに失敗しました"
     exit 1
 fi
 echo "  ✅ バックエンドプロジェクト登録完了"
-
-####################################
-# CI/CD Variables 自動設定
-####################################
-
-echo ""
-echo "[CI/CD Variables] 自動設定開始"
-echo "=========================================="
-
-# 1. GitLab Personal Access Token 作成
-echo "[1/3] GitLab Personal Access Token 作成中..."
-GITLAB_TOKEN=$(sudo podman exec cicd-gitlab gitlab-rails runner "
-  user = User.find_by_username('root')
-  # 既存のトークンを削除
-  user.personal_access_tokens.where(name: 'CICD Setup Token').destroy_all
-  # 新しいトークンを作成
-  token = user.personal_access_tokens.create(
-    name: 'CICD Setup Token',
-    scopes: [:api, :read_api, :write_repository],
-    expires_at: 365.days.from_now
-  )
-  puts token.token
-" 2>/dev/null | tail -1)
-
-if [ -z "$GITLAB_TOKEN" ]; then
-    echo "  ⚠️ Personal Access Token の作成に失敗しました"
-    echo "  手動で CI/CD Variables を設定してください："
-    echo "  - http://$EC2_HOST:5003/root/$PROJECT_NAME_FRONTEND/-/settings/ci_cd"
-    echo "  - http://$EC2_HOST:5003/root/$PROJECT_NAME_BACKEND/-/settings/ci_cd"
-    echo "  変数名: EC2_PUBLIC_IP, 値: $EC2_HOST"
-else
-    echo "  ✓ Personal Access Token 作成完了"
-
-    # 2. フロントエンドプロジェクトに CI/CD Variables 設定
-    echo "[2/4] フロントエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
-    PROJECT_PATH_FRONTEND=$(echo "$PROJECT_NAME_FRONTEND" | sed 's/\//%2F/g')
-    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_FRONTEND}/variables" \
-      -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-      -F "key=EC2_PUBLIC_IP" \
-      -F "value=$EC2_HOST" \
-      -F "masked=false" \
-      -F "protected=false")
-
-    if echo "$response" | grep -q "key"; then
-        echo "  ✓ フロントエンドプロジェクトに EC2_PUBLIC_IP 設定完了"
-    else
-        echo "  ⚠️ 設定に失敗しました: $response"
-    fi
-
-    # 3. バックエンドプロジェクトに CI/CD Variables 設定
-    echo "[3/4] バックエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
-    PROJECT_PATH_BACKEND=$(echo "$PROJECT_NAME_BACKEND" | sed 's/\//%2F/g')
-    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_BACKEND}/variables" \
-      -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-      -F "key=EC2_PUBLIC_IP" \
-      -F "value=$EC2_HOST" \
-      -F "masked=false" \
-      -F "protected=false")
-
-    if echo "$response" | grep -q "key"; then
-        echo "  ✓ バックエンドプロジェクトに EC2_PUBLIC_IP 設定完了"
-    else
-        echo "  ⚠️ 設定に失敗しました: $response"
-    fi
-
-    # 4. フロントエンドプロジェクトに SONAR_TOKEN 設定
-    echo "[4/4] フロントエンドプロジェクトに SONAR_TOKEN 設定中..."
-    SONAR_TOKEN=$(curl -s -u admin:Degital2026! \
-      -X POST "http://${EC2_PUBLIC_IP}:8000/api/user_tokens/generate" \
-      -d "name=frontend-ci-token-${EXECUTION_ID}" \
-      | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
-
-    if [ -n "$SONAR_TOKEN" ]; then
-        response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_FRONTEND}/variables" \
-          -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-          -F "key=SONAR_TOKEN" \
-          -F "value=$SONAR_TOKEN" \
-          -F "masked=true" \
-          -F "protected=false")
-
-        if echo "$response" | grep -q "key"; then
-            echo "  ✓ フロントエンドプロジェクトに SONAR_TOKEN 設定完了"
-        else
-            echo "  ⚠️ SONAR_TOKEN設定に失敗しました: $response"
-        fi
-    else
-        echo "  ⚠️ SonarQubeトークン生成に失敗しました"
-        echo "  手動でトークンを生成し、CI/CD Variablesに登録してください："
-        echo "  - SonarQube: http://$EC2_HOST:8000/account/security"
-        echo "  - GitLab Variables: http://$EC2_HOST:5003/root/$PROJECT_NAME_FRONTEND/-/settings/ci_cd"
-    fi
-
-    echo "  ✅ CI/CD Variables 自動設定完了"
-fi
 
 ####################################
 # 完了サマリー
