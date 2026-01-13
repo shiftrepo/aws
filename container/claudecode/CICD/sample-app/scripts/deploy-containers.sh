@@ -302,31 +302,29 @@ health_check() {
 
     log_variable "タイムアウト" "${HEALTH_CHECK_TIMEOUT}秒"
     log_variable "チェック間隔" "${HEALTH_CHECK_INTERVAL}秒"
-    log_info "  Backend: http://localhost:8080/actuator/health (コンテナ内)"
-    log_info "  Frontend: http://localhost:80/ (コンテナ内)"
+    log_info "  Backend: http://${EC2_PUBLIC_IP}:5006/api/organizations (外部IP、プロキシ経由)"
+    log_info "  Frontend: http://${EC2_PUBLIC_IP}:5006/health (外部IP)"
 
     local backend_healthy=false
     local frontend_healthy=false
     local elapsed=0
 
     while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
-        # Backend（コンテナ内部からのチェック）
+        # Backend（nginx経由の外部チェック）
         if [ "$backend_healthy" = false ]; then
-            if sudo podman exec "$BACKEND_CONTAINER_NAME" wget --no-verbose --tries=1 --spider \
-               http://localhost:8080/actuator/health 2>/dev/null; then
+            if curl -f -s --max-time 5 "http://${EC2_PUBLIC_IP}:5006/api/organizations" > /dev/null 2>&1; then
                 backend_healthy=true
-                log_success "Backend ヘルスチェック成功 (${elapsed}秒経過)"
+                log_success "Backend ヘルスチェック成功 (${elapsed}秒経過) - Proxy経由"
             else
                 log_info "Backend 起動中... (${elapsed}秒経過)"
             fi
         fi
 
-        # Frontend（コンテナ内部からのチェック）
+        # Frontend（外部IPからのチェック）
         if [ "$frontend_healthy" = false ]; then
-            if sudo podman exec "$FRONTEND_CONTAINER_NAME" wget --no-verbose --tries=1 --spider \
-               http://localhost:80/ 2>/dev/null; then
+            if curl -f -s --max-time 5 "http://${EC2_PUBLIC_IP}:5006/health" > /dev/null 2>&1; then
                 frontend_healthy=true
-                log_success "Frontend ヘルスチェック成功 (${elapsed}秒経過)"
+                log_success "Frontend ヘルスチェック成功 (${elapsed}秒経過) - http://${EC2_PUBLIC_IP}:5006/health"
             else
                 log_info "Frontend 起動中... (${elapsed}秒経過)"
             fi
