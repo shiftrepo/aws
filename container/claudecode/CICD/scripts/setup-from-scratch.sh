@@ -65,6 +65,16 @@ echo "[1/12] システムパッケージをインストール中..."
 sudo yum update -y
 sudo yum install -y git wget curl podman podman-compose maven java-17-openjdk-devel python3 python3-pip
 
+# Node.js (npm含む) のインストール
+echo "  Node.js/npmをインストール中..."
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+    sudo yum install -y nodejs
+    echo "  ✓ Node.js $(node --version) / npm $(npm --version) インストール完了"
+else
+    echo "  ✓ Node.js $(node --version) / npm $(npm --version) 既にインストール済み"
+fi
+
 # Docker Composeのインストール
 if ! command -v docker-compose &> /dev/null; then
     sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \

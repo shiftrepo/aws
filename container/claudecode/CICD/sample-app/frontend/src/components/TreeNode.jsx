@@ -24,7 +24,7 @@ const TreeNode = ({ node, level = 0 }) => {
             {isExpanded ? '▼' : '▶'}
           </span>
         )}
-        {!hasChildren && <span className="tree-node-spacer">　</span>}
+        {!hasChildren && <span className="tree-node-spacer">&nbsp;&nbsp;</span>}
         <span className="tree-node-name">{node.name}</span>
         {node.description && (
           <span className="tree-node-description"> - {node.description}</span>

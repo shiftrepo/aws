@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import TreeNode from './TreeNode';
@@ -15,11 +15,7 @@ const OrganizationTree = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchOrganizationTree();
-  }, [id]);
-
-  const fetchOrganizationTree = async () => {
+  const fetchOrganizationTree = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/organizations/${id}/tree`);
@@ -31,7 +27,11 @@ const OrganizationTree = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchOrganizationTree();
+  }, [fetchOrganizationTree]);
 
   const handleBack = () => {
     navigate('/organizations');
