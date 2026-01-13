@@ -3,11 +3,131 @@ variables:
   # EC2_PUBLIC_IP は GitLab CI/CD Variables で自動設定されます（setup-sample-app.sh経由）
 
 cache:
-  paths:
-    - ./.m2/repository/
-    - backend/target/
+  - key: backend
+    paths:
+      - ./.m2/repository/
+      - backend/target/
+  - key: frontend
+    paths:
+      - frontend/node_modules/
 
-before_script:
+stages:
+  - frontend-install
+  - frontend-lint
+  - frontend-test
+  - frontend-sonarqube
+  - frontend-build
+  - build
+  - test
+  - coverage
+  - sonarqube
+  - package
+  - deploy
+
+# ============================================
+# Frontend Pipeline (実行契機: frontend/**変更時)
+# ============================================
+
+frontend-install:
+  stage: frontend-install
+  before_script:
+    - echo "📦 Frontend依存関係インストール中..."
+  script:
+    - cd frontend
+    - npm ci
+  cache:
+    key: frontend
+    paths:
+      - frontend/node_modules/
+  only:
+    changes:
+      - frontend/**/*
+  artifacts:
+    paths:
+      - frontend/node_modules/
+    expire_in: 1 hour
+
+frontend-lint:
+  stage: frontend-lint
+  before_script:
+    - echo "🔍 ESLint実行中..."
+  script:
+    - cd frontend
+    - npm run lint
+  only:
+    changes:
+      - frontend/**/*
+  needs:
+    - frontend-install
+
+frontend-test:
+  stage: frontend-test
+  before_script:
+    - echo "🧪 Jest + Coverage実行中..."
+  script:
+    - cd frontend
+    - npm run test:ci
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+  artifacts:
+    paths:
+      - frontend/coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
+    expire_in: 1 week
+  only:
+    changes:
+      - frontend/**/*
+  needs:
+    - frontend-install
+
+frontend-sonarqube:
+  stage: frontend-sonarqube
+  before_script:
+    - echo "🔍 SonarQube Frontend解析実行中..."
+  script:
+    - cd frontend
+    - |
+      # SonarScanner実行（手動インストール前提）
+      if command -v sonar-scanner >/dev/null 2>&1; then
+        sonar-scanner \
+          -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
+          -Dsonar.login="admin" \
+          -Dsonar.password="Degital2026!"
+      else
+        echo "⚠️ SonarScannerがインストールされていません。スキップします。"
+        echo "インストール: npm install -g sonarqube-scanner"
+      fi
+  only:
+    changes:
+      - frontend/**/*
+  needs:
+    - frontend-test
+  allow_failure: true
+
+frontend-build:
+  stage: frontend-build
+  before_script:
+    - echo "🏗️ Viteビルド実行中..."
+  script:
+    - cd frontend
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week
+  only:
+    changes:
+      - frontend/**/*
+  needs:
+    - frontend-test
+
+# ============================================
+# Backend Pipeline (実行契機: backend/**変更時)
+# ============================================
+
+.backend_before_script: &backend_before_script
   - echo "🔧 Maven設定を準備中..."
   - mkdir -p ./.m2
   - |
@@ -40,31 +160,42 @@ before_script:
     XMLEOF
   - echo "✅ Maven設定完了"
 
-stages:
-  - build
-  - test
-  - coverage
-  - sonarqube
-  - package
-  - deploy
-
 build:
   stage: build
+  before_script: *backend_before_script
   script:
     - mvn -B -e -fae -V -s ./.m2/settings.xml clean compile
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
 
 test:
   stage: test
+  before_script: *backend_before_script
   script:
     - mvn -B -e -fae -V -s ./.m2/settings.xml test
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
 
 coverage:
   stage: coverage
+  before_script: *backend_before_script
   script:
     - mvn -B -e -fae -V -s ./.m2/settings.xml jacoco:report
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
 
 sonarqube:
   stage: sonarqube
+  before_script: *backend_before_script
   script:
     - echo "🔍 SonarQube 静的解析を実行中..."
     - echo "SonarQube Host ${SONAR_HOST_URL:-http://${EC2_PUBLIC_IP}:8000}"
@@ -121,14 +252,26 @@ sonarqube:
         echo "⚠️ SonarQubeプロジェクトの作成確認ができませんでした"
         echo "🔍 手動確認: http://${EC2_PUBLIC_IP}:8000/projects"
       fi
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
 
 package:
   stage: package
+  before_script: *backend_before_script
   script:
     - mvn -B -e -fae -V -s ./.m2/settings.xml package -DskipTests
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
 
 nexus-deploy:
   stage: deploy
+  before_script: *backend_before_script
   script:
     - echo "🚀 Nexus Repository にデプロイ中..."
     - NEXUS_URL="http://${EC2_PUBLIC_IP}:8082"
@@ -137,9 +280,16 @@ nexus-deploy:
     - echo "✅ Nexus Repository 接続確認完了"
     - mvn -B -e -fae -V deploy -DskipTests -s ./.m2/settings.xml
     - echo "✅ Nexus デプロイ完了"
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
 
 container-deploy:
   stage: deploy
+  before_script:
+    - echo "🐳 コンテナデプロイ準備中..."
   script:
     - echo "🐳 コンテナビルド＆デプロイ中..."
     - export EC2_PUBLIC_IP="${EC2_PUBLIC_IP}"
@@ -150,5 +300,10 @@ container-deploy:
     - export POSTGRES_PASSWORD="Degital2026!"
     - bash ./scripts/deploy-containers.sh
     - echo "✅ コンテナデプロイ完了"
+  only:
+    changes:
+      - backend/**/*
+      - pom.xml
+      - common/**/*
   needs:
     - nexus-deploy
