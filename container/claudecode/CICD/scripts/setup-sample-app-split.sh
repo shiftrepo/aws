@@ -92,7 +92,7 @@ echo "  ✓ GitLabリモート設定完了"
 
 # 5. GitLabにプッシュ
 echo "[5/5] GitLabにプッシュ中..."
-if ! git push -u origin master -f 2>&1; then
+if ! git push -u origin master 2>&1; then
     echo "  ⚠️ プッシュに失敗しました"
     exit 1
 fi
@@ -143,7 +143,7 @@ echo "  ✓ GitLabリモート設定完了"
 
 # 5. GitLabにプッシュ
 echo "[5/5] GitLabにプッシュ中..."
-if ! git push -u origin master -f 2>&1; then
+if ! git push -u origin master 2>&1; then
     echo "  ⚠️ プッシュに失敗しました"
     exit 1
 fi
