@@ -7,7 +7,7 @@ shutdown_timeout = 0
 
 [[runners]]
   name = "CICD Container Shell Runner"
-  url = "http://34.205.156.203:5003"
+  url = "http://13.219.95.96:5003"
   id = 34
   token = "glrtr-3InTqXoHEFySYVx0w4cT5G86MQpwOjEKdDozCw.01.121kbuerr"
   token_obtained_at = 2026-01-10T14:50:45Z
