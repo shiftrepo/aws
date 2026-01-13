@@ -150,6 +150,71 @@ fi
 echo "  ✅ バックエンドプロジェクト登録完了"
 
 ####################################
+# CI/CD Variables 自動設定
+####################################
+
+echo ""
+echo "[CI/CD Variables] 自動設定開始"
+echo "=========================================="
+
+# 1. GitLab Personal Access Token 作成
+echo "[1/3] GitLab Personal Access Token 作成中..."
+GITLAB_TOKEN=$(sudo podman exec cicd-gitlab gitlab-rails runner "
+  user = User.find_by_username('root')
+  # 既存のトークンを削除
+  user.personal_access_tokens.where(name: 'CICD Setup Token').destroy_all
+  # 新しいトークンを作成
+  token = user.personal_access_tokens.create(
+    name: 'CICD Setup Token',
+    scopes: [:api, :read_api, :write_repository],
+    expires_at: 365.days.from_now
+  )
+  puts token.token
+" 2>/dev/null | tail -1)
+
+if [ -z "$GITLAB_TOKEN" ]; then
+    echo "  ⚠️ Personal Access Token の作成に失敗しました"
+    echo "  手動で CI/CD Variables を設定してください："
+    echo "  - http://$EC2_HOST:5003/root/sample-app-frontend/-/settings/ci_cd"
+    echo "  - http://$EC2_HOST:5003/root/sample-app-backend/-/settings/ci_cd"
+    echo "  変数名: EC2_PUBLIC_IP, 値: $EC2_HOST"
+else
+    echo "  ✓ Personal Access Token 作成完了"
+
+    # 2. フロントエンドプロジェクトに CI/CD Variables 設定
+    echo "[2/3] フロントエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
+    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2Fsample-app-frontend/variables" \
+      -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+      -F "key=EC2_PUBLIC_IP" \
+      -F "value=$EC2_HOST" \
+      -F "masked=false" \
+      -F "protected=false")
+
+    if echo "$response" | grep -q "key"; then
+        echo "  ✓ フロントエンドプロジェクトに EC2_PUBLIC_IP 設定完了"
+    else
+        echo "  ⚠️ 設定に失敗しました: $response"
+    fi
+
+    # 3. バックエンドプロジェクトに CI/CD Variables 設定
+    echo "[3/3] バックエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
+    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2Fsample-app-backend/variables" \
+      -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+      -F "key=EC2_PUBLIC_IP" \
+      -F "value=$EC2_HOST" \
+      -F "masked=false" \
+      -F "protected=false")
+
+    if echo "$response" | grep -q "key"; then
+        echo "  ✓ バックエンドプロジェクトに EC2_PUBLIC_IP 設定完了"
+    else
+        echo "  ⚠️ 設定に失敗しました: $response"
+    fi
+
+    echo "  ✅ CI/CD Variables 自動設定完了"
+fi
+
+####################################
 # 完了サマリー
 ####################################
 
