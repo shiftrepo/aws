@@ -165,4 +165,6 @@ container-deploy:
     - echo "🐳 コンテナビルド＆デプロイ中..."
     - bash ./scripts/deploy-containers.sh
   needs:
+    - job: package
+      artifacts: true
     - nexus-deploy
