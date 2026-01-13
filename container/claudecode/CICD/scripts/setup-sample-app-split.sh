@@ -6,9 +6,11 @@
 set -e
 
 BASE_DIR="/root/aws.git/container/claudecode/CICD"
-TEMP_DIR_FRONTEND="/tmp/gitlab-sample-app-frontend"
-TEMP_DIR_BACKEND="/tmp/gitlab-sample-app-backend"
 EXECUTION_ID=$(date +%Y%m%d-%H%M%S)
+TEMP_DIR_FRONTEND="/tmp/gitlab-sample-app-frontend-${EXECUTION_ID}"
+TEMP_DIR_BACKEND="/tmp/gitlab-sample-app-backend-${EXECUTION_ID}"
+PROJECT_NAME_FRONTEND="sample-app-frontend-${EXECUTION_ID}"
+PROJECT_NAME_BACKEND="sample-app-backend-${EXECUTION_ID}"
 
 # 環境変数を読み込み
 if [ -f "$BASE_DIR/.env" ]; then
@@ -87,12 +89,12 @@ echo "  ✓ 初期コミット作成完了"
 # 4. GitLabリモート設定
 echo "[4/5] GitLabリモート設定中..."
 git remote remove origin 2>/dev/null || true
-git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/sample-app-frontend.git
+git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/${PROJECT_NAME_FRONTEND}.git
 echo "  ✓ GitLabリモート設定完了"
 
 # 5. GitLabにプッシュ
 echo "[5/5] GitLabにプッシュ中..."
-if ! git push -u origin master 2>&1; then
+if ! git push -u origin master -f 2>&1; then
     echo "  ⚠️ プッシュに失敗しました"
     exit 1
 fi
@@ -138,12 +140,12 @@ echo "  ✓ 初期コミット作成完了"
 # 4. GitLabリモート設定
 echo "[4/5] GitLabリモート設定中..."
 git remote remove origin 2>/dev/null || true
-git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/sample-app-backend.git
+git remote add origin http://root:$ADMIN_PASSWORD@$EC2_HOST:5003/root/${PROJECT_NAME_BACKEND}.git
 echo "  ✓ GitLabリモート設定完了"
 
 # 5. GitLabにプッシュ
 echo "[5/5] GitLabにプッシュ中..."
-if ! git push -u origin master 2>&1; then
+if ! git push -u origin master -f 2>&1; then
     echo "  ⚠️ プッシュに失敗しました"
     exit 1
 fi
@@ -175,15 +177,16 @@ GITLAB_TOKEN=$(sudo podman exec cicd-gitlab gitlab-rails runner "
 if [ -z "$GITLAB_TOKEN" ]; then
     echo "  ⚠️ Personal Access Token の作成に失敗しました"
     echo "  手動で CI/CD Variables を設定してください："
-    echo "  - http://$EC2_HOST:5003/root/sample-app-frontend/-/settings/ci_cd"
-    echo "  - http://$EC2_HOST:5003/root/sample-app-backend/-/settings/ci_cd"
+    echo "  - http://$EC2_HOST:5003/root/$PROJECT_NAME_FRONTEND/-/settings/ci_cd"
+    echo "  - http://$EC2_HOST:5003/root/$PROJECT_NAME_BACKEND/-/settings/ci_cd"
     echo "  変数名: EC2_PUBLIC_IP, 値: $EC2_HOST"
 else
     echo "  ✓ Personal Access Token 作成完了"
 
     # 2. フロントエンドプロジェクトに CI/CD Variables 設定
-    echo "[2/3] フロントエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
-    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2Fsample-app-frontend/variables" \
+    echo "[2/4] フロントエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
+    PROJECT_PATH_FRONTEND=$(echo "$PROJECT_NAME_FRONTEND" | sed 's/\//%2F/g')
+    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_FRONTEND}/variables" \
       -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
       -F "key=EC2_PUBLIC_IP" \
       -F "value=$EC2_HOST" \
@@ -197,8 +200,9 @@ else
     fi
 
     # 3. バックエンドプロジェクトに CI/CD Variables 設定
-    echo "[3/3] バックエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
-    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2Fsample-app-backend/variables" \
+    echo "[3/4] バックエンドプロジェクトに EC2_PUBLIC_IP 設定中..."
+    PROJECT_PATH_BACKEND=$(echo "$PROJECT_NAME_BACKEND" | sed 's/\//%2F/g')
+    response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_BACKEND}/variables" \
       -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
       -F "key=EC2_PUBLIC_IP" \
       -F "value=$EC2_HOST" \
@@ -215,11 +219,11 @@ else
     echo "[4/4] フロントエンドプロジェクトに SONAR_TOKEN 設定中..."
     SONAR_TOKEN=$(curl -s -u admin:Degital2026! \
       -X POST "http://${EC2_PUBLIC_IP}:8000/api/user_tokens/generate" \
-      -d "name=frontend-ci-token" \
+      -d "name=frontend-ci-token-${EXECUTION_ID}" \
       | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 
     if [ -n "$SONAR_TOKEN" ]; then
-        response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2Fsample-app-frontend/variables" \
+        response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2F${PROJECT_PATH_FRONTEND}/variables" \
           -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
           -F "key=SONAR_TOKEN" \
           -F "value=$SONAR_TOKEN" \
@@ -235,7 +239,7 @@ else
         echo "  ⚠️ SonarQubeトークン生成に失敗しました"
         echo "  手動でトークンを生成し、CI/CD Variablesに登録してください："
         echo "  - SonarQube: http://$EC2_HOST:8000/account/security"
-        echo "  - GitLab Variables: http://$EC2_HOST:5003/root/sample-app-frontend/-/settings/ci_cd"
+        echo "  - GitLab Variables: http://$EC2_HOST:5003/root/$PROJECT_NAME_FRONTEND/-/settings/ci_cd"
     fi
 
     echo "  ✅ CI/CD Variables 自動設定完了"
@@ -251,12 +255,12 @@ echo "✅ sample-app分割プロジェクト登録完了"
 echo "=========================================="
 echo ""
 echo "🌐 GitLab プロジェクト:"
-echo "   フロントエンド: http://$EC2_HOST:5003/root/sample-app-frontend"
-echo "   バックエンド:   http://$EC2_HOST:5003/root/sample-app-backend"
+echo "   フロントエンド: http://$EC2_HOST:5003/root/$PROJECT_NAME_FRONTEND"
+echo "   バックエンド:   http://$EC2_HOST:5003/root/$PROJECT_NAME_BACKEND"
 echo ""
 echo "📊 パイプライン状況:"
-echo "   フロントエンド: http://$EC2_HOST:5003/root/sample-app-frontend/-/pipelines"
-echo "   バックエンド:   http://$EC2_HOST:5003/root/sample-app-backend/-/pipelines"
+echo "   フロントエンド: http://$EC2_HOST:5003/root/$PROJECT_NAME_FRONTEND/-/pipelines"
+echo "   バックエンド:   http://$EC2_HOST:5003/root/$PROJECT_NAME_BACKEND/-/pipelines"
 echo ""
 echo "🗂️ 独立ディレクトリ:"
 echo "   フロントエンド: $TEMP_DIR_FRONTEND"
