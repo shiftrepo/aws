@@ -211,6 +211,33 @@ else
         echo "  ⚠️ 設定に失敗しました: $response"
     fi
 
+    # 4. フロントエンドプロジェクトに SONAR_TOKEN 設定
+    echo "[4/4] フロントエンドプロジェクトに SONAR_TOKEN 設定中..."
+    SONAR_TOKEN=$(curl -s -u admin:Degital2026! \
+      -X POST "http://${EC2_PUBLIC_IP}:8000/api/user_tokens/generate" \
+      -d "name=frontend-ci-token" \
+      | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+
+    if [ -n "$SONAR_TOKEN" ]; then
+        response=$(curl -s -X POST "http://$EC2_HOST:5003/api/v4/projects/root%2Fsample-app-frontend/variables" \
+          -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          -F "key=SONAR_TOKEN" \
+          -F "value=$SONAR_TOKEN" \
+          -F "masked=true" \
+          -F "protected=false")
+
+        if echo "$response" | grep -q "key"; then
+            echo "  ✓ フロントエンドプロジェクトに SONAR_TOKEN 設定完了"
+        else
+            echo "  ⚠️ SONAR_TOKEN設定に失敗しました: $response"
+        fi
+    else
+        echo "  ⚠️ SonarQubeトークン生成に失敗しました"
+        echo "  手動でトークンを生成し、CI/CD Variablesに登録してください："
+        echo "  - SonarQube: http://$EC2_HOST:8000/account/security"
+        echo "  - GitLab Variables: http://$EC2_HOST:5003/root/sample-app-frontend/-/settings/ci_cd"
+    fi
+
     echo "  ✅ CI/CD Variables 自動設定完了"
 fi
 

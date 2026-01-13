@@ -74,8 +74,7 @@ frontend-sonarqube:
       # SonarQube解析実行
       sonar-scanner \
         -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
-        -Dsonar.login="admin" \
-        -Dsonar.password="Degital2026!" \
+        -Dsonar.token="${SONAR_TOKEN}" \
         -Dsonar.projectKey="sample-app-frontend" \
         -Dsonar.projectName="Sample App Frontend" \
         -Dsonar.sources=src \
