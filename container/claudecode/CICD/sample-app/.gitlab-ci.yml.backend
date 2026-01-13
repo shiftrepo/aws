@@ -1,6 +1,5 @@
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  EC2_PUBLIC_IP: "${EC2_PUBLIC_IP}"
 
 # グローバルキャッシュ（ブランチごとに分離）
 cache:
