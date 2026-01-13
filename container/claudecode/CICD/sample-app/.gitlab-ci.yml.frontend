@@ -71,13 +71,15 @@ frontend-sonarqube:
         npm install -g sonarqube-scanner
       fi
     - |
-      # SonarQube解析実行
+      # SonarQube解析実行 (React + Jest standard - LCOV only)
       sonar-scanner \
         -Dsonar.host.url="http://${EC2_PUBLIC_IP}:8000" \
         -Dsonar.token="${SONAR_TOKEN}" \
         -Dsonar.projectKey="sample-app-frontend" \
         -Dsonar.projectName="Sample App Frontend" \
         -Dsonar.sources=src \
+        -Dsonar.tests=src \
+        -Dsonar.test.inclusions="**/*.test.jsx,**/*.spec.jsx" \
         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   needs: [frontend-test]
 
