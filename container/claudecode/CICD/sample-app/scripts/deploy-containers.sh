@@ -1,8 +1,7 @@
 #!/bin/bash
 # ========================================================================
-# コンテナデプロイスクリプト
-# CI/CD経由でMavenビルド成果物をコンテナ化＆デプロイ
-# sample-app内で完結（/root/aws.gitへの依存なし）
+# バックエンドコンテナデプロイスクリプト
+# CI/CD経由でMavenビルド成果物をコンテナ化＆デプロイ（バックエンド専用）
 # ========================================================================
 
 set -euo pipefail
@@ -18,9 +17,7 @@ HEALTH_CHECK_INTERVAL=10
 
 # コンテナ設定
 BACKEND_CONTAINER_NAME="sample-backend"
-FRONTEND_CONTAINER_NAME="nginx-frontend"
 BACKEND_IMAGE="sample-backend:latest"
-FRONTEND_IMAGE="nginx-frontend:latest"
 NETWORK_NAME="cicd_cicd-network"
 
 # ========================================
@@ -81,7 +78,7 @@ check_env() {
 # 事前チェック
 # ========================================
 pre_deployment_checks() {
-    log_step "1" "7" "事前チェック"
+    log_step "1" "6" "事前チェック"
 
     log_info "JARファイルを検索中..."
     log_variable "検索パス" "$BACKEND_JAR_PATH"
@@ -106,10 +103,6 @@ pre_deployment_checks() {
         log_error "backend/Dockerfileが見つかりません"
         exit 1
     fi
-    if [ ! -f "${PROJECT_ROOT}/nginx/Dockerfile" ]; then
-        log_error "nginx/Dockerfileが見つかりません"
-        exit 1
-    fi
     log_success "Dockerfile確認完了"
 }
 
@@ -117,7 +110,7 @@ pre_deployment_checks() {
 # ネットワーク確認
 # ========================================
 ensure_network() {
-    log_step "2" "7" "ネットワーク確認"
+    log_step "2" "6" "ネットワーク確認"
 
     if sudo podman network exists "$NETWORK_NAME" 2>/dev/null; then
         log_success "ネットワーク $NETWORK_NAME を使用します"
@@ -129,29 +122,17 @@ ensure_network() {
 }
 
 # ========================================
-# コンテナ停止＆削除（名前指定）
+# コンテナ停止＆削除
 # ========================================
 stop_and_remove_containers() {
-    log_step "3" "7" "既存コンテナ停止＆削除"
+    log_step "3" "6" "既存コンテナ停止＆削除"
 
-    log_info "アプリケーションコンテナを確認中..."
+    log_info "バックエンドコンテナを確認中..."
     BACKEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "$BACKEND_CONTAINER_NAME" || echo "")
-    FRONTEND_EXISTS=$(sudo podman ps -a --format "{{.Names}}" | grep -w "$FRONTEND_CONTAINER_NAME" || echo "")
 
     if [ -n "$BACKEND_EXISTS" ]; then
         log_variable "Backend Container" "$BACKEND_CONTAINER_NAME (存在)"
-    else
-        log_variable "Backend Container" "$BACKEND_CONTAINER_NAME (存在しない)"
-    fi
 
-    if [ -n "$FRONTEND_EXISTS" ]; then
-        log_variable "Frontend Container" "$FRONTEND_CONTAINER_NAME (存在)"
-    else
-        log_variable "Frontend Container" "$FRONTEND_CONTAINER_NAME (存在しない)"
-    fi
-
-    # Backendコンテナの停止＆削除
-    if [ -n "$BACKEND_EXISTS" ]; then
         log_info "$BACKEND_CONTAINER_NAME コンテナを停止中..."
         if sudo podman stop "$BACKEND_CONTAINER_NAME" 2>/dev/null; then
             log_success "$BACKEND_CONTAINER_NAME 停止完了"
@@ -165,29 +146,14 @@ stop_and_remove_containers() {
         else
             log_error "$BACKEND_CONTAINER_NAME の削除に失敗"
         fi
-    fi
-
-    # Frontendコンテナの停止＆削除
-    if [ -n "$FRONTEND_EXISTS" ]; then
-        log_info "$FRONTEND_CONTAINER_NAME コンテナを停止中..."
-        if sudo podman stop "$FRONTEND_CONTAINER_NAME" 2>/dev/null; then
-            log_success "$FRONTEND_CONTAINER_NAME 停止完了"
-        else
-            log_info "$FRONTEND_CONTAINER_NAME は既に停止済み"
-        fi
-
-        log_info "$FRONTEND_CONTAINER_NAME コンテナを削除中..."
-        if sudo podman rm "$FRONTEND_CONTAINER_NAME" 2>/dev/null; then
-            log_success "$FRONTEND_CONTAINER_NAME 削除完了"
-        else
-            log_error "$FRONTEND_CONTAINER_NAME の削除に失敗"
-        fi
+    else
+        log_variable "Backend Container" "$BACKEND_CONTAINER_NAME (存在しない)"
     fi
 
     log_info "削除後のコンテナ状態確認..."
-    REMAINING=$(sudo podman ps -a --format "{{.Names}}" | grep -E "^($BACKEND_CONTAINER_NAME|$FRONTEND_CONTAINER_NAME)$" || echo "")
+    REMAINING=$(sudo podman ps -a --format "{{.Names}}" | grep -w "$BACKEND_CONTAINER_NAME" || echo "")
     if [ -z "$REMAINING" ]; then
-        log_success "アプリケーションコンテナ削除確認完了"
+        log_success "バックエンドコンテナ削除確認完了"
     else
         log_error "コンテナが残っています: $REMAINING"
         exit 1
@@ -198,9 +164,8 @@ stop_and_remove_containers() {
 # コンテナビルド
 # ========================================
 build_containers() {
-    log_step "4" "7" "コンテナビルド"
+    log_step "4" "6" "コンテナビルド"
 
-    # Backend コンテナビルド
     log_info "Backend コンテナビルド中..."
     log_variable "ビルドコンテキスト" "${PROJECT_ROOT}/backend"
     log_variable "Dockerfile" "${PROJECT_ROOT}/backend/Dockerfile"
@@ -217,33 +182,14 @@ build_containers() {
         cat /tmp/backend-build.log | tail -50
         exit 1
     fi
-
-    # Nginx Frontend コンテナビルド
-    log_info "Nginx Frontend コンテナビルド中..."
-    log_variable "ビルドコンテキスト" "${PROJECT_ROOT}"
-    log_variable "Dockerfile" "${PROJECT_ROOT}/nginx/Dockerfile"
-    log_variable "イメージ名" "$FRONTEND_IMAGE"
-
-    cd "${PROJECT_ROOT}"
-    if sudo podman build --no-cache -f nginx/Dockerfile -t "$FRONTEND_IMAGE" . 2>&1 | tee /tmp/frontend-build.log; then
-        log_success "Nginx Frontend コンテナビルド完了"
-        FRONTEND_IMAGE_ID=$(sudo podman images "$FRONTEND_IMAGE" --format "{{.ID}}")
-        log_variable "Frontend Image ID" "$FRONTEND_IMAGE_ID"
-    else
-        log_error "Nginx Frontend コンテナビルド失敗"
-        echo "========== ビルドログ =========="
-        cat /tmp/frontend-build.log | tail -50
-        exit 1
-    fi
 }
 
 # ========================================
 # コンテナ起動
 # ========================================
 start_containers() {
-    log_step "5" "7" "コンテナ起動"
+    log_step "5" "6" "コンテナ起動"
 
-    # Backend コンテナ起動
     log_info "Backend コンテナ起動中..."
     log_variable "コンテナ名" "$BACKEND_CONTAINER_NAME"
     log_variable "イメージ" "$BACKEND_IMAGE"
@@ -259,79 +205,47 @@ start_containers() {
         -e SPRING_DATASOURCE_URL="$DATASOURCE_URL" \
         -e SPRING_DATASOURCE_USERNAME="$POSTGRES_USER" \
         -e SPRING_DATASOURCE_PASSWORD="$POSTGRES_PASSWORD" \
+        -p 8501:8080 \
         "$BACKEND_IMAGE" 2>&1 | tee /tmp/backend-run.log; then
         log_success "Backend コンテナ起動完了"
         BACKEND_CONTAINER_ID=$(sudo podman ps -qf "name=$BACKEND_CONTAINER_NAME")
         log_variable "Backend Container ID" "$BACKEND_CONTAINER_ID"
+        log_variable "ポートマッピング" "8501:8080"
     else
         log_error "Backend コンテナ起動失敗"
         cat /tmp/backend-run.log
         exit 1
     fi
 
-    # Frontend コンテナ起動
-    log_info "Frontend コンテナ起動中..."
-    log_variable "コンテナ名" "$FRONTEND_CONTAINER_NAME"
-    log_variable "イメージ" "$FRONTEND_IMAGE"
-    log_variable "ネットワーク" "$NETWORK_NAME"
-    log_variable "ポートマッピング" "5006:80"
-
-    if sudo podman run -d \
-        --name "$FRONTEND_CONTAINER_NAME" \
-        --network "$NETWORK_NAME" \
-        -p 5006:80 \
-        "$FRONTEND_IMAGE" 2>&1 | tee /tmp/frontend-run.log; then
-        log_success "Frontend コンテナ起動完了"
-        FRONTEND_CONTAINER_ID=$(sudo podman ps -qf "name=$FRONTEND_CONTAINER_NAME")
-        log_variable "Frontend Container ID" "$FRONTEND_CONTAINER_ID"
-    else
-        log_error "Frontend コンテナ起動失敗"
-        cat /tmp/frontend-run.log
-        exit 1
-    fi
-
     log_info "起動後のコンテナ状態確認..."
-    sudo podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(NAMES|$BACKEND_CONTAINER_NAME|$FRONTEND_CONTAINER_NAME)"
+    sudo podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(NAMES|$BACKEND_CONTAINER_NAME)"
 }
 
 # ========================================
 # ヘルスチェック
 # ========================================
 health_check() {
-    log_step "6" "7" "ヘルスチェック"
+    log_step "6" "6" "ヘルスチェック"
 
     log_variable "タイムアウト" "${HEALTH_CHECK_TIMEOUT}秒"
     log_variable "チェック間隔" "${HEALTH_CHECK_INTERVAL}秒"
-    log_info "  Backend: http://${EC2_PUBLIC_IP}:5006/api/organizations (外部IP、プロキシ経由)"
-    log_info "  Frontend: http://${EC2_PUBLIC_IP}:5006/health (外部IP)"
+    log_info "  Backend: http://${EC2_PUBLIC_IP}:8501/api/organizations"
 
     local backend_healthy=false
-    local frontend_healthy=false
     local elapsed=0
 
     while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
-        # Backend（nginx経由の外部チェック）
         if [ "$backend_healthy" = false ]; then
-            if curl -f -s --max-time 5 "http://${EC2_PUBLIC_IP}:5006/api/organizations" > /dev/null 2>&1; then
+            if curl -f -s --max-time 5 "http://${EC2_PUBLIC_IP}:8501/api/organizations" > /dev/null 2>&1; then
                 backend_healthy=true
-                log_success "Backend ヘルスチェック成功 (${elapsed}秒経過) - Proxy経由"
+                log_success "Backend ヘルスチェック成功 (${elapsed}秒経過)"
             else
                 log_info "Backend 起動中... (${elapsed}秒経過)"
             fi
         fi
 
-        # Frontend（外部IPからのチェック）
-        if [ "$frontend_healthy" = false ]; then
-            if curl -f -s --max-time 5 "http://${EC2_PUBLIC_IP}:5006/health" > /dev/null 2>&1; then
-                frontend_healthy=true
-                log_success "Frontend ヘルスチェック成功 (${elapsed}秒経過) - http://${EC2_PUBLIC_IP}:5006/health"
-            else
-                log_info "Frontend 起動中... (${elapsed}秒経過)"
-            fi
-        fi
-
-        if [ "$backend_healthy" = true ] && [ "$frontend_healthy" = true ]; then
-            log_success "全コンテナのヘルスチェック完了"
+        if [ "$backend_healthy" = true ]; then
+            log_success "ヘルスチェック完了"
             return 0
         fi
 
@@ -342,52 +256,7 @@ health_check() {
     log_error "ヘルスチェックタイムアウト（${HEALTH_CHECK_TIMEOUT}秒）"
     log_error "コンテナログを確認してください:"
     log_error "  sudo podman logs --tail 100 $BACKEND_CONTAINER_NAME"
-    log_error "  sudo podman logs --tail 100 $FRONTEND_CONTAINER_NAME"
     exit 1
-}
-
-# ========================================
-# デプロイ検証（環境変数使用）
-# ========================================
-verify_deployment() {
-    log_step "7" "7" "デプロイ検証"
-
-    local EXTERNAL_URL="http://${EC2_PUBLIC_IP}:5006"
-    log_variable "外部URL" "$EXTERNAL_URL"
-    log_variable "ポート" "5006 (nginx-frontend)"
-
-    log_info "外部アクセス確認中..."
-    log_variable "テストURL" "${EXTERNAL_URL}/health"
-
-    if curl -f -s "${EXTERNAL_URL}/health" > /dev/null; then
-        log_success "外部アクセス確認完了"
-
-        log_info "API動作確認中..."
-        if curl -f -s "${EXTERNAL_URL}/api/organizations" > /dev/null; then
-            log_success "API動作確認完了"
-        else
-            log_error "API接続失敗（Backendに問題がある可能性）"
-        fi
-    else
-        log_error "外部アクセス失敗: ${EXTERNAL_URL}/health"
-        log_error "以下を確認してください:"
-        log_error "  1. EC2セキュリティグループでポート5006が許可されているか"
-        log_error "  2. firewalld設定: sudo firewall-cmd --list-ports"
-        log_error "  3. コンテナが正常に起動しているか: sudo podman ps"
-        exit 1
-    fi
-
-    echo ""
-    echo "=========================================="
-    echo "🎉 デプロイ完了"
-    echo "=========================================="
-    echo "📱 アクセスURL:"
-    echo "  - Frontend: ${EXTERNAL_URL}/"
-    echo "  - API: ${EXTERNAL_URL}/api/organizations"
-    echo "  - Health: ${EXTERNAL_URL}/health"
-    echo ""
-    echo "📊 コンテナ状態:"
-    sudo podman ps --format "  {{.Names}}: {{.Status}}" | grep -E "($BACKEND_CONTAINER_NAME|$FRONTEND_CONTAINER_NAME)"
 }
 
 # ========================================
@@ -395,7 +264,7 @@ verify_deployment() {
 # ========================================
 main() {
     echo "=========================================="
-    echo "🚀 コンテナデプロイ開始"
+    echo "🚀 バックエンドコンテナデプロイ開始"
     echo "=========================================="
     echo "実行時刻: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "実行ユーザー: $(whoami)"
@@ -409,7 +278,17 @@ main() {
     build_containers
     start_containers
     health_check
-    verify_deployment
+
+    echo ""
+    echo "=========================================="
+    echo "🎉 デプロイ完了"
+    echo "=========================================="
+    echo "📱 アクセスURL:"
+    echo "  - API: http://${EC2_PUBLIC_IP}:8501/api/organizations"
+    echo "  - Swagger UI: http://${EC2_PUBLIC_IP}:8501/swagger-ui.html"
+    echo ""
+    echo "📊 コンテナ状態:"
+    sudo podman ps --format "  {{.Names}}: {{.Status}}" | grep "$BACKEND_CONTAINER_NAME"
 }
 
 # エラートラップ
