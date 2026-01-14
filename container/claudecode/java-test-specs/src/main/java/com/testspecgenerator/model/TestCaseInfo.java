@@ -14,17 +14,23 @@ public class TestCaseInfo {
     private String methodName;
 
     // アノテーション情報
-    private String testModule = "General";
+    private String softwareService = "未指定";  // ソフトウェア・サービス
+    private String testItemName = "標準";  // 項目名
+    private String testContent = "自動実行";  // 試験内容
+    private String confirmationItem = "成功";  // 確認項目
+    private String testModule = "General";  // テスト対象モジュール名
+    private String baselineVersion = "1.0.0";  // テスト実施ベースラインバージョン
+    private String creator = "TestTeam";  // テストケース作成者
+    private String createdDate = "2026-01-09";  // テストケース作成日
+    private String modifier = "TestTeam";  // テストケース修正者
+    private String modifiedDate = "2026-01-09";  // テストケース修正日
+
+    // 旧フィールド（互換性のため残す）
     private String testCase = "Standard";
-    private String baselineVersion = "1.0.0";
     private String testOverview = "テスト実行中";
     private String testPurpose = "機能検証";
     private String testProcess = "自動実行";
     private String testResults = "成功";
-    private String creator = "TestTeam";
-    private String createdDate = "2026-01-09";
-    private String modifier = "TestTeam";
-    private String modifiedDate = "2026-01-09";
     private String testCategory = "Unit";
     private String priority = "Medium";
     private String requirements = "基本機能";
@@ -70,6 +76,19 @@ public class TestCaseInfo {
 
     public String getMethodName() { return methodName; }
     public void setMethodName(String methodName) { this.methodName = methodName; }
+
+    // 新しい日本語フィールドのGetter/Setter
+    public String getSoftwareService() { return softwareService; }
+    public void setSoftwareService(String softwareService) { this.softwareService = softwareService; }
+
+    public String getTestItemName() { return testItemName; }
+    public void setTestItemName(String testItemName) { this.testItemName = testItemName; }
+
+    public String getTestContent() { return testContent; }
+    public void setTestContent(String testContent) { this.testContent = testContent; }
+
+    public String getConfirmationItem() { return confirmationItem; }
+    public void setConfirmationItem(String confirmationItem) { this.confirmationItem = confirmationItem; }
 
     public String getTestModule() { return testModule; }
     public void setTestModule(String testModule) { this.testModule = testModule; }

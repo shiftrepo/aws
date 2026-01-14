@@ -343,7 +343,40 @@ java -jar target/java-test-specification-generator-1.0.0.jar --interactive
 
 ## 📝 サポートされるアノテーション
 
-JavaDocコメント内で以下のカスタムアノテーションを認識します：
+JavaDocコメント内で以下のカスタムアノテーションを認識します。日本語アノテーションと英語アノテーションの両方をサポートしています。
+
+### 日本語アノテーション（推奨）
+
+```java
+/**
+ * @ソフトウェア・サービス 計算サービス
+ * @項目名 条件分岐加算テスト
+ * @試験内容 様々なパラメータで条件分岐を含む加算処理をテスト実行
+ * @確認項目 すべての条件が検証チェックをパスすること
+ * @テスト対象モジュール名 BasicCalculator
+ * @テスト実施ベースラインバージョン 1.0.0
+ * @テストケース作成者 開発者名
+ * @テストケース作成日 2026-01-14
+ * @テストケース修正者 レビュー担当者名
+ * @テストケース修正日 2026-01-14
+ */
+@Test
+public void testConditionalCalculation() {
+    // C1 Coverage: 条件判定カバレッジ
+    if (value > 0) {
+        // 正の値の場合
+        assertTrue(result > value);
+    } else if (value < 0) {
+        // 負の値の場合
+        assertTrue(result > value);
+    } else {
+        // ゼロの場合
+        assertEquals(1, result);
+    }
+}
+```
+
+### 英語アノテーション（後方互換性）
 
 ```java
 /**
@@ -363,21 +396,9 @@ JavaDocコメント内で以下のカスタムアノテーションを認識し�
  * @Requirements REQ-001, REQ-002
  * @Dependencies Calculator.class
  */
-@Test
-public void testConditionalCalculation() {
-    // C1 Coverage: 条件判定カバレッジ
-    if (value > 0) {
-        // 正の値の場合
-        assertTrue(result > value);
-    } else if (value < 0) {
-        // 負の値の場合
-        assertTrue(result > value);
-    } else {
-        // ゼロの場合
-        assertEquals(1, result);
-    }
-}
 ```
+
+**注意**: 日本語アノテーションが優先されます。英語アノテーションは後方互換性のために維持されています。
 
 ## 📈 カバレッジレポート対応
 

@@ -47,6 +47,11 @@ public class JavaAnnotationParser {
 
     // サポートするアノテーション名
     private static final Set<String> SUPPORTED_ANNOTATIONS = Set.of(
+            // 日本語アノテーション（優先）
+            "ソフトウェア・サービス", "項目名", "試験内容", "確認項目",
+            "テスト対象モジュール名", "テスト実施ベースラインバージョン",
+            "テストケース作成者", "テストケース作成日", "テストケース修正者", "テストケース修正日",
+            // 旧英語アノテーション（互換性のため残す）
             "TestModule", "TestCase", "BaselineVersion", "TestOverview",
             "TestPurpose", "TestProcess", "TestResults", "Creator",
             "CreatedDate", "Modifier", "ModifiedDate", "TestCategory",
@@ -288,11 +293,44 @@ public class JavaAnnotationParser {
         annotations.forEach((key, value) -> {
             if (value != null && !value.trim().isEmpty()) {
                 switch (key) {
+                    // 日本語アノテーション（優先）
+                    case "ソフトウェア・サービス":
+                        testCase.setSoftwareService(value.trim());
+                        break;
+                    case "項目名":
+                        testCase.setTestItemName(value.trim());
+                        break;
+                    case "試験内容":
+                        testCase.setTestContent(value.trim());
+                        break;
+                    case "確認項目":
+                        testCase.setConfirmationItem(value.trim());
+                        break;
+                    case "テスト対象モジュール名":
+                        testCase.setTestModule(value.trim());
+                        break;
+                    case "テスト実施ベースラインバージョン":
+                        testCase.setBaselineVersion(value.trim());
+                        break;
+                    case "テストケース作成者":
+                        testCase.setCreator(value.trim());
+                        break;
+                    case "テストケース作成日":
+                        testCase.setCreatedDate(value.trim());
+                        break;
+                    case "テストケース修正者":
+                        testCase.setModifier(value.trim());
+                        break;
+                    case "テストケース修正日":
+                        testCase.setModifiedDate(value.trim());
+                        break;
+                    // 旧英語アノテーション（互換性のため残す）
                     case "TestModule":
                         testCase.setTestModule(value.trim());
                         break;
                     case "TestCase":
                         testCase.setTestCase(value.trim());
+                        testCase.setTestItemName(value.trim());  // 項目名にもマッピング
                         break;
                     case "BaselineVersion":
                         testCase.setBaselineVersion(value.trim());
@@ -305,9 +343,11 @@ public class JavaAnnotationParser {
                         break;
                     case "TestProcess":
                         testCase.setTestProcess(value.trim());
+                        testCase.setTestContent(value.trim());  // 試験内容にもマッピング
                         break;
                     case "TestResults":
                         testCase.setTestResults(value.trim());
+                        testCase.setConfirmationItem(value.trim());  // 確認項目にもマッピング
                         break;
                     case "Creator":
                         testCase.setCreator(value.trim());
@@ -342,13 +382,14 @@ public class JavaAnnotationParser {
                         break;
                     case "PreCondition":
                         testCase.setTestProcess(value.trim());
-                        testCase.setTestOverview(value.trim());  // PreConditionをTestOverviewにも設定
+                        testCase.setTestOverview(value.trim());
+                        testCase.setTestContent(value.trim());  // 試験内容にもマッピング
                         break;
                     case "ExpectedResult":
                         testCase.setTestResults(value.trim());
+                        testCase.setConfirmationItem(value.trim());  // 確認項目にもマッピング
                         break;
                     case "TestData":
-                        // TestDataをCreatorフィールドにマッピング（DeveloperTeamなど）
                         testCase.setCreator(value.trim());
                         break;
                 }

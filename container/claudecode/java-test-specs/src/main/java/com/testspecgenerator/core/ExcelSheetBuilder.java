@@ -75,14 +75,12 @@ public class ExcelSheetBuilder {
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dataStyle = createDataStyle(workbook);
 
-        // ヘッダー行を作成
+        // ヘッダー行を作成（日本語項目）
         Row headerRow = sheet.createRow(0);
         String[] headers = {
-                "No.", "Class Name", "Method Name", "Test Module", "Test Case",
-                "Baseline Version", "Test Overview", "Test Purpose", "Test Process",
-                "Test Results", "Creator", "Created Date", "Modifier", "Modified Date",
-                "Test Category", "Priority", "Requirements", "Dependencies",
-                "Coverage %", "Branches (Covered/Total)", "Test Results (Pass/Total)", "Success Rate %"
+                "No.", "ソフトウェア・サービス", "項目名", "試験内容", "確認項目",
+                "テスト対象モジュール名", "テスト実施ベースラインバージョン",
+                "テストケース作成者", "テストケース作成日", "テストケース修正者", "テストケース修正日"
         };
 
         for (int i = 0; i < headers.length; i++) {
@@ -96,29 +94,18 @@ public class ExcelSheetBuilder {
             TestCaseInfo testCase = testCases.get(i);
             Row dataRow = sheet.createRow(i + 1);
 
-            // データセルを設定
+            // データセルを設定（日本語項目）
             setCellValue(dataRow, 0, i + 1, dataStyle);
-            setCellValue(dataRow, 1, testCase.getClassName(), dataStyle);
-            setCellValue(dataRow, 2, testCase.getMethodName(), dataStyle);
-            setCellValue(dataRow, 3, testCase.getTestModule(), dataStyle);
-            setCellValue(dataRow, 4, testCase.getTestCase(), dataStyle);
-            setCellValue(dataRow, 5, testCase.getBaselineVersion(), dataStyle);
-            setCellValue(dataRow, 6, testCase.getTestOverview(), dataStyle);
-            setCellValue(dataRow, 7, testCase.getTestPurpose(), dataStyle);
-            setCellValue(dataRow, 8, testCase.getTestProcess(), dataStyle);
-            setCellValue(dataRow, 9, testCase.getTestResults(), dataStyle);
-            setCellValue(dataRow, 10, testCase.getCreator(), dataStyle);
-            setCellValue(dataRow, 11, testCase.getCreatedDate(), dataStyle);
-            setCellValue(dataRow, 12, testCase.getModifier(), dataStyle);
-            setCellValue(dataRow, 13, testCase.getModifiedDate(), dataStyle);
-            setCellValue(dataRow, 14, testCase.getTestCategory(), dataStyle);
-            setCellValue(dataRow, 15, testCase.getPriority(), dataStyle);
-            setCellValue(dataRow, 16, testCase.getRequirements(), dataStyle);
-            setCellValue(dataRow, 17, testCase.getDependencies(), dataStyle);
-            setCellValue(dataRow, 18, testCase.getCoveragePercentDisplay(), dataStyle);
-            setCellValue(dataRow, 19, testCase.getBranchCoverageDisplay(), dataStyle);
-            setCellValue(dataRow, 20, testCase.getTestExecutionDisplay(), dataStyle);
-            setCellValue(dataRow, 21, testCase.getTestSuccessRateDisplay(), dataStyle);
+            setCellValue(dataRow, 1, testCase.getSoftwareService(), dataStyle);
+            setCellValue(dataRow, 2, testCase.getTestItemName(), dataStyle);
+            setCellValue(dataRow, 3, testCase.getTestContent(), dataStyle);
+            setCellValue(dataRow, 4, testCase.getConfirmationItem(), dataStyle);
+            setCellValue(dataRow, 5, testCase.getTestModule(), dataStyle);
+            setCellValue(dataRow, 6, testCase.getBaselineVersion(), dataStyle);
+            setCellValue(dataRow, 7, testCase.getCreator(), dataStyle);
+            setCellValue(dataRow, 8, testCase.getCreatedDate(), dataStyle);
+            setCellValue(dataRow, 9, testCase.getModifier(), dataStyle);
+            setCellValue(dataRow, 10, testCase.getModifiedDate(), dataStyle);
         }
 
         // 列幅を自動調整

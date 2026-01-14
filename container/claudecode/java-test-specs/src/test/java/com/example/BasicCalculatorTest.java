@@ -6,17 +6,18 @@ import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @TestModule CalculatorModule
- * @TestCase BasicArithmeticOperations
- * @BaselineVersion 1.0.0
- * @TestType Verify basic calculator operations with conditional logic for C1 coverage
- * @TestObjective Ensure proper handling of different input types and edge cases
- * @PreCondition Execute tests with various parameters to achieve C1 coverage
- * @ExpectedResult All conditions should pass validation checks
- * @TestData DeveloperTeam
- * @CreatedDate 2026-01-07
+ * @ソフトウェア・サービス 計算サービス
+ * @項目名 基本演算機能テスト
+ * @試験内容 加減乗除、絶対値、最大値/最小値、階乗、素数判定、フィボナッチ、GCD/LCM、累乗、平方根、パーセンテージの各機能を検証
+ * @確認項目 各演算が正しく実行され、エッジケースおよび例外処理が適切に動作することを確認
+ * @テスト対象モジュール名 BasicCalculator
+ * @テスト実施ベースラインバージョン 1.0.0
+ * @テストケース作成者 開発チーム
+ * @テストケース作成日 2026-01-07
+ * @テストケース修正者 開発チーム
+ * @テストケース修正日 2026-01-14
  */
-@DisplayName("BasicCalculator Test Suite for C1 Coverage")
+@DisplayName("BasicCalculator 基本機能テストスイート")
 public class BasicCalculatorTest {
 
     private BasicCalculator calculator;
@@ -27,10 +28,9 @@ public class BasicCalculatorTest {
     }
 
     /**
-     * @TestCase testAddition
-     * @TestType Functional
-     * @TestObjective 加算機能のテスト
-     * @ExpectedResult 正しい加算結果
+     * @項目名 加算機能テスト
+     * @試験内容 正の数、負の数、ゼロ、最大値を含む加算演算を実行
+     * @確認項目 すべての加算結果が数学的に正しいことを確認
      */
     @Test
     @DisplayName("加算機能のテスト")
@@ -43,10 +43,9 @@ public class BasicCalculatorTest {
     }
 
     /**
-     * @TestCase testSubtraction
-     * @TestType Functional
-     * @TestObjective 減算機能のテスト
-     * @ExpectedResult 正しい減算結果
+     * @項目名 減算機能テスト
+     * @試験内容 正の数、負の数、ゼロを含む減算演算を実行
+     * @確認項目 すべての減算結果が数学的に正しいことを確認
      */
     @Test
     @DisplayName("減算機能のテスト")
@@ -74,10 +73,9 @@ public class BasicCalculatorTest {
     }
 
     /**
-     * @TestCase testDivision
-     * @TestType Functional
-     * @TestObjective 除算機能のテスト（ゼロ除算含む）
-     * @ExpectedResult 正しい除算結果とエラーハンドリング
+     * @項目名 除算機能テスト
+     * @試験内容 正の数、負の数、小数を含む除算演算を実行し、ゼロ除算の例外処理を検証
+     * @確認項目 正しい除算結果とゼロ除算時のArithmeticException発生を確認
      */
     @Test
     @DisplayName("除算機能のテスト")

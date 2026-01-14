@@ -100,7 +100,27 @@ java -jar target/java-test-specification-generator-1.0.0.jar --interactive
 
 ### Custom Annotation System
 
-The tool recognizes JavaDoc-style custom annotations in test files:
+The tool recognizes JavaDoc-style custom annotations in test files. It supports both **Japanese** and English annotations.
+
+#### Japanese Annotations (推奨)
+
+```java
+/**
+ * @ソフトウェア・サービス サービス名
+ * @項目名 テストケース名
+ * @試験内容 テスト処理の説明
+ * @確認項目 期待される結果
+ * @テスト対象モジュール名 モジュール名
+ * @テスト実施ベースラインバージョン 1.0.0
+ * @テストケース作成者 作成者名
+ * @テストケース作成日 2026-01-14
+ * @テストケース修正者 修正者名
+ * @テストケース修正日 2026-01-14
+ */
+```
+
+#### English Annotations (Backward Compatibility)
+
 ```java
 /**
  * @TestModule ModuleName
@@ -121,6 +141,8 @@ The tool recognizes JavaDoc-style custom annotations in test files:
  */
 ```
 
+**Note**: Japanese annotations take priority when both are present. The English annotations are maintained for backward compatibility.
+
 ### Coverage Integration
 
 The tool automatically searches for JaCoCo coverage reports in these patterns:
@@ -137,7 +159,18 @@ Coverage data is parsed to extract:
 ### Excel Output Structure
 
 Generated Excel contains 4 sheets:
-1. **Test Details** - Complete test case information with annotations and coverage
+1. **Test Details** - Complete test case information with Japanese field names:
+   - No. (番号)
+   - ソフトウェア・サービス (Software/Service)
+   - 項目名 (Item Name)
+   - 試験内容 (Test Content)
+   - 確認項目 (Confirmation Items)
+   - テスト対象モジュール名 (Test Target Module Name)
+   - テスト実施ベースラインバージョン (Baseline Version)
+   - テストケース作成者 (Creator)
+   - テストケース作成日 (Created Date)
+   - テストケース修正者 (Modifier)
+   - テストケース修正日 (Modified Date)
 2. **Summary** - Overall statistics and metrics
 3. **Coverage** - Detailed coverage breakdown by class/method
 4. **Configuration** - Processing settings and metadata
