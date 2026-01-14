@@ -14,6 +14,29 @@
 
 ---
 
+## 🔗 サービスアクセス情報
+
+### 各サービスURL・ログイン情報
+
+| サービス | URL | ユーザー名 | パスワード | 用途 |
+|----------|-----|------------|------------|------|
+| **GitLab** | http://${EC2_PUBLIC_IP}:5003 | `root` | `Degital2026!` | ソースコード管理・CI/CD |
+| **SonarQube** | http://${EC2_PUBLIC_IP}:8000 | `admin` | `Degital2026!` | 品質・静的解析 |
+| **Nexus Repository** | http://${EC2_PUBLIC_IP}:8082 | `admin` | `Degital2026!` | 成果物・依存関係管理 |
+| **pgAdmin** | http://${EC2_PUBLIC_IP}:5002 | `admin@example.com` | `Degital2026!` | データベース管理UI |
+
+### アプリケーションURL
+
+| アプリケーション | URL | 説明 |
+|------------------|-----|------|
+| **Frontend App** | http://${EC2_PUBLIC_IP}:8500 | React組織管理システム |
+| **Backend API** | http://${EC2_PUBLIC_IP}:8501 | Spring Boot REST API |
+| **Swagger UI** | http://${EC2_PUBLIC_IP}:8501/swagger-ui.html | API仕様・テスト画面 |
+
+> 💡 **Tip**: すべてのパスワードは統一されています（`Degital2026!`）
+
+---
+
 ## システム構成
 
 ### 全体アーキテクチャ
@@ -46,19 +69,6 @@ graph TB
     style Backend fill:#6db33f
 ```
 
-### サービス一覧
-
-| サービス | 用途 | ポート | URL | 認証 |
-|----------|------|---------|-----|------|
-| GitLab | ソースコード管理・CI/CD | 5003 | http://${EC2_PUBLIC_IP}:5003 | root/Degital2026! |
-| Nexus | 成果物・依存関係管理 | 8082 | http://${EC2_PUBLIC_IP}:8082 | admin/Degital2026! |
-| SonarQube | 品質・静的解析 | 8000 | http://${EC2_PUBLIC_IP}:8000 | admin/Degital2026! |
-| PostgreSQL | データベース | 5001 | postgresql://${EC2_PUBLIC_IP}:5001 | cicduser/Degital2026! |
-| pgAdmin | DB管理UI | 5002 | http://${EC2_PUBLIC_IP}:5002 | admin@example.com/Degital2026! |
-| Frontend App | React アプリケーション | 8500 | http://${EC2_PUBLIC_IP}:8500 | - |
-| Backend App | Spring Boot API | 8501 | http://${EC2_PUBLIC_IP}:8501 | - |
-
----
 
 ## CI/CDパイプライン フロー
 
