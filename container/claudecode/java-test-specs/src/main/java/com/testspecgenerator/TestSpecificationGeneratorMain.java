@@ -78,6 +78,7 @@ public class TestSpecificationGeneratorMain {
             // コマンドライン引数から設定を取得
             String sourceDir = cmd.getOptionValue("source-dir");
             String outputFile = cmd.getOptionValue("output");
+            String coverageDir = cmd.getOptionValue("coverage-dir");
             boolean includeCoverage = !cmd.hasOption("no-coverage");
             String logLevel = cmd.getOptionValue("log-level", "INFO");
 
@@ -91,7 +92,7 @@ public class TestSpecificationGeneratorMain {
             setLogLevel(logLevel);
 
             // 処理実行
-            boolean success = generateTestSpecification(sourceDir, outputFile, includeCoverage, false);
+            boolean success = generateTestSpecification(sourceDir, outputFile, coverageDir, includeCoverage, false);
 
             if (!success) {
                 System.exit(1);
@@ -119,6 +120,13 @@ public class TestSpecificationGeneratorMain {
                 .hasArg()
                 .argName("file")
                 .desc("出力Excelファイルのパス")
+                .build());
+
+        options.addOption(Option.builder("c")
+                .longOpt("coverage-dir")
+                .hasArg()
+                .argName("directory")
+                .desc("カバレッジレポートのディレクトリ（省略時はソースディレクトリから自動検索）")
                 .build());
 
         options.addOption(Option.builder()
@@ -153,12 +161,31 @@ public class TestSpecificationGeneratorMain {
 
     private void printHelp(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("java -jar test-spec-generator.jar",
+        formatter.printHelp("java -jar java-test-specification-generator-1.0.0.jar",
                 "Java Test Specification Generator - Javaテストファイルから仕様書を生成",
                 options,
-                "使用例:\n" +
-                "  java -jar test-spec-generator.jar -s ./sample-java-tests -o report.xlsx\n" +
-                "  java -jar test-spec-generator.jar --interactive\n");
+                "\n使用例:\n" +
+                "  # 基本的な使用方法\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --source-dir ./src/test/java \\\n" +
+                "    --output test_specification.xlsx\n\n" +
+                "  # カバレッジレポートのディレクトリを明示的に指定\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --source-dir ./src/test/java \\\n" +
+                "    --coverage-dir ./target/site/jacoco \\\n" +
+                "    --output report.xlsx\n\n" +
+                "  # カバレッジ処理をスキップ\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --source-dir ./src/test/java \\\n" +
+                "    --output report.xlsx \\\n" +
+                "    --no-coverage\n\n" +
+                "  # 対話モード\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar --interactive\n\n" +
+                "  # デバッグモード\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --source-dir ./src/test/java \\\n" +
+                "    --output report.xlsx \\\n" +
+                "    --log-level DEBUG\n");
     }
 
     private void printVersion() {
@@ -188,7 +215,7 @@ public class TestSpecificationGeneratorMain {
         scanner.close();
 
         try {
-            boolean success = generateTestSpecification(sourceDir, outputFile, includeCoverage, true);
+            boolean success = generateTestSpecification(sourceDir, outputFile, null, includeCoverage, true);
             if (!success) {
                 System.exit(1);
             }
@@ -199,7 +226,7 @@ public class TestSpecificationGeneratorMain {
     }
 
     public boolean generateTestSpecification(String sourceDirectory, String outputFile,
-                                           boolean includeCoverage, boolean interactive) {
+                                           String coverageDirectory, boolean includeCoverage, boolean interactive) {
         try {
             this.processingStartTime = LocalDateTime.now();
 
@@ -227,7 +254,14 @@ public class TestSpecificationGeneratorMain {
             List<CoverageInfo> coverageData = null;
             if (includeCoverage) {
                 logger.info("📈 Step 3: カバレッジレポート処理開始...");
-                List<Path> coverageFiles = folderScanner.scanForCoverageReports(Paths.get(sourceDirectory));
+
+                // カバレッジディレクトリの決定
+                String coverageScanDir = (coverageDirectory != null) ? coverageDirectory : sourceDirectory;
+                if (coverageDirectory != null) {
+                    logger.info("   カバレッジディレクトリ: {}", coverageDirectory);
+                }
+
+                List<Path> coverageFiles = folderScanner.scanForCoverageReports(Paths.get(coverageScanDir));
                 coverageData = coverageParser.processCoverageReports(coverageFiles);
                 logger.info("✅ カバレッジデータ取得: {}個", coverageData.size());
 

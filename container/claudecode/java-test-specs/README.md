@@ -281,21 +281,27 @@ ls -la test_specification_complete.xlsx
 ### コマンドライン実行
 
 ```bash
-# 基本的な使用方法
+# 基本的な使用方法（カバレッジ自動検索）
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir /path/to/java/tests \
-    --output report.xlsx
+    --source-dir ./src/test/java \
+    --output test_specification.xlsx
+
+# カバレッジディレクトリを明示的に指定
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir ./src/test/java \
+    --coverage-dir ./target/site/jacoco \
+    --output test_specification.xlsx
 
 # カバレッジ処理なし
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir sample-java-tests \
-    --output report.xlsx \
+    --source-dir ./src/test/java \
+    --output test_specification.xlsx \
     --no-coverage
 
 # デバッグモード
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir sample-java-tests \
-    --output report.xlsx \
+    --source-dir ./src/test/java \
+    --output test_specification.xlsx \
     --log-level DEBUG
 
 # 対話モード
@@ -303,6 +309,22 @@ java -jar target/java-test-specification-generator-1.0.0.jar --interactive
 
 # ヘルプ表示
 java -jar target/java-test-specification-generator-1.0.0.jar --help
+```
+
+### スタンドアロン実行（別環境への移行）
+
+JARファイルを別環境にコピーして独立実行できます。詳細は [STANDALONE_USAGE.md](STANDALONE_USAGE.md) を参照してください。
+
+```bash
+# JARファイルをコピー
+cp target/java-test-specification-generator-1.0.0.jar /path/to/target/environment/
+
+# 別環境で実行
+cd /path/to/target/environment/
+java -jar java-test-specification-generator-1.0.0.jar \
+    --source-dir /path/to/project/src/test/java \
+    --coverage-dir /path/to/project/target/site/jacoco \
+    --output test_specification.xlsx
 ```
 
 ### Mavenライフサイクル
