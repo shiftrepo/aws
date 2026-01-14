@@ -49,6 +49,14 @@
 - CI/CDパイプラインの実行・監視
 - テスト実行・品質チェック・成果物管理の理解
 
+## 📖 学習範囲
+**学習者が実行**:
+- ✅ **GitLabリポジトリ操作** - コード修正・コミット・プッシュ
+- ✅ **CI/CD管理画面閲覧** - GitLab・SonarQube・Nexus画面確認
+
+**管理者が実行**:
+- ❌ アプリケーションデプロイ・サーバー管理
+
 ---
 
 ## 📋 事前準備
@@ -189,21 +197,16 @@ test('should display correct title', () => {
 });
 ```
 
-### 3.3 ローカルでのテスト実行（任意）
+### 3.3 CI/CDパイプラインでの自動実行
 
-```bash
-# 依存関係インストール
-npm ci
+修正したコードは、プッシュ時にGitLab CI/CDパイプラインで自動的に以下が実行されます：
 
-# テスト実行
-npm run test
+- **依存関係インストール** (`npm ci`)
+- **Lint実行** (`npm run lint`)
+- **テスト実行** (`npm run test`)
+- **ビルド実行** (`npm run build`)
 
-# Lint実行
-npm run lint
-
-# ビルド実行
-npm run build
-```
+結果はGitLab UIで確認できます。
 
 ---
 
@@ -507,12 +510,15 @@ curl http://${EC2_PUBLIC_IP}:8501/actuator/health
 ## 🚨 よくあるトラブルと対処法
 
 ### パイプライン失敗
-```bash
-# ローカルでテスト実行
-npm test  # Frontend
-mvn test  # Backend
 
-# エラー修正後再プッシュ
+1. **GitLab UI でエラーログ確認**
+   - パイプラインページでステージをクリック
+   - ジョブをクリックしてログ表示
+   - エラーの原因を特定
+
+2. **エラー修正後再プッシュ**
+```bash
+# エラー修正後
 git add .
 git commit -m "fix: テストエラーを修正"
 git push origin master
