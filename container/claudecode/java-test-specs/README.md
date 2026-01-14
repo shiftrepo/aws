@@ -19,6 +19,96 @@ Java Test Specification Generatorは、Javaテストファイルからカスタ�
 - **📂 再帰的スキャン**: プロジェクト全体のディレクトリ構造を自動処理
 - **🏗️ Maven対応**: 標準的なJavaプロジェクト構造とビルドツール
 
+## ⚡ クイックスタート（Javaコマンドベース） 🎯 推奨
+
+**JARファイル1つで、どこでも実行可能！**
+
+Java 17以上があれば、コンテナ不要で即座に使用開始できます。
+
+### 📦 実行可能JARの準備
+
+このリポジトリには実行可能JARが含まれています：
+
+```bash
+# JARファイルの場所
+target/java-test-specification-generator-1.0.0.jar (24MB)
+```
+
+### 🚀 基本的な使い方
+
+```bash
+# テスト仕様書を生成
+java -jar target/java-test-specification-generator-1.0.0.jar \
+  --source-dir ./src/test/java \
+  --output test_specification.xlsx
+
+# 出力例:
+# ✅ Javaファイル発見: 3個
+# ✅ テストケース抽出: 35個
+# ✅ テスト仕様書が正常に生成されました: test_specification.xlsx
+```
+
+### 📊 カバレッジ統合版
+
+```bash
+# カバレッジレポートディレクトリを指定
+java -jar target/java-test-specification-generator-1.0.0.jar \
+  --source-dir ./src/test/java \
+  --coverage-dir ./target/site/jacoco \
+  --output test_specification_with_coverage.xlsx
+```
+
+### 📁 サンプル出力結果
+
+このリポジトリには2つの代表的なサンプルファイルが含まれています：
+
+| ファイル | サイズ | 説明 |
+|---------|--------|------|
+| **test_specification_output.xlsx** | 9.2KB | Javaコマンドベースの出力例（日本語項目） |
+| **test_specification_ja.xlsx** | 15KB | カバレッジ統合版の出力例（日本語項目） |
+
+### 🎯 主な特徴
+
+- **単一ファイル**: JARファイル1つで完結
+- **依存関係不要**: すべてのライブラリが含まれています
+- **環境非依存**: Java 17以上があればどこでも動作
+- **柔軟な指定**: ソース、カバレッジ、出力先を自由に指定可能
+
+### 🔧 利用可能なオプション
+
+| オプション | 説明 |
+|-----------|------|
+| `--source-dir` | Javaテストファイルのディレクトリ（必須） |
+| `--output` | 出力Excelファイルのパス（必須） |
+| `--coverage-dir` | カバレッジレポートのディレクトリ（オプション） |
+| `--no-coverage` | カバレッジ処理をスキップ |
+| `--log-level DEBUG` | デバッグモード |
+| `--help` | ヘルプ表示 |
+
+詳細は [STANDALONE_USAGE.md](STANDALONE_USAGE.md) を参照してください。
+
+---
+
+## 🐳 Dockerコンテナベース実行（カバレッジ生成含む）
+
+Maven環境がない場合や、ビルドからカバレッジ生成まで一括実行したい場合はDockerを使用できます。
+
+```bash
+# 完全版ワンライナー: ビルド → テスト → カバレッジ → Excel生成
+docker run --rm \
+  -v "$(pwd)":/workspace:Z \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  bash -c "mvn clean compile test package && \
+           java -jar target/java-test-specification-generator-1.0.0.jar \
+           --source-dir /workspace \
+           --output test_specification.xlsx"
+```
+
+**注**: Docker実行はビルドとテストを含むため時間がかかります。既にJARファイルがある場合は、上記のJavaコマンドベースの方が高速です。
+
+---
+
 ## 📁 プロジェクト構成
 
 ```
