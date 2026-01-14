@@ -428,11 +428,8 @@ git push origin master
 CI/CDパイプラインで構築された実際のWebアプリケーションを確認しましょう。
 
 **アプリケーションアクセス**:
-```bash
-# デプロイスクリプトでアプリケーション起動
-cd /root/aws.git/container/claudecode/CICD
-./scripts/deploy-applications.sh
-```
+
+CI/CDパイプラインで構築された成果物から、管理者によってアプリケーションがデプロイされます。
 
 ### 8.2 組織管理システム（Frontend）
 
@@ -550,7 +547,7 @@ git push origin master
 **次の学習**:
 - `CICD_LEARNING_GUIDE.md` の Phase 3 以降に進んで、より実践的な開発を体験
 - 実際のWebアプリケーション（http://${EC2_PUBLIC_IP}:3000）で組織管理システムを確認
-- デプロイスクリプト（`./scripts/deploy-applications.sh`）でアプリケーション環境構築体験
+- 管理者によるアプリケーションデプロイプロセスの理解
 
 ---
 

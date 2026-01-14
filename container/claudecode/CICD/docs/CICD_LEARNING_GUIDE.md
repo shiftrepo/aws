@@ -229,11 +229,8 @@ CI/CD Pipeline → Nexus Repository → 手動デプロイスクリプト → �
 ```
 
 **デプロイ方法**:
-```bash
-# 手動デプロイスクリプト実行
-cd /root/aws.git/container/claudecode/CICD
-./scripts/deploy-applications.sh
-```
+
+管理者によるデプロイスクリプト実行でアプリケーションが起動されます。
 
 **アプリケーション起動構成**:
 - **Frontend**: Python3 HTTPサーバー（ポート3000）
