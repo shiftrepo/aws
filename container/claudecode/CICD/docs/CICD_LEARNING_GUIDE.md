@@ -25,6 +25,17 @@
 | **Nexus Repository** | http://${EC2_PUBLIC_IP}:8082 | `admin` | `Degital2026!` | 成果物・依存関係管理 |
 | **pgAdmin** | http://${EC2_PUBLIC_IP}:5002 | `admin@example.com` | `Degital2026!` | データベース管理UI |
 
+### PostgreSQL データベース接続情報（pgAdmin用）
+
+| データベース名 | ユーザー名 | パスワード | 用途 | 接続ホスト |
+|----------------|------------|------------|------|------------|
+| **cicddb** | `cicduser` | `Degital2026!` | メインCI/CD DB | `${EC2_PUBLIC_IP}:5001` |
+| **gitlabhq** | `gitlab` | `Degital2026!` | GitLabデータ | `${EC2_PUBLIC_IP}:5001` |
+| **sonardb** | `sonaruser` | `Degital2026!` | SonarQube解析DB | `${EC2_PUBLIC_IP}:5001` |
+| **sampledb** | `sampleuser` | `Degital2026!` | サンプルアプリDB | `${EC2_PUBLIC_IP}:5001` |
+
+> ⚠️ **注意**: pgAdminでDB接続時、上記ユーザーID・パスワードの入力を求められた場合に使用してください
+
 ### アプリケーションURL
 
 | アプリケーション | URL | 説明 |
