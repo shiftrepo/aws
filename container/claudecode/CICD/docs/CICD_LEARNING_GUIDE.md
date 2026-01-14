@@ -18,23 +18,23 @@
 
 ### 各サービスURL・ログイン情報
 
-| サービス | URL | ユーザー名 | パスワード | 用途 |
-|----------|-----|------------|------------|------|
-| **GitLab** | http://${EC2_PUBLIC_IP}:5003 | `root` | `Degital2026!` | ソースコード管理・CI/CD |
-| **SonarQube** | http://${EC2_PUBLIC_IP}:8000 | `admin` | `Degital2026!` | 品質・静的解析 |
-| **Nexus Repository** | http://${EC2_PUBLIC_IP}:8082 | `admin` | `Degital2026!` | 成果物・依存関係管理 |
-| **pgAdmin** | http://${EC2_PUBLIC_IP}:5002 | `admin@example.com` | `Degital2026!` | データベース管理UI |
+| サービス | URL | ユーザー名 | 用途 |
+|----------|-----|------------|------|
+| **GitLab** | http://${EC2_PUBLIC_IP}:5003 | `root` | ソースコード管理・CI/CD |
+| **SonarQube** | http://${EC2_PUBLIC_IP}:8000 | `admin` | 品質・静的解析 |
+| **Nexus Repository** | http://${EC2_PUBLIC_IP}:8082 | `admin` | 成果物・依存関係管理 |
+| **pgAdmin** | http://${EC2_PUBLIC_IP}:5002 | `admin@example.com` | データベース管理UI |
 
 ### PostgreSQL データベース接続情報（pgAdmin用）
 
-| データベース名 | ユーザー名 | パスワード | 用途 | 接続ホスト |
-|----------------|------------|------------|------|------------|
-| **cicddb** | `cicduser` | `Degital2026!` | メインCI/CD DB | `${EC2_PUBLIC_IP}:5001` |
-| **gitlabhq** | `gitlab` | `Degital2026!` | GitLabデータ | `${EC2_PUBLIC_IP}:5001` |
-| **sonardb** | `sonaruser` | `Degital2026!` | SonarQube解析DB | `${EC2_PUBLIC_IP}:5001` |
-| **sampledb** | `sampleuser` | `Degital2026!` | サンプルアプリDB | `${EC2_PUBLIC_IP}:5001` |
+| データベース名 | ユーザー名 | 用途 | 接続ホスト |
+|----------------|------------|------|------------|
+| **cicddb** | `cicduser` | メインCI/CD DB | `${EC2_PUBLIC_IP}:5001` |
+| **gitlabhq** | `gitlab` | GitLabデータ | `${EC2_PUBLIC_IP}:5001` |
+| **sonardb** | `sonaruser` | SonarQube解析DB | `${EC2_PUBLIC_IP}:5001` |
+| **sampledb** | `sampleuser` | サンプルアプリDB | `${EC2_PUBLIC_IP}:5001` |
 
-> ⚠️ **注意**: pgAdminでDB接続時、上記ユーザーID・パスワードの入力を求められた場合に使用してください
+> ⚠️ **注意**: pgAdminでDB接続時、ユーザーIDとパスワードの入力を求められた場合があります
 
 ### アプリケーションURL
 
@@ -43,8 +43,6 @@
 | **Frontend App** | http://${EC2_PUBLIC_IP}:3000 | React組織管理システム |
 | **Backend API** | http://${EC2_PUBLIC_IP}:8501 | Spring Boot REST API |
 | **Swagger UI** | http://${EC2_PUBLIC_IP}:8501/swagger-ui.html | API仕様・テスト画面 |
-
-> 💡 **Tip**: すべてのパスワードは統一されています（`Degital2026!`）
 
 > ⚠️ **現在の制限事項**:
 > - デプロイスクリプトによる自動反映は部分的対応（手動デプロイが必要）

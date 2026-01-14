@@ -9,23 +9,23 @@
 
 ### 各サービスURL・ログイン情報
 
-| サービス | URL | ユーザー名 | パスワード | 用途 |
-|----------|-----|------------|------------|------|
-| **GitLab** | http://${EC2_PUBLIC_IP}:5003 | `root` | `Degital2026!` | ソースコード管理・CI/CD |
-| **SonarQube** | http://${EC2_PUBLIC_IP}:8000 | `admin` | `Degital2026!` | 品質・静的解析 |
-| **Nexus Repository** | http://${EC2_PUBLIC_IP}:8082 | `admin` | `Degital2026!` | 成果物・依存関係管理 |
-| **pgAdmin** | http://${EC2_PUBLIC_IP}:5002 | `admin@example.com` | `Degital2026!` | データベース管理UI |
+| サービス | URL | ユーザー名 | 用途 |
+|----------|-----|------------|------|
+| **GitLab** | http://${EC2_PUBLIC_IP}:5003 | `root` | ソースコード管理・CI/CD |
+| **SonarQube** | http://${EC2_PUBLIC_IP}:8000 | `admin` | 品質・静的解析 |
+| **Nexus Repository** | http://${EC2_PUBLIC_IP}:8082 | `admin` | 成果物・依存関係管理 |
+| **pgAdmin** | http://${EC2_PUBLIC_IP}:5002 | `admin@example.com` | データベース管理UI |
 
 ### PostgreSQL データベース接続情報（pgAdmin用）
 
-| データベース名 | ユーザー名 | パスワード | 用途 | 接続ホスト |
-|----------------|------------|------------|------|------------|
-| **cicddb** | `cicduser` | `Degital2026!` | メインCI/CD DB | `${EC2_PUBLIC_IP}:5001` |
-| **gitlabhq** | `gitlab` | `Degital2026!` | GitLabデータ | `${EC2_PUBLIC_IP}:5001` |
-| **sonardb** | `sonaruser` | `Degital2026!` | SonarQube解析DB | `${EC2_PUBLIC_IP}:5001` |
-| **sampledb** | `sampleuser` | `Degital2026!` | サンプルアプリDB | `${EC2_PUBLIC_IP}:5001` |
+| データベース名 | ユーザー名 | 用途 | 接続ホスト |
+|----------------|------------|------|------------|
+| **cicddb** | `cicduser` | メインCI/CD DB | `${EC2_PUBLIC_IP}:5001` |
+| **gitlabhq** | `gitlab` | GitLabデータ | `${EC2_PUBLIC_IP}:5001` |
+| **sonardb** | `sonaruser` | SonarQube解析DB | `${EC2_PUBLIC_IP}:5001` |
+| **sampledb** | `sampleuser` | サンプルアプリDB | `${EC2_PUBLIC_IP}:5001` |
 
-> ⚠️ **注意**: pgAdminでDB接続時、上記ユーザーID・パスワードの入力を求められた場合に使用してください
+> ⚠️ **注意**: pgAdminでDB接続時、ユーザーIDとパスワードの入力を求められた場合があります
 
 ### アプリケーションURL
 
@@ -72,7 +72,6 @@ SonarQube: http://${EC2_PUBLIC_IP}:8000
 ### 3. GitLabアクセス確認
 - URL: http://${EC2_PUBLIC_IP}:5003
 - ユーザー: `root`
-- パスワード: `Degital2026!`
 
 ---
 
@@ -82,7 +81,7 @@ SonarQube: http://${EC2_PUBLIC_IP}:8000
 
 1. **GitLab にアクセス**
    - ブラウザで `http://${EC2_PUBLIC_IP}:5003` を開く
-   - ユーザー: `root` / パスワード: `Degital2026!` でログイン
+   - ユーザー: `root` でログイン
 
 2. **学習用プロジェクトを探す**
    - GitLab ホーム画面で "Your projects" セクションを確認
@@ -114,7 +113,8 @@ mkdir -p ~/learning-workspace
 cd ~/learning-workspace
 
 # Frontendプロジェクトをクローン（URLは上記の実行結果から取得）
-git clone http://root:Degital2026!@${EC2_PUBLIC_IP}:5003/root/sample-app-frontend-YYYYMMDD-HHMMSS.git frontend-project
+git clone http://${EC2_PUBLIC_IP}:5003/root/sample-app-frontend-YYYYMMDD-HHMMSS.git frontend-project
+# 認証が求められた場合、GitLabのユーザー名・パスワードを入力
 
 # ディレクトリ移動
 cd frontend-project
@@ -225,7 +225,7 @@ git commit -m "feat: タイトルを学習版に変更 + テスト追加
 - メインページのタイトルに「学習版」を追加
 - タイトル表示のテストケースを追加"
 
-# プッシュ
+# プッシュ（認証が求められた場合、GitLabのユーザー名・パスワードを入力）
 git push origin master
 ```
 
@@ -291,7 +291,8 @@ http://${EC2_PUBLIC_IP}:8082
 cd ~/learning-workspace
 
 # Backendプロジェクトをクローン
-git clone http://root:Degital2026!@${EC2_PUBLIC_IP}:5003/root/sample-app-backend-YYYYMMDD-HHMMSS.git backend-project
+git clone http://${EC2_PUBLIC_IP}:5003/root/sample-app-backend-YYYYMMDD-HHMMSS.git backend-project
+# 認証が求められた場合、GitLabのユーザー名・パスワードを入力
 
 cd backend-project
 ls -la
@@ -522,8 +523,11 @@ git push origin master
 
 ### Git 認証エラー
 ```bash
-# 認証情報を含むURL使用
-git remote set-url origin http://root:Degital2026!@${EC2_PUBLIC_IP}:5003/root/project-name.git
+# リモートURL確認・設定
+git remote -v
+git remote set-url origin http://${EC2_PUBLIC_IP}:5003/root/project-name.git
+
+# 認証が求められた場合、ユーザー名・パスワードを入力
 ```
 
 ### Merge Conflict
