@@ -1,8 +1,8 @@
-# Exclude temporary Excel files, but keep test result files
-# Allow test_result.xlsx, final_test.xlsx, and example files
+# Exclude temporary Excel files, but keep test specification output files
+# Allow test_specification_*.xlsx output files
 temp_*.xlsx
-debug_*.xlsx
 scratch_*.xlsx
+# Note: debug_* pattern moved to verification section below
 
 # Python cache and bytecode
 __pycache__/
@@ -95,7 +95,13 @@ dependency-reduced-pom.xml
 !target/site/jacoco/*.html
 !target/site/jacoco/jacoco-resources/
 # Verification and test files
-*.xlsx
+# Exclude temporary xlsx files, but keep test specification output
+temp_*.xlsx
+debug_*.xlsx
+scratch_*.xlsx
+# Allow test_specification_*.xlsx output files
+!test_specification_*.xlsx
+
 *_test.py
 *_check*.py
 display_*.py
