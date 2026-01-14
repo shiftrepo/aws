@@ -27,12 +27,46 @@ Java 17以上があれば、コンテナ不要で即座に使用開始できま�
 
 ### 📦 実行可能JARの準備
 
+#### 方法1: 既存のJARを使用
+
 このリポジトリには実行可能JARが含まれています：
 
 ```bash
 # JARファイルの場所
 target/java-test-specification-generator-1.0.0.jar (24MB)
 ```
+
+#### 方法2: ソースからビルド（コンテナ不使用）
+
+**前提条件:**
+- Java 17以上（JDK）
+- Maven 3.6以上
+
+**ビルド手順:**
+
+```bash
+# 1. リポジトリをクローン（または既存のディレクトリに移動）
+git clone <repository-url>
+cd java-test-specs
+
+# 2. Mavenでビルド（テスト実行とJARパッケージング）
+mvn clean compile test package
+
+# 3. 実行可能JARが生成されます
+ls -lh target/java-test-specification-generator-1.0.0.jar
+# -rw-r--r--. 1 user user 24M Jan 14 12:00 target/java-test-specification-generator-1.0.0.jar
+
+# 4. すぐに使用可能
+java -jar target/java-test-specification-generator-1.0.0.jar --help
+```
+
+**ビルドプロセス:**
+- `mvn clean` - 以前のビルド成果物を削除
+- `mvn compile` - Javaソースコードをコンパイル
+- `mvn test` - JUnitテストを実行し、JaCoCoカバレッジレポートを生成
+- `mvn package` - 実行可能JAR（すべての依存関係を含む）を作成
+
+**注意:** Maven初回実行時は依存ライブラリのダウンロードに時間がかかります。
 
 ### 🚀 基本的な使い方
 
