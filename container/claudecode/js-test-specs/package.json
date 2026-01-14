@@ -1,0 +1,57 @@
+{
+  "name": "js-test-specification-generator",
+  "version": "1.0.0",
+  "description": "JavaScript版 テスト仕様書自動生成ツール - JSDocアノテーションからExcelテスト仕様書を生成",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "js-test-spec-gen": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "build": "vite build",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "lint": "eslint src --ext .js,.jsx",
+    "format": "prettier --write \"src/**/*.{js,jsx,json}\""
+  },
+  "keywords": [
+    "test",
+    "specification",
+    "generator",
+    "excel",
+    "jsdoc",
+    "coverage",
+    "jest"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "exceljs": "^4.4.0",
+    "fast-glob": "^3.3.2",
+    "fast-xml-parser": "^4.3.4",
+    "jsdom": "^24.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "7.1.1"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.23.9",
+    "@babel/preset-react": "^7.23.3",
+    "@testing-library/jest-dom": "^6.2.0",
+    "@testing-library/react": "16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "babel-jest": "^29.7.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "jest": "29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.2.4",
+    "vite": "5.4.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+yarn.lock
+pnpm-lock.yaml
+# package-lock.jsonは追跡する（依存関係の確定バージョン管理のため）
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+# Excelファイルは基本的に除外するが、サンプル出力は追跡する
+*.xlsx
+!test_specification.xlsx
+
+# Environment
+.env
+.env.local
+.env.*.local
