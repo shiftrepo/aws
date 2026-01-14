@@ -38,34 +38,31 @@ SonarQube: http://${EC2_PUBLIC_IP}:8000
 
 ---
 
-## 🏁 Step 1: プロジェクトの作成・確認
+## 🏁 Step 1: 学習プロジェクトの確認
 
-### 1.1 sample-app プロジェクトを作成
-```bash
-cd /root/aws.git/container/claudecode/CICD
+### 1.1 学習用プロジェクトを確認
 
-# フロントエンド・バックエンド分離プロジェクト作成
-./scripts/setup-sample-app-split.sh
-```
+1. **GitLab にアクセス**
+   - ブラウザで `http://${EC2_PUBLIC_IP}:5003` を開く
+   - ユーザー: `root` / パスワード: `Degital2026!` でログイン
 
-**実行結果例**:
-```
-✅ sample-app分割プロジェクト登録完了
-========================================
+2. **学習用プロジェクトを探す**
+   - GitLab ホーム画面で "Your projects" セクションを確認
+   - 以下のような名前のプロジェクトを見つけます：
+     - `sample-app-frontend-YYYYMMDD-HHMMSS`
+     - `sample-app-backend-YYYYMMDD-HHMMSS`
 
-🌐 GitLab プロジェクト:
-   フロントエンド: http://98.93.187.130:5003/root/sample-app-frontend-20260114-143022
-   バックエンド:   http://98.93.187.130:5003/root/sample-app-backend-20260114-143022
+3. **プロジェクト構造を理解**
+   - **Frontend プロジェクト**: React アプリケーション
+   - **Backend プロジェクト**: Spring Boot API
 
-📊 パイプライン状況:
-   フロントエンド: http://98.93.187.130:5003/root/sample-app-frontend-20260114-143022/-/pipelines
-   バックエンド:   http://98.93.187.130:5003/root/sample-app-backend-20260114-143022/-/pipelines
-```
+### 1.2 CI/CD パイプライン状況確認
 
-### 1.2 GitLab でプロジェクト確認
-1. ブラウザで GitLab にアクセス
-2. 作成されたプロジェクトを確認
-3. **CI/CD → Pipelines** でパイプライン実行状況を確認
+各プロジェクトをクリックして以下を確認：
+
+1. **CI/CD → Pipelines** をクリック
+2. パイプライン実行履歴を確認
+3. 各ステージ（install, lint, test等）の実行状況を観察
 
 ---
 
