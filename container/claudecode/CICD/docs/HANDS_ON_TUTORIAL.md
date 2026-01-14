@@ -31,11 +31,15 @@
 
 | アプリケーション | URL | 説明 |
 |------------------|-----|------|
-| **Frontend App** | http://${EC2_PUBLIC_IP}:8500 | React組織管理システム |
+| **Frontend App** | http://${EC2_PUBLIC_IP}:3000 | React組織管理システム |
 | **Backend API** | http://${EC2_PUBLIC_IP}:8501 | Spring Boot REST API |
 | **Swagger UI** | http://${EC2_PUBLIC_IP}:8501/swagger-ui.html | API仕様・テスト画面 |
 
 > 💡 **Tip**: ブックマークに登録しておくと便利です！
+
+> ⚠️ **現在の制限事項**:
+> - CI/CDパイプラインからの自動デプロイは部分的対応のため、手動デプロイが必要
+> - Frontend-Backend間のCORS設定等に不備があり、画面でAPIエラーが発生する場合があります
 
 ---
 
@@ -416,9 +420,62 @@ git push origin master
 
 ---
 
-## 📚 Step 8: 学習の振り返り
+## 🌐 Step 8: 実際のWebアプリケーション確認
 
-### 8.1 学んだ内容のチェック
+### 8.1 デプロイされたアプリケーションの確認
+
+CI/CDパイプラインで構築された実際のWebアプリケーションを確認しましょう。
+
+**アプリケーションアクセス**:
+```bash
+# デプロイスクリプトでアプリケーション起動
+cd /root/aws.git/container/claudecode/CICD
+./scripts/deploy-applications.sh
+```
+
+### 8.2 組織管理システム（Frontend）
+
+**アクセスURL**: http://${EC2_PUBLIC_IP}:3000
+
+**確認できる機能**:
+- 📋 **組織一覧表示** - テクノロジー株式会社、ビジネスソリューションズ
+- 🏢 **組織詳細情報** - 企業説明、作成日時等
+- ➕ **管理UI** - 追加・編集・削除のインターフェース
+- 📱 **レスポンシブデザイン** - PC・モバイル対応
+
+### 8.3 REST API（Backend）
+
+**アクセスURL**:
+- API: http://${EC2_PUBLIC_IP}:8501
+- Swagger UI: http://${EC2_PUBLIC_IP}:8501/swagger-ui.html
+
+**API エンドポイント例**:
+```bash
+# 組織一覧取得
+curl http://${EC2_PUBLIC_IP}:8501/api/organizations
+
+# ヘルスチェック
+curl http://${EC2_PUBLIC_IP}:8501/actuator/health
+```
+
+### 8.4 現在の制限事項と学習ポイント
+
+**⚠️ 現在の状況**:
+- **デプロイ**: CI/CDパイプライン → Nexus → 手動デプロイスクリプト
+- **表示**: Reactアプリは正常表示されるが、APIエラーが発生する場合あり
+- **原因**: CORS設定、環境変数、ネットワーク設定等の統合課題
+
+**💡 学習ポイント**:
+- CI/CDパイプラインによる成果物生成プロセス
+- Frontend（React）とBackend（Spring Boot）の分離アーキテクチャ
+- 実際の統合時に発生する課題（CORS、環境設定等）
+- 段階的なデプロイとテストの重要性
+
+---
+
+## 📚 Step 9: 学習の振り返り
+
+### 9.1 学んだ内容のチェック
 
 - [ ] Gitの基本操作（clone, add, commit, push）
 - [ ] GitLab でのプロジェクト管理
@@ -427,7 +484,10 @@ git push origin master
 - [ ] 品質チェック（ESLint, SonarQube）
 - [ ] 成果物管理（Nexus）
 
-### 8.2 次のステップ提案
+- [ ] 実際のWebアプリケーション動作確認
+- [ ] アプリケーション統合課題の理解（CORS等）
+
+### 9.2 次のステップ提案
 
 **初級**:
 - [ ] 他のコンポーネントに機能追加
@@ -483,7 +543,10 @@ git push origin master
 
 おめでとうございます！CI/CDパイプラインの基本的な流れを体験できました。
 
-**次の学習**: `CICD_LEARNING_GUIDE.md` の Phase 3 以降に進んで、より実践的な開発を体験してください。
+**次の学習**:
+- `CICD_LEARNING_GUIDE.md` の Phase 3 以降に進んで、より実践的な開発を体験
+- 実際のWebアプリケーション（http://${EC2_PUBLIC_IP}:3000）で組織管理システムを確認
+- デプロイスクリプト（`./scripts/deploy-applications.sh`）でアプリケーション環境構築体験
 
 ---
 

@@ -40,11 +40,15 @@
 
 | アプリケーション | URL | 説明 |
 |------------------|-----|------|
-| **Frontend App** | http://${EC2_PUBLIC_IP}:8500 | React組織管理システム |
+| **Frontend App** | http://${EC2_PUBLIC_IP}:3000 | React組織管理システム |
 | **Backend API** | http://${EC2_PUBLIC_IP}:8501 | Spring Boot REST API |
 | **Swagger UI** | http://${EC2_PUBLIC_IP}:8501/swagger-ui.html | API仕様・テスト画面 |
 
 > 💡 **Tip**: すべてのパスワードは統一されています（`Degital2026!`）
+
+> ⚠️ **現在の制限事項**:
+> - デプロイスクリプトによる自動反映は部分的対応（手動デプロイが必要）
+> - Frontend-Backend間の通信設定に不備があり、画面にエラーが表示される場合があります
 
 ---
 
@@ -219,6 +223,29 @@ graph TB
 - **PostgreSQL** - リレーショナルデータベース
 - **Flyway** - データベースマイグレーション
 
+### デプロイメント構成
+
+**現在のデプロイフロー**:
+```
+CI/CD Pipeline → Nexus Repository → 手動デプロイスクリプト → アプリケーション
+```
+
+**デプロイ方法**:
+```bash
+# 手動デプロイスクリプト実行
+cd /root/aws.git/container/claudecode/CICD
+./scripts/deploy-applications.sh
+```
+
+**アプリケーション起動構成**:
+- **Frontend**: Python3 HTTPサーバー（ポート3000）
+- **Backend**: 既存Dockerコンテナ（ポート8501）
+
+**制限事項・学習ポイント**:
+- CI/CDパイプラインからの完全自動デプロイは未実装
+- Frontend-Backend間のCORS設定に課題あり
+- 実際の統合環境で発生する典型的な課題を体験可能
+
 ---
 
 ## 品質管理プロセス
@@ -268,6 +295,9 @@ graph TB
 - [ ] テストケース作成
 - [ ] パイプライン実行・結果確認
 - [ ] 品質問題の修正体験
+- [ ] 実際のWebアプリケーション動作確認
+- [ ] デプロイスクリプトによるアプリケーション起動
+- [ ] Frontend-Backend統合課題の理解（CORS等）
 
 ### Phase 4: CI/CD理解（2-3日）
 - [ ] パイプライン設定ファイル（.gitlab-ci.yml）の読解
