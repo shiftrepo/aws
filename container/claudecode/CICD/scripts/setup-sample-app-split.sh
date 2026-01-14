@@ -54,6 +54,51 @@ echo "=========================================="
 cleanup_previous_runs
 
 ####################################
+# Nexus raw-hosted リポジトリ作成
+####################################
+
+echo ""
+echo "[Nexus] raw-hostedリポジトリ確認・作成"
+echo "=========================================="
+
+# Nexus raw-hostedリポジトリの存在確認
+echo "[1/2] Nexus raw-hostedリポジトリの存在確認中..."
+REPO_EXISTS=$(curl -s -u admin:Degital2026! \
+  "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/repositories" \
+  | grep -c '"name":"raw-hosted"' || echo "0")
+
+if [ "$REPO_EXISTS" -eq "0" ]; then
+    echo "  ⚠️ raw-hostedリポジトリが存在しないため作成します"
+
+    # Nexus raw-hostedリポジトリ作成
+    echo "[2/2] Nexus raw-hostedリポジトリ作成中..."
+    CREATE_RESPONSE=$(curl -s -w "\n%{http_code}" -u admin:Degital2026! \
+      -X POST "http://${EC2_PUBLIC_IP}:8082/service/rest/v1/repositories/raw/hosted" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "raw-hosted",
+        "online": true,
+        "storage": {
+          "blobStoreName": "default",
+          "strictContentTypeValidation": false,
+          "writePolicy": "ALLOW"
+        },
+        "cleanup": null
+      }')
+
+    HTTP_CODE=$(echo "$CREATE_RESPONSE" | tail -1)
+
+    if [ "$HTTP_CODE" -eq "201" ] || [ "$HTTP_CODE" -eq "204" ]; then
+        echo "  ✅ raw-hostedリポジトリ作成完了"
+    else
+        echo "  ⚠️ raw-hostedリポジトリ作成に失敗しました (HTTP $HTTP_CODE)"
+        echo "     手動で作成してください: http://${EC2_PUBLIC_IP}:8082"
+    fi
+else
+    echo "  ✓ raw-hostedリポジトリは既に存在します"
+fi
+
+####################################
 # フロントエンドプロジェクト作成
 ####################################
 

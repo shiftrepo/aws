@@ -10,6 +10,7 @@ stages:
   - test
   - sonar
   - build
+  - nexus-deploy
 
 ####################################
 # Frontend Pipeline
@@ -96,3 +97,29 @@ frontend-build:
   needs:
     - frontend-lint
     - frontend-test
+
+frontend-nexus-deploy:
+  stage: nexus-deploy
+  before_script:
+    - echo "📦 Frontend成果物をNexusにアップロード中..."
+  script:
+    - |
+      # バージョン情報（最新版として固定名でデプロイ）
+      VERSION="latest"
+      ARTIFACT_NAME="frontend-${VERSION}.tar.gz"
+
+      # dist/ディレクトリをtar.gz形式でアーカイブ
+      echo "📦 アーカイブ作成: ${ARTIFACT_NAME}"
+      tar -czf ${ARTIFACT_NAME} -C dist/ .
+
+      # Nexus raw-hostedリポジトリにアップロード
+      echo "🚀 Nexusへアップロード: http://${EC2_PUBLIC_IP}:8082/repository/raw-hosted/frontend/${ARTIFACT_NAME}"
+      curl -v -u admin:Degital2026! \
+        --upload-file ${ARTIFACT_NAME} \
+        "http://${EC2_PUBLIC_IP}:8082/repository/raw-hosted/frontend/${ARTIFACT_NAME}"
+
+      echo "✅ Frontend成果物アップロード完了"
+  needs:
+    - job: frontend-build
+      artifacts: true
+
