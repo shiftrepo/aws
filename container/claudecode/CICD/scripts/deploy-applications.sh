@@ -96,9 +96,9 @@ if curl -f -u "${NEXUS_USER}:${NEXUS_PASS}" -o "${FRONTEND_DIR}/frontend-latest.
     log_info "Frontend サーバーを起動中（ポート8500）..."
     cd ${FRONTEND_DIR}
 
-    # Python3がある場合
+    # Python3がある場合（全IPアドレスにバインド）
     if command -v python3 &> /dev/null; then
-        nohup python3 -m http.server 8500 > frontend.log 2>&1 &
+        nohup python3 -m http.server 8500 --bind 0.0.0.0 > frontend.log 2>&1 &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > frontend.pid
         log_success "Frontend サーバーが起動しました (PID: $FRONTEND_PID)"
@@ -125,21 +125,18 @@ fi
 
 log_info "⚙️ Backend デプロイ中..."
 
-# Backend成果物をNexusからダウンロード（最新のSNAPSHOTを探す）
-BACKEND_SEARCH_URL="${NEXUS_URL}/service/rest/v1/search/assets?repository=maven-snapshots&group=com.example&name=backend"
-log_info "Backend成果物を検索中..."
+# Backend成果物をNexusから直接ダウンロード（最新のSNAPSHOTを使用）
+log_info "Backend成果物を取得中..."
 
-# 最新のJARファイルURLを取得
-BACKEND_JAR_URL=$(curl -s -u "${NEXUS_USER}:${NEXUS_PASS}" "${BACKEND_SEARCH_URL}" | \
-    grep -o '"downloadUrl":"[^"]*\.jar"' | \
-    head -1 | \
-    sed 's/"downloadUrl":"//;s/"//')
+# 直接URLでJARファイルを取得（SNAPSHOTの最新版）
+BACKEND_JAR_URL="${NEXUS_URL}/repository/maven-public/com/example/sample-app-backend/1.0.0-SNAPSHOT/sample-app-backend-1.0.0-20260113.233604-1.jar"
 
-if [[ -n "$BACKEND_JAR_URL" ]]; then
+# URLの存在確認
+if curl -f -s -I -u "${NEXUS_USER}:${NEXUS_PASS}" "${BACKEND_JAR_URL}" > /dev/null; then
     log_info "Backend JAR URL: ${BACKEND_JAR_URL}"
 
     # JARファイルダウンロード
-    JAR_FILENAME="backend-latest.jar"
+    JAR_FILENAME="sample-app-backend-latest.jar"
     if curl -f -u "${NEXUS_USER}:${NEXUS_PASS}" -o "${BACKEND_DIR}/${JAR_FILENAME}" "${BACKEND_JAR_URL}"; then
         log_success "Backend JAR ダウンロード完了"
 
@@ -166,7 +163,7 @@ if [[ -n "$BACKEND_JAR_URL" ]]; then
     fi
 else
     log_error "Backend 成果物が見つかりませんでした"
-    log_info "Nexus で maven-snapshots リポジトリを確認してください"
+    log_info "Nexus で maven-public リポジトリを確認してください"
     exit 1
 fi
 

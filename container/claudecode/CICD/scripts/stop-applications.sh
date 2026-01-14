@@ -90,9 +90,9 @@ if pgrep -f ":8501" > /dev/null; then
 fi
 
 # Spring Bootアプリケーションを確実に停止
-if pgrep -f "backend-latest.jar" > /dev/null; then
+if pgrep -f "sample-app-backend-latest.jar" > /dev/null; then
     log_info "残存するBackend JARプロセスを停止中..."
-    pkill -f "backend-latest.jar" || true
+    pkill -f "sample-app-backend-latest.jar" || true
 fi
 
 # =============================================================================
