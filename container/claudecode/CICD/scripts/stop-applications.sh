@@ -50,10 +50,10 @@ else
     log_warning "Frontend PIDファイルが見つかりません"
 fi
 
-# ポート8500を使用するプロセスを強制停止
-if pgrep -f ":8500" > /dev/null; then
-    log_info "ポート8500を使用するプロセスを停止中..."
-    pkill -f ":8500" || true
+# ポート3000を使用するプロセスを強制停止
+if pgrep -f ":3000" > /dev/null; then
+    log_info "ポート3000を使用するプロセスを停止中..."
+    pkill -f ":3000" || true
 fi
 
 # =============================================================================
@@ -104,10 +104,10 @@ sleep 1
 log_info "📊 停止状況を確認中..."
 
 # ポート使用状況確認
-if ! netstat -tuln 2>/dev/null | grep -q ":8500 "; then
-    log_success "ポート8500は使用可能です"
+if ! netstat -tuln 2>/dev/null | grep -q ":3000 "; then
+    log_success "ポート3000は使用可能です"
 else
-    log_warning "ポート8500がまだ使用中の可能性があります"
+    log_warning "ポート3000がまだ使用中の可能性があります"
 fi
 
 if ! netstat -tuln 2>/dev/null | grep -q ":8501 "; then
@@ -124,7 +124,7 @@ log_success "🎉 アプリケーション停止完了！"
 echo
 echo "=========================================="
 echo "🛑 停止されたサービス:"
-echo "   Frontend (ポート8500)"
+echo "   Frontend (ポート3000)"
 echo "   Backend  (ポート8501)"
 echo
 echo "📄 ログファイルは保持されています:"

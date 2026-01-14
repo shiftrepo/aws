@@ -92,19 +92,19 @@ if curl -f -u "${NEXUS_USER}:${NEXUS_PASS}" -o "${FRONTEND_DIR}/frontend-latest.
     rm frontend-latest.tar.gz
     cd - > /dev/null
 
-    # 簡易HTTPサーバーでFrontend配信（ポート8500）
-    log_info "Frontend サーバーを起動中（ポート8500）..."
+    # 簡易HTTPサーバーでFrontend配信（ポート3000）
+    log_info "Frontend サーバーを起動中（ポート3000）..."
     cd ${FRONTEND_DIR}
 
     # Python3がある場合（全IPアドレスにバインド）
     if command -v python3 &> /dev/null; then
-        nohup python3 -m http.server 8500 --bind 0.0.0.0 > frontend.log 2>&1 &
+        nohup python3 -m http.server 3000 --bind 0.0.0.0 > frontend.log 2>&1 &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > frontend.pid
         log_success "Frontend サーバーが起動しました (PID: $FRONTEND_PID)"
     # Node.js http-serverがある場合
     elif command -v npx &> /dev/null; then
-        nohup npx http-server -p 8500 > frontend.log 2>&1 &
+        nohup npx http-server -p 3000 > frontend.log 2>&1 &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > frontend.pid
         log_success "Frontend サーバーが起動しました (PID: $FRONTEND_PID)"
@@ -175,7 +175,7 @@ log_success "🎉 アプリケーションデプロイ完了！"
 echo
 echo "=========================================="
 echo "🌐 アプリケーションURL:"
-echo "   Frontend: http://${EC2_PUBLIC_IP}:8500"
+echo "   Frontend: http://${EC2_PUBLIC_IP}:3000"
 echo "   Backend:  http://${EC2_PUBLIC_IP}:8501"
 echo "   Swagger:  http://${EC2_PUBLIC_IP}:8501/swagger-ui.html"
 echo
