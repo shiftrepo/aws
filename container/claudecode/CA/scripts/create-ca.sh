@@ -135,12 +135,24 @@ log_info "Generating server certificate for: $SERVER_NAME"
 # Create temporary OpenSSL config with subjectAltName
 TEMP_CONF=$(mktemp)
 cat config/openssl-server.cnf > "$TEMP_CONF"
-cat >> "$TEMP_CONF" << EOF
+
+# Detect if SERVER_NAME is an IP address or hostname
+if [[ "$SERVER_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    # IP address - add both DNS and IP entries
+    cat >> "$TEMP_CONF" << EOF
 
 [ alt_names ]
 DNS.1 = $SERVER_NAME
 IP.1 = $SERVER_NAME
 EOF
+else
+    # Hostname - add only DNS entry
+    cat >> "$TEMP_CONF" << EOF
+
+[ alt_names ]
+DNS.1 = $SERVER_NAME
+EOF
+fi
 
 # Generate server private key
 log_info "  Step 1/4: Generating server private key (2048-bit)..."
