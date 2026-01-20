@@ -1,253 +1,258 @@
-# CA Infrastructure with HTTPS Test Interface
+# CA証明書基盤とHTTPSテストインタフェース
 
-Self-signed Certificate Authority (CA) infrastructure for on-premise closed environments with automated certificate generation and HTTPS test server.
+オンプレミスクローズド環境向けの自己署名認証局（CA）基盤と自動化された証明書生成、HTTPSテストサーバー。
 
-## Overview
+## 概要
 
-This project provides a complete Certificate Authority infrastructure designed for closed on-premise environments where SSL/TLS encryption is required but self-signed certificates cause authentication errors. The solution includes:
+このプロジェクトは、SSL/TLS暗号化が必要だが自己署名証明書で認証エラーが発生するクローズドなオンプレミス環境向けに設計された完全な認証局基盤を提供します。以下の機能が含まれます：
 
-- **Self-signed CA certificate** (4096-bit RSA)
-- **Server certificates signed by CA** (2048-bit RSA)
-- **Automated certificate generation** with minimal user input
-- **Docker-based HTTPS test server** (Nginx on port 5006)
-- **Certificate export** for use on other servers
-- **No IP restrictions** - accessible from external network
+- **自己署名CA証明書**（4096-bit RSA）
+- **CAで署名されたサーバ証明書**（2048-bit RSA）
+- **最小限のユーザー入力による自動化された証明書生成**
+- **Dockerベースのテスト用HTTPSサーバ**（Nginxでポート5006）
+- **他サーバでの使用のための証明書エクスポート**
+- **IP制限なし** - 外部ネットワークからアクセス可能
 
-## Features
+## 機能
 
-### Certificate Generation
-- OpenSSL-based CA and server certificate generation
-- Automated workflow with intelligent defaults
-- Minimal user input (server name, validity period)
-- Strong encryption (CA: 4096-bit, Server: 2048-bit RSA)
-- SHA-256 signing algorithm
-- SubjectAltName (SAN) support for DNS and IP addresses
+### 証明書生成
+- OpenSSLベースのCAとサーバ証明書生成
+- インテリジェントなデフォルト値による自動化ワークフロー
+- 最小限のユーザー入力（サーバ名、有効期限）
+- 強力な暗号化（CA: 4096-bit、サーバ: 2048-bit RSA）
+- SHA-256署名アルゴリズム
+- DNSとIPアドレスのSubjectAltName (SAN) サポート
 
-### HTTPS Test Environment
-- Nginx-based HTTPS server in Docker container
-- TLS 1.2/1.3 support
-- Health check and certificate info endpoints
-- Beautiful test page with detailed instructions
-- External IP access with no restrictions
+### HTTPSテスト環境
+- DockerコンテナでのNginxベースHTTPSサーバ
+- TLS 1.2/1.3サポート
+- ヘルスチェックと証明書情報エンドポイント
+- 詳細な手順を含む美しいテストページ
+- 制限なしの外部IPアクセス
 
-### Certificate Management
-- Certificate verification utilities
-- Certificate export for other servers
-- Detailed logging
-- File permission management
-- Certificate chain validation
+### 証明書管理
+- 証明書検証ユーティリティ
+- 他サーバ用の証明書エクスポート
+- 詳細なログ記録
+- ファイル権限管理
+- 証明書チェーンの検証
 
-### Security
-- Private keys never committed to version control
-- Proper file permissions (600 for keys, 644 for certificates)
-- SELinux-compatible volume mounts
-- Secure defaults throughout
+### セキュリティ
+- 秘密鍵はバージョン管理にコミットされない
+- 適切なファイル権限（鍵は600、証明書は644）
+- SELinux互換のボリュームマウント
+- 全体的にセキュアなデフォルト設定
 
-## Requirements
+## 必要要件
 
 - OpenSSL
 - Docker
 - docker-compose
-- sudo access
-- Port 5006 available
+- sudo アクセス
+- ポート5006が利用可能
 
-## Quick Start
+## クイックスタート
 
-See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
+5分間のセットアップガイドは [QUICKSTART.md](QUICKSTART.md) を参照してください。
 
-### Basic Usage
+### 基本的な使い方
 
 ```bash
-# 1. Initial setup
+# 1. 初期セットアップ
 ./scripts/setup-ca-environment.sh
 
-# 2. Generate certificates
+# 2. 証明書生成
 ./scripts/create-ca.sh
 
-# 3. Start HTTPS server (requires sudo)
+# 3. HTTPSサーバ起動（sudoが必要）
 sudo docker-compose up -d
 
-# 4. Test connection
+# 4. 接続テスト
 curl -k https://98.93.187.130:5006/
 ```
 
-## Directory Structure
+## ディレクトリ構造
 
 ```
 CA/
-├── README.md                           # This file
-├── QUICKSTART.md                       # Quick start guide
-├── .env                                # Environment configuration
-├── .gitignore                          # Security settings
-├── docker-compose.yml                  # HTTPS server definition
+├── README.md                           # このファイル
+├── QUICKSTART.md                       # クイックスタートガイド
+├── .env                                # 環境設定
+├── .gitignore                          # セキュリティ設定
+├── docker-compose.yml                  # HTTPSサーバ定義
 │
 ├── scripts/
-│   ├── setup-ca-environment.sh        # Initial setup script
-│   ├── create-ca.sh                   # Main certificate generation script
-│   ├── export-certificates.sh         # Certificate export utility
+│   ├── setup-ca-environment.sh        # 初期セットアップスクリプト
+│   ├── create-ca.sh                   # メイン証明書生成スクリプト
+│   ├── export-certificates.sh         # 証明書エクスポートユーティリティ
+│   ├── serve-cert.sh                  # 証明書配布サーバ
+│   ├── install-cert-devops-server.ps1 # Azure DevOps Server用インストールスクリプト
 │   └── utils/
-│       └── verify-certificates.sh     # Certificate verification
+│       └── verify-certificates.sh     # 証明書検証
 │
 ├── config/
-│   ├── openssl-ca.cnf                 # CA certificate OpenSSL config
-│   ├── openssl-server.cnf             # Server certificate OpenSSL config
+│   ├── openssl-ca.cnf                 # CA証明書OpenSSL設定
+│   ├── openssl-server.cnf             # サーバ証明書OpenSSL設定
 │   └── nginx/
-│       ├── Dockerfile                 # Nginx container definition
-│       ├── nginx.conf                 # HTTPS configuration
-│       └── index.html                 # Test page
+│       ├── Dockerfile                 # Nginxコンテナ定義
+│       ├── nginx.conf                 # HTTPS設定
+│       └── index.html                 # テストページ
 │
-├── certs/                             # Generated certificates (gitignored)
+├── certs/                             # 生成された証明書（gitignore対象）
 │   ├── ca/
-│   │   ├── ca.key                     # CA private key
-│   │   ├── ca.crt                     # CA certificate
-│   │   └── ca.srl                     # Serial number file
+│   │   ├── ca.key                     # CA秘密鍵
+│   │   ├── ca.crt                     # CA証明書
+│   │   ├── ca.srl                     # シリアル番号ファイル
+│   │   ├── install-ca-windows.ps1     # Windowsクライアント用自動インストール
+│   │   ├── install-ca-linux.sh        # Linuxクライアント用自動インストール
+│   │   └── install-ca-macos.sh        # macOSクライアント用自動インストール
 │   ├── server/
-│   │   ├── server.key                 # Server private key
-│   │   ├── server.csr                 # Certificate signing request
-│   │   ├── server.crt                 # Server certificate
-│   │   └── server-chain.crt           # Certificate chain (server + CA)
-│   └── export/                        # Export packages
+│   │   ├── server.key                 # サーバ秘密鍵
+│   │   ├── server.csr                 # 証明書署名要求
+│   │   ├── server.crt                 # サーバ証明書
+│   │   └── server-chain.crt           # 証明書チェーン（サーバ + CA）
+│   └── export/                        # エクスポートパッケージ
 │       └── ca-bundle-*.tar.gz
 │
 └── logs/
-    └── certificate-generation.log     # Operation logs
+    └── certificate-generation.log     # 操作ログ
 ```
 
-## Detailed Usage
+## 詳細な使い方
 
-### 1. Initial Setup
+### 1. 初期セットアップ
 
-Run the setup script to verify dependencies and create directory structure:
+セットアップスクリプトを実行して依存関係を確認し、ディレクトリ構造を作成します：
 
 ```bash
 chmod +x scripts/*.sh scripts/utils/*.sh
 ./scripts/setup-ca-environment.sh
 ```
 
-This script will:
-- Check for OpenSSL, Docker, and docker-compose
-- Create necessary directories
-- Set execute permissions on scripts
-- Verify .env and .gitignore files
+このスクリプトは以下を実行します：
+- OpenSSL、Docker、docker-composeの確認
+- 必要なディレクトリの作成
+- スクリプトへの実行権限の設定
+- .envと.gitignoreファイルの確認
 
-### 2. Generate Certificates
+### 2. 証明書の生成
 
-Run the certificate generation script:
+証明書生成スクリプトを実行します：
 
 ```bash
 ./scripts/create-ca.sh
 ```
 
-**Interactive Mode** (default):
-- Prompts for server name (default: 98.93.187.130)
-- Prompts for validity days (default: 730)
-- Prompts for organization name (default: OnPremise-CA)
+**対話モード**（デフォルト）:
+- サーバ名の入力を求められます（デフォルト: 98.93.187.130）
+- 有効期限の入力を求められます（デフォルト: 730日）
+- 組織名の入力を求められます（デフォルト: OnPremise-CA）
 
-**Automatic Mode** (no prompts):
+**自動モード**（入力プロンプトなし）:
 ```bash
 ./scripts/create-ca.sh --auto
 ```
 
-The script will:
-1. Generate CA certificate (if not exists)
-   - 4096-bit RSA private key
-   - Self-signed certificate valid for specified days
-2. Generate server certificate
-   - 2048-bit RSA private key
-   - Certificate Signing Request (CSR)
-   - Server certificate signed by CA
-   - Certificate chain (server + CA)
-3. Set proper file permissions
-4. Display certificate summary
+スクリプトは以下を実行します：
+1. CA証明書の生成（存在しない場合）
+   - 4096-bit RSA秘密鍵
+   - 指定された日数有効な自己署名証明書
+2. サーバ証明書の生成
+   - 2048-bit RSA秘密鍵
+   - 証明書署名要求（CSR）
+   - CAで署名されたサーバ証明書
+   - 証明書チェーン（サーバ + CA）
+3. 適切なファイル権限の設定
+4. 証明書サマリーの表示
 
-### 3. Verify Certificates
+### 3. 証明書の検証
 
-Verify certificates are valid and properly configured:
+証明書が有効で適切に設定されていることを確認します：
 
 ```bash
 ./scripts/utils/verify-certificates.sh
 ```
 
-This checks:
-- Certificate validity
-- Certificate chain correctness
-- File permissions
-- Expiration dates
-- CA:TRUE extension for CA certificate
+以下をチェックします：
+- 証明書の有効性
+- 証明書チェーンの正確性
+- ファイル権限
+- 有効期限
+- CA証明書のCA:TRUE拡張
 
-### 4. Start HTTPS Server
+### 4. HTTPSサーバの起動
 
-**Important: All docker-compose commands must use sudo**
+**重要: すべてのdocker-composeコマンドはsudoを使用する必要があります**
 
 ```bash
-# Start container in detached mode
+# デタッチモードでコンテナを起動
 sudo docker-compose up -d
 
-# Check container status
+# コンテナ状態の確認
 sudo docker-compose ps
 
-# View logs
+# ログの表示
 sudo docker-compose logs -f ca-https-test
 
-# Stop container
+# コンテナの停止
 sudo docker-compose down
 
-# Restart container
+# コンテナの再起動
 sudo docker-compose restart
 ```
 
-The HTTPS server will:
-- Listen on port 5006 (external) → 443 (container)
-- Serve test page at `https://[SERVER]:5006/`
-- Provide health check at `https://[SERVER]:5006/health`
-- Provide certificate info at `https://[SERVER]:5006/cert-info`
+HTTPSサーバは以下を提供します：
+- ポート5006（外部）→ 443（コンテナ）でリッスン
+- `https://[SERVER]:5006/` でテストページを提供
+- `https://[SERVER]:5006/health` でヘルスチェック
+- `https://[SERVER]:5006/cert-info` で証明書情報
 
-### 5. Test HTTPS Connection
+### 5. HTTPS接続のテスト
 
-**Local testing:**
+**ローカルテスト:**
 ```bash
-# Test without certificate verification
+# 証明書検証なしでテスト
 curl -k https://localhost:5006/
 
-# Test with CA certificate
+# CA証明書を使用してテスト
 curl --cacert certs/ca/ca.crt https://localhost:5006/
 
-# Test health endpoint
+# ヘルスエンドポイントのテスト
 curl -k https://localhost:5006/health
 ```
 
-**External testing:**
+**外部テスト:**
 ```bash
-# From another machine
+# 別のマシンから
 curl -k https://98.93.187.130:5006/
 
-# With certificate verification (after installing CA cert)
+# CA証明書をインストール後の検証付きテスト
 curl --cacert ca.crt https://98.93.187.130:5006/
 ```
 
-**Browser testing:**
+**ブラウザテスト:**
 ```
 https://98.93.187.130:5006/
 ```
 
-### 6. Automated Client Installation (Recommended)
+### 6. 自動クライアントインストール（推奨）
 
-The easiest way to install the CA certificate on client machines is using the automated installation scripts.
+クライアントマシンにCA証明書をインストールする最も簡単な方法は、自動インストールスクリプトを使用することです。
 
-#### 6.0.1. Start Certificate Download Server (on server)
+#### 6.0.1. 証明書ダウンロードサーバの起動（サーバ側）
 
-On the CA server, start the certificate download HTTP server:
+CAサーバ上で、証明書ダウンロード用HTTPサーバを起動します：
 
 ```bash
-# On the server
+# サーバ上で実行
 cd /root/aws.git/container/claudecode/CA
 ./scripts/serve-cert.sh
 
-# Or specify a custom port
+# またはカスタムポートを指定
 ./scripts/serve-cert.sh 8080
 ```
 
-The server will display:
+サーバは以下を表示します：
 ```
 ==========================================
   CA Certificate Download Server
@@ -262,617 +267,620 @@ Client Installation Scripts:
   macOS:   http://98.93.187.130:8080/install-ca-macos.sh
 ```
 
-**Keep this server running** while clients download and install certificates.
+クライアントが証明書をダウンロードしてインストールする間、**このサーバを実行し続けてください**。
 
-#### 6.0.2. Automated Installation - Windows
+#### 6.0.2. 自動インストール - Windows
 
-**On the Windows client machine:**
+**Windowsクライアントマシン上で:**
 
-1. **Download the PowerShell script:**
-   - Open browser and visit: `http://98.93.187.130:8080/install-ca-windows.ps1`
-   - Or use PowerShell:
+1. **PowerShellスクリプトをダウンロード:**
+   - ブラウザで `http://98.93.187.130:8080/install-ca-windows.ps1` にアクセス
+   - またはPowerShellを使用:
    ```powershell
    Invoke-WebRequest -Uri "http://98.93.187.130:8080/install-ca-windows.ps1" -OutFile "install-ca-windows.ps1"
    ```
 
-2. **Run the script with Administrator privileges:**
-   - Right-click `install-ca-windows.ps1` → **"Run with PowerShell"**
-   - Or from PowerShell (Administrator):
+2. **管理者権限でスクリプトを実行:**
+   - `install-ca-windows.ps1` を右クリック → **"PowerShellで実行"**
+   - またはPowerShell（管理者）から:
    ```powershell
    powershell -ExecutionPolicy Bypass -File install-ca-windows.ps1
    ```
 
-3. **The script will automatically:**
-   - Download the CA certificate (ca.crt)
-   - Verify it's the correct certificate
-   - Remove any old OnPremise-CA certificates
-   - Install to LocalMachine\Root (trusted root)
-   - Display installation confirmation
+3. **スクリプトは自動的に以下を実行します:**
+   - CA証明書（ca.crt）のダウンロード
+   - 正しい証明書であることの確認
+   - 古いOnPremise-CA証明書の削除
+   - LocalMachine\Root（信頼されたルート）へのインストール
+   - インストール確認の表示
 
-4. **Restart your browser** completely and visit `https://98.93.187.130:5006/`
+4. **ブラウザを完全に再起動**して `https://98.93.187.130:5006/` にアクセス
 
-#### 6.0.3. Automated Installation - Linux
+#### 6.0.3. 自動インストール - Linux
 
-**On the Linux client machine:**
+**Linuxクライアントマシン上で:**
 
 ```bash
-# Download and run the installation script
+# インストールスクリプトをダウンロードして実行
 curl -O http://98.93.187.130:8080/install-ca-linux.sh
 chmod +x install-ca-linux.sh
 sudo ./install-ca-linux.sh
 ```
 
-The script will automatically:
-- Download the CA certificate
-- Verify the certificate
-- Install to the system trust store (Ubuntu/Debian/CentOS/RHEL/Fedora)
-- Update the certificate store
-- Display installation confirmation
+スクリプトは自動的に以下を実行します：
+- CA証明書のダウンロード
+- 証明書の検証
+- システムトラストストアへのインストール（Ubuntu/Debian/CentOS/RHEL/Fedora）
+- 証明書ストアの更新
+- インストール確認の表示
 
-**Supported distributions:**
+**サポートされているディストリビューション:**
 - Ubuntu / Debian → `/usr/local/share/ca-certificates/`
 - CentOS / RHEL / Fedora → `/etc/pki/ca-trust/source/anchors/`
 
-#### 6.0.4. Automated Installation - macOS
+#### 6.0.4. 自動インストール - macOS
 
-**On the macOS client machine:**
+**macOSクライアントマシン上で:**
 
 ```bash
-# Download and run the installation script
+# インストールスクリプトをダウンロードして実行
 curl -O http://98.93.187.130:8080/install-ca-macos.sh
 chmod +x install-ca-macos.sh
 sudo ./install-ca-macos.sh
 ```
 
-The script will automatically:
-- Download the CA certificate
-- Verify the certificate
-- Install to System keychain with trustRoot
-- Display installation confirmation
+スクリプトは自動的に以下を実行します：
+- CA証明書のダウンロード
+- 証明書の検証
+- trustRootでシステムキーチェーンへのインストール
+- インストール確認の表示
 
-**Note:** You may need to manually set trust in Keychain Access:
-1. Open Keychain Access app
-2. Select "System" keychain
-3. Find "OnPremise-CA-Root"
-4. Double-click → Trust → Set to "Always Trust"
+**注意:** キーチェーンアクセスで手動で信頼を設定する必要がある場合があります：
+1. キーチェーンアクセスアプリを開く
+2. "システム"キーチェーンを選択
+3. "OnPremise-CA-Root"を見つける
+4. ダブルクリック → 信頼 → "常に信頼"に設定
 
-#### 6.0.5. What the Scripts Do
+#### 6.0.5. スクリプトが実行する処理
 
-All automated installation scripts perform these steps:
+すべての自動インストールスクリプトは以下のステップを実行します：
 
-1. **Download** the CA certificate from the server
-2. **Verify** the certificate is correct (CN=OnPremise-CA-Root)
-3. **Remove** any existing OnPremise-CA certificates
-4. **Install** the certificate to the system trust store
-5. **Verify** the installation was successful
-6. **Display** next steps (restart browser, test URL)
+1. **ダウンロード** - サーバからCA証明書を取得
+2. **検証** - 証明書が正しいことを確認（CN=OnPremise-CA-Root）
+3. **削除** - 既存のOnPremise-CA証明書を削除
+4. **インストール** - システムトラストストアに証明書をインストール
+5. **確認** - インストールが成功したことを検証
+6. **表示** - 次のステップ（ブラウザ再起動、テストURL）を表示
 
-**Advantages of automated installation:**
-- ✅ No manual file management
-- ✅ Automatic verification (ensures correct certificate)
-- ✅ Removes old certificates automatically
-- ✅ Works on correct system store (not user store)
-- ✅ Provides clear feedback and error messages
+**自動インストールの利点:**
+- ✅ 手動でのファイル管理が不要
+- ✅ 自動検証（正しい証明書であることを保証）
+- ✅ 古い証明書の自動削除
+- ✅ 正しいシステムストアにインストール（ユーザーストアではない）
+- ✅ 明確なフィードバックとエラーメッセージ
 
 ---
 
-### 7. Manual Client Installation
+### 7. 手動クライアントインストール
 
-If you prefer manual installation or the automated scripts don't work, follow these manual steps:
+自動スクリプトが機能しない場合や手動インストールを希望する場合は、以下の手順に従ってください：
 
-#### 7.1. Why "Not Secure" Warning Appears
+#### 7.1. "保護されていない通信"警告が表示される理由
 
-When you access the HTTPS server from a browser, you will see a **"Not Secure" or "Your connection is not private"** warning. This is because the browser doesn't trust our self-signed CA certificate yet.
+ブラウザからHTTPSサーバにアクセスすると、**"保護されていない通信"または"この接続ではプライバシーが保護されません"**という警告が表示されます。これは、ブラウザがまだ当社の自己署名CA証明書を信頼していないためです。
 
-**Why this happens:**
-- Our CA certificate is self-signed (not issued by a trusted Certificate Authority)
-- The browser doesn't have our CA certificate in its trust store
-- This is expected behavior for self-signed certificates
+**これが発生する理由:**
+- 当社のCA証明書は自己署名です（信頼された認証局から発行されたものではありません）
+- ブラウザのトラストストアに当社のCA証明書がありません
+- これは自己署名証明書の予想される動作です
 
-**Solution:** Install the CA certificate (`ca.crt`) on the client machine.
+**解決策:** クライアントマシンにCA証明書（`ca.crt`）をインストールします。
 
-#### 7.2. Download CA Certificate
+#### 7.2. CA証明書のダウンロード
 
-First, get the CA certificate file to your client machine:
+まず、CA証明書ファイルをクライアントマシンに取得します：
 
-**Option 1: Use the export bundle**
+**オプション1: エクスポートバンドルを使用**
 ```bash
-# On the server
+# サーバ上で実行
 ./scripts/export-certificates.sh
 
-# Copy to client machine
+# クライアントマシンにコピー
 scp certs/export/ca-bundle-*.tar.gz user@client-machine:/tmp/
 
-# On client machine
+# クライアントマシン上で実行
 cd /tmp
 tar xzf ca-bundle-*.tar.gz
 cd ca-bundle-*/
-# Now you have ca.crt file
+# これでca.crtファイルが手に入ります
 ```
 
-**Option 2: Copy CA certificate directly**
+**オプション2: CA証明書を直接コピー**
 ```bash
-# On the server
+# サーバ上で実行
 cd /root/aws.git/container/claudecode/CA
 
-# Copy to client machine
+# クライアントマシンにコピー
 scp certs/ca/ca.crt user@client-machine:/tmp/
 ```
 
-**Option 3: Export certificate from browser**
+**オプション3: ブラウザから証明書をエクスポート**
 
-You can export the CA certificate directly from your browser while viewing the HTTPS site (even if it shows a security warning).
+HTTPSサイトを表示している間に、ブラウザから直接CA証明書をエクスポートできます（セキュリティ警告が表示されていても可能）。
 
-**Important: Export Format**
-- **Recommended format**: `.crt` or `.pem` (Base64-encoded X.509)
-- **Alternative format**: `.cer` or `.der` (DER-encoded binary)
-- **For Linux/Mac**: Use `.crt` or `.pem` format
-- **For Windows**: Both `.crt` and `.cer` work, but `.crt` is recommended
-- **Avoid**: `.p7b` or `.pfx` formats (these are for certificate chains or include private keys)
+**重要: エクスポート形式**
+- **推奨形式**: `.crt` または `.pem`（Base64エンコードX.509）
+- **代替形式**: `.cer` または `.der`（DERエンコードバイナリ）
+- **Linux/Mac向け**: `.crt` または `.pem` 形式を使用
+- **Windows向け**: `.crt` と `.cer` の両方が機能しますが、`.crt` を推奨
+- **避けるべき**: `.p7b` または `.pfx` 形式（これらは証明書チェーン用または秘密鍵を含みます）
 
-**Export from Chrome/Edge/Chromium:**
+**Chrome/Edge/Chromiumからのエクスポート:**
 
-1. Visit `https://98.93.187.130:5006/` (even if warning appears)
-2. Click the **"Not Secure"** or **warning icon** in address bar
-3. Click **"Certificate is not valid"** or **"Certificate (Invalid)"**
-4. Certificate viewer opens
-5. Go to **"Details"** tab
-6. Look for the **CA certificate**: "OnPremise-CA-Root" (NOT the server certificate)
-   - You may need to select it from the certificate path/chain
-7. Click **"Export..."** or **"Copy to File..."** button
-8. Choose format:
-   - **Windows**: Select "Base64-encoded X.509 (.CER)" or "DER encoded binary X.509 (.CER)"
-   - **Linux/Mac**: Select "Base64 (PEM)" format
-9. Save as `ca.crt` (recommended filename)
-10. Use this file to install (see sections below)
+1. `https://98.93.187.130:5006/` にアクセス（警告が表示されても可）
+2. アドレスバーの**"保護されていない通信"**または**警告アイコン**をクリック
+3. **"証明書が無効です"**または**"証明書（無効）"**をクリック
+4. 証明書ビューアが開きます
+5. **"詳細"**タブに移動
+6. **CA証明書**を探します: "OnPremise-CA-Root"（サーバ証明書ではありません）
+   - 証明書パス/チェーンから選択する必要がある場合があります
+7. **"エクスポート..."**または**"ファイルにコピー..."**ボタンをクリック
+8. 形式を選択:
+   - **Windows**: "Base64エンコードX.509 (.CER)"または"DERエンコードバイナリX.509 (.CER)"を選択
+   - **Linux/Mac**: "Base64 (PEM)"形式を選択
+9. `ca.crt`として保存（推奨ファイル名）
+10. このファイルをインストールに使用（以下のセクション参照）
 
-**Export from Firefox:**
+**Firefoxからのエクスポート:**
 
-1. Visit `https://98.93.187.130:5006/` (even if warning appears)
-2. Click the **lock icon** or **warning icon** in address bar
-3. Click **"Connection not secure"** → **"More information"**
-4. Click **"View Certificate"** button
-5. Certificate viewer opens in new tab
-6. Scroll down to find the **Issuer** section showing "OnPremise-CA-Root"
-7. Look for certificate chain and click on the **root CA certificate** (OnPremise-CA-Root)
-8. Click **"Download"** section
-9. Choose **"PEM (cert)"** format (this creates a `.crt` file)
-10. Save as `ca.crt`
+1. `https://98.93.187.130:5006/` にアクセス（警告が表示されても可）
+2. アドレスバーの**ロックアイコン**または**警告アイコン**をクリック
+3. **"接続は安全ではありません"** → **"詳細情報"**をクリック
+4. **"証明書を表示"**ボタンをクリック
+5. 証明書ビューアが新しいタブで開きます
+6. スクロールダウンして"OnPremise-CA-Root"を表示している**発行者**セクションを見つけます
+7. 証明書チェーンを探し、**ルートCA証明書**（OnPremise-CA-Root）をクリック
+8. **"ダウンロード"**セクションをクリック
+9. **"PEM (cert)"**形式を選択（これは`.crt`ファイルを作成します）
+10. `ca.crt`として保存
 
-**Alternative Firefox method:**
-1. Visit the site (even with warning)
-2. Click **"Advanced..."** → **"View Certificate"**
-3. In the certificate viewer, find the issuer certificate (OnPremise-CA-Root)
-4. Click **"Download"** → **"PEM (cert)"**
-5. Save the file
+**代替Firefox方法:**
+1. サイトにアクセス（警告があっても）
+2. **"詳細設定..."** → **"証明書を表示"**をクリック
+3. 証明書ビューアで発行者証明書（OnPremise-CA-Root）を見つけます
+4. **"ダウンロード"** → **"PEM (cert)"**をクリック
+5. ファイルを保存
 
-**Export from Safari (Mac):**
+**Safari（Mac）からのエクスポート:**
 
-1. Visit `https://98.93.187.130:5006/` (even if warning appears)
-2. Click the **lock icon** or **warning text** in address bar
-3. Click **"Show Certificate"**
-4. Look for the certificate chain
-5. Select the **root certificate**: "OnPremise-CA-Root"
-6. Drag the certificate icon to Desktop or Finder
-   - This saves as `.cer` file
-7. Rename to `ca.crt` if needed (optional)
+1. `https://98.93.187.130:5006/` にアクセス（警告が表示されても可）
+2. アドレスバーの**ロックアイコン**または**警告テキスト**をクリック
+3. **"証明書を表示"**をクリック
+4. 証明書チェーンを探します
+5. **ルート証明書**を選択: "OnPremise-CA-Root"
+6. 証明書アイコンをデスクトップまたはFinderにドラッグ
+   - これにより`.cer`ファイルとして保存されます
+7. 必要に応じて`ca.crt`にリネーム（オプション）
 
-**Verify downloaded certificate:**
+**ダウンロードした証明書の検証:**
 ```bash
-# Check certificate details
+# 証明書の詳細を確認
 openssl x509 -in ca.crt -noout -text
 
-# Should show:
+# 以下が表示されるはずです:
 # Subject: C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=OnPremise-CA-Root
 # Issuer: C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=OnPremise-CA-Root
-# (Subject and Issuer are the same for self-signed CA)
+# (自己署名CAの場合、SubjectとIssuerは同じです)
 
-# If file format is DER (binary), convert to PEM:
+# ファイル形式がDER（バイナリ）の場合、PEMに変換:
 openssl x509 -inform der -in ca.cer -out ca.crt
 ```
 
-**Common mistakes to avoid:**
-- ❌ Don't export the server certificate (CN=98.93.187.130) - export the CA certificate (CN=OnPremise-CA-Root)
-- ❌ Don't save as `.pfx` or `.p12` format (these require passwords and are for different purposes)
-- ❌ Don't export the entire certificate chain - just the root CA certificate
-- ✅ Do verify the certificate has "OnPremise-CA-Root" in the subject/issuer
+**避けるべき一般的な誤り:**
+- ❌ サーバ証明書（CN=98.93.187.130）をエクスポートしない - CA証明書（CN=OnPremise-CA-Root）をエクスポート
+- ❌ `.pfx`または`.p12`形式で保存しない（これらはパスワードが必要で、異なる目的のためのものです）
+- ❌ 証明書チェーン全体をエクスポートしない - ルートCA証明書のみ
+- ✅ 証明書のサブジェクト/発行者に"OnPremise-CA-Root"があることを確認
 
-**⚠️ CRITICAL: Server Certificate vs CA Certificate**
+**⚠️ 重要: サーバ証明書 vs CA証明書**
 
-**DO NOT install the server certificate on client machines!**
+**クライアントマシンにサーバ証明書をインストールしないでください！**
 
-This is the most common mistake:
+これが最も一般的な誤りです：
 
-| Certificate | File | Subject (CN) | Purpose | Install on Client? |
+| 証明書 | ファイル | サブジェクト (CN) | 用途 | クライアントにインストール? |
 |------------|------|--------------|---------|-------------------|
-| ❌ Server Certificate | `server.crt` | CN=98.93.187.130 | Used by HTTPS server | **NO - Don't install!** |
-| ✅ CA Certificate | `ca.crt` | CN=OnPremise-CA-Root | Signs server certificates | **YES - Install this!** |
+| ❌ サーバ証明書 | `server.crt` | CN=98.93.187.130 | HTTPSサーバで使用 | **NO - インストールしない!** |
+| ✅ CA証明書 | `ca.crt` | CN=OnPremise-CA-Root | サーバ証明書に署名 | **YES - これをインストール!** |
 
-**How to verify you have the correct file:**
+**正しいファイルを持っているか確認する方法:**
 
 ```bash
-# Check certificate subject
+# 証明書のサブジェクトを確認
 openssl x509 -in your-file.crt -noout -subject
 
-# CORRECT (CA certificate):
+# 正しい（CA証明書）:
 subject=C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=OnPremise-CA-Root
 
-# WRONG (Server certificate):
+# 誤り（サーバ証明書）:
 subject=C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=98.93.187.130
 ```
 
-**If you accidentally installed the server certificate:**
-1. Remove it from your certificate store
-2. Download the correct `ca.crt` file
-3. Install `ca.crt` (the file with CN=OnPremise-CA-Root)
+**誤ってサーバ証明書をインストールした場合:**
+1. 証明書ストアから削除
+2. 正しい`ca.crt`ファイルをダウンロード
+3. `ca.crt`（CN=OnPremise-CA-Rootのファイル）をインストール
 
-#### 7.3. Install CA Certificate - Linux (Ubuntu/Debian)
+#### 7.3. CA証明書のインストール - Linux（Ubuntu/Debian）
 
 ```bash
-# Copy CA certificate to system trust store
+# システムトラストストアにCA証明書をコピー
 sudo cp ca.crt /usr/local/share/ca-certificates/onpremise-ca.crt
 
-# Update certificate store
+# 証明書ストアを更新
 sudo update-ca-certificates
 
-# Verify installation
+# インストールを確認
 ls -l /etc/ssl/certs/ | grep onpremise-ca
 
-# Restart browser (important!)
-# Close all browser windows and reopen
+# ブラウザを再起動（重要！）
+# すべてのブラウザウィンドウを閉じて再度開く
 ```
 
-**For Chrome/Chromium on Linux:**
-Chrome uses the system certificate store, so the above steps are sufficient. Just restart Chrome after running `update-ca-certificates`.
+**Linux上のChrome/Chromium向け:**
+Chromeはシステム証明書ストアを使用するため、上記の手順で十分です。`update-ca-certificates`実行後にChromeを再起動してください。
 
-**For Firefox on Linux:**
-Firefox uses its own certificate store (see Section 6.6 below).
+**Linux上のFirefox向け:**
+Firefoxは独自の証明書ストアを使用します（以下のセクション7.7を参照）。
 
-#### 7.4. Install CA Certificate - Linux (CentOS/RHEL/Fedora)
+#### 7.4. CA証明書のインストール - Linux（CentOS/RHEL/Fedora）
 
 ```bash
-# Copy CA certificate to trust store
+# トラストストアにCA証明書をコピー
 sudo cp ca.crt /etc/pki/ca-trust/source/anchors/onpremise-ca.crt
 
-# Update trust store
+# トラストストアを更新
 sudo update-ca-trust extract
 
-# Verify installation
+# インストールを確認
 trust list | grep "OnPremise-CA"
 
-# Restart browser
+# ブラウザを再起動
 ```
 
-#### 7.5. Install CA Certificate - Windows
+#### 7.5. CA証明書のインストール - Windows
 
-**Method 1: Command Line (Administrator PowerShell)**
+**方法1: コマンドライン（管理者PowerShell）**
 ```powershell
-# Open PowerShell as Administrator
-# Navigate to the directory containing ca.crt
+# 管理者としてPowerShellを開く
+# ca.crtを含むディレクトリに移動
 
-# Install to Trusted Root Certification Authorities
+# 信頼されたルート証明機関にインストール
 certutil -addstore -f "ROOT" ca.crt
 
-# Verify installation
+# インストールを確認
 certutil -store ROOT | findstr "OnPremise-CA"
 ```
 
-**Method 2: GUI (Easier for most users)**
+**方法2: GUI（ほとんどのユーザーにとって簡単）**
 
-1. **Download ca.crt** to your Windows machine
-2. **Double-click** the `ca.crt` file
-3. Click **"Install Certificate..."**
-4. Select **"Local Machine"** (requires admin rights) or **"Current User"**
-5. Click **"Next"**
-6. Select **"Place all certificates in the following store"**
-7. Click **"Browse"**
-8. Select **"Trusted Root Certification Authorities"**
-9. Click **"OK"** → **"Next"** → **"Finish"**
-10. Click **"Yes"** on the security warning
-11. You should see **"The import was successful"**
-12. **Close and restart** all browser windows
+1. **ca.crt**をWindowsマシンにダウンロード
+2. `ca.crt`ファイルを**ダブルクリック**
+3. **"証明書のインストール..."**をクリック
+4. **"ローカルコンピューター"**を選択（管理者権限が必要）または**"現在のユーザー"**
+5. **"次へ"**をクリック
+6. **"証明書をすべて次のストアに配置する"**を選択
+7. **"参照"**をクリック
+8. **"信頼されたルート証明機関"**を選択
+9. **"OK"** → **"次へ"** → **"完了"**をクリック
+10. セキュリティ警告で**"はい"**をクリック
+11. **"インポートに成功しました"**が表示されるはずです
+12. すべてのブラウザウィンドウを**閉じて再起動**
 
-**For Edge/Chrome on Windows:**
-- These browsers use the Windows certificate store
-- After installation, restart the browser
-- The warning should disappear
+**Windows上のEdge/Chrome向け:**
+- これらのブラウザはWindows証明書ストアを使用
+- インストール後、ブラウザを再起動
+- 警告が消えるはずです
 
-**For Firefox on Windows:**
-- Firefox uses its own certificate store (see Section 6.6 below)
+**Windows上のFirefox向け:**
+- Firefoxは独自の証明書ストアを使用（以下のセクション7.7を参照）
 
-#### 7.6. Install CA Certificate - macOS
+#### 7.6. CA証明書のインストール - macOS
 
-**Method 1: Command Line**
+**方法1: コマンドライン**
 ```bash
-# Copy ca.crt to your Mac
-# Open Terminal
+# ca.crtをMacにコピー
+# ターミナルを開く
 
-# Install to System keychain (requires password)
+# システムキーチェーンにインストール（パスワードが必要）
 sudo security add-trusted-cert \
     -d -r trustRoot \
     -k /Library/Keychains/System.keychain \
     ca.crt
 
-# Verify installation
+# インストールを確認
 security find-certificate -a -c "OnPremise-CA-Root" /Library/Keychains/System.keychain
 ```
 
-**Method 2: Keychain Access GUI**
+**方法2: キーチェーンアクセスGUI**
 
-1. **Download ca.crt** to your Mac
-2. **Double-click** `ca.crt` (opens Keychain Access)
-3. It will be added to "login" keychain by default
-4. **Find the certificate** "OnPremise-CA-Root" in the list
-5. **Double-click** the certificate
-6. Expand **"Trust"** section
-7. Set **"When using this certificate"** to **"Always Trust"**
-8. Close the window (you'll be asked for your password)
-9. **Restart browser**
+1. **ca.crt**をMacにダウンロード
+2. `ca.crt`を**ダブルクリック**（キーチェーンアクセスが開きます）
+3. デフォルトで"ログイン"キーチェーンに追加されます
+4. リストから**証明書を見つける** "OnPremise-CA-Root"
+5. 証明書を**ダブルクリック**
+6. **"信頼"**セクションを展開
+7. **"この証明書を使用する場合"**を**"常に信頼"**に設定
+8. ウィンドウを閉じる（パスワードを求められます）
+9. **ブラウザを再起動**
 
-**For Safari:**
-- Uses the system keychain
-- Should work after installation and browser restart
+**Safari向け:**
+- システムキーチェーンを使用
+- インストールとブラウザ再起動後に動作するはずです
 
-**For Chrome on Mac:**
-- Uses the system keychain
-- Should work after installation and browser restart
+**Mac上のChrome向け:**
+- システムキーチェーンを使用
+- インストールとブラウザ再起動後に動作するはずです
 
-**For Firefox on Mac:**
-- Uses its own certificate store (see Section 6.6 below)
+**Mac上のFirefox向け:**
+- 独自の証明書ストアを使用（以下のセクション7.7を参照）
 
-#### 7.7. Install CA Certificate - Firefox (All Platforms)
+#### 7.7. CA証明書のインストール - Firefox（全プラットフォーム）
 
-Firefox uses its own certificate store, separate from the operating system.
+Firefoxは、オペレーティングシステムとは別の独自の証明書ストアを使用します。
 
-**Steps for Firefox:**
+**Firefox向けの手順:**
 
-1. **Open Firefox**
-2. Go to **Settings** (or type `about:preferences` in address bar)
-3. Search for **"certificates"** in the search box
-4. Click **"View Certificates..."** button
-5. Go to **"Authorities"** tab
-6. Click **"Import..."** button
-7. Select the **`ca.crt`** file you downloaded
-8. Check the box: **"Trust this CA to identify websites"**
-9. Click **"OK"**
-10. You should see "OnPremise-CA-Root" in the list under "OnPremise-CA"
-11. Close the settings
-12. **Refresh the page** (F5) or revisit `https://98.93.187.130:5006/`
+1. **Firefoxを開く**
+2. **設定**に移動（またはアドレスバーに`about:preferences`と入力）
+3. 検索ボックスで**"certificates"**を検索
+4. **"証明書を表示..."**ボタンをクリック
+5. **"認証局証明書"**タブに移動
+6. **"インポート..."**ボタンをクリック
+7. ダウンロードした**`ca.crt`**ファイルを選択
+8. チェックボックスをオン: **"この認証局によるウェブサイトの識別を信頼する"**
+9. **"OK"**をクリック
+10. "OnPremise-CA"の下のリストに"OnPremise-CA-Root"が表示されるはずです
+11. 設定を閉じる
+12. **ページを更新**（F5）または`https://98.93.187.130:5006/`を再訪問
 
-The warning should now be gone, and you'll see a lock icon 🔒.
+警告が消え、ロックアイコン🔒が表示されるはずです。
 
-#### 7.8. Verify Installation
+#### 7.8. インストールの確認
 
-After installing the CA certificate, verify it works:
+CA証明書をインストールした後、動作することを確認します：
 
-**In Browser:**
-1. Visit `https://98.93.187.130:5006/`
-2. You should see a **lock icon** 🔒 in the address bar (not a warning triangle)
-3. Click the lock icon
-4. Click **"Connection is secure"** or **"Certificate"**
-5. Verify:
-   - Issued to: `98.93.187.130`
-   - Issued by: `OnPremise-CA-Root`
-   - Valid from: (certificate start date)
-   - Valid until: (certificate expiration date)
+**ブラウザで:**
+1. `https://98.93.187.130:5006/`にアクセス
+2. アドレスバーに**ロックアイコン**🔒が表示されるはずです（警告三角形ではありません）
+3. ロックアイコンをクリック
+4. **"接続は保護されています"**または**"証明書"**をクリック
+5. 確認:
+   - 発行先: `98.93.187.130`
+   - 発行者: `OnPremise-CA-Root`
+   - 有効期間の開始: （証明書開始日）
+   - 有効期間の終了: （証明書有効期限）
 
-**Command Line Test:**
+**コマンドラインテスト:**
 ```bash
 # Linux/Mac
 curl https://98.93.187.130:5006/
 
-# Should work without -k flag if CA cert is installed system-wide
-# If it fails with certificate error, CA cert not properly installed
+# CA証明書がシステム全体にインストールされている場合、-kフラグなしで動作するはずです
+# 証明書エラーで失敗する場合、CA証明書が正しくインストールされていません
 
 # Windows PowerShell
 Invoke-WebRequest -Uri https://98.93.187.130:5006/
 
-# Should work without certificate errors
+# 証明書エラーなしで動作するはずです
 ```
 
-#### 7.9. Troubleshooting Client Installation
+#### 7.9. クライアントインストールのトラブルシューティング
 
-**Problem: Still seeing "Not Secure" after installation**
+**問題: インストール後もまだ"保護されていない通信"が表示される**
 
-Solutions:
-1. **Restart browser completely** (close all windows, not just tabs)
-2. **Clear browser cache**: Settings → Privacy → Clear browsing data
-3. **Check certificate is in correct store**:
-   - Windows: Must be in "Trusted Root Certification Authorities", not "Personal"
-   - Linux: Run `update-ca-certificates` with sudo
-   - Mac: Certificate must be set to "Always Trust"
-4. **For Firefox**: Install via Firefox's own certificate manager (not OS)
-5. **Hard refresh page**: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+解決策:
+1. **ブラウザを完全に再起動**（タブだけでなく、すべてのウィンドウを閉じる）
+2. **ブラウザキャッシュをクリア**: 設定 → プライバシー → 閲覧データを削除
+3. **証明書が正しいストアにあるか確認**:
+   - Windows: "信頼されたルート証明機関"にある必要があります、"個人"ではありません
+   - Linux: sudoで`update-ca-certificates`を実行
+   - Mac: 証明書を"常に信頼"に設定する必要があります
+4. **Firefox向け**: OS経由ではなく、Firefox独自の証明書マネージャーでインストール
+5. **ページをハードリフレッシュ**: Ctrl+Shift+R（Windows/Linux）またはCmd+Shift+R（Mac）
 
-**Problem: "This CA Root certificate is not trusted"**
+**問題: "このCAルート証明書は信頼されていません"**
 
-Solutions:
-1. Make sure you installed `ca.crt` (not `server.crt`)
-2. Install to "Trusted Root" store (not Intermediate or Personal)
-3. On Windows, run certutil as Administrator
-4. On Linux, make sure filename ends with `.crt` in ca-certificates directory
+解決策:
+1. `ca.crt`（`server.crt`ではない）をインストールしたことを確認
+2. "信頼されたルート"ストアにインストール（中間または個人ではない）
+3. Windowsでは、管理者としてcertutilを実行
+4. Linuxでは、ca-certificatesディレクトリでファイル名が`.crt`で終わることを確認
 
-**Problem: Chrome says "NET::ERR_CERT_AUTHORITY_INVALID"**
+**問題: Chromeが"NET::ERR_CERT_AUTHORITY_INVALID"と表示**
 
-Solutions:
-1. CA certificate not in system trust store
-2. On Linux: Run `sudo update-ca-certificates` and restart Chrome
-3. On Windows: Install via certutil or GUI, restart Chrome
-4. Try opening in Incognito/Private mode to test
+解決策:
+1. CA証明書がシステムトラストストアにありません
+2. Linuxで: `sudo update-ca-certificates`を実行してChromeを再起動
+3. Windowsで: certutilまたはGUI経由でインストール、Chromeを再起動
+4. シークレット/プライベートモードで開いてテスト
 
-**Problem: Firefox still shows warning, but Chrome works**
+**問題: Firefoxはまだ警告を表示するが、Chromeは動作する**
 
-Solutions:
-- Firefox uses separate certificate store
-- Must import CA cert through Firefox Settings → Certificates
-- System installation doesn't affect Firefox
+解決策:
+- Firefoxは別の証明書ストアを使用
+- Firefox設定 → 証明書を通じてCA証明書をインポートする必要があります
+- システムインストールはFirefoxに影響しません
 
-### 8. Export Certificates
+### 8. 証明書のエクスポート
 
-Export certificates for use on other servers:
+他サーバで使用するために証明書をエクスポートします：
 
 ```bash
 ./scripts/export-certificates.sh
 ```
 
-This creates a tarball in `certs/export/` containing:
-- `ca.crt` - CA certificate for client trust
-- `server.crt` - Server certificate
-- `server.key` - Server private key (keep secure!)
-- `server-chain.crt` - Full certificate chain
-- `README.txt` - Installation instructions
-- `verify.sh` - Verification script
-- `CERTIFICATE_INFO.txt` - Certificate details
+これにより、以下を含む`certs/export/`にtarballが作成されます：
+- `ca.crt` - クライアント信頼用のCA証明書
+- `server.crt` - サーバ証明書
+- `server.key` - サーバ秘密鍵（安全に保管してください！）
+- `server-chain.crt` - 完全な証明書チェーン
+- `README.txt` - インストール手順
+- `verify.sh` - 検証スクリプト
+- `CERTIFICATE_INFO.txt` - 証明書詳細
 
-**Transfer to another server:**
+**別サーバへ転送:**
 ```bash
 scp certs/export/ca-bundle-*.tar.gz user@other-server:/tmp/
 ```
 
-## 9. Configuration
+## 9. 設定
 
-### Environment Variables (.env)
+### 環境変数（.env）
 
 ```bash
-# Server Configuration
-SERVER_NAME=98.93.187.130          # Server hostname or IP
-HTTPS_PORT=5006                    # External HTTPS port
-CERT_VALIDITY_DAYS=730             # Certificate validity (2 years)
+# サーバ設定
+SERVER_NAME=98.93.187.130          # サーバホスト名またはIP
+HTTPS_PORT=5006                    # 外部HTTPSポート
+CERT_VALIDITY_DAYS=730             # 証明書有効期限（2年）
 
-# Certificate Subject Information
-CERT_COUNTRY=JP                    # Country code
-CERT_STATE=Tokyo                   # State/Province
-CERT_LOCALITY=Tokyo                # City
-CERT_ORGANIZATION=OnPremise-CA     # Organization name
-CERT_ORG_UNIT=IT                   # Organizational unit
+# 証明書サブジェクト情報
+CERT_COUNTRY=JP                    # 国コード
+CERT_STATE=Tokyo                   # 都道府県
+CERT_LOCALITY=Tokyo                # 市区町村
+CERT_ORGANIZATION=OnPremise-CA     # 組織名
+CERT_ORG_UNIT=IT                   # 部門
 
-# External Access
-EC2_PUBLIC_IP=98.93.187.130        # Public IP address
+# 外部アクセス
+EC2_PUBLIC_IP=98.93.187.130        # パブリックIPアドレス
+
+# 証明書ダウンロードサーバ
+CERT_DOWNLOAD_PORT=8080            # 証明書配布サーバのポート
 ```
 
-### OpenSSL Configuration
+### OpenSSL設定
 
-#### CA Certificate (config/openssl-ca.cnf)
-- 4096-bit RSA key
-- Self-signed
-- CA:TRUE extension
-- keyCertSign and cRLSign key usage
+#### CA証明書（config/openssl-ca.cnf）
+- 4096-bit RSA鍵
+- 自己署名
+- CA:TRUE拡張
+- keyCertSignとcRLSign鍵使用
 
-#### Server Certificate (config/openssl-server.cnf)
-- 2048-bit RSA key
-- Signed by CA
-- serverAuth and clientAuth extended key usage
-- SubjectAltName with DNS and IP
+#### サーバ証明書（config/openssl-server.cnf）
+- 2048-bit RSA鍵
+- CAで署名
+- serverAuthとclientAuth拡張鍵使用
+- DNSとIPを含むSubjectAltName
 
-### Nginx Configuration
+### Nginx設定
 
-#### SSL/TLS Settings
-- TLS 1.2 and TLS 1.3 only
-- Strong cipher suites
-- HTTP/2 enabled
-- Security headers (HSTS, X-Frame-Options, etc.)
+#### SSL/TLS設定
+- TLS 1.2とTLS 1.3のみ
+- 強力な暗号スイート
+- HTTP/2有効
+- セキュリティヘッダー（HSTS、X-Frame-Optionsなど）
 
-#### Endpoints
-- `/` - Test page with instructions
-- `/health` - Health check (returns "healthy")
-- `/cert-info` - Certificate information
+#### エンドポイント
+- `/` - 手順付きテストページ
+- `/health` - ヘルスチェック（"healthy"を返す）
+- `/cert-info` - 証明書情報
 
-## 10. Using Certificates on Other Servers
+## 10. 他サーバでの証明書使用
 
-### Azure DevOps Server (On-Premise)
+### Azure DevOps Server（オンプレミス）
 
-Azure DevOps Server requires both the CA certificate (for client trust) and the server certificate with private key (for HTTPS operation).
+Azure DevOps Serverには、CA証明書（クライアント信頼用）とサーバ証明書および秘密鍵（HTTPS動作用）の両方が必要です。
 
-#### Prerequisites
+#### 前提条件
 
-- Azure DevOps Server installed on Windows Server
-- IIS installed and running
-- OpenSSL available (Git for Windows includes OpenSSL)
-- Administrator privileges
+- Windows ServerにAzure DevOps Serverがインストール済み
+- IISがインストールされ実行中
+- OpenSSLが利用可能（Git for WindowsにはOpenSSLが含まれます）
+- 管理者権限
 
-#### Method 1: Automated Installation (PowerShell Script)
+#### 方法1: 自動インストール（PowerShellスクリプト）
 
-**Step 1: Export certificates from CA server**
+**ステップ1: CAサーバから証明書をエクスポート**
 
 ```bash
-# On the CA server
+# CAサーバ上で実行
 cd /root/aws.git/container/claudecode/CA
 ./scripts/export-certificates.sh
 
-# Transfer to Azure DevOps Server
-# The bundle includes: ca.crt, server.crt, server.key, server-chain.crt
+# Azure DevOps Serverに転送
+# バンドルには以下が含まれます: ca.crt, server.crt, server.key, server-chain.crt
 ```
 
-**Step 2: Transfer certificate bundle to Azure DevOps Server**
+**ステップ2: 証明書バンドルをAzure DevOps Serverに転送**
 
 ```bash
-# From CA server to DevOps server
+# CAサーバからDevOpsサーバへ
 scp certs/export/ca-bundle-*.tar.gz administrator@devops-server:C:\Temp\
 ```
 
-**Step 3: Extract and run installation script**
+**ステップ3: 展開してインストールスクリプトを実行**
 
-On Azure DevOps Server (PowerShell as Administrator):
+Azure DevOps Server上で（PowerShellを管理者として）:
 
 ```powershell
-# Extract certificate bundle
+# 証明書バンドルを展開
 cd C:\Temp
 tar -xzf ca-bundle-*.tar.gz
 
-# Download installation script from CA server
+# CAサーバからインストールスクリプトをダウンロード
 Invoke-WebRequest -Uri "http://98.93.187.130:8080/install-cert-devops-server.ps1" -OutFile "install-cert-devops-server.ps1"
 
-# Or copy from the extracted bundle if available
-# Copy scripts\install-cert-devops-server.ps1 to current directory
+# または展開されたバンドルから利用可能な場合はコピー
+# scripts\install-cert-devops-server.ps1を現在のディレクトリにコピー
 
-# Run installation script
+# インストールスクリプトを実行
 powershell -ExecutionPolicy Bypass -File install-cert-devops-server.ps1 -CertificateBundle "C:\Temp\ca-bundle-20260120-013115"
 ```
 
-**What the script does:**
-1. ✅ Installs CA certificate to Trusted Root Certification Authorities
-2. ✅ Creates PFX file from certificate and private key
-3. ✅ Imports server certificate to Personal certificate store
-4. ✅ Configures IIS HTTPS binding (port 443)
-5. ✅ Displays Azure DevOps Server configuration steps
+**スクリプトが実行する処理:**
+1. ✅ 信頼されたルート証明機関にCA証明書をインストール
+2. ✅ 証明書と秘密鍵からPFXファイルを作成
+3. ✅ 個人証明書ストアにサーバ証明書をインポート
+4. ✅ IISのHTTPSバインディングを設定（ポート443）
+5. ✅ Azure DevOps Server設定手順を表示
 
-**Step 4: Configure Azure DevOps Server**
+**ステップ4: Azure DevOps Serverの設定**
 
-After the script completes:
+スクリプト完了後:
 
-1. **Open Azure DevOps Server Administration Console**
+1. **Azure DevOps Server管理コンソールを開く**
 
-2. **Navigate to Application Tier** → **Change URLs**
+2. **アプリケーション層** → **URLの変更**に移動
 
-3. **Update Public URL** to use HTTPS:
+3. **パブリックURL**をHTTPSに更新:
    ```
    https://your-devops-server.domain.com/
    ```
 
-4. **Click OK** and apply changes
+4. **OK**をクリックして変更を適用
 
-5. **Restart Azure DevOps Server services:**
-   - Open Services (`services.msc`)
-   - Restart "Azure DevOps Server" and related services
-   - Or use PowerShell:
+5. **Azure DevOps Serverサービスを再起動:**
+   - サービス（`services.msc`）を開く
+   - "Azure DevOps Server"および関連サービスを再起動
+   - またはPowerShellを使用:
    ```powershell
    Restart-Service "Azure DevOps Server"
    Restart-Service "VSS*"
    ```
 
-6. **Test HTTPS access:**
+6. **HTTPSアクセスをテスト:**
    ```
    https://your-devops-server.domain.com/
    ```
 
-#### Method 2: Manual Installation
+#### 方法2: 手動インストール
 
-If you prefer manual installation:
+手動インストールを希望する場合:
 
-**Step 1: Install CA Certificate**
+**ステップ1: CA証明書のインストール**
 
 ```powershell
-# Import CA certificate to Trusted Root
+# 信頼されたルートにCA証明書をインポート
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("C:\Temp\ca-bundle-xxx\ca.crt")
 
 $store = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root","LocalMachine")
@@ -880,16 +888,16 @@ $store.Open("ReadWrite")
 $store.Add($cert)
 $store.Close()
 
-Write-Host "CA certificate installed"
+Write-Host "CA証明書がインストールされました"
 ```
 
-**Step 2: Create PFX from certificate and key**
+**ステップ2: 証明書と鍵からPFXを作成**
 
 ```powershell
-# Using OpenSSL (from Git for Windows)
+# OpenSSLを使用（Git for Windowsから）
 cd "C:\Temp\ca-bundle-xxx"
 
-# Create PFX
+# PFXを作成
 & "C:\Program Files\Git\usr\bin\openssl.exe" pkcs12 -export `
   -out server.pfx `
   -inkey server.key `
@@ -897,13 +905,13 @@ cd "C:\Temp\ca-bundle-xxx"
   -certfile ca.crt `
   -password pass:YourPassword
 
-# Or use GUI: Import wizard requires PFX format
+# またはGUIを使用: インポートウィザードはPFX形式が必要
 ```
 
-**Step 3: Import Server Certificate**
+**ステップ3: サーバ証明書のインポート**
 
 ```powershell
-# Import PFX to Personal store
+# 個人ストアにPFXをインポート
 $pfxPassword = ConvertTo-SecureString -String "YourPassword" -AsPlainText -Force
 
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
@@ -917,79 +925,79 @@ $store.Open("ReadWrite")
 $store.Add($cert)
 $store.Close()
 
-Write-Host "Server certificate installed"
-Write-Host "Thumbprint: $($cert.Thumbprint)"
+Write-Host "サーバ証明書がインストールされました"
+Write-Host "サムプリント: $($cert.Thumbprint)"
 ```
 
-**Step 4: Configure IIS HTTPS Binding**
+**ステップ4: IISのHTTPSバインディングを設定**
 
-Method A: Using IIS Manager (GUI)
+方法A: IISマネージャー（GUI）を使用
 
-1. Open **IIS Manager** (`inetmgr`)
-2. Select your **Azure DevOps Server site** (or "Default Web Site")
-3. Click **"Bindings..."** in the Actions pane
-4. Click **"Add..."** or **"Edit..."** for HTTPS
-5. **Type:** https
-6. **Port:** 443
-7. **SSL certificate:** Select your server certificate (shows Subject/CN)
-8. Click **OK**
+1. **IISマネージャー**（`inetmgr`）を開く
+2. **Azure DevOps Serverサイト**（または"既定のWebサイト"）を選択
+3. アクションペインの**"バインド..."**をクリック
+4. HTTPSの**"追加..."**または**"編集..."**をクリック
+5. **種類:** https
+6. **ポート:** 443
+7. **SSL証明書:** サーバ証明書を選択（サブジェクト/CNが表示されます）
+8. **OK**をクリック
 
-Method B: Using PowerShell
+方法B: PowerShellを使用
 
 ```powershell
 Import-Module WebAdministration
 
-# Remove existing HTTPS binding if present
+# 既存のHTTPSバインディングを削除（存在する場合）
 Remove-WebBinding -Name "Default Web Site" -Protocol "https" -Port 443 -ErrorAction SilentlyContinue
 
-# Add new HTTPS binding
+# 新しいHTTPSバインディングを追加
 New-WebBinding -Name "Default Web Site" -Protocol "https" -Port 443 -SslFlags 0
 
-# Get certificate thumbprint
+# 証明書のサムプリントを取得
 $cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.Subject -like "*your-server-name*" }
 
-# Bind certificate
+# 証明書をバインド
 $binding = Get-WebBinding -Name "Default Web Site" -Protocol "https" -Port 443
 $binding.AddSslCertificate($cert.Thumbprint, "My")
 
-Write-Host "HTTPS binding configured"
+Write-Host "HTTPSバインディングが設定されました"
 ```
 
-**Step 5: Test IIS Configuration**
+**ステップ5: IIS設定のテスト**
 
 ```powershell
-# Test HTTPS binding
+# HTTPSバインディングをテスト
 netstat -an | findstr ":443"
 
-# Should show:
+# 以下が表示されるはずです:
 # TCP    0.0.0.0:443            0.0.0.0:0              LISTENING
 
-# Test with browser or curl
+# ブラウザまたはcurlでテスト
 curl https://localhost/ -k
 ```
 
-**Step 6: Update Azure DevOps Server Configuration**
+**ステップ6: Azure DevOps Server設定の更新**
 
-Follow Step 4 from Method 1 (Azure DevOps Server Administration Console configuration).
+方法1のステップ4（Azure DevOps Server管理コンソール設定）に従ってください。
 
-#### Troubleshooting Azure DevOps Server HTTPS
+#### Azure DevOps Server HTTPSのトラブルシューティング
 
-**Problem: Certificate not showing in IIS**
+**問題: IISに証明書が表示されない**
 
-Solution:
+解決策:
 ```powershell
-# Verify certificate is in Personal store
+# 個人ストアに証明書があることを確認
 Get-ChildItem -Path Cert:\LocalMachine\My | Format-List Subject, Issuer, Thumbprint
 
-# Verify certificate has private key
+# 証明書に秘密鍵があることを確認
 Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.HasPrivateKey } | Format-List Subject
 ```
 
-**Problem: IIS shows "The specified network password is not correct"**
+**問題: IISが"指定されたネットワークパスワードが正しくありません"と表示**
 
-Solution: Certificate was imported to user store instead of machine store
+解決策: 証明書がマシンストアではなくユーザーストアにインポートされました
 ```powershell
-# Reimport with MachineKeySet flag
+# MachineKeySetフラグで再インポート
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
     "server.pfx",
     $password,
@@ -997,75 +1005,75 @@ $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate
 )
 ```
 
-**Problem: Azure DevOps Server still uses HTTP**
+**問題: Azure DevOps ServerがまだHTTPを使用している**
 
-Solution:
-1. Check Application Tier URL in Administration Console
-2. Verify IIS binding is active: `Get-WebBinding -Name "Default Web Site"`
-3. Restart Azure DevOps services
-4. Clear browser cache
+解決策:
+1. 管理コンソールでアプリケーション層URLを確認
+2. IISバインディングがアクティブであることを確認: `Get-WebBinding -Name "Default Web Site"`
+3. Azure DevOpsサービスを再起動
+4. ブラウザキャッシュをクリア
 
-**Problem: Clients still see certificate warning**
+**問題: クライアントがまだ証明書警告を表示する**
 
-Solution: Clients need to install the CA certificate (ca.crt) - see Section 6 for client installation.
+解決策: クライアントはCA証明書（ca.crt）をインストールする必要があります - クライアントインストールについてはセクション6を参照してください。
 
-#### Security Best Practices for Azure DevOps Server
+#### Azure DevOps Serverのセキュリティベストプラクティス
 
-1. **Use strong PFX password** - Store securely, don't commit to source control
-2. **Restrict certificate private key access** - Only service accounts need access
-3. **Enable HTTPS-only** - Redirect HTTP to HTTPS in IIS
-4. **Update firewall rules** - Allow port 443, block port 80 if not needed
-5. **Monitor certificate expiration** - Set reminders before certificates expire (730 days)
-6. **Backup certificates** - Store PFX and password in secure location
+1. **強力なPFXパスワードを使用** - 安全に保管し、ソース管理にコミットしない
+2. **証明書秘密鍵のアクセスを制限** - サービスアカウントのみがアクセスする必要があります
+3. **HTTPS専用を有効化** - IISでHTTPをHTTPSにリダイレクト
+4. **ファイアウォールルールを更新** - ポート443を許可、必要に応じてポート80をブロック
+5. **証明書の有効期限を監視** - 証明書の期限が切れる前にリマインダーを設定（730日）
+6. **証明書をバックアップ** - PFXとパスワードを安全な場所に保管
 
-#### Firewall Configuration
+#### ファイアウォール設定
 
 ```powershell
-# Allow HTTPS (port 443)
+# HTTPS（ポート443）を許可
 New-NetFirewallRule -DisplayName "Azure DevOps HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
 
-# Optional: Block HTTP (port 80) after HTTPS is working
+# オプション: HTTPSが動作した後にHTTP（ポート80）をブロック
 New-NetFirewallRule -DisplayName "Block Azure DevOps HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Block
 ```
 
 ---
 
-### Linux (Ubuntu/Debian)
+### Linux（Ubuntu/Debian）
 
 ```bash
-# Extract certificate bundle
+# 証明書バンドルを展開
 tar xzf ca-bundle-*.tar.gz
 cd ca-bundle-*/
 
-# Install CA certificate
+# CA証明書をインストール
 sudo cp ca.crt /usr/local/share/ca-certificates/onpremise-ca.crt
 sudo update-ca-certificates
 
-# Test connection
+# 接続をテスト
 curl https://98.93.187.130:5006/
 ```
 
-### Linux (CentOS/RHEL)
+### Linux（CentOS/RHEL）
 
 ```bash
-# Install CA certificate
+# CA証明書をインストール
 sudo cp ca.crt /etc/pki/ca-trust/source/anchors/onpremise-ca.crt
 sudo update-ca-trust
 ```
 
 ### Windows
 
-**Command Line (Administrator):**
+**コマンドライン（管理者）:**
 ```cmd
 certutil -addstore -f "ROOT" ca.crt
 ```
 
 **GUI:**
-1. Double-click `ca.crt`
-2. Click "Install Certificate"
-3. Select "Local Machine"
-4. Select "Trusted Root Certification Authorities"
-5. Click "Finish"
+1. `ca.crt`をダブルクリック
+2. "証明書のインストール"をクリック
+3. "ローカルコンピューター"を選択
+4. "信頼されたルート証明機関"を選択
+5. "完了"をクリック
 
 ### macOS
 
@@ -1074,7 +1082,7 @@ sudo security add-trusted-cert -d -r trustRoot \
     -k /Library/Keychains/System.keychain ca.crt
 ```
 
-### Web Servers
+### Webサーバ
 
 #### Nginx
 
@@ -1086,7 +1094,7 @@ server {
     ssl_certificate /etc/nginx/certs/server-chain.crt;
     ssl_certificate_key /etc/nginx/certs/server.key;
 
-    # ... other configuration
+    # ... その他の設定
 }
 ```
 
@@ -1101,308 +1109,308 @@ server {
     SSLCertificateKeyFile /etc/ssl/private/server.key
     SSLCertificateChainFile /etc/ssl/certs/ca.crt
 
-    # ... other configuration
+    # ... その他の設定
 </VirtualHost>
 ```
 
-## 11. Security Considerations
+## 11. セキュリティ上の考慮事項
 
-### Private Key Protection
+### 秘密鍵の保護
 
-**Private keys must be protected:**
-- Never commit to version control (gitignored)
-- Set permissions to 600 (owner read/write only)
-- Store backups in encrypted storage
-- Rotate regularly
+**秘密鍵は保護する必要があります:**
+- バージョン管理にコミットしない（gitignore済み）
+- 権限を600に設定（所有者のみ読み書き可能）
+- バックアップは暗号化されたストレージに保管
+- 定期的にローテーション
 
 ```bash
-# Proper permissions
+# 適切な権限
 chmod 600 certs/ca/ca.key
 chmod 600 certs/server/server.key
 ```
 
-### Certificate Validity
+### 証明書の有効期限
 
-- Default validity: 730 days (2 years)
-- Monitor expiration dates
-- Renew before expiration
-- Test renewed certificates before deployment
+- デフォルト有効期限: 730日（2年）
+- 有効期限を監視
+- 有効期限前に更新
+- デプロイ前に更新された証明書をテスト
 
 ```bash
-# Check expiration
+# 有効期限を確認
 openssl x509 -in certs/server/server.crt -noout -dates
 ```
 
-### Access Control
+### アクセス制御
 
-- HTTPS server accessible from external IP (no IP restrictions)
-- For production: implement IP whitelisting in firewall
-- Use strong TLS configuration (TLS 1.2+)
-- Keep OpenSSL and Docker updated
+- HTTPSサーバは外部IPからアクセス可能（IP制限なし）
+- 本番環境向け: ファイアウォールでIPホワイトリストを実装
+- 強力なTLS設定を使用（TLS 1.2以降）
+- OpenSSLとDockerを最新に保つ
 
-## Troubleshooting
+## 12. トラブルシューティング
 
-### Certificate Generation Issues
+### 証明書生成の問題
 
-**Error: OpenSSL not found**
+**エラー: OpenSSLが見つかりません**
 ```bash
-# Install OpenSSL
+# OpenSSLをインストール
 sudo yum install openssl          # CentOS/RHEL
 sudo apt-get install openssl      # Ubuntu/Debian
 ```
 
-**Error: .env file not found**
+**エラー: .envファイルが見つかりません**
 ```bash
-# Run setup script
+# セットアップスクリプトを実行
 ./scripts/setup-ca-environment.sh
 ```
 
-**Error: Permission denied**
+**エラー: 権限が拒否されました**
 ```bash
-# Set execute permissions
+# 実行権限を設定
 chmod +x scripts/*.sh scripts/utils/*.sh
 ```
 
-### Docker Issues
+### Dockerの問題
 
-**Error: Permission denied (docker socket)**
+**エラー: 権限が拒否されました（dockerソケット）**
 ```bash
-# Use sudo
+# sudoを使用
 sudo docker-compose up -d
 ```
 
-**Error: Port 5006 already in use**
+**エラー: ポート5006が既に使用中です**
 ```bash
-# Check what's using the port
+# ポートを使用しているものを確認
 sudo netstat -tlnp | grep 5006
 
-# Change port in .env and docker-compose.yml
-# Or stop the conflicting service
+# .envとdocker-compose.ymlでポートを変更
+# または競合するサービスを停止
 ```
 
-**Error: Container fails health check**
+**エラー: コンテナがヘルスチェックに失敗します**
 ```bash
-# Check logs
+# ログを確認
 sudo docker-compose logs ca-https-test
 
-# Check if certificates are mounted correctly
+# 証明書が正しくマウントされているか確認
 sudo docker-compose exec ca-https-test ls -la /etc/nginx/certs/
 
-# Restart container
+# コンテナを再起動
 sudo docker-compose restart
 ```
 
-### Connection Issues
+### 接続の問題
 
-**Error: Connection refused**
+**エラー: 接続が拒否されました**
 ```bash
-# Check if container is running
+# コンテナが実行中か確認
 sudo docker-compose ps
 
-# Check firewall
+# ファイアウォールを確認
 sudo firewall-cmd --list-ports
 sudo firewall-cmd --add-port=5006/tcp --permanent
 sudo firewall-cmd --reload
 ```
 
-**Error: Certificate verify failed**
+**エラー: 証明書の検証に失敗しました**
 ```bash
-# Install CA certificate on client machine
-# Or use -k flag to skip verification (testing only)
+# クライアントマシンにCA証明書をインストール
+# またはテスト用に-kフラグを使用して検証をスキップ
 curl -k https://98.93.187.130:5006/
 ```
 
-**Browser shows security warning**
-- Import CA certificate into browser (see "Using Certificates" section)
-- For Firefox: use built-in certificate manager
-- For Chrome/Edge: install CA certificate in OS trust store
+**ブラウザがセキュリティ警告を表示**
+- ブラウザにCA証明書をインポート（"証明書の使用"セクション参照）
+- Firefox向け: 組み込みの証明書マネージャーを使用
+- Chrome/Edge向け: OSトラストストアにCA証明書をインストール
 
-### Certificate Issues
+### 証明書の問題
 
-**Error: Certificate has expired**
+**エラー: 証明書の有効期限が切れています**
 ```bash
-# Regenerate certificates
+# 証明書を再生成
 rm -rf certs/ca/* certs/server/*
 ./scripts/create-ca.sh
 sudo docker-compose restart
 ```
 
-**Error: Certificate chain verification failed**
+**エラー: 証明書チェーンの検証に失敗しました**
 ```bash
-# Verify certificate chain
+# 証明書チェーンを検証
 ./scripts/utils/verify-certificates.sh
 
-# Check if CA certificate signed server certificate
+# CA証明書がサーバ証明書に署名したか確認
 openssl verify -CAfile certs/ca/ca.crt certs/server/server.crt
 ```
 
-## Architecture
+## 13. アーキテクチャ
 
-### Certificate Hierarchy
+### 証明書階層
 
 ```
-OnPremise-CA-Root (CA Certificate)
-  └── Self-signed, 4096-bit RSA
-      └── Valid for 730 days
-          └── Signs server certificates
+OnPremise-CA-Root（CA証明書）
+  └── 自己署名、4096-bit RSA
+      └── 730日間有効
+          └── サーバ証明書に署名
               │
-              └── Server Certificate (server.crt)
+              └── サーバ証明書（server.crt）
                   └── 2048-bit RSA
-                  └── Valid for 730 days
+                  └── 730日間有効
                   └── SubjectAltName: DNS + IP
 ```
 
-### Certificate Chain
+### 証明書チェーン
 
 ```
-Client ←→ HTTPS Server
+クライアント ←→ HTTPSサーバ
           │
-          └── Presents: server-chain.crt
+          └── 提示: server-chain.crt
               │
-              ├── Server Certificate (server.crt)
-              │   └── Signed by CA
+              ├── サーバ証明書（server.crt）
+              │   └── CAで署名
               │
-              └── CA Certificate (ca.crt)
-                  └── Self-signed
+              └── CA証明書（ca.crt）
+                  └── 自己署名
 ```
 
-### Docker Architecture
+### Dockerアーキテクチャ
 
 ```
-Host:5006 ←→ Docker Bridge ←→ Container:443
+Host:5006 ←→ Dockerブリッジ ←→ Container:443
               (ca-network)
                   │
-                  └── Nginx HTTPS Server
-                      ├── Mounts: server.crt
-                      ├── Mounts: server.key
-                      ├── Mounts: server-chain.crt
-                      ├── Mounts: nginx.conf
-                      └── Mounts: index.html
+                  └── Nginx HTTPSサーバ
+                      ├── マウント: server.crt
+                      ├── マウント: server.key
+                      ├── マウント: server-chain.crt
+                      ├── マウント: nginx.conf
+                      └── マウント: index.html
 ```
 
-## Maintenance
+## 14. メンテナンス
 
-### Regular Tasks
+### 定期的なタスク
 
-**Check Certificate Expiration** (monthly)
+**証明書有効期限の確認**（月次）
 ```bash
-# Check expiration dates
+# 有効期限を確認
 openssl x509 -in certs/ca/ca.crt -noout -enddate
 openssl x509 -in certs/server/server.crt -noout -enddate
 
-# Get days until expiration
+# 有効期限までの日数を取得
 openssl x509 -in certs/server/server.crt -noout -checkend 2592000
 ```
 
-**Verify Certificates** (monthly)
+**証明書の検証**（月次）
 ```bash
 ./scripts/utils/verify-certificates.sh
 ```
 
-**Check Container Health** (weekly)
+**コンテナヘルスの確認**（週次）
 ```bash
 sudo docker-compose ps
 sudo docker-compose logs --tail=100 ca-https-test
 ```
 
-**Review Logs** (weekly)
+**ログのレビュー**（週次）
 ```bash
 cat logs/certificate-generation.log
 sudo docker-compose logs ca-https-test
 ```
 
-### Certificate Renewal
+### 証明書の更新
 
-When certificates are close to expiration:
+証明書の有効期限が近い場合:
 
 ```bash
-# 1. Backup existing certificates
+# 1. 既存の証明書をバックアップ
 tar czf certs-backup-$(date +%Y%m%d).tar.gz certs/
 
-# 2. Generate new certificates
+# 2. 新しい証明書を生成
 ./scripts/create-ca.sh
 
-# 3. Restart HTTPS server
+# 3. HTTPSサーバを再起動
 sudo docker-compose restart
 
-# 4. Verify new certificates
+# 4. 新しい証明書を検証
 ./scripts/utils/verify-certificates.sh
 curl -k https://98.93.187.130:5006/
 
-# 5. Export for other servers
+# 5. 他サーバ用にエクスポート
 ./scripts/export-certificates.sh
 ```
 
-## Performance
+## 15. パフォーマンス
 
-### Resource Usage
+### リソース使用量
 
-- **CPU**: Minimal (Nginx is lightweight)
-- **Memory**: ~10-20MB (Alpine-based container)
-- **Disk**: ~50MB (container image + certificates)
-- **Network**: Negligible (test server only)
+- **CPU**: 最小限（Nginxは軽量）
+- **メモリ**: 約10-20MB（Alpineベースのコンテナ）
+- **ディスク**: 約50MB（コンテナイメージ + 証明書）
+- **ネットワーク**: 無視できる（テストサーバのみ）
 
-### Scaling
+### スケーリング
 
-For production use:
-- Use load balancer with multiple HTTPS servers
-- Implement certificate distribution automation
-- Set up monitoring and alerting for certificate expiration
-- Consider using Let's Encrypt for public-facing services
+本番環境での使用:
+- 複数のHTTPSサーバでロードバランサーを使用
+- 証明書配布の自動化を実装
+- 証明書有効期限の監視とアラートを設定
+- 公開サービス向けにLet's Encryptの使用を検討
 
-## Integration with CICD Project
+## 16. CICDプロジェクトとの統合
 
-This CA infrastructure is part of the larger CICD project:
+このCA基盤は、より大きなCICDプロジェクトの一部です：
 
-- **Independent**: Separate docker network (ca-network)
-- **Port Allocation**: Port 5006 (no conflict with CICD services)
-- **Environment Variables**: Can inherit EC2_PUBLIC_IP from parent .env
-- **Documentation Pattern**: Follows same structure as CICD project
+- **独立**: 別個のdockerネットワーク（ca-network）
+- **ポート割り当て**: ポート5006（CICDサービスと競合しない）
+- **環境変数**: 親の.envからEC2_PUBLIC_IPを継承可能
+- **ドキュメントパターン**: CICDプロジェクトと同じ構造に従う
 
-## FAQ
+## 17. FAQ
 
-**Q: Can I use these certificates for production?**
-A: These are self-signed certificates suitable for on-premise closed environments. For public-facing services, use certificates from a trusted CA (e.g., Let's Encrypt).
+**Q: 本番環境でこれらの証明書を使用できますか？**
+A: これらはオンプレミスクローズド環境に適した自己署名証明書です。公開サービス向けには、信頼されたCA（例: Let's Encrypt）からの証明書を使用してください。
 
-**Q: How do I change the server name after certificate generation?**
-A: Regenerate certificates with new server name:
+**Q: 証明書生成後にサーバ名を変更するにはどうすればよいですか？**
+A: 新しいサーバ名で証明書を再生成します：
 ```bash
 rm -rf certs/server/*
 ./scripts/create-ca.sh
 sudo docker-compose restart
 ```
 
-**Q: Can I use the same CA to sign multiple server certificates?**
-A: Yes! The CA certificate and key can be reused. Just run create-ca.sh with different server names. The script will skip CA generation if it already exists.
+**Q: 同じCAを使用して複数のサーバ証明書に署名できますか？**
+A: はい！CA証明書と鍵は再利用できます。異なるサーバ名でcreate-ca.shを実行するだけです。スクリプトは既に存在する場合、CA生成をスキップします。
 
-**Q: Why do I need sudo for docker-compose?**
-A: This is a requirement specified in issue #119. Docker requires elevated privileges to access the Docker socket and manage containers.
+**Q: docker-composeにsudoが必要なのはなぜですか？**
+A: これはissue #119で指定された要件です。Dockerは、Dockerソケットにアクセスしてコンテナを管理するために管理者権限が必要です。
 
-**Q: Can I change the port from 5006?**
-A: Yes. Update `HTTPS_PORT` in `.env` and the port mapping in `docker-compose.yml`.
+**Q: ポート5006から変更できますか？**
+A: はい。`.env`の`HTTPS_PORT`と`docker-compose.yml`のポートマッピングを更新してください。
 
-**Q: How do I remove browser security warnings?**
-A: Import the CA certificate (ca.crt) into your browser or system trust store. See "Using Certificates on Other Servers" section.
+**Q: ブラウザのセキュリティ警告を削除するにはどうすればよいですか？**
+A: CA証明書（ca.crt）をブラウザまたはシステムトラストストアにインポートしてください。"他サーバでの証明書使用"セクションを参照してください。
 
-## License
+## 18. ライセンス
 
-This project is part of the CICD infrastructure for on-premise environments.
+このプロジェクトは、オンプレミス環境向けCICD基盤の一部です。
 
-## Support
+## 19. サポート
 
-For issues or questions:
-- Check this README thoroughly
-- Review logs: `logs/certificate-generation.log`
-- Check container logs: `sudo docker-compose logs ca-https-test`
-- See QUICKSTART.md for common tasks
-- Issue tracker: GitHub issues
+問題や質問がある場合:
+- このREADMEを徹底的に確認してください
+- ログをレビュー: `logs/certificate-generation.log`
+- コンテナログを確認: `sudo docker-compose logs ca-https-test`
+- QUICKSTART.mdで一般的なタスクを参照してください
+- 課題追跡: GitHub issues
 
-## Version
+## 20. バージョン
 
-Current version: 1.0.0
+現在のバージョン: 1.0.0
 
-## Related Documentation
+## 21. 関連ドキュメント
 
-- [QUICKSTART.md](QUICKSTART.md) - Quick start guide
-- [../CICD/README.md](../CICD/README.md) - Parent CICD project documentation
-- [../CICD/CLAUDE.md](../CICD/CLAUDE.md) - Claude Code project guide
+- [QUICKSTART.md](QUICKSTART.md) - クイックスタートガイド
+- [../CICD/README.md](../CICD/README.md) - 親CICDプロジェクトドキュメント
+- [../CICD/CLAUDE.md](../CICD/CLAUDE.md) - Claude Codeプロジェクトガイド
