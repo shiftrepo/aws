@@ -68,7 +68,7 @@
 sudo docker-compose up -d
 
 # 4. 接続テスト
-curl -k https://98.93.187.130:5006/
+curl -k https://<SERVER_IP>:5006/
 ```
 
 ## ディレクトリ構造
@@ -144,7 +144,7 @@ chmod +x scripts/*.sh scripts/utils/*.sh
 ```
 
 **対話モード**（デフォルト）:
-- サーバ名の入力を求められます（デフォルト: 98.93.187.130）
+- サーバ名の入力を求められます（デフォルト: .envで設定されたサーバ名）
 - 有効期限の入力を求められます（デフォルト: 730日）
 - 組織名の入力を求められます（デフォルト: OnPremise-CA）
 
@@ -224,15 +224,15 @@ curl -k https://localhost:5006/health
 **外部テスト:**
 ```bash
 # 別のマシンから
-curl -k https://98.93.187.130:5006/
+curl -k https://<SERVER_IP>:5006/
 
 # CA証明書をインストール後の検証付きテスト
-curl --cacert ca.crt https://98.93.187.130:5006/
+curl --cacert ca.crt https://<SERVER_IP>:5006/
 ```
 
 **ブラウザテスト:**
 ```
-https://98.93.187.130:5006/
+https://<SERVER_IP>:5006/
 ```
 
 ### 6. 自動クライアントインストール（推奨）
@@ -259,12 +259,12 @@ cd /root/aws.git/container/claudecode/CA
 ==========================================
 
 Download URL:
-  http://98.93.187.130:8080/ca.crt
+  http://<SERVER_IP>:8080/ca.crt
 
 Client Installation Scripts:
-  Windows: http://98.93.187.130:8080/install-ca-windows.ps1
-  Linux:   http://98.93.187.130:8080/install-ca-linux.sh
-  macOS:   http://98.93.187.130:8080/install-ca-macos.sh
+  Windows: http://<SERVER_IP>:8080/install-ca-windows.ps1
+  Linux:   http://<SERVER_IP>:8080/install-ca-linux.sh
+  macOS:   http://<SERVER_IP>:8080/install-ca-macos.sh
 ```
 
 クライアントが証明書をダウンロードしてインストールする間、**このサーバを実行し続けてください**。
@@ -274,10 +274,10 @@ Client Installation Scripts:
 **Windowsクライアントマシン上で:**
 
 1. **PowerShellスクリプトをダウンロード:**
-   - ブラウザで `http://98.93.187.130:8080/install-ca-windows.ps1` にアクセス
+   - ブラウザで `http://<SERVER_IP>:8080/install-ca-windows.ps1` にアクセス
    - またはPowerShellを使用:
    ```powershell
-   Invoke-WebRequest -Uri "http://98.93.187.130:8080/install-ca-windows.ps1" -OutFile "install-ca-windows.ps1"
+   Invoke-WebRequest -Uri "http://<SERVER_IP>:8080/install-ca-windows.ps1" -OutFile "install-ca-windows.ps1"
    ```
 
 2. **管理者権限でスクリプトを実行:**
@@ -294,7 +294,7 @@ Client Installation Scripts:
    - LocalMachine\Root（信頼されたルート）へのインストール
    - インストール確認の表示
 
-4. **ブラウザを完全に再起動**して `https://98.93.187.130:5006/` にアクセス
+4. **ブラウザを完全に再起動**して `https://<SERVER_IP>:5006/` にアクセス
 
 #### 6.0.3. 自動インストール - Linux
 
@@ -302,7 +302,7 @@ Client Installation Scripts:
 
 ```bash
 # インストールスクリプトをダウンロードして実行
-curl -O http://98.93.187.130:8080/install-ca-linux.sh
+curl -O http://<SERVER_IP>:8080/install-ca-linux.sh
 chmod +x install-ca-linux.sh
 sudo ./install-ca-linux.sh
 ```
@@ -324,7 +324,7 @@ sudo ./install-ca-linux.sh
 
 ```bash
 # インストールスクリプトをダウンロードして実行
-curl -O http://98.93.187.130:8080/install-ca-macos.sh
+curl -O http://<SERVER_IP>:8080/install-ca-macos.sh
 chmod +x install-ca-macos.sh
 sudo ./install-ca-macos.sh
 ```
@@ -417,7 +417,7 @@ HTTPSサイトを表示している間に、ブラウザから直接CA証明書�
 
 **Chrome/Edge/Chromiumからのエクスポート:**
 
-1. `https://98.93.187.130:5006/` にアクセス（警告が表示されても可）
+1. `https://<SERVER_IP>:5006/` にアクセス（警告が表示されても可）
 2. アドレスバーの**"保護されていない通信"**または**警告アイコン**をクリック
 3. **"証明書が無効です"**または**"証明書（無効）"**をクリック
 4. 証明書ビューアが開きます
@@ -433,7 +433,7 @@ HTTPSサイトを表示している間に、ブラウザから直接CA証明書�
 
 **Firefoxからのエクスポート:**
 
-1. `https://98.93.187.130:5006/` にアクセス（警告が表示されても可）
+1. `https://<SERVER_IP>:5006/` にアクセス（警告が表示されても可）
 2. アドレスバーの**ロックアイコン**または**警告アイコン**をクリック
 3. **"接続は安全ではありません"** → **"詳細情報"**をクリック
 4. **"証明書を表示"**ボタンをクリック
@@ -453,7 +453,7 @@ HTTPSサイトを表示している間に、ブラウザから直接CA証明書�
 
 **Safari（Mac）からのエクスポート:**
 
-1. `https://98.93.187.130:5006/` にアクセス（警告が表示されても可）
+1. `https://<SERVER_IP>:5006/` にアクセス（警告が表示されても可）
 2. アドレスバーの**ロックアイコン**または**警告テキスト**をクリック
 3. **"証明書を表示"**をクリック
 4. 証明書チェーンを探します
@@ -477,7 +477,7 @@ openssl x509 -inform der -in ca.cer -out ca.crt
 ```
 
 **避けるべき一般的な誤り:**
-- ❌ サーバ証明書（CN=98.93.187.130）をエクスポートしない - CA証明書（CN=OnPremise-CA-Root）をエクスポート
+- ❌ サーバ証明書（CN=your-server-name）をエクスポートしない - CA証明書（CN=OnPremise-CA-Root）をエクスポート
 - ❌ `.pfx`または`.p12`形式で保存しない（これらはパスワードが必要で、異なる目的のためのものです）
 - ❌ 証明書チェーン全体をエクスポートしない - ルートCA証明書のみ
 - ✅ 証明書のサブジェクト/発行者に"OnPremise-CA-Root"があることを確認
@@ -490,7 +490,7 @@ openssl x509 -inform der -in ca.cer -out ca.crt
 
 | 証明書 | ファイル | サブジェクト (CN) | 用途 | クライアントにインストール? |
 |------------|------|--------------|---------|-------------------|
-| ❌ サーバ証明書 | `server.crt` | CN=98.93.187.130 | HTTPSサーバで使用 | **NO - インストールしない!** |
+| ❌ サーバ証明書 | `server.crt` | CN=your-server-name | HTTPSサーバで使用 | **NO - インストールしない!** |
 | ✅ CA証明書 | `ca.crt` | CN=OnPremise-CA-Root | サーバ証明書に署名 | **YES - これをインストール!** |
 
 **正しいファイルを持っているか確認する方法:**
@@ -503,7 +503,7 @@ openssl x509 -in your-file.crt -noout -subject
 subject=C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=OnPremise-CA-Root
 
 # 誤り（サーバ証明書）:
-subject=C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=98.93.187.130
+subject=C=JP, ST=Tokyo, L=Tokyo, O=OnPremise-CA, OU=IT, CN=your-server-name
 ```
 
 **誤ってサーバ証明書をインストールした場合:**
@@ -642,7 +642,7 @@ Firefoxは、オペレーティングシステムとは別の独自の証明書�
 9. **"OK"**をクリック
 10. "OnPremise-CA"の下のリストに"OnPremise-CA-Root"が表示されるはずです
 11. 設定を閉じる
-12. **ページを更新**（F5）または`https://98.93.187.130:5006/`を再訪問
+12. **ページを更新**（F5）または`https://<SERVER_IP>:5006/`を再訪問
 
 警告が消え、ロックアイコン🔒が表示されるはずです。
 
@@ -651,12 +651,12 @@ Firefoxは、オペレーティングシステムとは別の独自の証明書�
 CA証明書をインストールした後、動作することを確認します：
 
 **ブラウザで:**
-1. `https://98.93.187.130:5006/`にアクセス
+1. `https://<SERVER_IP>:5006/`にアクセス
 2. アドレスバーに**ロックアイコン**🔒が表示されるはずです（警告三角形ではありません）
 3. ロックアイコンをクリック
 4. **"接続は保護されています"**または**"証明書"**をクリック
 5. 確認:
-   - 発行先: `98.93.187.130`
+   - 発行先: `your-server-name`
    - 発行者: `OnPremise-CA-Root`
    - 有効期間の開始: （証明書開始日）
    - 有効期間の終了: （証明書有効期限）
@@ -664,13 +664,13 @@ CA証明書をインストールした後、動作することを確認します
 **コマンドラインテスト:**
 ```bash
 # Linux/Mac
-curl https://98.93.187.130:5006/
+curl https://<SERVER_IP>:5006/
 
 # CA証明書がシステム全体にインストールされている場合、-kフラグなしで動作するはずです
 # 証明書エラーで失敗する場合、CA証明書が正しくインストールされていません
 
 # Windows PowerShell
-Invoke-WebRequest -Uri https://98.93.187.130:5006/
+Invoke-WebRequest -Uri https://<SERVER_IP>:5006/
 
 # 証明書エラーなしで動作するはずです
 ```
@@ -740,7 +740,7 @@ scp certs/export/ca-bundle-*.tar.gz user@other-server:/tmp/
 
 ```bash
 # サーバ設定
-SERVER_NAME=98.93.187.130          # サーバホスト名またはIP
+SERVER_NAME=your-server-name       # サーバホスト名またはIP
 HTTPS_PORT=5006                    # 外部HTTPSポート
 CERT_VALIDITY_DAYS=730             # 証明書有効期限（2年）
 
@@ -752,7 +752,7 @@ CERT_ORGANIZATION=OnPremise-CA     # 組織名
 CERT_ORG_UNIT=IT                   # 部門
 
 # 外部アクセス
-EC2_PUBLIC_IP=98.93.187.130        # パブリックIPアドレス
+EC2_PUBLIC_IP=your-server-ip       # パブリックIPアドレス
 
 # 証明書ダウンロードサーバ
 CERT_DOWNLOAD_PORT=8080            # 証明書配布サーバのポート
@@ -828,7 +828,7 @@ cd C:\Temp
 tar -xzf ca-bundle-*.tar.gz
 
 # CAサーバからインストールスクリプトをダウンロード
-Invoke-WebRequest -Uri "http://98.93.187.130:8080/install-cert-devops-server.ps1" -OutFile "install-cert-devops-server.ps1"
+Invoke-WebRequest -Uri "http://<SERVER_IP>:8080/install-cert-devops-server.ps1" -OutFile "install-cert-devops-server.ps1"
 
 # または展開されたバンドルから利用可能な場合はコピー
 # scripts\install-cert-devops-server.ps1を現在のディレクトリにコピー
@@ -1050,7 +1050,7 @@ sudo cp ca.crt /usr/local/share/ca-certificates/onpremise-ca.crt
 sudo update-ca-certificates
 
 # 接続をテスト
-curl https://98.93.187.130:5006/
+curl https://<SERVER_IP>:5006/
 ```
 
 ### Linux（CentOS/RHEL）
@@ -1217,7 +1217,7 @@ sudo firewall-cmd --reload
 ```bash
 # クライアントマシンにCA証明書をインストール
 # またはテスト用に-kフラグを使用して検証をスキップ
-curl -k https://98.93.187.130:5006/
+curl -k https://<SERVER_IP>:5006/
 ```
 
 **ブラウザがセキュリティ警告を表示**
@@ -1335,7 +1335,7 @@ sudo docker-compose restart
 
 # 4. 新しい証明書を検証
 ./scripts/utils/verify-certificates.sh
-curl -k https://98.93.187.130:5006/
+curl -k https://<SERVER_IP>:5006/
 
 # 5. 他サーバ用にエクスポート
 ./scripts/export-certificates.sh
