@@ -1,0 +1,29 @@
+# Private keys and sensitive certificate files
+certs/ca/ca.key
+certs/server/server.key
+certs/server/*.csr
+certs/ca/*.srl
+
+# Export packages
+certs/export/*.tar.gz
+
+# Logs
+logs/*.log
+logs/*.txt
+
+# Environment secrets backup
+.env.backup*
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# Docker volumes
+volumes/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo

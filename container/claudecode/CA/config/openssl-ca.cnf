@@ -1,0 +1,25 @@
+# OpenSSL Configuration for CA Certificate Generation
+# This configuration creates a self-signed Certificate Authority (CA) certificate
+
+[ req ]
+default_bits       = 4096
+distinguished_name = req_distinguished_name
+x509_extensions    = v3_ca
+prompt             = no
+default_md         = sha256
+
+[ req_distinguished_name ]
+# Certificate Subject Information (loaded from environment variables)
+countryName            = JP
+stateOrProvinceName    = Tokyo
+localityName           = Tokyo
+organizationName       = OnPremise-CA
+organizationalUnitName = IT
+commonName             = OnPremise-CA-Root
+
+[ v3_ca ]
+# CA Certificate Extensions
+basicConstraints       = critical,CA:TRUE
+keyUsage               = critical,keyCertSign,cRLSign
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer:always

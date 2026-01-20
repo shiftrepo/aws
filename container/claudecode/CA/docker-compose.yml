@@ -1,0 +1,68 @@
+version: '3.8'
+
+################################################################################
+# CA HTTPS Test Server
+#
+# Purpose: HTTPS test environment with self-signed CA certificates
+# Port: 5006 (external) -> 443 (container HTTPS)
+#
+# IMPORTANT: This container must be started with sudo
+# Usage:
+#   sudo docker-compose up -d      # Start container
+#   sudo docker-compose ps         # Check status
+#   sudo docker-compose logs -f    # View logs
+#   sudo docker-compose down       # Stop container
+################################################################################
+
+services:
+  # ========================================
+  # HTTPS Test Server (Nginx)
+  # ========================================
+  ca-https-test:
+    build:
+      context: ./config/nginx
+      dockerfile: Dockerfile
+    image: ca-https-test:latest
+    container_name: ca-https-test
+    restart: always
+
+    # Port mapping: External 5006 -> Internal 443 (HTTPS)
+    ports:
+      - "5006:443"
+
+    # Volume mounts for certificates and configuration
+    volumes:
+      # Server certificates (read-only with SELinux context)
+      - ./certs/server/server.crt:/etc/nginx/certs/server.crt:ro,z
+      - ./certs/server/server.key:/etc/nginx/certs/server.key:ro,z
+      - ./certs/server/server-chain.crt:/etc/nginx/certs/server-chain.crt:ro,z
+
+      # Nginx configuration (read-only with SELinux context)
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro,z
+
+      # Test HTML page (read-only with SELinux context)
+      - ./config/nginx/index.html:/usr/share/nginx/html/index.html:ro,z
+
+    # Network configuration
+    networks:
+      - ca-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -f https://localhost:443/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Environment variables
+    environment:
+      - TZ=Asia/Tokyo
+
+# ========================================
+# Network Configuration
+# ========================================
+networks:
+  ca-network:
+    driver: bridge
+    name: ca-network

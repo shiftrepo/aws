@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTPS Test - CA Infrastructure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+        }
+
+        .lock-icon {
+            font-size: 4em;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .status {
+            background: rgba(46, 204, 113, 0.3);
+            padding: 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+            text-align: center;
+            font-size: 1.3em;
+            border-left: 5px solid #2ecc71;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 3px solid #ffd700;
+        }
+
+        .section h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .section h3 {
+            color: #ffd700;
+            margin: 15px 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .info-value {
+            color: #fff;
+        }
+
+        pre {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            color: #f8f8f2;
+            font-size: 0.9em;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        ol, ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .endpoint-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .endpoint-box a {
+            color: #64b5f6;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .endpoint-box a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .lock-icon {
+                font-size: 3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lock-icon">🔒</div>
+        <h1>HTTPS Connection Successful!</h1>
+
+        <div class="status">
+            ✅ Your connection is secured with TLS/SSL encryption
+        </div>
+
+        <div class="section">
+            <h2>📋 Certificate Information</h2>
+            <div class="info-grid">
+                <div class="info-label">CA Type:</div>
+                <div class="info-value">Self-Signed Certificate Authority</div>
+
+                <div class="info-label">Certificate Chain:</div>
+                <div class="info-value">CA Certificate + Server Certificate</div>
+
+                <div class="info-label">Validity Period:</div>
+                <div class="info-value">730 days (2 years)</div>
+
+                <div class="info-label">Key Size:</div>
+                <div class="info-value">CA: 4096-bit RSA, Server: 2048-bit RSA</div>
+
+                <div class="info-label">Purpose:</div>
+                <div class="info-value">On-Premise closed environment</div>
+
+                <div class="info-label">Access Policy:</div>
+                <div class="info-value">No IP restrictions - accessible from external network</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Verification Steps</h2>
+            <ol>
+                <li>Check your browser address bar for the lock icon 🔒</li>
+                <li>Click the lock icon to view certificate details</li>
+                <li>Verify the certificate issuer: <code>OnPremise-CA-Root</code></li>
+                <li>Verify the certificate subject matches your server address</li>
+                <li>If your browser shows a warning, you need to import the CA certificate (see below)</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>🌐 Access Endpoints</h2>
+            <div class="endpoint-box">
+                <div><strong>HTTPS Test:</strong> <a href="/" id="main-url">https://[SERVER]:5006/</a></div>
+                <div><strong>Health Check:</strong> <a href="/health" id="health-url">https://[SERVER]:5006/health</a></div>
+                <div><strong>Certificate Info:</strong> <a href="/cert-info" id="cert-url">https://[SERVER]:5006/cert-info</a></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📦 CA Certificate Installation</h2>
+
+            <div class="warning">
+                ⚠️ To eliminate browser warnings, import the CA certificate (<code>ca.crt</code>) into your system or browser trust store.
+            </div>
+
+            <h3>Step 1: Get CA Certificate</h3>
+            <p><strong>Option A:</strong> Copy from server: <code>/root/aws.git/container/claudecode/CA/certs/ca/ca.crt</code></p>
+            <p><strong>Option B:</strong> Export from this browser:</p>
+            <ol>
+                <li><strong>Chrome/Edge:</strong> Click warning icon → "Certificate (Invalid)" → Details tab → Select "OnPremise-CA-Root" → Export as "Base64-encoded X.509 (.CER)"</li>
+                <li><strong>Firefox:</strong> Click warning → "View Certificate" → Find "OnPremise-CA-Root" → Download → Choose "PEM (cert)"</li>
+                <li>Save as <code>ca.crt</code></li>
+            </ol>
+            <p><strong>Important:</strong> Export format should be <code>.crt</code> or <code>.pem</code> (Base64-encoded X.509), NOT <code>.pfx</code> or <code>.p12</code></p>
+
+            <h3>Step 2: Install Certificate</h3>
+
+            <h3>Linux / Ubuntu</h3>
+            <pre>sudo cp ca.crt /usr/local/share/ca-certificates/onpremise-ca.crt
+sudo update-ca-certificates</pre>
+
+            <h3>Windows</h3>
+            <pre>certutil -addstore -f "ROOT" ca.crt</pre>
+            <p>Or double-click <code>ca.crt</code> and follow the Certificate Import Wizard.</p>
+
+            <h3>macOS</h3>
+            <pre>sudo security add-trusted-cert -d -r trustRoot \
+    -k /Library/Keychains/System.keychain ca.crt</pre>
+
+            <h3>Browser (Firefox)</h3>
+            <ol>
+                <li>Open Firefox Settings</li>
+                <li>Go to "Privacy & Security"</li>
+                <li>Scroll to "Certificates" → Click "View Certificates"</li>
+                <li>Go to "Authorities" tab → Click "Import"</li>
+                <li>Select <code>ca.crt</code> file</li>
+                <li>Check "Trust this CA to identify websites"</li>
+            </ol>
+
+            <h3>Browser (Chrome / Edge)</h3>
+            <p>Chrome and Edge use the system certificate store. Install the CA certificate using the OS-specific method above.</p>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Command-Line Testing</h2>
+
+            <h3>Test with curl (skip verification)</h3>
+            <pre>curl -k https://[SERVER]:5006/</pre>
+
+            <h3>Test with CA certificate</h3>
+            <pre>curl --cacert ca.crt https://[SERVER]:5006/</pre>
+
+            <h3>View certificate details</h3>
+            <pre>openssl s_client -connect [SERVER]:5006 -showcerts</pre>
+
+            <h3>Verify certificate chain</h3>
+            <pre>openssl verify -CAfile ca.crt server.crt</pre>
+        </div>
+
+        <div class="section">
+            <h2>📚 Additional Resources</h2>
+            <ul>
+                <li>Certificate files location: <code>/root/aws.git/container/claudecode/CA/certs/</code></li>
+                <li>Export certificates: Run <code>./scripts/export-certificates.sh</code></li>
+                <li>Verify certificates: Run <code>./scripts/utils/verify-certificates.sh</code></li>
+                <li>View logs: <code>logs/certificate-generation.log</code></li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; opacity: 0.7;">
+            <p>CA Infrastructure Test Server</p>
+            <p>OnPremise Certificate Authority for Closed Environment</p>
+        </div>
+    </div>
+
+    <script>
+        // Update URLs with current location
+        document.addEventListener('DOMContentLoaded', function() {
+            const host = window.location.host;
+            const protocol = window.location.protocol;
+
+            // Update endpoint URLs
+            document.getElementById('main-url').href = protocol + '//' + host + '/';
+            document.getElementById('main-url').textContent = protocol + '//' + host + '/';
+
+            document.getElementById('health-url').href = protocol + '//' + host + '/health';
+            document.getElementById('health-url').textContent = protocol + '//' + host + '/health';
+
+            document.getElementById('cert-url').href = protocol + '//' + host + '/cert-info';
+            document.getElementById('cert-url').textContent = protocol + '//' + host + '/cert-info';
+
+            // Replace [SERVER] placeholder in pre tags
+            const preTags = document.querySelectorAll('pre');
+            preTags.forEach(function(pre) {
+                pre.textContent = pre.textContent.replace(/\[SERVER\]/g, window.location.hostname);
+            });
+
+            console.log('Connection Protocol:', protocol);
+            console.log('Server Host:', host);
+            console.log('TLS Connection: Active ✓');
+        });
+    </script>
+</body>
+</html>
