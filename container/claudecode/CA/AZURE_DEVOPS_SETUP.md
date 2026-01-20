@@ -90,10 +90,10 @@ Invoke-WebRequest -Uri "http://<SERVER_IP>:8080/install-cert-devops-server.ps1" 
 # CAサーバから scripts\install-cert-devops-server.ps1 を転送
 
 # インストールスクリプトを実行
-powershell -ExecutionPolicy Bypass -File install-cert-devops-server.ps1 -CertificateBundle "C:\Temp\ca-bundle-20260120-013115"
+powershell -ExecutionPolicy Bypass -File install-cert-devops-server.ps1 -CertificateBundle "C:\Temp\ca-bundle-YYYYMMDD-HHMMSS"
 ```
 
-**注意:** `ca-bundle-20260120-013115` は実際のディレクトリ名に置き換えてください。
+**注意:** `ca-bundle-YYYYMMDD-HHMMSS` は実際のディレクトリ名に置き換えてください（例: ca-bundle-20260120-013115）。
 
 ### スクリプトが実行する処理
 
