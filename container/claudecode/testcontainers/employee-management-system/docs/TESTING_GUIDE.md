@@ -1,509 +1,509 @@
-# Testing Guide - Employee Management System
+# テストガイド - 職員管理システム
 
-Comprehensive testing strategies demonstrating three-tier database testing with PostgreSQL integration.
+PostgreSQL統合による三階層データベーステストの包括的テスト戦略を実演します。
 
-## 🎯 Testing Philosophy
+## 🎯 テスト哲学
 
-This system implements a **progressive complexity testing approach** designed for learning database testing strategies:
+このシステムは、データベーステスト戦略を学習するための**段階的複雑度テストアプローチ**を実装しています：
 
-1. **Repository Layer (Beginner)**: Database access patterns and JPA functionality
-2. **Service Layer (Intermediate)**: Business logic, transactions, and error handling
-3. **Controller Layer (Advanced)**: REST API integration and end-to-end scenarios
+1. **Repository層（初級）**: データベースアクセスパターンとJPA機能
+2. **Service層（中級）**: ビジネスロジック、トランザクション、エラーハンドリング
+3. **Controller層（上級）**: REST API統合とエンドツーエンドシナリオ
 
-## 🏗️ Test Architecture
+## 🏗️ テストアーキテクチャ
 
-### Testing Stack
-- **Test Framework**: JUnit 5 with Spring Boot Test
-- **Database**: TestContainers with PostgreSQL
-- **Test Data**: YAML-based configuration (editable without code changes)
-- **Coverage**: JaCoCo with baseline comparison
-- **Assertions**: AssertJ for fluent assertions
+### テスティングスタック
+- **テストフレームワーク**: JUnit 5 with Spring Boot Test
+- **データベース**: TestContainers with PostgreSQL
+- **テストデータ**: YAMLベース設定（コード変更不要で編集可能）
+- **カバレッジ**: JaCoCo with ベースライン比較
+- **アサーション**: AssertJ for fluent assertions
 
-### Test Data Management
+### テストデータ管理
 ```yaml
 # src/test/resources/testdata/employees.yml
 employees:
-  - firstName: "John"
-    lastName: "Doe"
-    email: "john.doe@test.com"
+  - firstName: "山田"
+    lastName: "太郎"
+    email: "yamada.taro@test.com"
     hireDate: "2023-01-15"
     departmentId: 1
 ```
 
-**Key Benefit**: Modify test data by editing YAML files - no code changes required!
+**主要メリット**: YAMLファイルを編集してテストデータを変更 - コード変更不要！
 
-## 🧪 Test Execution
+## 🧪 テスト実行
 
-### Basic Test Commands
+### 基本テストコマンド
 
-#### Run All Tests
+#### 全テスト実行
 ```bash
-# Complete test suite
+# 完全テストスイート
 podman-compose exec app mvn test
 
-# With coverage report
+# カバレッジレポート付き
 podman-compose exec app mvn test jacoco:report
 ```
 
-#### Run by Test Level
+#### テストレベル別実行
 ```bash
-# Repository layer tests (Beginner)
+# Repository層テスト（初級）
 podman-compose exec app mvn test -Dtest="*Repository*"
 
-# Service layer tests (Intermediate)
+# Service層テスト（中級）
 podman-compose exec app mvn test -Dtest="*Service*"
 
-# Controller layer tests (Advanced)
+# Controller層テスト（上級）
 podman-compose exec app mvn test -Dtest="*Controller*"
 
-# Integration tests (Advanced)
+# 統合テスト（上級）
 podman-compose exec app mvn test -Dtest="*Integration*"
 ```
 
-### Test Data Profiles
+### テストデータプロファイル
 
-#### Available Profiles
+#### 利用可能なプロファイル
 ```bash
-# Basic dataset (5 employees, 3 departments)
+# 基本データセット（職員5名、部署3つ）
 podman-compose exec app mvn test -Dtestdata.profile=basic
 
-# Medium dataset (20 employees, 5 departments)
+# 中規模データセット（職員20名、部署5つ）
 podman-compose exec app mvn test -Dtestdata.profile=medium
 
-# Large dataset (100+ employees, multiple departments)
+# 大規模データセット（職員100名以上、複数部署）
 podman-compose exec app mvn test -Dtestdata.profile=large
 
-# Integration dataset (realistic relationships)
+# 統合データセット（リアルな関係性）
 podman-compose exec app mvn test -Dtestdata.profile=integration
 ```
 
-#### Custom Test Data
+#### カスタムテストデータ
 ```bash
-# Use custom CSV file
+# カスタムCSVファイルを使用
 podman-compose exec app mvn test -Dtestdata.source=csv -Dtestdata.file=my-data.csv
 
-# Validate test data only
+# テストデータの検証のみ
 podman-compose exec app mvn test -Dtestdata.validate-only=true
 ```
 
-## 📊 Test Levels Explained
+## 📊 テストレベル詳細説明
 
-### Level 1: Repository Layer Tests (Beginner)
+### レベル1: Repository層テスト（初級）
 
-**Purpose**: Learn database access patterns and JPA query testing
+**目的**: データベースアクセスパターンとJPAクエリテストを学習
 
-#### Key Test Scenarios
+#### 主要テストシナリオ
 ```java
 @DataJpaTest
 class EmployeeRepositoryTest {
 
-    // Basic CRUD operations
+    // 基本CRUD操作
     @Test
     void shouldSaveAndFindEmployee() {
-        // Test basic save/find operations
+        // 基本的な保存/検索操作のテスト
     }
 
-    // Query method testing
+    // クエリメソッドテスト
     @Test
     void shouldFindEmployeesByDepartment() {
-        // Test derived query methods
+        // 派生クエリメソッドのテスト
     }
 
-    // Custom query testing
+    // カスタムクエリテスト
     @Test
     void shouldFindEmployeesWithComplexCriteria() {
-        // Test @Query annotations
+        // @Queryアノテーションのテスト
     }
 }
 ```
 
-#### What You Learn
-- JPA entity mapping and relationships
-- Repository query method testing
-- Database constraint validation
-- Custom query verification
-- Transaction boundaries
+#### 学習内容
+- JPAエンティティマッピングと関係性
+- Repositoryクエリメソッドテスト
+- データベース制約検証
+- カスタムクエリ検証
+- トランザクション境界
 
-#### Example Tests
+#### テスト例
 ```bash
-# Run repository tests
+# repositoryテストの実行
 podman-compose exec app mvn test -Dtest="EmployeeRepositoryTest"
 podman-compose exec app mvn test -Dtest="DepartmentRepositoryTest"
 ```
 
-### Level 2: Service Layer Tests (Intermediate)
+### レベル2: Service層テスト（中級）
 
-**Purpose**: Test business logic, transactions, and service orchestration
+**目的**: ビジネスロジック、トランザクション、サービス協調をテスト
 
-#### Key Test Scenarios
+#### 主要テストシナリオ
 ```java
 @SpringBootTest
 @Transactional
 class EmployeeServiceTest {
 
-    // Business logic testing
+    // ビジネスロジックテスト
     @Test
     void shouldCalculateEmployeeYearsOfService() {
-        // Test business calculations
+        // ビジネス計算のテスト
     }
 
-    // Transaction testing
+    // トランザクションテスト
     @Test
     @Rollback(false)
     void shouldHandleTransactionalOperations() {
-        // Test transaction management
+        // トランザクション管理のテスト
     }
 
-    // Error handling
+    // エラーハンドリング
     @Test
     void shouldThrowExceptionForInvalidData() {
-        // Test error scenarios
+        // エラーシナリオのテスト
     }
 }
 ```
 
-#### What You Learn
-- Business logic validation
-- Transaction management testing
-- Error handling strategies
-- Service layer mocking
-- Data transformation testing
+#### 学習内容
+- ビジネスロジック検証
+- トランザクション管理テスト
+- エラーハンドリング戦略
+- Service層のモッキング
+- データ変換テスト
 
-#### Advanced Scenarios
+#### 高度なシナリオ
 ```bash
-# Test with mock dependencies
+# モック依存関係を使ったテスト
 podman-compose exec app mvn test -Dtest="EmployeeServiceTest#shouldHandleDepartmentTransfer"
 
-# Test transaction rollback
+# トランザクションロールバックテスト
 podman-compose exec app mvn test -Dtest="EmployeeServiceTest#shouldRollbackOnError"
 ```
 
-### Level 3: Controller Layer Tests (Advanced)
+### レベル3: Controller層テスト（上級）
 
-**Purpose**: Test REST API endpoints and end-to-end integration
+**目的**: REST APIエンドポイントとエンドツーエンド統合をテスト
 
-#### Key Test Scenarios
+#### 主要テストシナリオ
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EmployeeControllerTest {
 
-    // REST endpoint testing
+    // RESTエンドポイントテスト
     @Test
     void shouldCreateEmployeeViaRestAPI() {
-        // Test HTTP POST with JSON
+        // JSONを使ったHTTP POSTのテスト
     }
 
-    // Integration testing
+    // 統合テスト
     @Test
     void shouldPerformCompleteEmployeeWorkflow() {
-        // Test full user scenario
+        // フルユーザーシナリオのテスト
     }
 
-    // Error response testing
+    // エラーレスポンステスト
     @Test
     void shouldReturn400ForInvalidData() {
-        // Test error responses
+        // エラーレスポンスのテスト
     }
 }
 ```
 
-#### What You Learn
-- REST API endpoint testing
-- JSON serialization/deserialization
-- HTTP status code validation
-- End-to-end workflow testing
-- Error response handling
+#### 学習内容
+- REST APIエンドポイントテスト
+- JSONシリアル化/デシリアル化
+- HTTPステータスコード検証
+- エンドツーエンドワークフローテスト
+- エラーレスポンスハンドリング
 
-## 🎮 Interactive Testing Scenarios
+## 🎮 インタラクティブテストシナリオ
 
-### Scenario 1: Basic Employee Management
+### シナリオ1: 基本職員管理
 ```bash
-# Test basic CRUD operations
+# 基本CRUD操作のテスト
 podman-compose exec app mvn test -Dtest="*Repository*" -Dtestdata.profile=basic
 
-# Inspect test results
+# テスト結果の検査
 cat target/surefire-reports/TEST-*.xml | grep -E "(testcase|failure)"
 ```
 
-### Scenario 2: Department Transfers
+### シナリオ2: 部署異動
 ```bash
-# Test complex business logic
+# 複雑なビジネスロジックのテスト
 podman-compose exec app mvn test -Dtest="*Service*" -Dtestdata.profile=medium
 
-# View detailed logs
+# 詳細ログの表示
 podman-compose exec app mvn test -Dtest="DepartmentServiceTest#shouldTransferAllEmployees" -X
 ```
 
-### Scenario 3: API Integration
+### シナリオ3: API統合
 ```bash
-# Test complete REST API workflows
+# 完全なREST APIワークフローのテスト
 podman-compose exec app mvn test -Dtest="*Controller*" -Dtestdata.profile=integration
 
-# Test specific API endpoint
+# 特定のAPIエンドポイントテスト
 podman-compose exec app mvn test -Dtest="EmployeeControllerTest#shouldSearchEmployees"
 ```
 
-## 🔧 Test Data Customization
+## 🔧 テストデータカスタマイズ
 
-### Editing Test Data Files
+### テストデータファイルの編集
 
-#### Employee Test Data
+#### 職員テストデータ
 ```yaml
 # src/test/resources/testdata/employees.yml
 employees:
-  - firstName: "Alice"           # ← Edit directly
-    lastName: "Johnson"          # ← No code changes needed
-    email: "alice@company.com"   # ← Just modify YAML
-    hireDate: "2024-01-15"      # ← Save and run tests
+  - firstName: "佐藤"             # ← 直接編集
+    lastName: "花子"              # ← コード変更不要
+    email: "sato.hanako@company.com"  # ← YAMLを変更するだけ
+    hireDate: "2024-01-15"        # ← 保存してテスト実行
     departmentId: 1
     active: true
 ```
 
-#### Department Test Data
+#### 部署テストデータ
 ```yaml
 # src/test/resources/testdata/departments.yml
 departments:
-  - name: "Engineering"          # ← Modify department names
-    code: "ENG"                 # ← Change codes
-    budget: 2500000.00          # ← Adjust budgets
-    description: "Software Development"
+  - name: "エンジニアリング部"       # ← 部署名を変更
+    code: "ENG"                   # ← コードを変更
+    budget: 2500000.00            # ← 予算を調整
+    description: "ソフトウェア開発"
     active: true
 ```
 
-### Creating Custom Scenarios
+### カスタムシナリオの作成
 ```yaml
 # src/test/resources/testdata/scenarios/my-scenario.yml
 departments:
-  - name: "Custom Department"
+  - name: "カスタム部署"
     code: "CUSTOM"
     budget: 1000000.00
     active: true
 
 employees:
-  - firstName: "Test"
-    lastName: "User"
+  - firstName: "テスト"
+    lastName: "ユーザー"
     email: "test@example.com"
     hireDate: "2024-01-01"
     departmentId: 1
 ```
 
 ```bash
-# Run with custom scenario
+# カスタムシナリオで実行
 podman-compose exec app mvn test -Dtestdata.profile=my-scenario
 ```
 
-## 📈 Coverage and Quality Metrics
+## 📈 カバレッジと品質メトリクス
 
-### Generate Coverage Reports
+### カバレッジレポートの生成
 ```bash
-# Run tests with coverage
+# カバレッジ付きテスト実行
 podman-compose exec app mvn clean test jacoco:report
 
-# Copy report to host (for viewing)
+# レポートをホストにコピー（閲覧用）
 podman cp $(podman-compose ps -q app):/workspace/target/site/jacoco ./coverage-report
 
-# Open in browser
+# ブラウザで開く
 open coverage-report/index.html
 ```
 
-### Coverage Targets
-- **Repository Layer**: 95%+ coverage
-- **Service Layer**: 90%+ coverage
-- **Controller Layer**: 85%+ coverage
-- **Overall Project**: 90%+ coverage
+### カバレッジ目標
+- **Repository層**: 95%以上のカバレッジ
+- **Service層**: 90%以上のカバレッジ
+- **Controller層**: 85%以上のカバレッジ
+- **プロジェクト全体**: 90%以上のカバレッジ
 
-### Quality Gates
+### 品質ゲート
 ```bash
-# Run with quality gate enforcement
+# 品質ゲート実行付きでテスト実行
 podman-compose exec app mvn test -Dquality.gate=true
 
-# This will fail the build if coverage is below targets
+# カバレッジが目標値以下の場合、ビルドが失敗します
 ```
 
-## 🎯 Regression Testing
+## 🎯 回帰テスト
 
-### Baseline Comparison
+### ベースライン比較
 ```bash
-# Run tests and compare with baseline
+# ベースラインと比較してテスト実行
 podman-compose exec app mvn test -Dregression.compare=true
 
-# Generate new baseline (after confirming results are correct)
+# 新しいベースラインを生成（結果が正しいことを確認後）
 podman-compose exec app mvn test -Dregression.update-baseline=true
 ```
 
-### Automated Regression Detection
+### 自動回帰検出
 ```bash
-# Run full regression suite
+# フル回帰テストスイートの実行
 podman-compose exec app mvn test -Dtest.suite=regression
 
-# Check for performance regressions
+# パフォーマンス回帰のチェック
 podman-compose exec app mvn test -Dtest.suite=performance
 ```
 
-## 🐛 Debugging Tests
+## 🐛 テストのデバッグ
 
-### Debug Mode Execution
+### デバッグモード実行
 ```bash
-# Run tests with debug logging
+# デバッグログ付きテスト実行
 podman-compose exec app mvn test -X -Dtest.log.level=DEBUG
 
-# Run specific test with SQL logging
+# SQLログ付きで特定テストを実行
 podman-compose exec app mvn test -Dtest="EmployeeRepositoryTest" -DTEST_SHOW_SQL=true
 ```
 
-### Database State Inspection
+### データベース状態の検査
 ```bash
-# Connect to test database during test execution
+# テスト実行中にテストデータベースに接続
 podman-compose exec postgres psql -U postgres -d employee_db
 
-# View test data
+# テストデータを表示
 SELECT e.first_name, e.last_name, d.name as department
 FROM employees e
 LEFT JOIN departments d ON e.department_id = d.id;
 ```
 
-### Test Failure Analysis
+### テスト失敗分析
 ```bash
-# Detailed test failure reports
+# 詳細なテスト失敗レポート
 cat target/surefire-reports/TEST-*.xml
 
-# View test execution timeline
+# テスト実行タイムラインを表示
 cat target/surefire-reports/*.txt | grep -E "(Test|FAILURE|ERROR)"
 ```
 
-## 🎪 Advanced Testing Features
+## 🎪 高度なテスト機能
 
-### Performance Testing
+### パフォーマンステスト
 ```bash
-# Run performance test suite
+# パフォーマンステストスイートの実行
 podman-compose exec app mvn test -Dtest="*Performance*" -Dtestdata.profile=large
 
-# Monitor database performance during tests
-podman-compose exec postgres psql -U postgres -d employee_db \\
+# テスト中のデータベースパフォーマンス監視
+podman-compose exec postgres psql -U postgres -d employee_db \
   -c "SELECT * FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10;"
 ```
 
-### Concurrent Testing
+### 並行テスト
 ```bash
-# Run tests in parallel (faster execution)
+# 並列テスト実行（高速実行）
 podman-compose exec app mvn test -DforkCount=2 -DreuseForks=true
 
-# Test concurrent database access
+# 並行データベースアクセステスト
 podman-compose exec app mvn test -Dtest="*Concurrent*"
 ```
 
-### Data Migration Testing
+### データマイグレーションテスト
 ```bash
-# Test database schema migrations
+# データベーススキーママイグレーションのテスト
 podman-compose exec app mvn flyway:migrate
 podman-compose exec app mvn test -Dtest="*Migration*"
 ```
 
-## 📚 Learning Path
+## 📚 学習パス
 
-### Beginner Track
-1. Start with Repository layer tests
-2. Understand JPA and database mapping
-3. Learn query method testing
-4. Practice with basic test data
+### 初級トラック
+1. Repository層テストから開始
+2. JPAとデータベースマッピングを理解
+3. クエリメソッドテストを学習
+4. 基本テストデータで練習
 
 ```bash
-# Follow this progression
+# この順序で進行
 podman-compose exec app mvn test -Dtest="EmployeeRepositoryTest#shouldFindByEmail"
 podman-compose exec app mvn test -Dtest="EmployeeRepositoryTest#shouldFindActiveEmployees"
 podman-compose exec app mvn test -Dtest="DepartmentRepositoryTest#shouldFindByCode"
 ```
 
-### Intermediate Track
-1. Move to Service layer testing
-2. Learn transaction management
-3. Practice business logic testing
-4. Understand error handling
+### 中級トラック
+1. Service層テストに移行
+2. トランザクション管理を学習
+3. ビジネスロジックテストを練習
+4. エラーハンドリングを理解
 
 ```bash
-# Service layer progression
+# Service層の進行
 podman-compose exec app mvn test -Dtest="EmployeeServiceTest#shouldCreateEmployee"
 podman-compose exec app mvn test -Dtest="EmployeeServiceTest#shouldTransferEmployee"
 podman-compose exec app mvn test -Dtest="EmployeeServiceTest#shouldHandleInvalidData"
 ```
 
-### Advanced Track
-1. Master Controller layer testing
-2. Learn REST API testing patterns
-3. Practice integration testing
-4. Understand end-to-end workflows
+### 上級トラック
+1. Controller層テストをマスター
+2. REST APIテストパターンを学習
+3. 統合テストを練習
+4. エンドツーエンドワークフローを理解
 
 ```bash
-# Advanced testing progression
+# 上級テストの進行
 podman-compose exec app mvn test -Dtest="EmployeeControllerTest#shouldCreateEmployeeAPI"
 podman-compose exec app mvn test -Dtest="EmployeeManagementIntegrationTest"
 ```
 
-## 🔍 Troubleshooting Tests
+## 🔍 テストのトラブルシューティング
 
-### Common Test Issues
+### よくあるテスト問題
 
-#### Test Data Problems
+#### テストデータ問題
 ```bash
-# Validate test data format
+# テストデータフォーマットの検証
 podman-compose exec app mvn test -Dtestdata.validate-only=true
 
-# Refresh test data
+# テストデータの更新
 podman-compose exec app mvn test -Dtestdata.refresh=true
 ```
 
-#### Database Connection Issues
+#### データベース接続問題
 ```bash
-# Check TestContainer database status
+# TestContainerデータベースステータスのチェック
 podman-compose logs postgres
 
-# Verify test database connectivity
+# テストデータベース接続の確認
 podman-compose exec postgres pg_isready -U postgres
 ```
 
-#### Flaky Tests
+#### 不安定なテスト
 ```bash
-# Run flaky test multiple times
+# 不安定なテストを複数回実行
 for i in {1..5}; do
   podman-compose exec app mvn test -Dtest="FlakyTest" || break
 done
 
-# Enable test retry
+# テスト再試行を有効化
 podman-compose exec app mvn test -Dsurefire.rerunFailingTestsCount=2
 ```
 
-### Performance Issues
+### パフォーマンス問題
 ```bash
-# Profile test execution
+# テスト実行のプロファイリング
 podman-compose exec app mvn test -Dtest.profile=true
 
-# Optimize TestContainer startup
+# TestContainer起動の最適化
 export TESTCONTAINERS_REUSE_ENABLE=true
 podman-compose exec app mvn test
 ```
 
-## 📊 Test Reporting
+## 📊 テストレポート
 
-### Generate Comprehensive Reports
+### 包括的レポートの生成
 ```bash
-# All test reports
+# 全テストレポート
 podman-compose exec app mvn clean test site
 
-# Individual reports
-podman-compose exec app mvn surefire-report:report      # Test results
-podman-compose exec app mvn jacoco:report               # Coverage
-podman-compose exec app mvn pmd:pmd                     # Code quality
+# 個別レポート
+podman-compose exec app mvn surefire-report:report      # テスト結果
+podman-compose exec app mvn jacoco:report               # カバレッジ
+podman-compose exec app mvn pmd:pmd                     # コード品質
 ```
 
-### View Reports
+### レポートの表示
 ```bash
-# Copy all reports to host
+# 全レポートをホストにコピー
 podman cp $(podman-compose ps -q app):/workspace/target/site ./test-reports
 
-# Open main report
+# メインレポートを開く
 open test-reports/index.html
 ```
 
 ---
 
-**Next Steps**: After mastering the testing strategies, explore the [API Documentation](API_DOCUMENTATION.md) to understand the REST endpoints being tested.
+**次のステップ**: テスト戦略をマスターした後は、[API ドキュメント](API_DOCUMENTATION.md)を探索して、テストされているRESTエンドポイントを理解してください。

@@ -1,78 +1,78 @@
-# API Documentation - Employee Management System
+# API ドキュメント - 職員管理システム
 
-Complete REST API documentation for the Employee Management System with comprehensive examples and testing scenarios.
+包括的な例とテストシナリオを含む職員管理システムの完全なREST APIドキュメントです。
 
-## 🔗 Base URL
+## 🔗 ベース URL
 
 ```
 http://localhost:8080/api/v1
 ```
 
-## 📋 API Overview
+## 📋 API 概要
 
-The Employee Management System provides RESTful APIs for managing employees and departments with comprehensive CRUD operations, search capabilities, and business logic endpoints.
+職員管理システムは、包括的なCRUD操作、検索機能、ビジネスロジックエンドポイントを備えた職員と部署管理のためのRESTful APIを提供します。
 
-### Authentication
-Currently, the API operates without authentication for educational purposes. In production environments, implement appropriate authentication mechanisms.
+### 認証
+現在、APIは教育目的のため認証なしで動作します。本番環境では適切な認証メカニズムを実装してください。
 
-### Response Format
-All API responses follow a consistent JSON structure:
+### レスポンス形式
+すべてのAPIレスポンスは一貫したJSON構造に従います：
 
 ```json
 {
   "id": 1,
-  "name": "Resource Name",
+  "name": "リソース名",
   "createdAt": "2024-01-15T10:30:00Z",
   "modifiedAt": "2024-01-15T10:30:00Z"
 }
 ```
 
-### Error Handling
-Error responses include detailed information:
+### エラーハンドリング
+エラーレスポンスには詳細情報が含まれます：
 
 ```json
 {
   "error": "Bad Request",
-  "message": "Employee email already exists",
+  "message": "職員のメールアドレスが既に存在します",
   "timestamp": "2024-01-15T10:30:00Z",
   "path": "/api/v1/employees"
 }
 ```
 
-## 👥 Employees API
+## 👥 職員 API
 
-### Core Operations
+### 基本操作
 
 #### GET /api/v1/employees
-Retrieve all employees with optional filtering.
+オプションのフィルタリング付きですべての職員を取得。
 
-**Parameters:**
-- `activeOnly` (boolean, optional): Filter for active employees only
+**パラメータ:**
+- `activeOnly` (boolean, オプション): アクティブな職員のみをフィルタ
 
 ```bash
-# Get all employees
+# すべての職員を取得
 curl http://localhost:8080/api/v1/employees
 
-# Get active employees only
+# アクティブな職員のみを取得
 curl http://localhost:8080/api/v1/employees?activeOnly=true
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 [
   {
     "id": 1,
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "john.doe@company.com",
+    "firstName": "太郎",
+    "lastName": "田中",
+    "email": "tanaka.taro@company.com",
     "hireDate": "2023-01-15",
-    "phoneNumber": "+1-555-0101",
-    "address": "123 Main St, City, State",
+    "phoneNumber": "+81-90-1234-5678",
+    "address": "東京都新宿区西新宿1-1-1",
     "active": true,
     "departmentId": 1,
-    "departmentName": "Human Resources",
+    "departmentName": "人事部",
     "departmentCode": "HR",
-    "fullName": "John Doe",
+    "fullName": "田中 太郎",
     "yearsOfService": 1,
     "isNewEmployee": false,
     "isVeteranEmployee": false,
@@ -83,174 +83,174 @@ curl http://localhost:8080/api/v1/employees?activeOnly=true
 ```
 
 #### GET /api/v1/employees/{id}
-Retrieve a specific employee by ID.
+IDで特定の職員を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/employees/1
 ```
 
-**Response:** Single employee object (same structure as above)
+**レスポンス:** 単一の職員オブジェクト（上記と同じ構造）
 
 #### GET /api/v1/employees/email/{email}
-Retrieve an employee by email address.
+メールアドレスで職員を取得。
 
 ```bash
-curl http://localhost:8080/api/v1/employees/email/john.doe@company.com
+curl http://localhost:8080/api/v1/employees/email/tanaka.taro@company.com
 ```
 
 #### POST /api/v1/employees
-Create a new employee.
+新しい職員を作成。
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/employees \
   -H "Content-Type: application/json" \
   -d '{
-    "firstName": "Jane",
-    "lastName": "Smith",
-    "email": "jane.smith@company.com",
+    "firstName": "花子",
+    "lastName": "佐藤",
+    "email": "sato.hanako@company.com",
     "hireDate": "2024-01-15",
-    "phoneNumber": "+1-555-0102",
-    "address": "456 Oak Ave, City, State",
+    "phoneNumber": "+81-90-2345-6789",
+    "address": "大阪府大阪市中央区本町1-1-1",
     "departmentId": 2
   }'
 ```
 
-**Validation Rules:**
-- `firstName`: Required, 1-50 characters
-- `lastName`: Required, 1-50 characters
-- `email`: Required, valid email format, unique
-- `hireDate`: Required, not in future
-- `phoneNumber`: Optional, valid phone format
-- `address`: Optional, max 200 characters
+**検証ルール:**
+- `firstName`: 必須、1-50文字
+- `lastName`: 必須、1-50文字
+- `email`: 必須、有効なメール形式、一意
+- `hireDate`: 必須、未来日不可
+- `phoneNumber`: オプション、有効な電話番号形式
+- `address`: オプション、最大200文字
 
 #### PUT /api/v1/employees/{id}
-Update an existing employee.
+既存の職員を更新。
 
 ```bash
 curl -X PUT http://localhost:8080/api/v1/employees/1 \
   -H "Content-Type: application/json" \
   -d '{
-    "firstName": "John",
-    "lastName": "Updated",
-    "email": "john.updated@company.com",
+    "firstName": "太郎",
+    "lastName": "更新",
+    "email": "tanaka.updated@company.com",
     "hireDate": "2023-01-15",
-    "phoneNumber": "+1-555-0199",
-    "address": "999 Updated St, City, State",
+    "phoneNumber": "+81-90-9999-9999",
+    "address": "東京都渋谷区道玄坂1-1-1",
     "departmentId": 2,
     "active": true
   }'
 ```
 
 #### DELETE /api/v1/employees/{id}
-Delete an employee (soft delete by setting active=false).
+職員を削除（active=falseに設定するソフト削除）。
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/employees/1
 ```
 
-### Department Operations
+### 部署操作
 
 #### PATCH /api/v1/employees/{id}/department/{departmentId}
-Assign employee to a department.
+職員を部署に割り当て。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/1/department/2
 ```
 
 #### PATCH /api/v1/employees/{id}/remove-department
-Remove employee from their current department.
+職員を現在の部署から除外。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/1/remove-department
 ```
 
 #### POST /api/v1/employees/{id}/transfer/{newDepartmentId}
-Transfer employee to a new department with business rule validation.
+ビジネスルール検証付きで職員を新しい部署に異動。
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/employees/1/transfer/3
 ```
 
-### Status Operations
+### ステータス操作
 
 #### PATCH /api/v1/employees/{id}/activate
-Activate an employee.
+職員をアクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/1/activate
 ```
 
 #### PATCH /api/v1/employees/{id}/deactivate
-Deactivate an employee.
+職員を非アクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/1/deactivate
 ```
 
-### Search and Filtering
+### 検索とフィルタリング
 
 #### GET /api/v1/employees/search
-Advanced employee search with multiple criteria.
+複数の条件による高度な職員検索。
 
-**Parameters:**
-- `term` (string): Search in names and emails
-- `hiredAfter` (date): Filter by hire date after
-- `hiredBefore` (date): Filter by hire date before
-- `hiredInYear` (integer): Filter by specific hire year
-- `minYearsOfService` (integer): Minimum years of service
-- `minDepartmentBudget` (decimal): Minimum department budget
-- `fullText` (boolean): Enable PostgreSQL full-text search
+**パラメータ:**
+- `term` (string): 名前とメールアドレスで検索
+- `hiredAfter` (date): 入社日の後でフィルタ
+- `hiredBefore` (date): 入社日の前でフィルタ
+- `hiredInYear` (integer): 特定の入社年でフィルタ
+- `minYearsOfService` (integer): 最小勤続年数
+- `minDepartmentBudget` (decimal): 最小部署予算
+- `fullText` (boolean): PostgreSQL全文検索を有効化
 
 ```bash
-# Search by name
-curl "http://localhost:8080/api/v1/employees/search?term=John"
+# 名前で検索
+curl "http://localhost:8080/api/v1/employees/search?term=太郎"
 
-# Search by hire date range
+# 入社日範囲で検索
 curl "http://localhost:8080/api/v1/employees/search?hiredAfter=2023-01-01&hiredBefore=2023-12-31"
 
-# Search by years of service
+# 勤続年数で検索
 curl "http://localhost:8080/api/v1/employees/search?minYearsOfService=5"
 
-# Full-text search (PostgreSQL specific)
-curl "http://localhost:8080/api/v1/employees/search?term=manager&fullText=true"
+# 全文検索（PostgreSQL特有）
+curl "http://localhost:8080/api/v1/employees/search?term=マネージャー&fullText=true"
 ```
 
-#### Department-Based Queries
+#### 部署ベースのクエリ
 
 ```bash
-# Get employees by department ID
+# 部署IDで職員を取得
 curl http://localhost:8080/api/v1/employees/department/1
 
-# Get employees by department code
+# 部署コードで職員を取得
 curl http://localhost:8080/api/v1/employees/department/code/HR
 
-# Get employees without department
+# 部署未所属の職員を取得
 curl http://localhost:8080/api/v1/employees/without-department
 
-# Get employees in active departments only
+# アクティブ部署のみの職員を取得
 curl http://localhost:8080/api/v1/employees/in-active-departments
 ```
 
-#### Special Categories
+#### 特別カテゴリ
 
 ```bash
-# Get new employees (hired within last year)
+# 新入社員を取得（過去1年以内に入社）
 curl http://localhost:8080/api/v1/employees/new-employees
 
-# Get veteran employees (5+ years of service)
+# ベテラン職員を取得（勤続5年以上）
 curl http://localhost:8080/api/v1/employees/veteran-employees
 ```
 
-### Statistics and Analytics
+### 統計と分析
 
 #### GET /api/v1/employees/statistics
-Get employee statistics and analytics.
+職員統計と分析を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/employees/statistics
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "totalActiveEmployees": 25,
@@ -260,33 +260,33 @@ curl http://localhost:8080/api/v1/employees/statistics
   ],
   "departmentEmployeeCounts": [
     ["IT", 8],
-    ["HR", 5],
-    ["Finance", 4]
+    ["人事", 5],
+    ["経理", 4]
   ]
 }
 ```
 
 #### GET /api/v1/employees/statistics/department/{departmentId}
-Get statistics for a specific department.
+特定部署の統計を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/employees/statistics/department/1
 ```
 
-### Validation Endpoints
+### 検証エンドポイント
 
 #### GET /api/v1/employees/email/{email}/unique
-Check if an email is unique.
+メールアドレスが一意かどうかをチェック。
 
-**Parameters:**
-- `excludeId` (integer, optional): Exclude specific employee from check
+**パラメータ:**
+- `excludeId` (integer, オプション): チェックから特定の職員を除外
 
 ```bash
 curl "http://localhost:8080/api/v1/employees/email/new@company.com/unique"
 curl "http://localhost:8080/api/v1/employees/email/existing@company.com/unique?excludeId=1"
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "unique": true
@@ -294,30 +294,30 @@ curl "http://localhost:8080/api/v1/employees/email/existing@company.com/unique?e
 ```
 
 #### GET /api/v1/employees/{id}/active
-Check if employee is active.
+職員がアクティブかどうかをチェック。
 
 ```bash
 curl http://localhost:8080/api/v1/employees/1/active
 ```
 
 #### GET /api/v1/employees/{id}/can-delete
-Check if employee can be deleted.
+職員を削除できるかどうかをチェック。
 
 ```bash
 curl http://localhost:8080/api/v1/employees/1/can-delete
 ```
 
 #### GET /api/v1/employees/{employeeId}/can-assign/{departmentId}
-Check if employee can be assigned to department.
+職員を部署に割り当て可能かどうかをチェック。
 
 ```bash
 curl http://localhost:8080/api/v1/employees/1/can-assign/2
 ```
 
-### Batch Operations
+### バッチ操作
 
 #### PATCH /api/v1/employees/batch/activate
-Activate multiple employees.
+複数の職員をアクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/batch/activate \
@@ -325,7 +325,7 @@ curl -X PATCH http://localhost:8080/api/v1/employees/batch/activate \
   -d '[1, 2, 3, 4, 5]'
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "activated": 5
@@ -333,7 +333,7 @@ curl -X PATCH http://localhost:8080/api/v1/employees/batch/activate \
 ```
 
 #### PATCH /api/v1/employees/batch/deactivate
-Deactivate multiple employees.
+複数の職員を非アクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/batch/deactivate \
@@ -342,7 +342,7 @@ curl -X PATCH http://localhost:8080/api/v1/employees/batch/deactivate \
 ```
 
 #### PATCH /api/v1/employees/batch/transfer/{newDepartmentId}
-Transfer multiple employees to a new department.
+複数の職員を新しい部署に異動。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/batch/transfer/2 \
@@ -351,39 +351,39 @@ curl -X PATCH http://localhost:8080/api/v1/employees/batch/transfer/2 \
 ```
 
 #### PATCH /api/v1/employees/department/{departmentId}/remove-all
-Remove all employees from a department.
+部署からすべての職員を除外。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/employees/department/1/remove-all
 ```
 
-## 🏢 Departments API
+## 🏢 部署 API
 
-### Core Operations
+### 基本操作
 
 #### GET /api/v1/departments
-Retrieve all departments with optional filtering.
+オプションのフィルタリング付きですべての部署を取得。
 
-**Parameters:**
-- `activeOnly` (boolean, optional): Filter for active departments only
+**パラメータ:**
+- `activeOnly` (boolean, オプション): アクティブな部署のみをフィルタ
 
 ```bash
-# Get all departments
+# すべての部署を取得
 curl http://localhost:8080/api/v1/departments
 
-# Get active departments only
+# アクティブな部署のみを取得
 curl http://localhost:8080/api/v1/departments?activeOnly=true
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 [
   {
     "id": 1,
-    "name": "Human Resources",
+    "name": "人事部",
     "code": "HR",
     "budget": 1200000.00,
-    "description": "Human Resources Department",
+    "description": "人事部門",
     "active": true,
     "employeeCount": 5,
     "createdAt": "2024-01-15T10:30:00Z",
@@ -393,123 +393,123 @@ curl http://localhost:8080/api/v1/departments?activeOnly=true
 ```
 
 #### GET /api/v1/departments/{id}
-Retrieve a specific department by ID.
+IDで特定の部署を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/departments/1
 ```
 
 #### GET /api/v1/departments/code/{code}
-Retrieve a department by code.
+コードで部署を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/departments/code/HR
 ```
 
 #### GET /api/v1/departments/with-employee-count
-Get all departments with employee counts.
+職員数付きですべての部署を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/departments/with-employee-count
 ```
 
 #### POST /api/v1/departments
-Create a new department.
+新しい部署を作成。
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/departments \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "New Department",
+    "name": "新部署",
     "code": "NEW",
     "budget": 1500000.00,
-    "description": "A new department for testing"
+    "description": "テスト用の新しい部署"
   }'
 ```
 
-**Validation Rules:**
-- `name`: Required, 2-100 characters
-- `code`: Required, 2-10 characters, unique
-- `budget`: Required, positive number
-- `description`: Optional, max 500 characters
+**検証ルール:**
+- `name`: 必須、2-100文字
+- `code`: 必須、2-10文字、一意
+- `budget`: 必須、正の数値
+- `description`: オプション、最大500文字
 
 #### PUT /api/v1/departments/{id}
-Update an existing department.
+既存の部署を更新。
 
 ```bash
 curl -X PUT http://localhost:8080/api/v1/departments/1 \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Updated HR Department",
+    "name": "更新された人事部",
     "code": "HR",
     "budget": 1300000.00,
-    "description": "Updated Human Resources Department",
+    "description": "更新された人事部門",
     "active": true
   }'
 ```
 
 #### DELETE /api/v1/departments/{id}
-Delete a department (only if no active employees).
+部署を削除（アクティブな職員がいない場合のみ）。
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/departments/1
 ```
 
-### Status Operations
+### ステータス操作
 
 #### PATCH /api/v1/departments/{id}/activate
-Activate a department.
+部署をアクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/departments/1/activate
 ```
 
 #### PATCH /api/v1/departments/{id}/deactivate
-Deactivate a department.
+部署を非アクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/departments/1/deactivate
 ```
 
-### Search Operations
+### 検索操作
 
 #### GET /api/v1/departments/search
-Advanced department search.
+高度な部署検索。
 
-**Parameters:**
-- `name` (string): Search by name pattern
-- `minBudget` (decimal): Minimum budget filter
-- `maxBudget` (decimal): Maximum budget filter
-- `minEmployees` (integer): Minimum employee count
+**パラメータ:**
+- `name` (string): 名前パターンで検索
+- `minBudget` (decimal): 最小予算フィルタ
+- `maxBudget` (decimal): 最大予算フィルタ
+- `minEmployees` (integer): 最小職員数
 
 ```bash
-# Search by name
-curl "http://localhost:8080/api/v1/departments/search?name=Tech"
+# 名前で検索
+curl "http://localhost:8080/api/v1/departments/search?name=技術"
 
-# Search by budget range
+# 予算範囲で検索
 curl "http://localhost:8080/api/v1/departments/search?minBudget=1000000&maxBudget=2000000"
 
-# Search by minimum employee count
+# 最小職員数で検索
 curl "http://localhost:8080/api/v1/departments/search?minEmployees=5"
 ```
 
 #### GET /api/v1/departments/above-average-budget
-Get departments with above-average budget.
+平均予算を上回る部署を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/departments/above-average-budget
 ```
 
-### Statistics Operations
+### 統計操作
 
 #### GET /api/v1/departments/statistics
-Get department statistics.
+部署統計を取得。
 
 ```bash
 curl http://localhost:8080/api/v1/departments/statistics
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "totalActiveDepartments": 5,
@@ -518,29 +518,29 @@ curl http://localhost:8080/api/v1/departments/statistics
 }
 ```
 
-### Business Operations
+### ビジネス操作
 
 #### POST /api/v1/departments/{fromId}/transfer-employees/{toId}
-Transfer all employees from one department to another.
+ある部署から別の部署にすべての職員を異動。
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/departments/1/transfer-employees/2
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "success": true
 }
 ```
 
-### Validation Endpoints
+### 検証エンドポイント
 
 #### GET /api/v1/departments/code/{code}/unique
-Check if department code is unique.
+部署コードが一意かどうかをチェック。
 
-**Parameters:**
-- `excludeId` (integer, optional): Exclude specific department from check
+**パラメータ:**
+- `excludeId` (integer, オプション): チェックから特定の部署を除外
 
 ```bash
 curl "http://localhost:8080/api/v1/departments/code/NEW/unique"
@@ -548,23 +548,23 @@ curl "http://localhost:8080/api/v1/departments/code/HR/unique?excludeId=1"
 ```
 
 #### GET /api/v1/departments/{id}/can-delete
-Check if department can be deleted.
+部署を削除できるかどうかをチェック。
 
 ```bash
 curl http://localhost:8080/api/v1/departments/1/can-delete
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "canDelete": false
 }
 ```
 
-### Batch Operations
+### バッチ操作
 
 #### PATCH /api/v1/departments/batch/activate
-Activate multiple departments.
+複数の部署をアクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/departments/batch/activate \
@@ -573,7 +573,7 @@ curl -X PATCH http://localhost:8080/api/v1/departments/batch/activate \
 ```
 
 #### PATCH /api/v1/departments/batch/deactivate
-Deactivate multiple departments.
+複数の部署を非アクティブ化。
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/departments/batch/deactivate \
@@ -582,155 +582,155 @@ curl -X PATCH http://localhost:8080/api/v1/departments/batch/deactivate \
 ```
 
 #### DELETE /api/v1/departments/cleanup/inactive-without-employees
-Delete all inactive departments that have no employees.
+職員のいない非アクティブな部署をすべて削除。
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/departments/cleanup/inactive-without-employees
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "deleted": 2
 }
 ```
 
-## 🔐 Error Responses
+## 🔐 エラーレスポンス
 
-### Standard Error Codes
+### 標準エラーコード
 
-| Code | Description | Example |
+| コード | 説明 | 例 |
 |------|-------------|---------|
-| 200  | Success | Request completed successfully |
-| 201  | Created | Resource created successfully |
-| 204  | No Content | Resource deleted successfully |
-| 400  | Bad Request | Invalid input data |
-| 404  | Not Found | Resource not found |
-| 409  | Conflict | Resource constraint violation |
-| 500  | Internal Server Error | Unexpected server error |
+| 200  | 成功 | リクエストが正常に完了 |
+| 201  | 作成 | リソースが正常に作成 |
+| 204  | コンテンツなし | リソースが正常に削除 |
+| 400  | 不正なリクエスト | 無効な入力データ |
+| 404  | 見つかりません | リソースが見つからない |
+| 409  | 競合 | リソース制約違反 |
+| 500  | 内部サーバーエラー | 予期しないサーバーエラー |
 
-### Error Response Examples
+### エラーレスポンス例
 
-#### Validation Error (400)
+#### 検証エラー (400)
 ```json
 {
   "error": "Bad Request",
-  "message": "Employee email already exists: john.doe@company.com",
+  "message": "職員のメールアドレスが既に存在します: tanaka.taro@company.com",
   "timestamp": "2024-01-15T10:30:00Z",
   "path": "/api/v1/employees"
 }
 ```
 
-#### Not Found Error (404)
+#### 見つからないエラー (404)
 ```json
 {
   "error": "Not Found",
-  "message": "Employee not found with ID: 999",
+  "message": "ID: 999の職員が見つかりません",
   "timestamp": "2024-01-15T10:30:00Z",
   "path": "/api/v1/employees/999"
 }
 ```
 
-#### Conflict Error (409)
+#### 競合エラー (409)
 ```json
 {
   "error": "Conflict",
-  "message": "Cannot delete department with active employees",
+  "message": "アクティブな職員がいる部署は削除できません",
   "timestamp": "2024-01-15T10:30:00Z",
   "path": "/api/v1/departments/1"
 }
 ```
 
-## 🧪 API Testing Examples
+## 🧪 API テスト例
 
-### Complete Workflow Example
+### 完全ワークフロー例
 
 ```bash
 #!/bin/bash
-# Complete employee management workflow
+# 完全な職員管理ワークフロー
 
-echo "1. Create a department"
+echo "1. 部署を作成"
 DEPT_ID=$(curl -s -X POST http://localhost:8080/api/v1/departments \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Engineering",
+    "name": "エンジニアリング部",
     "code": "ENG",
     "budget": 2500000.00,
-    "description": "Software Engineering Department"
+    "description": "ソフトウェアエンジニアリング部門"
   }' | jq -r '.id')
 
-echo "Department created with ID: $DEPT_ID"
+echo "部署が作成されました ID: $DEPT_ID"
 
-echo "2. Create an employee"
+echo "2. 職員を作成"
 EMP_ID=$(curl -s -X POST http://localhost:8080/api/v1/employees \
   -H "Content-Type: application/json" \
   -d "{
-    \"firstName\": \"Alice\",
-    \"lastName\": \"Engineer\",
-    \"email\": \"alice.engineer@company.com\",
+    \"firstName\": \"愛美\",
+    \"lastName\": \"エンジニア\",
+    \"email\": \"engineer.aimi@company.com\",
     \"hireDate\": \"2024-01-15\",
     \"departmentId\": $DEPT_ID
   }" | jq -r '.id')
 
-echo "Employee created with ID: $EMP_ID"
+echo "職員が作成されました ID: $EMP_ID"
 
-echo "3. Get employee details"
+echo "3. 職員詳細を取得"
 curl -s http://localhost:8080/api/v1/employees/$EMP_ID | jq '.'
 
-echo "4. Transfer employee to different department"
+echo "4. 職員を別の部署に異動"
 curl -s -X POST http://localhost:8080/api/v1/employees/$EMP_ID/transfer/1 | jq '.'
 
-echo "5. Get department statistics"
+echo "5. 部署統計を取得"
 curl -s http://localhost:8080/api/v1/departments/statistics | jq '.'
 
-echo "6. Search employees"
-curl -s "http://localhost:8080/api/v1/employees/search?term=Alice" | jq '.'
+echo "6. 職員を検索"
+curl -s "http://localhost:8080/api/v1/employees/search?term=愛美" | jq '.'
 
-echo "Workflow completed successfully!"
+echo "ワークフローが正常に完了しました！"
 ```
 
-### Performance Testing
+### パフォーマンステスト
 
 ```bash
 #!/bin/bash
-# Performance testing script
+# パフォーマンステストスクリプト
 
-echo "Creating multiple employees for performance testing..."
+echo "パフォーマンステスト用に複数の職員を作成中..."
 
 for i in {1..100}; do
   curl -s -X POST http://localhost:8080/api/v1/employees \
     -H "Content-Type: application/json" \
     -d "{
-      \"firstName\": \"Employee$i\",
-      \"lastName\": \"Test\",
+      \"firstName\": \"職員$i\",
+      \"lastName\": \"テスト\",
       \"email\": \"employee$i@perf.com\",
       \"hireDate\": \"2024-01-$((i % 28 + 1))\",
       \"departmentId\": $((i % 3 + 1))
     }" > /dev/null
 
   if [ $((i % 10)) -eq 0 ]; then
-    echo "Created $i employees..."
+    echo "$i人の職員を作成しました..."
   fi
 done
 
-echo "Performance test data created. Testing search performance..."
+echo "パフォーマンステストデータが作成されました。検索パフォーマンスをテスト中..."
 
-time curl -s "http://localhost:8080/api/v1/employees/search?term=Employee" > /dev/null
+time curl -s "http://localhost:8080/api/v1/employees/search?term=職員" > /dev/null
 time curl -s "http://localhost:8080/api/v1/employees?activeOnly=true" > /dev/null
 time curl -s "http://localhost:8080/api/v1/departments/with-employee-count" > /dev/null
 
-echo "Performance tests completed!"
+echo "パフォーマンステストが完了しました！"
 ```
 
-## 📊 Monitoring and Health Checks
+## 📊 監視とヘルスチェック
 
-### Health Endpoint
+### ヘルスエンドポイント
 ```bash
-# Check application health
+# アプリケーションヘルスをチェック
 curl http://localhost:8080/actuator/health
 ```
 
-**Response:**
+**レスポンス:**
 ```json
 {
   "status": "UP",
@@ -746,12 +746,12 @@ curl http://localhost:8080/actuator/health
 }
 ```
 
-### Metrics Endpoint
+### メトリクスエンドポイント
 ```bash
-# Get application metrics
+# アプリケーションメトリクスを取得
 curl http://localhost:8080/actuator/metrics
 ```
 
 ---
 
-**Next Steps**: Use this API documentation alongside the [Testing Guide](TESTING_GUIDE.md) to create comprehensive test scenarios for your learning journey.
+**次のステップ**: このAPIドキュメントを[テストガイド](TESTING_GUIDE.md)と一緒に使用して、学習の旅のための包括的なテストシナリオを作成してください。

@@ -1,19 +1,19 @@
-# Employee Management System - Setup Guide
+# 職員管理システム - セットアップガイド
 
-Complete setup guide for the containerized employee management system with PostgreSQL and comprehensive testing capabilities.
+PostgreSQLと包括的なテスト機能を備えたコンテナ化された職員管理システムの完全セットアップガイドです。
 
-## 📋 Prerequisites
+## 📋 前提条件
 
-### System Requirements
-- **Operating System**: Linux, macOS, or Windows with WSL2
-- **Memory**: Minimum 4GB RAM, recommended 8GB+
-- **Storage**: At least 2GB free space for containers and data
-- **Network**: Internet connection for downloading container images
+### システム要件
+- **オペレーティングシステム**: Linux、macOS、またはWSL2対応のWindows
+- **メモリ**: 最低4GB RAM、推奨8GB以上
+- **ストレージ**: コンテナとデータ用に最低2GBの空き容量
+- **ネットワーク**: コンテナイメージダウンロード用のインターネット接続
 
-### Required Software
+### 必要なソフトウェア
 
-#### 1. Container Runtime
-**Option A: podman (Recommended)**
+#### 1. コンテナランタイム
+**オプションA: podman（推奨）**
 ```bash
 # Ubuntu/Debian
 sudo apt-get update
@@ -25,39 +25,39 @@ sudo dnf install -y podman podman-compose
 # macOS with Homebrew
 brew install podman podman-compose
 
-# Start podman machine (macOS/Windows)
+# podman machineを起動 (macOS/Windows)
 podman machine init
 podman machine start
 ```
 
-**Option B: Docker (Alternative)**
+**オプションB: Docker（代替手段）**
 ```bash
 # Ubuntu/Debian
 sudo apt-get update
 sudo apt-get install -y docker.io docker-compose
 
-# Start Docker service
+# Dockerサービスを開始
 sudo systemctl start docker
 sudo systemctl enable docker
-sudo usermod -aG docker $USER  # Add user to docker group
+sudo usermod -aG docker $USER  # ユーザーをdockerグループに追加
 ```
 
-#### 2. Java Development Kit (Optional - for local development)
+#### 2. Java開発キット（オプション - ローカル開発用）
 ```bash
 # Ubuntu/Debian
-sudo apt-get install -y openjdk-17-jdk
+sudo apt-get install -y openjdk-21-jdk
 
 # CentOS/RHEL/Fedora
-sudo dnf install -y java-17-openjdk-devel
+sudo dnf install -y java-21-openjdk-devel
 
 # macOS with Homebrew
-brew install openjdk@17
+brew install openjdk@21
 
-# Verify installation
+# インストールを確認
 java -version
 ```
 
-#### 3. Maven (Optional - for local development)
+#### 3. Maven（オプション - ローカル開発用）
 ```bash
 # Ubuntu/Debian
 sudo apt-get install -y maven
@@ -68,116 +68,116 @@ sudo dnf install -y maven
 # macOS with Homebrew
 brew install maven
 
-# Verify installation
+# インストールを確認
 mvn -version
 ```
 
-## 🚀 Installation Steps
+## 🚀 インストール手順
 
-### Step 1: Obtain the Project
+### ステップ1: プロジェクトの取得
 
-#### Option A: Clone Repository
+#### オプションA: リポジトリのクローン
 ```bash
-git clone https://github.com/your-org/employee-management-system.git
-cd employee-management-system
+git clone https://github.com/shiftrepo/aws.git
+cd aws/container/claudecode/testcontainers/employee-management-system
 ```
 
-#### Option B: Download Archive
+#### オプションB: アーカイブのダウンロード
 ```bash
-# Download and extract the project archive
-wget https://github.com/your-org/employee-management-system/archive/main.zip
+# プロジェクトアーカイブをダウンロードして展開
+wget https://github.com/shiftrepo/aws/archive/main.zip
 unzip main.zip
-cd employee-management-system-main
+cd aws-main/container/claudecode/testcontainers/employee-management-system
 ```
 
-### Step 2: Environment Configuration
+### ステップ2: 環境設定
 
-#### Create Environment File
+#### 環境ファイルの作成
 ```bash
-# Copy the example environment file
-cp .env.example .env
+# 既存の.envファイルを確認
+cat .env
 
-# Edit environment variables (optional)
+# 必要に応じて環境変数を編集
 nano .env
 ```
 
-#### Default Environment Variables
+#### デフォルト環境変数
 ```env
-# Database Configuration
+# データベース設定
 DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=employee_db
 DB_USERNAME=postgres
 DB_PASSWORD=password
 
-# pgAdmin Configuration
+# pgAdmin設定
 PGADMIN_EMAIL=admin@example.com
 PGADMIN_PASSWORD=admin
 
-# Application Configuration
+# アプリケーション設定
 SPRING_PROFILES_ACTIVE=dev
 SERVER_PORT=8080
 ```
 
-### Step 3: Container Setup
+### ステップ3: コンテナのセットアップ
 
-#### Build and Start Services
+#### サービスのビルドと開始
 ```bash
-# Pull and build all containers
+# すべてのコンテナをプルしてビルド
 podman-compose build
 
-# Start all services in detached mode
+# すべてのサービスをデタッチモードで開始
 podman-compose up -d
 
-# Alternative: Start with live logs
+# 代替方法: ライブログ付きで開始
 podman-compose up
 ```
 
-#### Verify Services Are Running
+#### サービスが実行中であることを確認
 ```bash
-# Check service status
+# サービス状態を確認
 podman-compose ps
 
-# Expected output:
+# 期待される出力:
 # NAME                  COMMAND                  SERVICE             STATUS
 # employee_postgres     "docker-entrypoint.s…"   postgres            Up
-# employee_pgadmin      "/entrypoint.sh"         pgadmin             Up
+# employee_pgladmin      "/entrypoint.sh"         pgladmin             Up
 # employee_app          "tail -f /dev/null"      app                 Up
 ```
 
-#### Check Service Health
+#### サービスの稼働状態確認
 ```bash
-# Test PostgreSQL connection
+# PostgreSQL接続をテスト
 podman-compose exec postgres pg_isready -U postgres
 
-# Test application container
+# アプリケーションコンテナをテスト
 podman-compose exec app java -version
 
-# View service logs
+# サービスログを表示
 podman-compose logs postgres
-podman-compose logs pgladmin
+podman-compose logs pgadmin
 podman-compose logs app
 ```
 
-## 🔧 Configuration Options
+## 🔧 設定オプション
 
-### Database Configuration
+### データベース設定
 
-#### Customize Database Settings
+#### データベース設定のカスタマイズ
 ```yaml
-# In podman-compose.yml
+# podman-compose.yml内で
 services:
   postgres:
     environment:
-      POSTGRES_DB: your_custom_db_name
-      POSTGRES_USER: your_username
-      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: カスタムデータベース名
+      POSTGRES_USER: ユーザー名
+      POSTGRES_PASSWORD: セキュアなパスワード
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
 ```
 
-#### Persistent Data Storage
+#### 永続データストレージ
 ```yaml
-# Ensure data persistence
+# データの永続化を保証
 volumes:
   postgres_data:
     driver: local
@@ -185,16 +185,16 @@ volumes:
     driver: local
 ```
 
-### Application Configuration
+### アプリケーション設定
 
-#### Development Profile
+#### 開発プロファイル
 ```yaml
 # src/main/resources/application-dev.yml
 spring:
   jpa:
     hibernate:
-      ddl-auto: update  # Auto-create/update schema
-    show-sql: true      # Show SQL queries in logs
+      ddl-auto: update  # スキーマの自動作成/更新
+    show-sql: true      # SQLクエリをログに表示
 
 logging:
   level:
@@ -202,13 +202,13 @@ logging:
     org.hibernate.SQL: DEBUG
 ```
 
-#### Production Profile
+#### 本番プロファイル
 ```yaml
 # src/main/resources/application-prod.yml
 spring:
   jpa:
     hibernate:
-      ddl-auto: validate  # Only validate schema
+      ddl-auto: validate  # スキーマの検証のみ
     show-sql: false
 
 logging:
@@ -216,272 +216,272 @@ logging:
     com.example.employee: INFO
 ```
 
-## 🌐 Service Access
+## 🌐 サービスへのアクセス
 
-### Web Interfaces
+### Web インターフェース
 
-#### pgAdmin Database Manager
+#### pgAdmin データベースマネージャー
 - **URL**: http://localhost:5050
 - **Email**: admin@example.com
 - **Password**: admin
 
-**Initial Setup**:
-1. Login to pgAdmin
-2. The PostgreSQL server should be automatically configured
-3. If not, add server with:
+**初期セットアップ**:
+1. pgAdminにログイン
+2. PostgreSQLサーバーが自動的に設定されているはずです
+3. 設定されていない場合は、以下の情報でサーバーを追加:
    - **Host**: postgres
    - **Port**: 5432
    - **Database**: employee_db
    - **Username**: postgres
    - **Password**: password
 
-#### Application API
+#### アプリケーション API
 - **Base URL**: http://localhost:8080/api/v1
-- **Health Check**: http://localhost:8080/actuator/health
-- **API Documentation**: http://localhost:8080/swagger-ui.html (if enabled)
+- **ヘルスチェック**: http://localhost:8080/actuator/health
+- **API ドキュメント**: http://localhost:8080/swagger-ui.html（有効な場合）
 
-### Database Direct Access
+### データベースへの直接アクセス
 
-#### Command Line Access
+#### コマンドラインアクセス
 ```bash
-# Connect to PostgreSQL directly
+# PostgreSQLに直接接続
 podman-compose exec postgres psql -U postgres -d employee_db
 
-# Run SQL commands
-\\dt                    # List tables
-\\d employees          # Describe employees table
+# SQLコマンドの実行
+\dt                    # テーブル一覧
+\d employees          # employeesテーブルの詳細
 SELECT COUNT(*) FROM employees;
 ```
 
-#### External Database Tools
+#### 外部データベースツール
 - **Host**: localhost
 - **Port**: 5432
 - **Database**: employee_db
 - **Username**: postgres
 - **Password**: password
 
-## 🧪 Testing Setup
+## 🧪 テスト環境セットアップ
 
-### Test Environment Configuration
+### テスト環境設定
 
-#### Run Initial Tests
+#### 初期テストの実行
 ```bash
-# Build the application
+# アプリケーションをビルド
 podman-compose exec app mvn clean compile
 
-# Run all tests
+# すべてのテストを実行
 podman-compose exec app mvn test
 
-# Run specific test categories
+# 特定のテストカテゴリを実行
 podman-compose exec app mvn test -Dtest="*Repository*"
 podman-compose exec app mvn test -Dtest="*Service*"
 podman-compose exec app mvn test -Dtest="*Controller*"
 ```
 
-#### Test Data Configuration
+#### テストデータ設定
 ```bash
-# Test with different data profiles
+# 異なるデータプロファイルでテスト
 podman-compose exec app mvn test -Dtestdata.profile=basic
 podman-compose exec app mvn test -Dtestdata.profile=medium
 podman-compose exec app mvn test -Dtestdata.profile=large
 ```
 
-### Coverage Reporting
+### カバレッジレポート
 ```bash
-# Generate test coverage report
+# テストカバレッジレポートを生成
 podman-compose exec app mvn test jacoco:report
 
-# Copy report to local machine
+# レポートをローカルマシンにコピー
 podman cp $(podman-compose ps -q app):/workspace/target/site/jacoco ./coverage-report
 ```
 
-## 🛠️ Development Workflow
+## 🛠️ 開発ワークフロー
 
-### Local Development Setup
+### ローカル開発環境セットアップ
 
-#### IDE Integration
+#### IDE統合
 ```bash
-# For IntelliJ IDEA or Eclipse
-# Import as Maven project
-# Set Java SDK to 17+
-# Configure database connection:
+# IntelliJ IDEAまたはEclipse用
+# Mavenプロジェクトとしてインポート
+# Java SDKを21+に設定
+# データベース接続を設定:
 # URL: jdbc:postgresql://localhost:5432/employee_db
 # Username: postgres
 # Password: password
 ```
 
-#### Hot Reload Development
+#### ホットリロード開発
 ```bash
-# Start application with dev profile
+# devプロファイルでアプリケーションを開始
 podman-compose exec app mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
-# Or use the development override
+# または開発用オーバーライドを使用
 podman-compose -f podman-compose.yml -f podman-compose.dev.yml up
 ```
 
-### Code Changes Workflow
+### コード変更ワークフロー
 ```bash
-# 1. Make code changes in your IDE
-# 2. Test changes
+# 1. IDEでコードを変更
+# 2. 変更をテスト
 podman-compose exec app mvn clean test
 
-# 3. Build application
+# 3. アプリケーションをビルド
 podman-compose exec app mvn clean package
 
-# 4. Restart application (if needed)
+# 4. アプリケーションを再起動（必要に応じて）
 podman-compose restart app
 ```
 
-## 🔍 Troubleshooting
+## 🔍 トラブルシューティング
 
-### Common Setup Issues
+### よくあるセットアップ問題
 
-#### Port Conflicts
+#### ポート競合
 ```bash
-# Check what's using ports
+# ポートを使用しているプロセスを確認
 sudo netstat -tulpn | grep :8080
 sudo netstat -tulpn | grep :5432
 sudo netstat -tulpn | grep :5050
 
-# Change ports in podman-compose.yml if needed
+# 必要に応じてpodman-compose.ymlでポートを変更
 ```
 
-#### Container Build Issues
+#### コンテナビルド問題
 ```bash
-# Clean and rebuild
+# クリーンアップして再ビルド
 podman-compose down
 podman system prune -f
 podman-compose build --no-cache
 podman-compose up -d
 ```
 
-#### Database Connection Issues
+#### データベース接続問題
 ```bash
-# Check PostgreSQL logs
+# PostgreSQLログを確認
 podman-compose logs postgres
 
-# Verify database is accepting connections
+# データベースが接続を受け付けているかを確認
 podman-compose exec postgres pg_isready -U postgres -d employee_db
 
-# Reset database (WARNING: destroys data)
+# データベースをリセット（警告: データが削除されます）
 podman-compose down -v
 podman volume prune -f
 podman-compose up -d
 ```
 
-#### Memory Issues
+#### メモリ問題
 ```bash
-# Increase container memory limits in podman-compose.yml
+# podman-compose.ymlでコンテナメモリ制限を増加
 services:
   postgres:
     mem_limit: 1g
   app:
     mem_limit: 2g
 
-# Or adjust system resources
+# またはシステムリソースを調整
 podman system info | grep -E "Memory|CPUs"
 ```
 
-### Performance Optimization
+### パフォーマンス最適化
 
-#### Database Performance
+#### データベースパフォーマンス
 ```bash
-# Monitor database performance
-podman-compose exec postgres psql -U postgres -d employee_db \\
+# データベースパフォーマンスを監視
+podman-compose exec postgres psql -U postgres -d employee_db \
   -c "SELECT * FROM pg_stat_activity;"
 
-# Analyze query performance
-podman-compose exec postgres psql -U postgres -d employee_db \\
+# クエリパフォーマンスを分析
+podman-compose exec postgres psql -U postgres -d employee_db \
   -c "EXPLAIN ANALYZE SELECT * FROM employees JOIN departments ON employees.department_id = departments.id;"
 ```
 
-#### Application Performance
+#### アプリケーションパフォーマンス
 ```bash
-# Monitor JVM memory usage
+# JVMメモリ使用量を監視
 podman-compose exec app jps -v
 
-# Enable JVM monitoring (add to podman-compose.yml)
+# JVM監視を有効化（podman-compose.ymlに追加）
 environment:
   - JAVA_OPTS=-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
 ```
 
-## 🔄 Maintenance
+## 🔄 メンテナンス
 
-### Regular Maintenance Tasks
+### 定期メンテナンスタスク
 
-#### Update Container Images
+#### コンテナイメージの更新
 ```bash
-# Pull latest images
+# 最新イメージをプル
 podman-compose pull
 
-# Rebuild and restart
+# 再ビルドして再起動
 podman-compose down
 podman-compose up -d --build
 ```
 
-#### Database Backup
+#### データベースバックアップ
 ```bash
-# Create database backup
+# データベースバックアップを作成
 podman-compose exec postgres pg_dump -U postgres employee_db > backup.sql
 
-# Restore from backup
+# バックアップから復元
 podman-compose exec -T postgres psql -U postgres employee_db < backup.sql
 ```
 
-#### Clean Up Resources
+#### リソースのクリーンアップ
 ```bash
-# Remove unused containers and images
+# 未使用のコンテナとイメージを削除
 podman system prune -a
 
-# Remove unused volumes (WARNING: destroys data)
+# 未使用のボリュームを削除（警告: データが削除されます）
 podman volume prune -f
 ```
 
-### Monitoring and Logs
+### 監視とログ
 
-#### View Logs
+#### ログの表示
 ```bash
-# Follow all logs
+# すべてのログを追跡
 podman-compose logs -f
 
-# View specific service logs
+# 特定のサービスログを表示
 podman-compose logs -f postgres
 podman-compose logs -f app
 
-# View last N lines
+# 最後のN行を表示
 podman-compose logs --tail=50 app
 ```
 
-#### System Monitoring
+#### システム監視
 ```bash
-# Check container resource usage
+# コンテナリソース使用量を確認
 podman stats $(podman-compose ps -q)
 
-# Check system disk usage
+# システムディスク使用量を確認
 df -h
 ```
 
-## 📞 Support
+## 📞 サポート
 
-### Getting Help
+### ヘルプの取得
 
-#### Log Collection for Support
+#### サポート用ログ収集
 ```bash
-# Collect system information
+# システム情報を収集
 ./scripts/collect-debug-info.sh
 
-# Or manually:
+# または手動で:
 podman-compose ps > debug-info.txt
 podman-compose logs >> debug-info.txt
 podman system info >> debug-info.txt
 ```
 
-#### Common Support Scenarios
-1. **Application won't start**: Check logs and verify all services are running
-2. **Database connection issues**: Verify PostgreSQL service health
-3. **Test failures**: Ensure test database is properly initialized
-4. **Performance issues**: Monitor resource usage and optimize configurations
+#### よくあるサポートシナリオ
+1. **アプリケーションが起動しない**: ログを確認し、すべてのサービスが実行中であることを検証
+2. **データベース接続問題**: PostgreSQLサービスの稼働状態を確認
+3. **テスト失敗**: テストデータベースが適切に初期化されていることを確認
+4. **パフォーマンス問題**: リソース使用量を監視し、設定を最適化
 
 ---
 
-**Next Steps**: After successful setup, proceed to the [Testing Guide](TESTING_GUIDE.md) to learn about the comprehensive testing strategies.
+**次のステップ**: セットアップが正常に完了したら、[テストガイド](TESTING_GUIDE.md)に進んで包括的なテスト戦略について学習してください。
