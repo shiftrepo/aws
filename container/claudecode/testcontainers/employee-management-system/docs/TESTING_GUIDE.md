@@ -10,14 +10,19 @@ PostgreSQL統合による三階層データベーステストの包括的テス�
 2. **Service層（中級）**: ビジネスロジック、トランザクション、エラーハンドリング
 3. **Controller層（上級）**: REST API統合とエンドツーエンドシナリオ
 
+> 📖 **詳細ガイド**: テストプロファイルやTestContainersの詳しい設定・カスタマイズ方法については、[テストプロファイル・TestContainers詳細ガイド](TEST_PROFILES_GUIDE.md)をご覧ください。
+
 ## 🏗️ テストアーキテクチャ
 
 ### テスティングスタック
 - **テストフレームワーク**: JUnit 5 with Spring Boot Test
-- **データベース**: TestContainers with PostgreSQL
+- **データベース**: TestContainers with PostgreSQL（本番と同じ環境でテスト）
 - **テストデータ**: YAMLベース設定（コード変更不要で編集可能）
 - **カバレッジ**: JaCoCo with ベースライン比較
 - **アサーション**: AssertJ for fluent assertions
+- **テストプロファイル**: test/integration/performance など環境別設定
+
+> 🔧 **TestContainers**: Docker/Podmanコンテナを使用してテスト実行時に本物のPostgreSQLを自動起動・終了します。詳しい仕組みや設定方法は[詳細ガイド](TEST_PROFILES_GUIDE.md#testcontainersとは)をご参照ください。
 
 ### テストデータ管理
 ```yaml

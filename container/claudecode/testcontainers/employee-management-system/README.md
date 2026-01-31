@@ -1,39 +1,39 @@
-# Employee Management System
+# 職員管理システム
 
-A comprehensive containerized employee management system demonstrating PostgreSQL database integration with Spring Boot and extensive testing strategies.
+Spring BootとPostgreSQLデータベース統合による包括的なコンテナ化職員管理システムです。広範囲なテスト戦略を実演しています。
 
-## 🚀 Quick Start
+## 🚀 クイックスタート
 
 ```bash
-# Start the complete environment
+# 完全な環境を起動
 podman-compose up -d
 
-# Verify services are running
+# サービスが実行中であることを確認
 podman-compose ps
 
-# Access the application
+# アプリケーションにアクセス
 curl http://localhost:8080/api/v1/employees
 ```
 
-## 📋 Overview
+## 📋 概要
 
-This project implements a complete employee and department management system designed for **comprehensive database testing education**. It demonstrates:
+このプロジェクトは、**包括的データベーステスト教育**を目的とした完全な職員・部署管理システムを実装しています。以下を実演します：
 
-- **Containerized Development Environment**: PostgreSQL + pgAdmin + Java development container
-- **Three-Tier Testing Strategy**: Repository → Service → Controller testing levels
-- **Maintainable Test Data**: YAML-based test data that can be modified without code changes
-- **Real-World Scenarios**: Complex queries, transactions, and business logic testing
+- **コンテナ化開発環境**: PostgreSQL + pgAdmin + Java開発コンテナ
+- **三階層テスト戦略**: Repository → Service → Controller テストレベル
+- **保守可能テストデータ**: コード変更不要で修正可能なYAMLベーステストデータ
+- **実世界シナリオ**: 複雑クエリ、トランザクション、ビジネスロジックテスト
 
-## 🏗️ Architecture
+## 🏗️ アーキテクチャ
 
-### Technology Stack
-- **Backend**: Spring Boot 3.x with Spring Data JPA
-- **Database**: PostgreSQL 15 with full-text search capabilities
-- **Testing**: JUnit 5 + TestContainers + comprehensive test utilities
-- **Container Management**: podman-compose for complete environment orchestration
-- **Build Tool**: Maven with integrated testing and coverage reporting
+### 技術スタック
+- **バックエンド**: Spring Boot 3.x with Spring Data JPA
+- **データベース**: PostgreSQL 15 with 全文検索機能
+- **テスト**: JUnit 5 + TestContainers + 包括的テストユーティリティ
+- **コンテナ管理**: 完全環境オーケストレーション用podman-compose
+- **ビルドツール**: 統合テスト・カバレッジレポート付きMaven
 
-### System Components
+### システムコンポーネント
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   REST API      │    │   Service Layer  │    │  Repository     │
@@ -47,107 +47,111 @@ This project implements a complete employee and department management system des
                                                 └─────────────────┘
 ```
 
-## 🎯 Testing Strategy
+## 🎯 テスト戦略
 
-### Three-Level Testing Approach
+### 三階層テストアプローチ
 
-#### 1. **Repository Layer Tests** (Beginner Level)
-- Basic CRUD operations testing
-- JPA query method validation
-- Custom query verification
-- Database constraint testing
+#### 1. **Repository層テスト** (初級レベル)
+- 基本CRUD操作のテスト
+- JPAクエリメソッドの検証
+- カスタムクエリの検証
+- データベース制約のテスト
 
-#### 2. **Service Layer Tests** (Intermediate Level)
-- Business logic validation
-- Transaction management testing
-- Error handling verification
-- Mock integration testing
+#### 2. **Service層テスト** (中級レベル)
+- ビジネスロジックの検証
+- トランザクション管理のテスト
+- エラーハンドリングの検証
+- モック統合テスト
 
-#### 3. **Controller Layer Tests** (Advanced Level)
-- REST API endpoint testing
-- JSON serialization/deserialization
-- HTTP status code validation
-- Integration test scenarios
+#### 3. **Controller層テスト** (上級レベル)
+- REST APIエンドポイントのテスト
+- JSON シリアル化/デシリアル化
+- HTTPステータスコードの検証
+- 統合テストシナリオ
 
-### Test Data Management
-- **YAML-Based Configuration**: Modify test data without changing code
-- **Scenario-Specific Datasets**: Different data sets for different test types
-- **Automatic Cleanup**: Tests clean up after themselves
-- **Regression Testing**: Compare results with baseline data
+### テストデータ管理
+- **YAMLベース設定**: コード変更不要でテストデータを修正
+- **シナリオ固有データセット**: 異なるテストタイプ用の異なるデータセット
+- **自動クリーンアップ**: テストが自動的にクリーンアップ
+- **回帰テスト**: 結果をベースラインデータと比較
 
-## 🛠️ Setup and Installation
+> 📚 **詳細ガイド**: テストプロファイル設定、TestContainersの使い方、カスタムテスト環境の作成方法については、[テストプロファイル・TestContainers詳細ガイド](docs/TEST_PROFILES_GUIDE.md)をご覧ください。
 
-### Prerequisites
-- **podman** and **podman-compose** installed
-- **Java 17+** (for local development)
-- **Maven 3.6+** (for local development)
+## 🛠️ セットアップとインストール
 
-### Environment Setup
+### 前提条件
+- **podman** と **podman-compose** がインストール済み
+- **Java 21+** (ローカル開発用)
+- **Maven 3.6+** (ローカル開発用)
 
-1. **Clone and Navigate**
+### 環境セットアップ
+
+1. **クローンと移動**
    ```bash
    git clone <repository-url>
    cd employee-management-system
    ```
 
-2. **Start All Services**
+2. **全サービス開始**
    ```bash
    podman-compose up -d
    ```
 
-3. **Verify Installation**
+3. **インストール検証**
    ```bash
-   # Check all services are running
+   # 全サービスが実行中であることを確認
    podman-compose ps
 
-   # Test database connection
+   # データベース接続をテスト
    podman-compose exec postgres pg_isready -U postgres
 
-   # Access pgAdmin (http://localhost:5050)
+   # pgAdminにアクセス (http://localhost:5050)
    # Email: admin@example.com, Password: admin
    ```
 
-### Service Endpoints
-- **Application**: http://localhost:8080
+### サービスエンドポイント
+- **アプリケーション**: http://localhost:8080
 - **pgAdmin**: http://localhost:5050
 - **PostgreSQL**: localhost:5432
 
-## 🧪 Running Tests
+## 🧪 テスト実行
 
-### Basic Test Execution
+### 基本テスト実行
 ```bash
-# All tests
+# 全テスト
 podman-compose exec app mvn test
 
-# Specific test levels
-podman-compose exec app mvn test -Dtest="*Repository*"  # Repository tests
-podman-compose exec app mvn test -Dtest="*Service*"    # Service tests
-podman-compose exec app mvn test -Dtest="*Controller*" # Controller tests
+# 特定のテストレベル
+podman-compose exec app mvn test -Dtest="*Repository*"  # Repositoryテスト
+podman-compose exec app mvn test -Dtest="*Service*"    # Serviceテスト
+podman-compose exec app mvn test -Dtest="*Controller*" # Controllerテスト
 ```
 
-### Advanced Test Scenarios
+### 高度なテストシナリオ
 ```bash
-# Test with specific data profile
+# 特定のデータプロファイルでテスト
 podman-compose exec app mvn test -Dtestdata.profile=medium
 
-# Run regression tests
+# 回帰テストを実行
 podman-compose exec app mvn test -Dtest.suite=regression
 
-# Generate coverage report
+# カバレッジレポートを生成
 podman-compose exec app mvn test jacoco:report
 ```
 
-### Test Data Profiles
-- **`basic`**: Minimal dataset for quick testing
-- **`medium`**: Moderate dataset for comprehensive testing
-- **`large`**: Large dataset for performance testing
-- **`integration`**: Complete dataset for end-to-end testing
+### テストデータプロファイル
+- **`basic`**: 迅速テスト用最小データセット
+- **`medium`**: 包括的テスト用中程度データセット
+- **`large`**: パフォーマンステスト用大規模データセット
+- **`integration`**: エンドツーエンドテスト用完全データセット
 
-## 📊 Database Schema
+> 🔧 **プロファイル詳細**: 各プロファイルの詳細設定と新規プロファイル作成方法については、[TEST_PROFILES_GUIDE.md](docs/TEST_PROFILES_GUIDE.md#新しいテストプロファイルの追加方法)をご参照ください。
 
-### Core Entities
+## 📊 データベーススキーマ
 
-#### Departments
+### コアエンティティ
+
+#### 部署テーブル
 ```sql
 CREATE TABLE departments (
     id BIGSERIAL PRIMARY KEY,
@@ -162,7 +166,7 @@ CREATE TABLE departments (
 );
 ```
 
-#### Employees
+#### 職員テーブル
 ```sql
 CREATE TABLE employees (
     id BIGSERIAL PRIMARY KEY,
@@ -181,175 +185,189 @@ CREATE TABLE employees (
 );
 ```
 
-## 🔧 Development Workflow
+## 🔧 開発ワークフロー
 
-### 1. Modify Test Data
-Edit YAML files directly - no code changes needed:
+### 1. テストデータ修正
+YAMLファイルを直接編集 - コード変更不要：
 ```bash
-# Edit test data
+# テストデータを編集
 vi src/test/resources/testdata/employees.yml
 vi src/test/resources/testdata/departments.yml
 
-# Run tests with new data
+# 新データでテストを実行
 podman-compose exec app mvn test
 ```
 
-### 2. Add New Tests
+### 2. 新規テスト追加
 ```bash
-# Create new test class
+# 新しいテストクラスを作成
 vi src/test/java/com/example/employee/repository/MyNewRepositoryTest.java
 
-# Run specific test
+# 特定のテストを実行
 podman-compose exec app mvn test -Dtest="MyNewRepositoryTest"
 ```
 
-### 3. Database Inspection
+### 3. データベース検査
 ```bash
-# Connect to database directly
+# データベースに直接接続
 podman-compose exec postgres psql -U postgres -d employee_db
 
-# Or use pgAdmin web interface
+# またはpgAdmin Webインターフェースを使用
 # http://localhost:5050
 ```
 
-## 📚 API Documentation
+## 📚 APIドキュメント
 
-### Departments API
+### 部署API
 
 #### GET /api/v1/departments
 ```bash
-# Get all departments
+# 全部署を取得
 curl http://localhost:8080/api/v1/departments
 
-# Get active departments only
-curl http://localhost:8080/api/v1/departments?activeOnly=true
+# アクティブ部署のみ取得
+curl "http://localhost:8080/api/v1/departments?activeOnly=true"
 ```
 
 #### POST /api/v1/departments
 ```bash
-curl -X POST http://localhost:8080/api/v1/departments \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/api/v1/departments \
+  -H "Content-Type: application/json" \
   -d '{
-    "name": "New Department",
+    "name": "新規部署",
     "code": "NEW",
     "budget": 1000000.00,
-    "description": "A new department"
+    "description": "新しい部署です"
   }'
 ```
 
-### Employees API
+### 職員API
 
 #### GET /api/v1/employees
 ```bash
-# Get all employees
+# 全職員を取得
 curl http://localhost:8080/api/v1/employees
 
-# Search employees
-curl "http://localhost:8080/api/v1/employees/search?term=John"
+# 職員を検索
+curl "http://localhost:8080/api/v1/employees/search?term=太郎"
 
-# Get employees by department
+# 部署別職員を取得
 curl http://localhost:8080/api/v1/employees/department/1
 ```
 
 #### POST /api/v1/employees
 ```bash
-curl -X POST http://localhost:8080/api/v1/employees \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/api/v1/employees \
+  -H "Content-Type: application/json" \
   -d '{
-    "firstName": "New",
-    "lastName": "Employee",
+    "firstName": "新規",
+    "lastName": "職員",
     "email": "new.employee@company.com",
     "hireDate": "2024-01-15",
     "departmentId": 1
   }'
 ```
 
-## 🐛 Troubleshooting
+> 📖 **API詳細**: 全APIエンドポイントの詳細説明と認証方法については、[API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)をご覧ください。
 
-### Common Issues
+## 🐛 トラブルシューティング
 
-#### Database Connection Issues
+### よくある問題
+
+#### データベース接続問題
 ```bash
-# Check PostgreSQL is running
+# PostgreSQLが実行中かを確認
 podman-compose ps postgres
 
-# Check database logs
+# データベースログを確認
 podman-compose logs postgres
 
-# Test connection manually
+# 接続を手動でテスト
 podman-compose exec postgres pg_isready -U postgres
 ```
 
-#### Test Failures
+#### テスト失敗
 ```bash
-# Run tests with detailed logging
+# 詳細ログでテストを実行
 podman-compose exec app mvn test -Dtest.log.level=DEBUG
 
-# Check test database state
-podman-compose exec postgres psql -U postgres -d employee_db -c "\\dt"
+# テストデータベース状態を確認
+podman-compose exec postgres psql -U postgres -d employee_db -c "\dt"
 ```
 
-#### Container Issues
+#### コンテナ問題
 ```bash
-# Restart all services
+# 全サービスを再起動
 podman-compose down && podman-compose up -d
 
-# Rebuild containers
+# コンテナを再ビルド
 podman-compose build --no-cache
 
-# Clean volumes (WARNING: deletes all data)
+# ボリュームをクリーン（警告：全データが削除されます）
 podman-compose down -v
 ```
 
-## 📈 Performance Monitoring
+> 🔧 **詳細トラブルシューティング**: より詳細な問題解決方法については、[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)をご覧ください。
 
-### JaCoCo Coverage Reports
+## 📈 パフォーマンス監視
+
+### JaCoCoカバレッジレポート
 ```bash
-# Generate coverage report
+# カバレッジレポートを生成
 podman-compose exec app mvn test jacoco:report
 
-# View report
+# レポートを表示
 open target/site/jacoco/index.html
 ```
 
-### Database Performance
+### データベースパフォーマンス
 ```bash
-# Check database statistics
-podman-compose exec postgres psql -U postgres -d employee_db \\
+# データベース統計を確認
+podman-compose exec postgres psql -U postgres -d employee_db \
   -c "SELECT * FROM pg_stat_user_tables;"
 
-# Monitor active connections
-podman-compose exec postgres psql -U postgres -d employee_db \\
+# アクティブ接続を監視
+podman-compose exec postgres psql -U postgres -d employee_db \
   -c "SELECT count(*) FROM pg_stat_activity;"
 ```
 
-## 🤝 Contributing
+## 🤝 貢献方法
 
-1. **Fork the repository**
-2. **Create feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make changes and add tests**
-4. **Ensure all tests pass**: `podman-compose exec app mvn test`
-5. **Commit changes**: `git commit -m 'Add amazing feature'`
-6. **Push to branch**: `git push origin feature/amazing-feature`
-7. **Open Pull Request**
+1. **リポジトリをフォーク**
+2. **機能ブランチを作成**: `git checkout -b feature/amazing-feature`
+3. **変更を加えてテストを追加**
+4. **全テストが通ることを確認**: `podman-compose exec app mvn test`
+5. **変更をコミット**: `git commit -m 'Add amazing feature'`
+6. **ブランチにプッシュ**: `git push origin feature/amazing-feature`
+7. **プルリクエストを開く**
 
-### Testing Guidelines
-- All new features must include tests at all three levels (Repository, Service, Controller)
-- Test data should be added to appropriate YAML files
-- Maintain test isolation - tests should not depend on each other
-- Follow existing naming conventions for test methods
+### テストガイドライン
+- 新機能は全三レベル（Repository、Service、Controller）のテストを含める必要があります
+- テストデータは適切なYAMLファイルに追加してください
+- テストの分離を維持 - テスト間の依存関係は避けてください
+- テストメソッドの既存命名規則に従ってください
 
-## 📄 License
+## 📄 ライセンス
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+このプロジェクトはMITライセンスの下でライセンスされています - 詳細は[LICENSE](LICENSE)ファイルをご覧ください。
 
-## 🙏 Acknowledgments
+## 🙏 謝辞
 
-- **Spring Boot Team** for the excellent framework
-- **TestContainers** for making integration testing seamless
-- **PostgreSQL Community** for the robust database platform
-- **podman Community** for container orchestration capabilities
+- **Spring Bootチーム** - 優れたフレームワークに感謝
+- **TestContainers** - シームレスな統合テストの実現に感謝
+- **PostgreSQLコミュニティ** - 堅牢なデータベースプラットフォームに感謝
+- **podmanコミュニティ** - コンテナオーケストレーション機能に感謝
+
+## 📚 関連ドキュメント
+
+| ドキュメント | 説明 |
+|------------|------|
+| [セットアップガイド](docs/SETUP_GUIDE.md) | 詳細な環境構築手順 |
+| [テストガイド](docs/TESTING_GUIDE.md) | 包括的テスト戦略とテスト実行方法 |
+| [テストプロファイル詳細ガイド](docs/TEST_PROFILES_GUIDE.md) | TestContainersとプロファイル設定の詳細解説 |
+| [APIドキュメント](docs/API_DOCUMENTATION.md) | 全REST APIエンドポイントの詳細仕様 |
+| [トラブルシューティング](docs/TROUBLESHOOTING.md) | 問題解決とデバッグガイド |
 
 ---
 
-**Built for comprehensive database testing education and real-world development practices.**
+**包括的データベーステスト教育と実世界開発実践のために構築されました。**
