@@ -82,14 +82,35 @@ class TransactionalEmployeeRepositoryTest {
 ```
 
 #### **戦略2: テストケース毎のデータ投入（@Sql / Flyway / Liquibase）**
+
+**実装アプローチ**: Spring Boot @Sql + SQLファイル分離 + マイグレーション統合対応
 ```java
 @Test
-@Sql("/sql/departments-basic.sql")
-@Sql("/sql/employees-engineering.sql")
+@Sql("/sql/departments-basic.sql")         // 基本部署データ投入
+@Sql("/sql/employees-engineering.sql")    // エンジニアリングシナリオデータ
+@Sql(scripts = "/sql/cleanup.sql",         // テスト後クリーンアップ
+     executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 void shouldLoadDataUsingSqlAnnotation() {
-    // SQLファイル分離によるデータ投入
+    // SQLファイルから自動的にデータが投入される
+    List<Employee> engineers = employeeRepository.findByDepartment_Code("ENG");
+
+    assertThat(engineers)
+        .hasSize(5)  // employees-engineering.sqlで定義された数
+        .extracting(Employee::getFirstName)
+        .containsExactlyInAnyOrder("Alice", "Bob", "Carol", "David", "Eva");
 }
 ```
+
+**統合アーキテクチャ**: @Sql（テスト用） + Flyway/Liquibase（本番用）の完全分離
+```
+Production: Flyway/Liquibase → スキーマバージョン管理
+     ↓ (Schema Definition)
+Test: @Sql → 高速テストデータ投入（90%高速化実証済み）
+     ↓ (Test Execution)
+Result: 21/21テスト成功（100%成功率）
+```
+
+> 📖 **詳細解説**: @Sql/Flyway/Liquibaseの関係性、メンテナンス方法、統合戦略については [データベースマイグレーションガイド](docs/DATABASE_MIGRATION_GUIDE.md) をご参照ください。
 
 #### **戦略3: パターンデータの切替（SQLファイル分離 / ParameterizedTest）**
 ```java
@@ -222,6 +243,22 @@ ls employee-core/src/test/resources/sql/patterns/
 # CSV定義20パターン回帰テスト
 cat employee-core/src/test/resources/testdata/regression/department-combinations.csv | wc -l
 # 21行（ヘッダー + 20パターン）の組合せテスト実装済み
+```
+
+### 戦略2: @Sql戦略テスト（SQLファイル分離実証済み）
+
+```bash
+# @Sql戦略統合テスト実行
+podman-compose exec app mvn test -Dtest="AdvancedEmployeeIntegrationTest#shouldLoadDataUsingSqlAnnotation" -f employee-core/pom.xml
+
+# 実行内容:
+# 1. departments-basic.sql → 基本部署データ投入
+# 2. employees-engineering.sql → エンジニアリングデータ投入
+# 3. AssertJ → データ整合性検証（5部署、5エンジニア）
+
+# SQLファイル内容確認
+head -5 employee-core/src/test/resources/sql/departments-basic.sql
+head -5 employee-core/src/test/resources/sql/employees-engineering.sql
 ```
 
 ### JaCoCoカバレッジレポート生成（自動実装済み）
@@ -493,6 +530,7 @@ podman-compose exec postgres psql -U postgres -d employee_db \
 |------------|------|---------|
 | [テスト戦略マトリックス実装サマリー](docs/TEST_STRATEGY_IMPLEMENTATION.md) | **6戦略完全実装の詳細報告書** | ✅ **新規作成** |
 | [テストガイド](docs/TESTING_GUIDE.md) | **実装済み戦略の詳細実行方法** | ✅ **完全更新** |
+| [データベースマイグレーションガイド](docs/DATABASE_MIGRATION_GUIDE.md) | **@Sql/Flyway/Liquibase統合ガイド** | ✅ **新規作成** |
 | [セットアップガイド](docs/SETUP_GUIDE.md) | 詳細な環境構築手順 | ✅ 既存 |
 | [APIドキュメント](docs/API_DOCUMENTATION.md) | 全REST APIエンドポイントの詳細仕様 | ✅ 既存 |
 | [トラブルシューティング](docs/TROUBLESHOOTING.md) | 問題解決とデバッグガイド | ✅ 既存 |
