@@ -1,0 +1,21 @@
+departmentType,employeeCount,budget,hasManager,expectedStatus,description
+engineering,15,3000000.00,true,HEALTHY,Standard engineering team with manager
+engineering,3,3000000.00,false,UNDERSTAFFED,Small engineering team without manager
+engineering,50,3000000.00,true,OVERSTAFFED,Large engineering team
+marketing,25,2000000.00,true,OVER_BUDGET,Marketing team exceeding budget ratio
+marketing,10,2000000.00,true,OPTIMAL,Well-balanced marketing team
+hr,8,1500000.00,true,OPTIMAL,Standard HR department
+hr,2,1500000.00,false,UNDERSTAFFED,Minimal HR staffing
+sales,50,5000000.00,true,HIGH_PERFORMANCE,Large sales team with good budget
+sales,5,5000000.00,true,OVER_BUDGET,Small sales team with excessive budget
+research,5,8000000.00,true,WELL_FUNDED,R&D department with high budget
+research,20,2000000.00,true,UNDER_FUNDED,Large R&D team with low budget
+operations,30,4000000.00,true,HEALTHY,Operations team with good balance
+operations,100,4000000.00,false,OVERSTAFFED,Large operations without proper management
+finance,12,3000000.00,true,OPTIMAL,Standard finance department
+finance,3,3000000.00,true,OPTIMAL,Small but efficient finance team
+legal,6,2500000.00,true,HEALTHY,Legal department with adequate resources
+customer_service,40,3500000.00,true,COST_EFFECTIVE,Large customer service team
+customer_service,15,3500000.00,false,OPTIMAL,Medium customer service team
+quality_assurance,20,2800000.00,true,HEALTHY,QA team with good coverage
+quality_assurance,8,2800000.00,true,OPTIMAL,Focused QA team
