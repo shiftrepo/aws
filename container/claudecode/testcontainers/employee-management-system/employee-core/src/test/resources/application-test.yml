@@ -1,0 +1,142 @@
+spring:
+  application:
+    name: employee-management-system-test
+
+  # Test Database Configuration (will be overridden by TestContainers)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/employee_test_db
+    username: test_user
+    password: test_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 5000
+
+  # Test JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: ${TEST_SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+  # Disable Flyway for tests (using create-drop instead)
+  flyway:
+    enabled: false
+
+  # Test Cache Configuration
+  cache:
+    type: simple
+
+  # Test JSON Configuration
+  jackson:
+    serialization:
+      indent-output: false
+
+# Test Server Configuration
+server:
+  port: 0  # Random port for tests
+
+# Test Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Test-specific Application Configuration
+app:
+  name: Employee Management System Test
+  version: 1.0.0-TEST
+
+  # Test Business Rules (more lenient for testing)
+  business:
+    max-employees-per-department: 10000
+    min-years-for-veteran-status: 1
+    max-budget-per-department: 100000000
+
+  # Test Data Configuration
+  test-data:
+    profile: ${TESTDATA_PROFILE:basic}
+    auto-load: false
+    validate-only: false
+    refresh: false
+    source: yaml
+
+# Test Regression Configuration
+regression:
+  enabled: true
+  compare: ${REGRESSION_COMPARE:false}
+  baseline-path: classpath:regression/
+  results-path: target/regression-results/
+
+# Test Coverage Configuration
+coverage:
+  enabled: true
+  baseline:
+    compare: ${COVERAGE_BASELINE_COMPARE:false}
+    path: classpath:regression/coverage-baseline.xml
+
+# Quality Gate Configuration
+quality:
+  gate:
+    enabled: ${QUALITY_GATE:false}
+    coverage:
+      minimum: 0.90
+    test:
+      failure-threshold: 0
+
+# Test Suite Configuration
+test:
+  suite: ${TEST_SUITE:smoke}
+  suites:
+    smoke:
+      includes:
+        - "**/*RepositoryTest.java"
+        - "**/*ServiceTest.java"
+      parallel: true
+      timeout: 30s
+    regression:
+      includes:
+        - "**/*Test.java"
+        - "**/*Tests.java"
+      parallel: true
+      timeout: 60s
+    integration:
+      includes:
+        - "**/*IntegrationTest.java"
+        - "**/*ControllerTest.java"
+      parallel: false
+      timeout: 120s
+    performance:
+      includes:
+        - "**/*PerformanceTest.java"
+      parallel: false
+      timeout: 300s
+
+# Test Logging Configuration
+logging:
+  level:
+    root: WARN
+    com.example.employee: ${TEST_LOG_LEVEL:DEBUG}
+    org.springframework.test: INFO
+    org.springframework.boot.test: INFO
+    org.hibernate.SQL: ${TEST_SHOW_SQL:false}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${TEST_SHOW_SQL_PARAMS:false}
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN
+    com.zaxxer.hikari: WARN
+
+  # Test-specific log pattern
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

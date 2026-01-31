@@ -1,0 +1,339 @@
+# Integration test scenario data
+# Complete dataset for end-to-end integration testing with realistic relationships
+
+departments:
+  - name: "Human Resources"
+    code: "HR"
+    budget: 1200000.00
+    description: "Human Resources Department - Employee management and policies"
+    active: true
+
+  - name: "Information Technology"
+    code: "IT"
+    budget: 2800000.00
+    description: "Information Technology Department - Software development and infrastructure"
+    active: true
+
+  - name: "Finance"
+    code: "FIN"
+    budget: 1600000.00
+    description: "Finance Department - Financial planning and accounting"
+    active: true
+
+  - name: "Marketing"
+    code: "MKT"
+    budget: 950000.00
+    description: "Marketing Department - Brand management and customer acquisition"
+    active: true
+
+  - name: "Sales"
+    code: "SALES"
+    budget: 1300000.00
+    description: "Sales Department - Revenue generation and customer relationships"
+    active: true
+
+  - name: "Product Management"
+    code: "PM"
+    budget: 1800000.00
+    description: "Product Management - Product strategy and roadmap"
+    active: true
+
+  - name: "Customer Support"
+    code: "CS"
+    budget: 750000.00
+    description: "Customer Support - Client assistance and issue resolution"
+    active: true
+
+  - name: "Quality Assurance"
+    code: "QA"
+    budget: 800000.00
+    description: "Quality Assurance - Product quality and testing"
+    active: true
+
+  - name: "Legal"
+    code: "LEGAL"
+    budget: 600000.00
+    description: "Legal Department - Compliance and contract management"
+    active: true
+
+  - name: "Facilities"
+    code: "FAC"
+    budget: 400000.00
+    description: "Facilities Department - Office management and maintenance"
+    active: false  # Inactive department
+
+employees:
+  # Executive Level (hired 2015-2018)
+  - firstName: "James"
+    lastName: "Director"
+    email: "james.director@company.com"
+    hireDate: "2015-03-01"
+    phoneNumber: "+1-555-0001"
+    address: "1 Executive Plaza, Corporate City, CC"
+    active: true
+    departmentId: 1  # HR
+
+  - firstName: "Margaret"
+    lastName: "Chief"
+    email: "margaret.chief@company.com"
+    hireDate: "2016-01-15"
+    phoneNumber: "+1-555-0002"
+    address: "2 Leadership Lane, Corporate City, CC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Robert"
+    lastName: "VP"
+    email: "robert.vp@company.com"
+    hireDate: "2017-06-20"
+    phoneNumber: "+1-555-0003"
+    address: "3 Management Way, Corporate City, CC"
+    active: true
+    departmentId: 3  # Finance
+
+  # Senior Level (hired 2018-2020)
+  - firstName: "Jennifer"
+    lastName: "Senior"
+    email: "jennifer.senior@company.com"
+    hireDate: "2018-04-10"
+    phoneNumber: "+1-555-1001"
+    address: "10 Senior Street, Corporate City, CC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Michael"
+    lastName: "Lead"
+    email: "michael.lead@company.com"
+    hireDate: "2018-09-15"
+    phoneNumber: "+1-555-1002"
+    address: "11 Leadership Rd, Corporate City, CC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Linda"
+    lastName: "Principal"
+    email: "linda.principal@company.com"
+    hireDate: "2019-02-28"
+    phoneNumber: "+1-555-1003"
+    address: "12 Principal Ave, Corporate City, CC"
+    active: true
+    departmentId: 6  # Product Management
+
+  - firstName: "David"
+    lastName: "Architect"
+    email: "david.architect@company.com"
+    hireDate: "2019-07-12"
+    phoneNumber: "+1-555-1004"
+    address: "13 Architecture Dr, Corporate City, CC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Barbara"
+    lastName: "Manager"
+    email: "barbara.manager@company.com"
+    hireDate: "2020-01-20"
+    phoneNumber: "+1-555-1005"
+    address: "14 Manager Ct, Corporate City, CC"
+    active: true
+    departmentId: 4  # Marketing
+
+  # Mid Level (hired 2020-2022)
+  - firstName: "William"
+    lastName: "Developer"
+    email: "william.developer@company.com"
+    hireDate: "2020-03-15"
+    phoneNumber: "+1-555-2001"
+    address: "20 Developer St, Tech City, TC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Elizabeth"
+    lastName: "Analyst"
+    email: "elizabeth.analyst@company.com"
+    hireDate: "2020-08-10"
+    phoneNumber: "+1-555-2002"
+    address: "21 Analysis Ave, Tech City, TC"
+    active: true
+    departmentId: 3  # Finance
+
+  - firstName: "Richard"
+    lastName: "Designer"
+    email: "richard.designer@company.com"
+    hireDate: "2021-01-25"
+    phoneNumber: "+1-555-2003"
+    address: "22 Design Dr, Creative City, CR"
+    active: true
+    departmentId: 4  # Marketing
+
+  - firstName: "Susan"
+    lastName: "Coordinator"
+    email: "susan.coordinator@company.com"
+    hireDate: "2021-05-18"
+    phoneNumber: "+1-555-2004"
+    address: "23 Coordination Ln, Business City, BC"
+    active: true
+    departmentId: 6  # Product Management
+
+  - firstName: "Joseph"
+    lastName: "Specialist"
+    email: "joseph.specialist@company.com"
+    hireDate: "2021-09-30"
+    phoneNumber: "+1-555-2005"
+    address: "24 Specialty Way, Expert City, EC"
+    active: true
+    departmentId: 5  # Sales
+
+  - firstName: "Thomas"
+    lastName: "Engineer"
+    email: "thomas.engineer@company.com"
+    hireDate: "2022-02-14"
+    phoneNumber: "+1-555-2006"
+    address: "25 Engineering Blvd, Tech City, TC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Christopher"
+    lastName: "Consultant"
+    email: "christopher.consultant@company.com"
+    hireDate: "2022-06-20"
+    phoneNumber: "+1-555-2007"
+    address: "26 Consulting Circle, Business City, BC"
+    active: true
+    departmentId: 8  # QA
+
+  # Junior Level (hired 2022-2024)
+  - firstName: "Daniel"
+    lastName: "Junior"
+    email: "daniel.junior@company.com"
+    hireDate: "2022-09-12"
+    phoneNumber: "+1-555-3001"
+    address: "30 Junior Rd, Starter City, SC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Matthew"
+    lastName: "Associate"
+    email: "matthew.associate@company.com"
+    hireDate: "2022-11-28"
+    phoneNumber: "+1-555-3002"
+    address: "31 Associate Ave, Starter City, SC"
+    active: true
+    departmentId: 3  # Finance
+
+  - firstName: "Anthony"
+    lastName: "Trainee"
+    email: "anthony.trainee@company.com"
+    hireDate: "2023-01-16"
+    phoneNumber: "+1-555-3003"
+    address: "32 Training St, Learning City, LC"
+    active: true
+    departmentId: 7  # Customer Support
+
+  - firstName: "Mark"
+    lastName: "Assistant"
+    email: "mark.assistant@company.com"
+    hireDate: "2023-03-22"
+    phoneNumber: "+1-555-3004"
+    address: "33 Assistant Dr, Helper City, HC"
+    active: true
+    departmentId: 1  # HR
+
+  - firstName: "Donald"
+    lastName: "Intern"
+    email: "donald.intern@company.com"
+    hireDate: "2023-06-01"
+    phoneNumber: "+1-555-3005"
+    address: "34 Internship Ln, Future City, FC"
+    active: true
+    departmentId: 4  # Marketing
+
+  - firstName: "Steven"
+    lastName: "Graduate"
+    email: "steven.graduate@company.com"
+    hireDate: "2023-08-15"
+    phoneNumber: "+1-555-3006"
+    address: "35 Graduate Way, New City, NC"
+    active: true
+    departmentId: 8  # QA
+
+  - firstName: "Paul"
+    lastName: "Entry"
+    email: "paul.entry@company.com"
+    hireDate: "2023-10-30"
+    phoneNumber: "+1-555-3007"
+    address: "36 Entry Blvd, Beginning City, BC"
+    active: true
+    departmentId: 5  # Sales
+
+  - firstName: "Andrew"
+    lastName: "Fresh"
+    email: "andrew.fresh@company.com"
+    hireDate: "2024-01-08"
+    phoneNumber: "+1-555-3008"
+    address: "37 Fresh St, New City, NC"
+    active: true
+    departmentId: 6  # Product Management
+
+  - firstName: "Joshua"
+    lastName: "New"
+    email: "joshua.new@company.com"
+    hireDate: "2024-02-20"
+    phoneNumber: "+1-555-3009"
+    address: "38 New Ave, Recent City, RC"
+    active: true
+    departmentId: 7  # Customer Support
+
+  - firstName: "Kenneth"
+    lastName: "Recent"
+    email: "kenneth.recent@company.com"
+    hireDate: "2024-03-18"
+    phoneNumber: "+1-555-3010"
+    address: "39 Recent Rd, Latest City, LC"
+    active: true
+    departmentId: 9  # Legal
+
+  # Special Cases
+  - firstName: "Kevin"
+    lastName: "Unassigned"
+    email: "kevin.unassigned@company.com"
+    hireDate: "2023-12-01"
+    phoneNumber: "+1-555-4001"
+    address: "40 Temporary Dr, Transit City, TC"
+    active: true
+    departmentId: null  # No department
+
+  - firstName: "Brian"
+    lastName: "Contractor"
+    email: "brian.contractor@company.com"
+    hireDate: "2024-01-15"
+    phoneNumber: "+1-555-4002"
+    address: "41 Contract St, Temp City, TP"
+    active: true
+    departmentId: null  # No department
+
+  - firstName: "George"
+    lastName: "Former"
+    email: "george.former@company.com"
+    hireDate: "2020-05-10"
+    phoneNumber: "+1-555-4003"
+    address: "42 Former Ave, Past City, PC"
+    active: false  # Inactive employee
+    departmentId: 10  # Facilities (inactive department)
+
+  - firstName: "Edward"
+    lastName: "Departed"
+    email: "edward.departed@company.com"
+    hireDate: "2021-03-15"
+    phoneNumber: "+1-555-4004"
+    address: "43 Departed Ln, Gone City, GC"
+    active: false  # Inactive employee
+    departmentId: 4  # Marketing
+
+  - firstName: "Ronald"
+    lastName: "Veteran"
+    email: "ronald.veteran@company.com"
+    hireDate: "2015-12-01"
+    phoneNumber: "+1-555-4005"
+    address: "44 Veteran Way, Experience City, EC"
+    active: true
+    departmentId: 2  # IT

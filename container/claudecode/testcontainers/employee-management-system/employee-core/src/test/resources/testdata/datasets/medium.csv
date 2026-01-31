@@ -1,0 +1,21 @@
+firstName,lastName,email,hireDate,phoneNumber,address,active
+Employee1,Test,employee1@medium.com,2023-01-01,+1-555-1001,1 Medium St,true
+Employee2,Test,employee2@medium.com,2023-01-15,+1-555-1002,2 Medium St,true
+Employee3,Test,employee3@medium.com,2023-02-01,+1-555-1003,3 Medium St,true
+Employee4,Test,employee4@medium.com,2023-02-15,+1-555-1004,4 Medium St,true
+Employee5,Test,employee5@medium.com,2023-03-01,+1-555-1005,5 Medium St,true
+Employee6,Test,employee6@medium.com,2023-03-15,+1-555-1006,6 Medium St,true
+Employee7,Test,employee7@medium.com,2023-04-01,+1-555-1007,7 Medium St,true
+Employee8,Test,employee8@medium.com,2023-04-15,+1-555-1008,8 Medium St,true
+Employee9,Test,employee9@medium.com,2023-05-01,+1-555-1009,9 Medium St,true
+Employee10,Test,employee10@medium.com,2023-05-15,+1-555-1010,10 Medium St,true
+Employee11,Test,employee11@medium.com,2023-06-01,+1-555-1011,11 Medium St,true
+Employee12,Test,employee12@medium.com,2023-06-15,+1-555-1012,12 Medium St,true
+Employee13,Test,employee13@medium.com,2023-07-01,+1-555-1013,13 Medium St,true
+Employee14,Test,employee14@medium.com,2023-07-15,+1-555-1014,14 Medium St,true
+Employee15,Test,employee15@medium.com,2023-08-01,+1-555-1015,15 Medium St,true
+Employee16,Test,employee16@medium.com,2023-08-15,+1-555-1016,16 Medium St,true
+Employee17,Test,employee17@medium.com,2023-09-01,+1-555-1017,17 Medium St,true
+Employee18,Test,employee18@medium.com,2023-09-15,+1-555-1018,18 Medium St,true
+Employee19,Test,employee19@medium.com,2023-10-01,+1-555-1019,19 Medium St,true
+Employee20,Test,employee20@medium.com,2023-10-15,+1-555-1020,20 Medium St,true

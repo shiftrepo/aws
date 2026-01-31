@@ -1,0 +1,6 @@
+firstName,lastName,email,hireDate,phoneNumber,address,active
+John,Doe,john.doe@small.com,2023-01-15,+1-555-0101,123 Small St,true
+Jane,Smith,jane.smith@small.com,2023-02-20,+1-555-0102,456 Small Ave,true
+Bob,Johnson,bob.johnson@small.com,2023-03-10,+1-555-0103,789 Small Rd,true
+Alice,Brown,alice.brown@small.com,2023-04-05,+1-555-0104,321 Small Ln,true
+Charlie,Davis,charlie.davis@small.com,2024-01-15,+1-555-0105,654 Small Dr,true

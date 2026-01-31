@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Console appender for test output -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- File appender for detailed test logs -->
+    <appender name="TEST_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>target/logs/test.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>target/logs/test.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>5</maxHistory>
+            <totalSizeCap>50MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- SQL appender for database query logs -->
+    <appender name="SQL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>target/logs/sql.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>target/logs/sql.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>2</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Test-specific loggers -->
+    <logger name="com.example.employee" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <logger name="org.springframework.test" level="INFO" additivity="false">
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <logger name="org.springframework.boot.test" level="INFO" additivity="false">
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <!-- SQL logging -->
+    <logger name="org.hibernate.SQL" level="${TEST_SHOW_SQL:-OFF}" additivity="false">
+        <appender-ref ref="SQL_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="${TEST_SHOW_SQL_PARAMS:-OFF}" additivity="false">
+        <appender-ref ref="SQL_FILE"/>
+    </logger>
+
+    <!-- TestContainers logging -->
+    <logger name="org.testcontainers" level="INFO" additivity="false">
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <logger name="com.github.dockerjava" level="WARN" additivity="false">
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <!-- Database connection pool logging -->
+    <logger name="com.zaxxer.hikari" level="WARN" additivity="false">
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <!-- JUnit and testing framework logs -->
+    <logger name="org.junit" level="INFO" additivity="false">
+        <appender-ref ref="TEST_FILE"/>
+    </logger>
+
+    <!-- Root logger -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="TEST_FILE"/>
+    </root>
+
+</configuration>

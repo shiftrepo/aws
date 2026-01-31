@@ -1,0 +1,65 @@
+# Department test data for Employee Management System
+# This file can be edited directly to modify test data without changing code
+
+departments:
+  - name: "Human Resources"
+    code: "HR"
+    budget: 1200000.00
+    description: "Manages employee relations, recruitment, and HR policies"
+    active: true
+
+  - name: "Information Technology"
+    code: "IT"
+    budget: 2500000.00
+    description: "Handles technology infrastructure, software development, and IT support"
+    active: true
+
+  - name: "Finance"
+    code: "FIN"
+    budget: 1800000.00
+    description: "Manages company finances, accounting, and financial planning"
+    active: true
+
+  - name: "Marketing"
+    code: "MKT"
+    budget: 900000.00
+    description: "Handles marketing campaigns, brand management, and customer outreach"
+    active: true
+
+  - name: "Operations"
+    code: "OPS"
+    budget: 1500000.00
+    description: "Manages day-to-day business operations and process optimization"
+    active: true
+
+  - name: "Research and Development"
+    code: "RND"
+    budget: 3000000.00
+    description: "Focuses on innovation, product development, and research initiatives"
+    active: true
+
+  - name: "Customer Service"
+    code: "CS"
+    budget: 800000.00
+    description: "Provides customer support and manages client relationships"
+    active: true
+
+  - name: "Quality Assurance"
+    code: "QA"
+    budget: 600000.00
+    description: "Ensures product quality and maintains quality standards"
+    active: true
+
+  - name: "Legal"
+    code: "LEG"
+    budget: 500000.00
+    description: "Handles legal matters, contracts, and compliance issues"
+    active: true
+
+  - name: "Facilities"
+    code: "FAC"
+    budget: 400000.00
+    description: "Manages office facilities, maintenance, and workplace environment"
+    active: false
+
+employees: []

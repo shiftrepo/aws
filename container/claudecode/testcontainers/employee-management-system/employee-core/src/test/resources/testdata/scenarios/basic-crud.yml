@@ -1,0 +1,67 @@
+# Basic CRUD test scenario data
+# Minimal dataset for testing basic Create, Read, Update, Delete operations
+
+departments:
+  - name: "Human Resources"
+    code: "HR"
+    budget: 1000000.00
+    description: "Human Resources Department"
+    active: true
+
+  - name: "Information Technology"
+    code: "IT"
+    budget: 2000000.00
+    description: "Information Technology Department"
+    active: true
+
+  - name: "Finance"
+    code: "FIN"
+    budget: 1500000.00
+    description: "Finance Department"
+    active: true
+
+employees:
+  - firstName: "John"
+    lastName: "Doe"
+    email: "john.doe@test.com"
+    hireDate: "2023-01-15"
+    phoneNumber: "+1-555-0101"
+    address: "123 Test St, Test City, TC"
+    active: true
+    departmentId: 1  # HR
+
+  - firstName: "Jane"
+    lastName: "Smith"
+    email: "jane.smith@test.com"
+    hireDate: "2023-02-20"
+    phoneNumber: "+1-555-0102"
+    address: "456 Test Ave, Test City, TC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Bob"
+    lastName: "Johnson"
+    email: "bob.johnson@test.com"
+    hireDate: "2023-03-10"
+    phoneNumber: "+1-555-0103"
+    address: "789 Test Rd, Test City, TC"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Alice"
+    lastName: "Brown"
+    email: "alice.brown@test.com"
+    hireDate: "2023-04-05"
+    phoneNumber: "+1-555-0104"
+    address: "321 Test Ln, Test City, TC"
+    active: true
+    departmentId: 3  # Finance
+
+  - firstName: "Charlie"
+    lastName: "Davis"
+    email: "charlie.davis@test.com"
+    hireDate: "2024-01-15"
+    phoneNumber: "+1-555-0105"
+    address: "654 Test Dr, Test City, TC"
+    active: true
+    departmentId: null  # No department

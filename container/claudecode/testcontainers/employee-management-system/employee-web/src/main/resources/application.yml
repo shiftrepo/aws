@@ -1,0 +1,225 @@
+spring:
+  application:
+    name: employee-management-system
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:employee_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        temp:
+          use_jdbc_metadata_defaults: false
+
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  # Web Configuration
+  mvc:
+    format:
+      date: yyyy-MM-dd
+      date-time: yyyy-MM-dd HH:mm:ss
+      time: HH:mm:ss
+
+  # JSON Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: NON_NULL
+    time-zone: UTC
+
+  # Cache Configuration
+  cache:
+    type: simple
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Management and Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    db:
+      enabled: true
+
+# Application-specific Configuration
+app:
+  name: Employee Management System
+  version: 1.0.0
+  description: Complete containerized employee management system with PostgreSQL and comprehensive testing
+
+  # Business Rules
+  business:
+    max-employees-per-department: 1000
+    min-years-for-veteran-status: 5
+    max-budget-per-department: 10000000
+
+  # Test Data Configuration
+  test-data:
+    profile: ${TESTDATA_PROFILE:basic}
+    auto-load: false
+
+# Logging Configuration (overridden by logback-spring.xml)
+logging:
+  level:
+    com.example.employee: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # Development Database
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:employee_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+
+  # Development JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  # Development Cache
+  cache:
+    type: simple
+
+# Development-specific settings
+app:
+  test-data:
+    auto-load: true
+    profile: development
+
+logging:
+  level:
+    root: INFO
+    com.example.employee: DEBUG
+    org.springframework.web: DEBUG
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  # Test Database (will be overridden by TestContainers)
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:employee_db_test}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+
+  # Test JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  # Test Cache
+  cache:
+    type: simple
+
+  # Test Flyway
+  flyway:
+    enabled: false
+
+# Test-specific settings
+app:
+  test-data:
+    auto-load: false
+    profile: ${TESTDATA_PROFILE:basic}
+
+logging:
+  level:
+    root: WARN
+    com.example.employee: DEBUG
+    org.springframework.test: DEBUG
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # Production Database
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+
+  # Production JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  # Production Cache
+  cache:
+    type: redis
+
+# Production-specific settings
+app:
+  test-data:
+    auto-load: false
+
+logging:
+  level:
+    root: INFO
+    com.example.employee: INFO

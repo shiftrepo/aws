@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: docker.io/postgres:15
+    container_name: employee_postgres
+    environment:
+      POSTGRES_DB: employee_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./docker/postgres/test-data.sql:/docker-entrypoint-initdb.d/02-test-data.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - employee_network
+
+  pgadmin:
+    image: docker.io/dpage/pgadmin4:7
+    container_name: employee_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - employee_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: employee_app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=employee_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/workspace:Z
+      - maven_cache:/root/.m2
+    working_dir: /workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - employee_network
+    command: ["tail", "-f", "/dev/null"]  # Keep container running for development
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: employee_test_runner
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=employee_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+    volumes:
+      - .:/workspace:Z
+      - maven_cache:/root/.m2
+    working_dir: /workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - employee_network
+    profiles:
+      - test
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  maven_cache:
+
+networks:
+  employee_network:
+    driver: bridge

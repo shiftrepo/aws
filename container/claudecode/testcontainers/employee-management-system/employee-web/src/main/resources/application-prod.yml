@@ -1,0 +1,73 @@
+spring:
+  # Production Profile Configuration
+  profiles:
+    active: prod
+
+  # PostgreSQL Database Configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:employee_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # JPA Configuration for Production
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Don't create/update schema in production
+    show-sql: false  # Disable SQL logging in production
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  # Production Logging
+  logging:
+    level:
+      com.example.employee: INFO
+      org.springframework.web: WARN
+      org.hibernate.SQL: OFF
+      org.hibernate.type.descriptor.sql.BasicBinder: OFF
+      root: WARN
+    pattern:
+      file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file:
+      name: logs/employee-management.log
+      max-size: 100MB
+      max-history: 30
+
+# Server Configuration for Production
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+  http2:
+    enabled: true
+
+# Actuator endpoints for production monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

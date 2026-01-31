@@ -1,0 +1,185 @@
+# Employee test data for Employee Management System
+# This file can be edited directly to modify test data without changing code
+
+departments: []
+
+employees:
+  - firstName: "John"
+    lastName: "Doe"
+    email: "john.doe@company.com"
+    hireDate: "2023-01-15"
+    phoneNumber: "+1-555-0101"
+    address: "123 Main St, Springfield, IL"
+    active: true
+    departmentId: 1  # HR
+
+  - firstName: "Jane"
+    lastName: "Smith"
+    email: "jane.smith@company.com"
+    hireDate: "2023-02-20"
+    phoneNumber: "+1-555-0102"
+    address: "456 Oak Ave, Springfield, IL"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Bob"
+    lastName: "Johnson"
+    email: "bob.johnson@company.com"
+    hireDate: "2023-03-10"
+    phoneNumber: "+1-555-0103"
+    address: "789 Pine Rd, Springfield, IL"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Alice"
+    lastName: "Brown"
+    email: "alice.brown@company.com"
+    hireDate: "2023-04-05"
+    phoneNumber: "+1-555-0104"
+    address: "321 Elm St, Springfield, IL"
+    active: true
+    departmentId: 3  # Finance
+
+  - firstName: "Charlie"
+    lastName: "Davis"
+    email: "charlie.davis@company.com"
+    hireDate: "2023-05-12"
+    phoneNumber: "+1-555-0105"
+    address: "654 Maple Dr, Springfield, IL"
+    active: true
+    departmentId: 4  # Marketing
+
+  - firstName: "Diana"
+    lastName: "Wilson"
+    email: "diana.wilson@company.com"
+    hireDate: "2022-08-20"
+    phoneNumber: "+1-555-0106"
+    address: "987 Cedar Ln, Springfield, IL"
+    active: true
+    departmentId: 5  # Operations
+
+  - firstName: "Frank"
+    lastName: "Miller"
+    email: "frank.miller@company.com"
+    hireDate: "2022-11-30"
+    phoneNumber: "+1-555-0107"
+    address: "147 Birch Ct, Springfield, IL"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Grace"
+    lastName: "Taylor"
+    email: "grace.taylor@company.com"
+    hireDate: "2024-01-08"
+    phoneNumber: "+1-555-0108"
+    address: "258 Willow Way, Springfield, IL"
+    active: true
+    departmentId: 1  # HR
+
+  - firstName: "Henry"
+    lastName: "Anderson"
+    email: "henry.anderson@company.com"
+    hireDate: "2021-07-15"
+    phoneNumber: "+1-555-0109"
+    address: "369 Spruce St, Springfield, IL"
+    active: true
+    departmentId: 3  # Finance
+
+  - firstName: "Ivy"
+    lastName: "Thomas"
+    email: "ivy.thomas@company.com"
+    hireDate: "2024-03-22"
+    phoneNumber: "+1-555-0110"
+    address: "741 Aspen Ave, Springfield, IL"
+    active: true
+    departmentId: null  # No department assigned
+
+  - firstName: "Jack"
+    lastName: "White"
+    email: "jack.white@company.com"
+    hireDate: "2020-06-01"
+    phoneNumber: "+1-555-0111"
+    address: "852 Poplar Pl, Springfield, IL"
+    active: true
+    departmentId: 6  # R&D
+
+  - firstName: "Kate"
+    lastName: "Green"
+    email: "kate.green@company.com"
+    hireDate: "2021-09-15"
+    phoneNumber: "+1-555-0112"
+    address: "963 Hickory Hills, Springfield, IL"
+    active: true
+    departmentId: 7  # Customer Service
+
+  - firstName: "Leo"
+    lastName: "Black"
+    email: "leo.black@company.com"
+    hireDate: "2022-12-01"
+    phoneNumber: "+1-555-0113"
+    address: "159 Walnut St, Springfield, IL"
+    active: true
+    departmentId: 8  # QA
+
+  - firstName: "Maya"
+    lastName: "Blue"
+    email: "maya.blue@company.com"
+    hireDate: "2023-07-20"
+    phoneNumber: "+1-555-0114"
+    address: "753 Chestnut Ave, Springfield, IL"
+    active: true
+    departmentId: 9  # Legal
+
+  - firstName: "Noah"
+    lastName: "Gray"
+    email: "noah.gray@company.com"
+    hireDate: "2019-03-10"
+    phoneNumber: "+1-555-0115"
+    address: "456 Sycamore Dr, Springfield, IL"
+    active: false  # Inactive employee
+    departmentId: 10  # Facilities
+
+  - firstName: "Olivia"
+    lastName: "Silver"
+    email: "olivia.silver@company.com"
+    hireDate: "2024-04-01"
+    phoneNumber: "+1-555-0116"
+    address: "321 Dogwood Ln, Springfield, IL"
+    active: true
+    departmentId: 6  # R&D
+
+  - firstName: "Peter"
+    lastName: "Gold"
+    email: "peter.gold@company.com"
+    hireDate: "2018-11-15"
+    phoneNumber: "+1-555-0117"
+    address: "789 Magnolia St, Springfield, IL"
+    active: true
+    departmentId: 2  # IT
+
+  - firstName: "Quinn"
+    lastName: "Rose"
+    email: "quinn.rose@company.com"
+    hireDate: "2023-08-30"
+    phoneNumber: "+1-555-0118"
+    address: "654 Rosewood Ave, Springfield, IL"
+    active: true
+    departmentId: 4  # Marketing
+
+  - firstName: "Ruby"
+    lastName: "Stone"
+    email: "ruby.stone@company.com"
+    hireDate: "2022-05-18"
+    phoneNumber: "+1-555-0119"
+    address: "987 Ironwood Rd, Springfield, IL"
+    active: true
+    departmentId: 7  # Customer Service
+
+  - firstName: "Sam"
+    lastName: "Crystal"
+    email: "sam.crystal@company.com"
+    hireDate: "2021-02-28"
+    phoneNumber: "+1-555-0120"
+    address: "147 Redwood Ct, Springfield, IL"
+    active: true
+    departmentId: 5  # Operations

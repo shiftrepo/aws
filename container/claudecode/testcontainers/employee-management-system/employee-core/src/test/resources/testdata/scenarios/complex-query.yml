@@ -1,0 +1,244 @@
+# Complex query test scenario data
+# Dataset designed for testing complex queries, aggregations, and relationships
+
+departments:
+  - name: "Human Resources"
+    code: "HR"
+    budget: 1200000.00
+    description: "Human Resources Department"
+    active: true
+
+  - name: "Information Technology"
+    code: "IT"
+    budget: 3000000.00
+    description: "Information Technology Department"
+    active: true
+
+  - name: "Finance"
+    code: "FIN"
+    budget: 1800000.00
+    description: "Finance Department"
+    active: true
+
+  - name: "Marketing"
+    code: "MKT"
+    budget: 800000.00
+    description: "Marketing Department"
+    active: true
+
+  - name: "Operations"
+    code: "OPS"
+    budget: 1500000.00
+    description: "Operations Department"
+    active: true
+
+  - name: "Research"
+    code: "RND"
+    budget: 2500000.00
+    description: "Research and Development Department"
+    active: true
+
+  - name: "Legacy Department"
+    code: "LEG"
+    budget: 500000.00
+    description: "Legacy Department - Inactive"
+    active: false
+
+employees:
+  # HR Department (3 employees)
+  - firstName: "John"
+    lastName: "Manager"
+    email: "john.manager@company.com"
+    hireDate: "2020-01-15"
+    phoneNumber: "+1-555-1001"
+    address: "100 Manager St, City, State"
+    active: true
+    departmentId: 1
+
+  - firstName: "Sarah"
+    lastName: "Recruiter"
+    email: "sarah.recruiter@company.com"
+    hireDate: "2021-03-20"
+    phoneNumber: "+1-555-1002"
+    address: "101 Recruiter Ave, City, State"
+    active: true
+    departmentId: 1
+
+  - firstName: "Mike"
+    lastName: "Benefits"
+    email: "mike.benefits@company.com"
+    hireDate: "2022-06-10"
+    phoneNumber: "+1-555-1003"
+    address: "102 Benefits Rd, City, State"
+    active: true
+    departmentId: 1
+
+  # IT Department (5 employees)
+  - firstName: "Alice"
+    lastName: "Developer"
+    email: "alice.developer@company.com"
+    hireDate: "2019-05-01"
+    phoneNumber: "+1-555-2001"
+    address: "200 Code St, City, State"
+    active: true
+    departmentId: 2
+
+  - firstName: "Bob"
+    lastName: "Senior"
+    email: "bob.senior@company.com"
+    hireDate: "2018-02-15"
+    phoneNumber: "+1-555-2002"
+    address: "201 Senior Ave, City, State"
+    active: true
+    departmentId: 2
+
+  - firstName: "Carol"
+    lastName: "Junior"
+    email: "carol.junior@company.com"
+    hireDate: "2024-01-10"
+    phoneNumber: "+1-555-2003"
+    address: "202 Junior Rd, City, State"
+    active: true
+    departmentId: 2
+
+  - firstName: "David"
+    lastName: "DevOps"
+    email: "david.devops@company.com"
+    hireDate: "2020-09-20"
+    phoneNumber: "+1-555-2004"
+    address: "203 DevOps Ln, City, State"
+    active: true
+    departmentId: 2
+
+  - firstName: "Eve"
+    lastName: "Architect"
+    email: "eve.architect@company.com"
+    hireDate: "2017-11-30"
+    phoneNumber: "+1-555-2005"
+    address: "204 Architect Dr, City, State"
+    active: true
+    departmentId: 2
+
+  # Finance Department (2 employees)
+  - firstName: "Frank"
+    lastName: "Accountant"
+    email: "frank.accountant@company.com"
+    hireDate: "2021-07-15"
+    phoneNumber: "+1-555-3001"
+    address: "300 Money St, City, State"
+    active: true
+    departmentId: 3
+
+  - firstName: "Grace"
+    lastName: "Analyst"
+    email: "grace.analyst@company.com"
+    hireDate: "2022-04-20"
+    phoneNumber: "+1-555-3002"
+    address: "301 Analysis Ave, City, State"
+    active: true
+    departmentId: 3
+
+  # Marketing Department (4 employees)
+  - firstName: "Henry"
+    lastName: "Creative"
+    email: "henry.creative@company.com"
+    hireDate: "2020-12-01"
+    phoneNumber: "+1-555-4001"
+    address: "400 Creative Rd, City, State"
+    active: true
+    departmentId: 4
+
+  - firstName: "Iris"
+    lastName: "Digital"
+    email: "iris.digital@company.com"
+    hireDate: "2021-08-15"
+    phoneNumber: "+1-555-4002"
+    address: "401 Digital Dr, City, State"
+    active: true
+    departmentId: 4
+
+  - firstName: "Jack"
+    lastName: "Content"
+    email: "jack.content@company.com"
+    hireDate: "2023-02-28"
+    phoneNumber: "+1-555-4003"
+    address: "402 Content Ct, City, State"
+    active: true
+    departmentId: 4
+
+  - firstName: "Kate"
+    lastName: "Social"
+    email: "kate.social@company.com"
+    hireDate: "2023-09-10"
+    phoneNumber: "+1-555-4004"
+    address: "403 Social St, City, State"
+    active: true
+    departmentId: 4
+
+  # Operations Department (1 employee)
+  - firstName: "Leo"
+    lastName: "Process"
+    email: "leo.process@company.com"
+    hireDate: "2019-03-25"
+    phoneNumber: "+1-555-5001"
+    address: "500 Process Ave, City, State"
+    active: true
+    departmentId: 5
+
+  # Research Department (2 employees)
+  - firstName: "Maya"
+    lastName: "Scientist"
+    email: "maya.scientist@company.com"
+    hireDate: "2018-06-12"
+    phoneNumber: "+1-555-6001"
+    address: "600 Research Rd, City, State"
+    active: true
+    departmentId: 6
+
+  - firstName: "Noah"
+    lastName: "Innovation"
+    email: "noah.innovation@company.com"
+    hireDate: "2020-10-05"
+    phoneNumber: "+1-555-6002"
+    address: "601 Innovation Dr, City, State"
+    active: true
+    departmentId: 6
+
+  # Employees without departments (2 employees)
+  - firstName: "Olivia"
+    lastName: "Unassigned"
+    email: "olivia.unassigned@company.com"
+    hireDate: "2024-02-14"
+    phoneNumber: "+1-555-7001"
+    address: "700 Temp St, City, State"
+    active: true
+    departmentId: null
+
+  - firstName: "Paul"
+    lastName: "Consultant"
+    email: "paul.consultant@company.com"
+    hireDate: "2023-11-20"
+    phoneNumber: "+1-555-7002"
+    address: "701 Consultant Ave, City, State"
+    active: true
+    departmentId: null
+
+  # Inactive employee
+  - firstName: "Quinn"
+    lastName: "Former"
+    email: "quinn.former@company.com"
+    hireDate: "2019-01-10"
+    phoneNumber: "+1-555-8001"
+    address: "800 Former Rd, City, State"
+    active: false
+    departmentId: 7  # Inactive department
+
+  # Veteran employees (5+ years)
+  - firstName: "Ruby"
+    lastName: "Veteran"
+    email: "ruby.veteran@company.com"
+    hireDate: "2015-08-15"
+    phoneNumber: "+1-555-9001"
+    address: "900 Veteran St, City, State"
+    active: true
+    departmentId: 2  # IT
