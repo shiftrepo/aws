@@ -1,252 +1,68 @@
-# テストプロファイル・TestContainers詳細ガイド
+# テストプロファイル・TestContainers実践ガイド
 
 ## 🎯 このガイドについて
 
-このガイドでは、職員管理システムにおけるテストプロファイルの管理方法とTestContainersの活用について、初学者でも理解できるよう詳しく解説します。
+このガイドでは、職員管理システムにおける効率的なデータベーステスト戦略について、目的別に最適な手法を解説します。
 
-## 📖 基本概念の理解
+## 📋 テスト戦略マトリクス
 
-### テストプロファイルとは？
+| 目的 | 推奨手段 | 適用場面 |
+|------|----------|----------|
+| **DBの初期化** | コンテナ再生成 / トランザクションロールバック | テスト環境のクリーンな状態確保 |
+| **テストケース毎のデータ投入** | @Sql / Flyway / Liquibase | 特定テスト用データの準備 |
+| **パターンデータの切替** | SQLファイル分離 / ParameterizedTest | 複数シナリオの効率的テスト |
+| **大量パターン回帰** | JUnit5 ParameterizedTest | 組み合わせテストの自動化 |
+| **DB状態検証** | AssertJ / Repository / DB直接クエリ | テスト結果の多角的検証 |
+| **高速化** | コンテナ共有＋データリセット | テスト実行時間の最適化 |
 
-**テストプロファイル**は、異なるテスト環境や条件でアプリケーションを実行するための設定の組み合わせです。
+---
 
-```
-🏠 本番環境     ← production profile
-🔧 開発環境     ← development profile
-🧪 テスト環境   ← test profile
-```
+## 🔄 1. DBの初期化戦略
 
-#### なぜテストプロファイルが必要？
+### 1.1 コンテナ再生成による初期化
 
-1. **環境の分離**: 開発・テスト・本番で異なる設定を使用
-2. **データ保護**: 本番データをテストで誤って変更することを防ぐ
-3. **効率化**: テスト専用の軽量設定でテスト実行を高速化
-4. **再現性**: 同じテスト条件を確実に再現
+**用途**: 完全にクリーンな状態が必要な統合テスト
 
-### TestContainersとは？
+```java
+@SpringBootTest
+@Testcontainers
+@TestMethodOrder(OrderAnnotation.class)
+class DatabaseInitializationTest {
 
-**TestContainers**は、テスト実行時に一時的にDockerコンテナを起動し、テスト終了後に自動で削除するライブラリです。
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("fresh_db")
+            .withUsername("test")
+            .withPassword("test");
 
-```
-テスト開始 → コンテナ起動 → テスト実行 → コンテナ削除 → テスト終了
-```
+    @Test
+    @Order(1)
+    void shouldStartWithCleanDatabase() {
+        // 完全にクリーンな状態でテスト開始
+        long count = employeeRepository.count();
+        assertThat(count).isZero();
+    }
 
-#### TestContainersの利点
-
-✅ **本物のデータベース**: H2などの軽量DBではなく、本番と同じPostgreSQLでテスト
-✅ **環境の一貫性**: 開発者全員が同じテスト環境を使用
-✅ **自動クリーンアップ**: テスト終了後の環境掃除が自動化
-✅ **隔離性**: 各テストが独立したコンテナで実行
-
-## 🏗️ 現在のテストプロファイル構成
-
-### プロファイル一覧
-
-| プロファイル名 | 用途 | データベース | データ量 | 実行時間 |
-|---------------|------|-------------|----------|----------|
-| `test` | 基本テスト | H2 (メモリ) | 最小限 | 高速 |
-| `integration` | 統合テスト | PostgreSQL | 中程度 | 中程度 |
-| `performance` | パフォーマンステスト | PostgreSQL | 大量 | 低速 |
-
-### 設定ファイルの場所
-
-```
-src/test/resources/
-├── application-test.yml          # 基本テストプロファイル
-├── application-integration.yml   # 統合テストプロファイル
-├── application-performance.yml   # パフォーマンステストプロファイル
-└── testdata/
-    ├── test/                     # 基本テスト用データ
-    ├── integration/              # 統合テスト用データ
-    └── performance/              # パフォーマンステスト用データ
+    @Test
+    @Order(2)
+    void shouldReinitializeForSecondTest() {
+        // 前のテストの影響を受けない独立した環境
+        long count = departmentRepository.count();
+        assertThat(count).isZero();
+    }
+}
 ```
 
-## 🔧 現在の設定詳細
+### 1.2 トランザクションロールバック
 
-### 基本テストプロファイル (`test`)
-
-**ファイル**: `src/test/resources/application-test.yml`
-
-```yaml
-spring:
-  profiles:
-    active: test
-  datasource:
-    # H2インメモリデータベースを使用（高速）
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop  # テスト開始時にテーブル作成、終了時に削除
-    show-sql: true          # SQLクエリをログ出力
-  h2:
-    console:
-      enabled: true         # デバッグ用のH2コンソールを有効化
-
-# テスト専用設定
-test:
-  data:
-    profile: basic          # 基本的なテストデータを使用
-    cleanup: true           # テスト後のデータクリーンアップを有効
-  logging:
-    level: DEBUG            # 詳細なログを出力
-```
-
-**特徴**:
-- ⚡ **高速実行**: メモリ内データベースで最速
-- 🧪 **単体テスト向け**: Repository層テストに最適
-- 🔄 **自動クリーンアップ**: テスト間でデータが干渉しない
-
-### 統合テストプロファイル (`integration`)
-
-**ファイル**: `src/test/resources/application-integration.yml`
-
-```yaml
-spring:
-  profiles:
-    active: integration
-  datasource:
-    # TestContainersでPostgreSQLコンテナを起動
-    url: jdbc:tc:postgresql:15:///testdb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    username: test
-    password: test
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false         # 統合テストでは不要なログを削減
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-# TestContainers設定
-testcontainers:
-  reuse:
-    enable: true           # コンテナの再利用で実行時間短縮
-  containers:
-    postgres:
-      image: postgres:15   # 本番環境と同じバージョン
-      init-script: init-integration.sql  # 初期データ投入スクリプト
-
-# 統合テスト専用設定
-test:
-  data:
-    profile: integration   # より豊富なテストデータ
-    load-sample-data: true # サンプルデータの自動投入
-  integration:
-    timeout: 30s          # 統合テストのタイムアウト設定
-```
-
-**特徴**:
-- 🐘 **本物のPostgreSQL**: 本番環境と同じデータベース
-- 🔗 **統合テスト向け**: サービス間の連携をテスト
-- 📊 **豊富なデータ**: 複雑なシナリオをテスト可能
-
-### パフォーマンステストプロファイル (`performance`)
-
-**ファイル**: `src/test/resources/application-performance.yml`
-
-```yaml
-spring:
-  profiles:
-    active: performance
-  datasource:
-    url: jdbc:tc:postgresql:15:///perfdb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    username: test
-    password: test
-    hikari:
-      maximum-pool-size: 20      # 本番相当のコネクションプール
-      minimum-idle: 10
-  jpa:
-    hibernate:
-      ddl-auto: validate         # スキーマ検証のみ（パフォーマンス重視）
-    show-sql: false
-    properties:
-      hibernate:
-        generate_statistics: true # パフォーマンス統計を取得
-
-# TestContainers設定（パフォーマンス最適化）
-testcontainers:
-  containers:
-    postgres:
-      image: postgres:15
-      tmpfs:
-        /var/lib/postgresql/data: rw,noexec,nosuid,size=1g  # tmpfsで高速化
-      command: |
-        postgres
-        -c shared_buffers=256MB
-        -c max_connections=100
-        -c work_mem=4MB
-
-# パフォーマンステスト専用設定
-test:
-  data:
-    profile: performance
-    size: large              # 大量データでテスト
-  performance:
-    warmup-iterations: 5     # JVMウォームアップ
-    measurement-iterations: 10
-    timeout: 300s           # 長時間実行を許可
-```
-
-**特徴**:
-- 📈 **パフォーマンス測定**: 実際の負荷でテスト
-- 🎯 **最適化設定**: 本番相当の設定でテスト
-- 📊 **大量データ**: スケーラビリティをテスト
-
-## 🛠️ TestContainersの実装詳細
-
-### 基本的な使用方法
-
-#### 1. 依存関係の追加 (`pom.xml`)
-
-```xml
-<dependencies>
-    <!-- TestContainers Core -->
-    <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>1.19.3</version>
-        <scope>test</scope>
-    </dependency>
-
-    <!-- PostgreSQL TestContainer -->
-    <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>1.19.3</version>
-        <scope>test</scope>
-    </dependency>
-
-    <!-- JUnit5 Integration -->
-    <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <version>1.19.3</version>
-        <scope>test</scope>
-    </dependency>
-</dependencies>
-```
-
-#### 2. テストクラスでの使用例
-
-**Repository層テスト** (`src/test/java/.../EmployeeRepositoryTest.java`)
+**用途**: 高速な単体テスト、リソース効率重視
 
 ```java
 @DataJpaTest
-@Testcontainers  // TestContainers機能を有効化
-class EmployeeRepositoryTest {
-
-    // PostgreSQLコンテナを定義
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test")
-            .withInitScript("test-schema.sql");  // 初期化スクリプト
+@Transactional
+@Rollback  // テスト後に自動ロールバック
+class TransactionalTestExample {
 
     @Autowired
     private TestEntityManager entityManager;
@@ -254,578 +70,964 @@ class EmployeeRepositoryTest {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    @DynamicPropertySource  // Spring設定を動的に更新
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // TestContainerから取得した接続情報をSpringに設定
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
     @Test
-    void shouldFindEmployeesByDepartment() {
-        // Given: テストデータを準備
-        Department dept = new Department("Engineering", "ENG", new BigDecimal("1000000"));
+    void shouldRollbackAfterTest() {
+        // Given: テストデータを投入
+        Department dept = new Department("テスト部署", "TEST", new BigDecimal("1000000"));
         entityManager.persistAndFlush(dept);
 
-        Employee emp = new Employee("太郎", "山田", "taro@example.com",
-                                   LocalDate.of(2023, 1, 15), dept);
+        Employee emp = new Employee("太郎", "テスト", "test@example.com",
+                                   LocalDate.now(), dept);
         entityManager.persistAndFlush(emp);
 
-        // When: リポジトリメソッドを実行
+        // When: ビジネスロジックを実行
         List<Employee> employees = employeeRepository.findByDepartment(dept);
 
-        // Then: 結果を検証
-        assertThat(employees)
-            .hasSize(1)
-            .extracting(Employee::getFirstName)
-            .containsExactly("太郎");
+        // Then: 検証
+        assertThat(employees).hasSize(1);
+        // テスト終了後、データは自動的にロールバックされる
     }
 }
 ```
 
-**統合テスト** (`src/test/java/.../EmployeeServiceIntegrationTest.java`)
+### 1.3 使い分けの指針
+
+```java
+@TestConfiguration
+public class DatabaseInitializationStrategy {
+
+    /**
+     * コンテナ再生成が適している場合
+     */
+    public boolean shouldUseContainerRecreation(TestContext context) {
+        return context.hasAnnotation(IntegrationTest.class) ||
+               context.requiresSchemaChanges() ||
+               context.needsCompleteIsolation();
+    }
+
+    /**
+     * トランザクションロールバックが適している場合
+     */
+    public boolean shouldUseTransactionalRollback(TestContext context) {
+        return context.hasAnnotation(DataJpaTest.class) ||
+               context.focusesOnSingleEntity() ||
+               context.prioritizesSpeed();
+    }
+}
+```
+
+---
+
+## 📥 2. テストケース毎のデータ投入
+
+### 2.1 @Sql アノテーションによるデータ投入
+
+**用途**: 特定テスト用の簡潔なデータ準備
 
 ```java
 @SpringBootTest
 @Testcontainers
-@Transactional
-class EmployeeServiceIntegrationTest {
+class SqlBasedDataLoadingTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("integration_test")
-            .withUsername("test")
-            .withPassword("test")
-            // 複数の初期化スクリプトを順序実行
-            .withInitScript("schema.sql")
-            .withCopyFileToContainer(
-                MountableFile.forClasspathResource("testdata/integration/"),
-                "/docker-entrypoint-initdb.d/"
-            );
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        // TestContainers専用の設定も追加
-        registry.add("testcontainers.reuse.enable", () -> "true");
-    }
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
 
     @Autowired
     private EmployeeService employeeService;
 
-    @Autowired
-    private DepartmentService departmentService;
+    @Test
+    @Sql("/testdata/departments-basic.sql")
+    @Sql("/testdata/employees-engineering.sql")
+    void shouldFindEngineeringEmployees() {
+        // SQL files have already populated the database
+        List<EmployeeDto> engineers = employeeService.findByDepartmentCode("ENG");
+
+        assertThat(engineers)
+            .hasSize(5)
+            .allMatch(emp -> emp.getDepartmentCode().equals("ENG"));
+    }
 
     @Test
-    void shouldTransferEmployeeBetweenDepartments() {
-        // Given: 部署とemployeeが既存データとして存在
-        Long employeeId = 1L;  // 初期化スクリプトで作成済み
-        Long newDepartmentId = 2L;  // 初期化スクリプトで作成済み
+    @Sql(scripts = "/testdata/large-dataset.sql",
+         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    @Sql(scripts = "/testdata/cleanup.sql",
+         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    void shouldHandleLargeDataset() {
+        // Before: large-dataset.sql executed
+        long count = employeeService.getTotalCount();
+        assertThat(count).isGreaterThan(1000);
 
-        // When: 部署異動を実行
-        EmployeeDto transferredEmployee = employeeService.transferToDepartment(
-            employeeId, newDepartmentId
-        );
+        // Test logic here
 
-        // Then: 異動が正しく実行されたことを確認
-        assertThat(transferredEmployee.getDepartmentId()).isEqualTo(newDepartmentId);
-
-        // データベースに永続化されていることも確認
-        Employee persistedEmployee = employeeService.findById(employeeId);
-        assertThat(persistedEmployee.getDepartment().getId()).isEqualTo(newDepartmentId);
+        // After: cleanup.sql will be executed
     }
 }
 ```
 
-### TestContainersの高度な設定
+**SQLファイル例** (`src/test/resources/testdata/departments-basic.sql`):
 
-#### 共有TestContainerクラス
+```sql
+-- departments-basic.sql
+INSERT INTO departments (name, code, budget, active) VALUES
+    ('エンジニアリング部', 'ENG', 5000000.00, true),
+    ('営業部', 'SALES', 3000000.00, true),
+    ('人事部', 'HR', 2000000.00, true);
+```
 
-**`src/test/java/.../testconfig/SharedPostgreSQLContainer.java`**
+### 2.2 Flyway Migrationによるデータ投入
+
+**用途**: バージョン管理されたデータマイグレーション
 
 ```java
-@TestConfiguration
-public class SharedPostgreSQLContainer {
+@SpringBootTest
+@Testcontainers
+@TestPropertySource(properties = {
+    "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"
+})
+class FlywayDataLoadingTest {
 
-    private static final String IMAGE_VERSION = "postgres:15";
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withCopyFileToContainer(
+                MountableFile.forClasspathResource("db/"),
+                "/docker-entrypoint-initdb.d/"
+            );
 
-    @Bean
-    @Primary
-    @TestScope
-    public PostgreSQLContainer<?> postgreSQLContainer() {
-        PostgreSQLContainer<?> container = new PostgreSQLContainer<>(IMAGE_VERSION)
-                .withDatabaseName("shared_test_db")
-                .withUsername("test_user")
-                .withPassword("test_pass")
-                // ログレベルを設定
-                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("PostgreSQL")))
-                // ヘルスチェックを設定
-                .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 1))
-                // タイムアウトを設定
-                .withStartupTimeout(Duration.ofMinutes(2))
-                // 環境変数を追加
-                .withEnv("POSTGRES_INITDB_ARGS", "--encoding=UTF-8 --locale=C")
-                // カスタム設定ファイルをマウント
-                .withFileSystemBind(
-                    "src/test/resources/postgresql.conf",
-                    "/etc/postgresql/postgresql.conf"
-                );
+    @Test
+    void shouldLoadDataViaMigration() {
+        // Flyway migrations have run automatically
+        // V1__Create_schema.sql
+        // V2__Insert_departments.sql
+        // V999__Insert_test_data.sql (test-specific migration)
 
-        container.start();  // 明示的に開始
-        return container;
-    }
-
-    @EventListener
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    public void onApplicationEvent(ContextClosedEvent event) {
-        // アプリケーション終了時にコンテナも停止
-        postgreSQLContainer().stop();
+        List<DepartmentDto> departments = departmentService.findAll();
+        assertThat(departments).hasSizeGreaterThan(3);
     }
 }
 ```
 
-#### カスタムTestProfile設定クラス
+**Migrationファイル** (`src/test/resources/db/testdata/V999__Insert_test_data.sql`):
 
-**`src/test/java/.../testconfig/TestProfileConfiguration.java`**
+```sql
+-- V999__Insert_test_data.sql
+-- テスト専用データ投入（本番では実行されない）
+
+INSERT INTO departments (name, code, budget, description, active) VALUES
+    ('テストエンジニアリング部', 'T-ENG', 2500000.00, 'テスト専用部署', true),
+    ('テスト営業部', 'T-SALES', 1500000.00, 'テスト専用営業', true);
+
+INSERT INTO employees (first_name, last_name, email, hire_date, department_id, active)
+SELECT
+    'テスト太郎' || generate_series,
+    'サンプル' || generate_series,
+    'test' || generate_series || '@example.com',
+    CURRENT_DATE - INTERVAL '1 day' * generate_series,
+    (SELECT id FROM departments WHERE code = 'T-ENG'),
+    true
+FROM generate_series(1, 50);
+```
+
+### 2.3 Liquibase Changesetによるデータ投入
+
+**用途**: 複雑なデータ変換、環境別データ管理
 
 ```java
-@Configuration
-public class TestProfileConfiguration {
+@SpringBootTest
+@Testcontainers
+@TestPropertySource(properties = {
+    "spring.liquibase.change-log=classpath:db/changelog/test-master.xml"
+})
+class LiquibaseDataLoadingTest {
 
-    @Bean
-    @Profile("integration")
-    public TestDataLoader integrationTestDataLoader() {
-        return new TestDataLoader("testdata/integration/");
+    @Test
+    void shouldLoadDataViaChangeset() {
+        // Liquibase changesets have been applied
+        List<EmployeeDto> employees = employeeService.findActiveEmployees();
+        assertThat(employees).isNotEmpty();
+    }
+}
+```
+
+**Changesetファイル** (`src/test/resources/db/changelog/test-data.xml`):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="test-departments-1" author="test" context="test">
+        <insert tableName="departments">
+            <column name="name" value="テスト開発部"/>
+            <column name="code" value="T-DEV"/>
+            <column name="budget" value="3000000.00"/>
+            <column name="active" value="true"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="test-employees-bulk-1" author="test" context="test">
+        <sql>
+            INSERT INTO employees (first_name, last_name, email, hire_date, department_id, active)
+            SELECT
+                'Bulk' || row_number() OVER(),
+                'Employee' || row_number() OVER(),
+                'bulk' || row_number() OVER() || '@test.com',
+                CURRENT_DATE - INTERVAL '30 days',
+                (SELECT id FROM departments WHERE code = 'T-DEV'),
+                true
+            FROM generate_series(1, 100);
+        </sql>
+    </changeSet>
+</databaseChangeLog>
+```
+
+---
+
+## 🔀 3. パターンデータの切替
+
+### 3.1 SQLファイル分離による管理
+
+**ファイル構造**:
+```
+src/test/resources/testdata/
+├── scenarios/
+│   ├── small-company.sql      # 小規模企業シナリオ
+│   ├── large-enterprise.sql   # 大企業シナリオ
+│   ├── startup.sql           # スタートアップシナリオ
+│   └── government.sql        # 官公庁シナリオ
+├── departments/
+│   ├── tech-focused.sql      # 技術系部署中心
+│   ├── sales-heavy.sql       # 営業系部署中心
+│   └── balanced.sql          # バランス型組織
+└── employees/
+    ├── junior-heavy.sql      # 若手中心
+    ├── senior-heavy.sql      # ベテラン中心
+    └── mixed-experience.sql  # 経験混在
+```
+
+### 3.2 ParameterizedTestによる効率的テスト
+
+```java
+@SpringBootTest
+@Testcontainers
+class ParameterizedDataPatternTest {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
+
+    @ParameterizedTest(name = "企業タイプ: {0}")
+    @ValueSource(strings = {"small-company", "large-enterprise", "startup", "government"})
+    @Sql(scripts = "/testdata/cleanup.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void shouldHandleDifferentCompanyTypes(String companyType) {
+        // Given: 企業タイプ別データを読み込み
+        loadScenarioData(companyType);
+
+        // When: 共通のビジネスロジックを実行
+        OrganizationSummary summary = organizationService.generateSummary();
+
+        // Then: 企業タイプに応じた検証
+        switch (companyType) {
+            case "small-company":
+                assertThat(summary.getTotalEmployees()).isBetween(10, 50);
+                assertThat(summary.getDepartmentCount()).isBetween(3, 7);
+                break;
+            case "large-enterprise":
+                assertThat(summary.getTotalEmployees()).isGreaterThan(500);
+                assertThat(summary.getDepartmentCount()).isGreaterThan(10);
+                break;
+            case "startup":
+                assertThat(summary.getTotalEmployees()).isLessThan(30);
+                assertThat(summary.getAverageAge()).isLessThan(35);
+                break;
+            case "government":
+                assertThat(summary.getJobStability()).isGreaterThan(0.95);
+                break;
+        }
     }
 
-    @Bean
-    @Profile("performance")
-    public TestDataLoader performanceTestDataLoader() {
-        return new TestDataLoader("testdata/performance/");
+    @ParameterizedTest
+    @CsvSource({
+        "tech-focused, 5, ENG",
+        "sales-heavy, 8, SALES",
+        "balanced, 6, HR"
+    })
+    void shouldValidateDepartmentFocus(String scenario, int expectedDepts, String dominantDept) {
+        // Given: 部署構成シナリオを読み込み
+        loadDepartmentScenario(scenario);
+
+        // When: 部署分析を実行
+        DepartmentAnalysis analysis = departmentService.analyzeDepartments();
+
+        // Then: 想定通りの部署構成か検証
+        assertThat(analysis.getTotalDepartments()).isEqualTo(expectedDepts);
+        assertThat(analysis.getDominantDepartmentCode()).isEqualTo(dominantDept);
     }
 
-    @Component
-    @Profile("integration")
-    static class IntegrationTestDataInitializer implements CommandLineRunner {
+    private void loadScenarioData(String scenarioName) {
+        String sqlPath = "/testdata/scenarios/" + scenarioName + ".sql";
+        executeSqlScript(sqlPath);
+    }
 
-        @Autowired
-        private TestDataLoader testDataLoader;
+    private void loadDepartmentScenario(String scenarioName) {
+        String sqlPath = "/testdata/departments/" + scenarioName + ".sql";
+        executeSqlScript(sqlPath);
+    }
+}
+```
 
-        @Override
-        public void run(String... args) throws Exception {
-            // 統合テスト用のサンプルデータを自動投入
-            testDataLoader.loadEmployees("employees-integration.yml");
-            testDataLoader.loadDepartments("departments-integration.yml");
+### 3.3 動的SQLファイル選択
+
+```java
+@Component
+public class TestDataScenarioManager {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public TestDataScenarioManager(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public void loadScenario(String scenarioName, Map<String, Object> parameters) {
+        String sqlContent = loadSqlTemplate(scenarioName);
+        String processedSql = processTemplate(sqlContent, parameters);
+
+        executeSql(processedSql);
+    }
+
+    public void loadCombinedScenario(List<String> scenarioComponents) {
+        scenarioComponents.forEach(component -> {
+            String sqlPath = "/testdata/components/" + component + ".sql";
+            executeSqlScript(sqlPath);
+        });
+    }
+
+    private String loadSqlTemplate(String scenarioName) {
+        try {
+            Resource resource = new ClassPathResource("/testdata/scenarios/" + scenarioName + ".sql");
+            return new String(resource.getInputStream().readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load scenario: " + scenarioName, e);
         }
     }
 }
 ```
 
-## 📋 新しいテストプロファイルの追加方法
+---
 
-### ステップ1: 設定ファイルを作成
+## 🔄 4. 大量パターン回帰テスト
 
-新しいプロファイル（例：`staging`）を追加する場合：
-
-```bash
-# 設定ファイルを作成
-touch src/test/resources/application-staging.yml
-```
-
-**`application-staging.yml`の内容例**:
-
-```yaml
-spring:
-  profiles:
-    active: staging
-  datasource:
-    # 本番に近い環境でテスト
-    url: jdbc:tc:postgresql:15:///staging_db?TC_TMPFS=/var/lib/postgresql/data:rw
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    username: staging_user
-    password: staging_pass
-    hikari:
-      maximum-pool-size: 15
-      connection-timeout: 20000
-  jpa:
-    hibernate:
-      ddl-auto: validate  # 本番相当の制約
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-        use_sql_comments: true
-
-# TestContainers設定
-testcontainers:
-  reuse:
-    enable: true
-  containers:
-    postgres:
-      image: postgres:15
-      init-scripts:
-        - schema-staging.sql
-        - data-staging.sql
-      tmpfs:
-        /var/lib/postgresql/data: rw,size=500m
-
-# ステージング専用設定
-test:
-  data:
-    profile: staging
-    load-sample-data: true
-    cleanup-after-test: false  # デバッグのためデータを残す
-  staging:
-    enable-monitoring: true    # メトリクス収集を有効化
-    slow-query-threshold: 1000 # 1秒以上のクエリを警告
-```
-
-### ステップ2: テストデータを準備
-
-```bash
-# テストデータディレクトリを作成
-mkdir -p src/test/resources/testdata/staging
-
-# 初期化スクリプトを作成
-touch src/test/resources/schema-staging.sql
-touch src/test/resources/data-staging.sql
-```
-
-**`schema-staging.sql`の例**:
-
-```sql
--- ステージング環境用のスキーマ初期化
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 本番相当のインデックス
-CREATE INDEX IF NOT EXISTS idx_employees_email_staging
-    ON employees(email) WHERE active = true;
-CREATE INDEX IF NOT EXISTS idx_employees_department_hire_date
-    ON employees(department_id, hire_date);
-
--- 統計情報更新
-ANALYZE employees;
-ANALYZE departments;
-```
-
-**`data-staging.sql`の例**:
-
-```sql
--- ステージング用サンプルデータ
-INSERT INTO departments (name, code, budget, active) VALUES
-    ('ステージング開発部', 'STG-DEV', 5000000.00, true),
-    ('ステージング運用部', 'STG-OPS', 3000000.00, true),
-    ('ステージング品質保証部', 'STG-QA', 2000000.00, true);
-
-INSERT INTO employees (first_name, last_name, email, hire_date, department_id, active) VALUES
-    ('太郎', 'ステージング', 'staging-taro@company.com', '2023-01-01', 1, true),
-    ('花子', 'テスト', 'test-hanako@company.com', '2023-02-01', 2, true),
-    ('次郎', 'サンプル', 'sample-jiro@company.com', '2023-03-01', 3, true);
-```
-
-### ステップ3: 専用テストクラスを作成
-
-**`src/test/java/.../StagingIntegrationTest.java`**
+### 4.1 JUnit5 ParameterizedTestによる大量パターンテスト
 
 ```java
 @SpringBootTest
-@ActiveProfiles("staging")  // stagingプロファイルを有効化
 @Testcontainers
-@TestMethodOrder(OrderAnnotation.class)  // テスト実行順序を制御
-class StagingIntegrationTest {
+class MassiveRegressionTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("staging_test")
-            .withUsername("staging_user")
-            .withPassword("staging_pass")
-            .withInitScript("schema-staging.sql")
-            .withFileSystemBind(
-                "src/test/resources/data-staging.sql",
-                "/docker-entrypoint-initdb.d/data.sql"
-            )
-            // ステージング専用のコンテナ設定
-            .withTmpFs(Collections.singletonMap("/var/lib/postgresql/data", "rw,size=500m"))
-            .withCommand("postgres", "-c", "log_statement=all")  // 全クエリをログ出力
-            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("StagingPostgreSQL")));
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        // ステージング専用プロパティ
-        registry.add("test.environment", () -> "staging");
-        registry.add("logging.level.org.hibernate.SQL", () -> "DEBUG");
+    @ParameterizedTest(name = "ケース#{index}: {0}部署, {1}名, 予算{2}")
+    @CsvFileSource(resources = "/testdata/regression/department-combinations.csv", numLinesToSkip = 1)
+    void shouldHandleVariousDepartmentCombinations(
+            String departmentType,
+            int employeeCount,
+            BigDecimal budget,
+            boolean hasManager,
+            String expectedStatus) {
+
+        // Given: パラメータに基づいてテストデータを生成
+        Department dept = createDepartment(departmentType, budget);
+        List<Employee> employees = createEmployees(dept, employeeCount, hasManager);
+
+        // When: ビジネスロジックを実行
+        DepartmentEvaluationResult result = departmentService.evaluateDepartment(dept.getId());
+
+        // Then: 期待された結果と比較
+        assertThat(result.getStatus().toString()).isEqualTo(expectedStatus);
+        assertThat(result.getEmployeeCount()).isEqualTo(employeeCount);
+        assertThat(result.getBudgetUtilization()).isNotNull();
     }
 
+    @ParameterizedTest
+    @MethodSource("generateSalaryCalculationTestCases")
+    void shouldCalculateSalaryCorrectly(SalaryTestCase testCase) {
+        // Given: テストケースに基づいてemployeeを作成
+        Employee employee = createEmployeeFromTestCase(testCase);
+
+        // When: 給与計算を実行
+        SalaryCalculationResult result = salaryService.calculateMonthlySalary(
+            employee.getId(), testCase.getTargetMonth()
+        );
+
+        // Then: 期待値と比較（許容誤差考慮）
+        assertThat(result.getBaseSalary())
+            .isCloseTo(testCase.getExpectedBaseSalary(), within(new BigDecimal("0.01")));
+        assertThat(result.getTotalSalary())
+            .isCloseTo(testCase.getExpectedTotalSalary(), within(new BigDecimal("0.01")));
+    }
+
+    static Stream<SalaryTestCase> generateSalaryCalculationTestCases() {
+        return Stream.of(
+            // 基本給のパターン
+            SalaryTestCase.builder()
+                .employeeLevel("junior")
+                .baseAmount(new BigDecimal("250000"))
+                .overtimeHours(10)
+                .expectedBaseSalary(new BigDecimal("250000"))
+                .expectedTotalSalary(new BigDecimal("281250"))
+                .build(),
+
+            // 管理職のパターン
+            SalaryTestCase.builder()
+                .employeeLevel("manager")
+                .baseAmount(new BigDecimal("450000"))
+                .managementAllowance(new BigDecimal("50000"))
+                .expectedBaseSalary(new BigDecimal("450000"))
+                .expectedTotalSalary(new BigDecimal("500000"))
+                .build(),
+
+            // 特殊ケース: 休職中
+            SalaryTestCase.builder()
+                .employeeLevel("senior")
+                .baseAmount(new BigDecimal("380000"))
+                .isOnLeave(true)
+                .expectedBaseSalary(BigDecimal.ZERO)
+                .expectedTotalSalary(BigDecimal.ZERO)
+                .build()
+        );
+    }
+}
+```
+
+**CSVテストデータ** (`src/test/resources/testdata/regression/department-combinations.csv`):
+
+```csv
+departmentType,employeeCount,budget,hasManager,expectedStatus
+engineering,15,3000000.00,true,HEALTHY
+engineering,3,3000000.00,false,UNDERSTAFFED
+marketing,25,2000000.00,true,OVER_BUDGET
+hr,8,1500000.00,true,OPTIMAL
+sales,50,5000000.00,true,HIGH_PERFORMANCE
+research,5,8000000.00,true,WELL_FUNDED
+```
+
+### 4.2 大量データ生成とテスト
+
+```java
+@SpringBootTest
+@Testcontainers
+class LargeScaleRegressionTest {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withJavaOpts("-Xmx1g")  // 大量データ処理用にメモリ増量
+            .withTmpFs(Collections.singletonMap("/var/lib/postgresql/data", "rw,size=1g"));
+
     @Autowired
-    private EmployeeService employeeService;
+    private TestDataGenerator testDataGenerator;
+
+    @ParameterizedTest
+    @ValueSource(ints = {100, 1000, 10000, 50000})
+    void shouldHandleLargeEmployeeDatasets(int employeeCount) {
+        // Given: 大量のemployeeデータを生成
+        testDataGenerator.generateEmployees(employeeCount);
+
+        // When: 重い検索処理を実行
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+
+        List<EmployeeSummaryDto> summaries = employeeService.generateAllEmployeeSummaries();
+
+        stopWatch.stop();
+
+        // Then: 性能と正確性を検証
+        assertThat(summaries).hasSize(employeeCount);
+        assertThat(stopWatch.getTotalTimeMillis())
+            .as("Employee count: %d should complete within acceptable time", employeeCount)
+            .isLessThan(calculateAcceptableTimeLimit(employeeCount));
+
+        // データ整合性も検証
+        long actualCount = employeeRepository.count();
+        assertThat(actualCount).isEqualTo(employeeCount);
+    }
+
+    private long calculateAcceptableTimeLimit(int employeeCount) {
+        // 1000件あたり500ms以下の性能目標
+        return (employeeCount / 1000) * 500 + 1000;  // Base time 1000ms
+    }
+}
+```
+
+---
+
+## ✅ 5. DB状態検証
+
+### 5.1 AssertJによる流暢な検証
+
+```java
+@DataJpaTest
+@Testcontainers
+class DatabaseStateVerificationTest {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
+
+    @Test
+    void shouldVerifyComplexDatabaseState() {
+        // Given: 複雑なデータ構造を作成
+        Department engineering = createDepartment("Engineering", "ENG", new BigDecimal("5000000"));
+        Department sales = createDepartment("Sales", "SALES", new BigDecimal("3000000"));
+
+        List<Employee> engineers = createEmployees(engineering, 10);
+        List<Employee> salespeople = createEmployees(sales, 15);
+
+        // When: データベース操作を実行
+        departmentService.redistributeBudget();
+
+        // Then: AssertJで複雑な状態を検証
+        List<Department> allDepartments = departmentRepository.findAll();
+
+        assertThat(allDepartments)
+            .hasSize(2)
+            .extracting(Department::getName, Department::getBudget, Department::getActive)
+            .containsExactlyInAnyOrder(
+                tuple("Engineering", new BigDecimal("4000000.00"), true),
+                tuple("Sales", new BigDecimal("4000000.00"), true)
+            );
+
+        // Employee関連の複合検証
+        assertThat(engineers)
+            .allMatch(emp -> emp.getDepartment().getCode().equals("ENG"))
+            .extracting(Employee::getFirstName)
+            .allMatch(name -> name.startsWith("Engineer"));
+
+        // 集約的検証
+        assertThat(departmentRepository.findByCode("ENG"))
+            .isPresent()
+            .get()
+            .extracting(Department::getEmployees)
+            .asList()
+            .hasSize(10)
+            .allMatch(emp -> ((Employee)emp).isActive());
+    }
+
+    @Test
+    void shouldVerifyTransactionalBehavior() {
+        // Given: 初期状態
+        long initialEmployeeCount = employeeRepository.count();
+        long initialDepartmentCount = departmentRepository.count();
+
+        // When: トランザクション操作（失敗が想定される）
+        assertThatThrownBy(() -> {
+            employeeService.performBulkTransfer(invalidTransferRequest());
+        }).isInstanceOf(TransactionException.class);
+
+        // Then: ロールバックにより状態が変わっていないことを確認
+        assertThat(employeeRepository.count()).isEqualTo(initialEmployeeCount);
+        assertThat(departmentRepository.count()).isEqualTo(initialDepartmentCount);
+
+        // 個別レコードも検証
+        List<Employee> allEmployees = employeeRepository.findAll();
+        assertThat(allEmployees)
+            .allMatch(emp -> emp.getDepartment() != null)  // 転送失敗で孤立していない
+            .noneMatch(emp -> emp.getLastModified().isAfter(testStartTime));  // 変更されていない
+    }
+}
+```
+
+### 5.2 Repositoryを通じた検証
+
+```java
+@SpringBootTest
+@Testcontainers
+class RepositoryBasedVerificationTest {
+
+    @Test
+    void shouldVerifyBusinessRulesViaRepository() {
+        // Given: 複雑なビジネスシナリオ
+        setupComplexOrganizationStructure();
+
+        // When: ビジネスロジック実行
+        organizationService.performAnnualRestructuring();
+
+        // Then: Repository経由で業務ルールを検証
+
+        // 1. 部署階層の検証
+        List<Department> topLevelDepartments = departmentRepository.findByParentIsNull();
+        assertThat(topLevelDepartments)
+            .hasSize(3)  // 最上位は3部署まで
+            .allMatch(dept -> dept.getSubDepartments().size() <= 5);  // 配下は5部署まで
+
+        // 2. 職員配置の検証
+        List<Employee> managersWithoutTeam = employeeRepository.findManagersWithoutDirectReports();
+        assertThat(managersWithoutTeam)
+            .as("全管理職は部下を持つ必要がある")
+            .isEmpty();
+
+        // 3. 予算制約の検証
+        List<Department> overBudgetDepartments = departmentRepository.findDepartmentsOverBudget();
+        assertThat(overBudgetDepartments)
+            .as("リストラ後は予算超過部署は存在しない")
+            .isEmpty();
+
+        // 4. カスタムクエリによる複合条件検証
+        List<EmployeeSalaryProjection> salaryDistribution =
+            employeeRepository.findSalaryDistributionByDepartment();
+
+        assertThat(salaryDistribution)
+            .extracting(EmployeeSalaryProjection::getDepartmentCode,
+                       EmployeeSalaryProjection::getAverageSalary)
+            .allMatch(tuple -> {
+                String deptCode = (String) tuple.toArray()[0];
+                BigDecimal avgSalary = (BigDecimal) tuple.toArray()[1];
+                return avgSalary.compareTo(getExpectedSalaryRange(deptCode).getMinimum()) >= 0 &&
+                       avgSalary.compareTo(getExpectedSalaryRange(deptCode).getMaximum()) <= 0;
+            });
+    }
+}
+```
+
+### 5.3 DB直接クエリによる検証
+
+```java
+@SpringBootTest
+@Testcontainers
+class DirectDatabaseVerificationTest {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Test
+    void shouldVerifyDatabaseConstraintsDirectly() {
+        // Given: データベース制約をテストするデータ
+        setupConstraintTestData();
+
+        // When: 制約違反となる操作を実行
+        employeeService.attemptInvalidDataModification();
+
+        // Then: SQL直接クエリで制約状態を確認
+
+        // 1. 外部キー制約の検証
+        Integer orphanedEmployees = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*) FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE e.department_id IS NOT NULL AND d.id IS NULL
+            """, Integer.class
+        );
+        assertThat(orphanedEmployees).isZero();
+
+        // 2. 一意制約の検証
+        List<Map<String, Object>> duplicateEmails = jdbcTemplate.queryForList(
+            """
+            SELECT email, COUNT(*) as count
+            FROM employees
+            GROUP BY email
+            HAVING COUNT(*) > 1
+            """
+        );
+        assertThat(duplicateEmails).isEmpty();
+
+        // 3. チェック制約の検証
+        Integer invalidBudgets = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM departments WHERE budget < 0", Integer.class
+        );
+        assertThat(invalidBudgets).isZero();
+
+        // 4. 業務ルールの検証
+        List<Map<String, Object>> anomalies = jdbcTemplate.queryForList(
+            """
+            SELECT d.name, d.budget, COUNT(e.id) as employee_count,
+                   ROUND(d.budget::numeric / NULLIF(COUNT(e.id), 0), 2) as budget_per_employee
+            FROM departments d
+            LEFT JOIN employees e ON d.id = e.department_id AND e.active = true
+            GROUP BY d.id, d.name, d.budget
+            HAVING d.budget::numeric / NULLIF(COUNT(e.id), 0) > 1000000  -- 一人あたり100万円超
+            """
+        );
+        assertThat(anomalies)
+            .as("一人当たり予算が100万円を超える部署は異常")
+            .isEmpty();
+    }
+
+    @Test
+    void shouldVerifyPerformanceWithExplainAnalyze() {
+        // Given: 大量データでのクエリ性能テスト
+        setupLargeDataset(10000);
+
+        // When: 重いクエリを実行して実行計画を取得
+        String query = """
+            SELECT d.name, COUNT(e.id) as employee_count, AVG(e.hire_date)
+            FROM departments d
+            LEFT JOIN employees e ON d.id = e.department_id
+            WHERE e.active = true AND e.hire_date > '2020-01-01'
+            GROUP BY d.id, d.name
+            ORDER BY employee_count DESC
+            """;
+
+        // 実行計画の取得
+        List<Map<String, Object>> executionPlan = jdbcTemplate.queryForList(
+            "EXPLAIN (ANALYZE, BUFFERS) " + query
+        );
+
+        // Then: 性能要件を満たしているか検証
+        String planText = executionPlan.stream()
+            .map(row -> row.get("QUERY PLAN").toString())
+            .collect(Collectors.joining("\n"));
+
+        // インデックスが使用されているか
+        assertThat(planText)
+            .as("クエリでインデックススキャンが使用されている")
+            .contains("Index Scan");
+
+        // 実行時間が許容範囲内か
+        Pattern executionTimePattern = Pattern.compile("Execution Time: ([\\d.]+) ms");
+        Matcher matcher = executionTimePattern.matcher(planText);
+        if (matcher.find()) {
+            double executionTime = Double.parseDouble(matcher.group(1));
+            assertThat(executionTime)
+                .as("クエリ実行時間は1000ms以内である必要がある")
+                .isLessThan(1000.0);
+        }
+    }
+}
+```
+
+---
+
+## ⚡ 6. 高速化戦略
+
+### 6.1 コンテナ共有による高速化
+
+```java
+/**
+ * 共有コンテナを使用するベーステストクラス
+ */
+@SpringBootTest
+@Testcontainers
+@TestMethodOrder(OrderAnnotation.class)
+public abstract class SharedContainerBaseTest {
+
+    // クラスレベルでコンテナを共有
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> sharedPostgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("shared_test_db")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(true)  // コンテナ再利用を有効化
+            .withTmpFs(Collections.singletonMap("/var/lib/postgresql/data", "rw,size=1g"));
+
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    protected TestDataResetter testDataResetter;
+
+    @BeforeEach
+    void resetTestData() {
+        // 各テスト前にデータをリセット（コンテナ再作成より高速）
+        testDataResetter.resetToBaseState();
+    }
+}
+
+/**
+ * 共有コンテナを継承して使用
+ */
+class FastEmployeeServiceTest extends SharedContainerBaseTest {
 
     @Test
     @Order(1)
-    @DisplayName("ステージング環境でのemployee検索テスト")
-    void shouldFindEmployeesInStagingEnvironment() {
-        // ステージング特有のテストロジック
-        List<EmployeeDto> employees = employeeService.findAllActiveEmployees();
-
-        assertThat(employees)
-            .hasSize(3)  // data-staging.sqlで投入した3名
-            .extracting(EmployeeDto::getEmail)
-            .allMatch(email -> email.contains("@company.com"));
+    void shouldProcessEmployeesQuickly() {
+        // 共有コンテナなので起動時間ゼロ
+        List<Employee> employees = employeeService.findAll();
+        assertThat(employees).isNotNull();
     }
 
     @Test
     @Order(2)
-    @DisplayName("ステージング環境でのパフォーマンステスト")
-    void shouldPerformWellInStagingEnvironment() {
-        // パフォーマンス測定
-        StopWatch stopWatch = new StopWatch();
-        stopWatch.start();
-
-        // 重い処理を実行
-        List<EmployeeDto> result = employeeService.searchEmployeesWithComplexCriteria(
-            "ステージング", null, true
-        );
-
-        stopWatch.stop();
-
-        // パフォーマンス検証
-        assertThat(stopWatch.getTotalTimeMillis())
-            .as("検索処理は1秒以内に完了する必要があります")
-            .isLessThan(1000);
-
-        assertThat(result).isNotEmpty();
+    void shouldHandleDepartmentOperations() {
+        // 前のテストの影響を受けない（データリセット済み）
+        List<Department> departments = departmentService.findAll();
+        assertThat(departments).isEmpty();  // リセットされている
     }
 }
 ```
 
-### ステップ4: プロファイル実行コマンドを追加
-
-**Maven実行コマンドを追加**:
-
-```bash
-# stagingプロファイルでテスト実行
-podman-compose exec app mvn test -Dspring.profiles.active=staging
-
-# 特定のテストクラスのみ実行
-podman-compose exec app mvn test -Dtest="StagingIntegrationTest" -Dspring.profiles.active=staging
-
-# stagingプロファイル + 詳細ログ
-podman-compose exec app mvn test -Dspring.profiles.active=staging -Dlogging.level.org.hibernate.SQL=DEBUG
-```
-
-## 🔍 トラブルシューティング
-
-### よくある問題と解決方法
-
-#### 1. TestContainerが起動しない
-
-**症状**:
-```
-org.testcontainers.containers.ContainerLaunchException: Container startup failed
-```
-
-**診断**:
-```bash
-# Dockerデーモンが実行中かを確認
-podman info
-
-# TestContainerログを有効化
-export TESTCONTAINERS_LOG_LEVEL=DEBUG
-podman-compose exec app mvn test -Dtest="EmployeeRepositoryTest"
-```
-
-**解決方法**:
-```java
-// より具体的なエラー情報を取得
-@Container
-static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-        .withLogConsumer(new Slf4jLogConsumer(logger))
-        .waitingFor(Wait.forLogMessage(".*ready to accept connections.*", 2))
-        .withStartupTimeout(Duration.ofMinutes(3));  // タイムアウトを延長
-```
-
-#### 2. テストが遅い
-
-**症状**:
-テストの実行時間が長すぎる
-
-**解決方法**:
-```bash
-# コンテナ再利用を有効化
-export TESTCONTAINERS_REUSE_ENABLE=true
-
-# または設定で有効化
-echo "testcontainers.reuse.enable=true" >> ~/.testcontainers.properties
-```
-
-```java
-// テストクラスレベルでコンテナを共有
-@Testcontainers
-class EmployeeRepositoryTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withReuse(true);  // コンテナの再利用を明示的に有効化
-}
-```
-
-#### 3. テストデータの競合
-
-**症状**:
-テスト間でデータが干渉して不正な結果になる
-
-**解決方法**:
-```java
-@Transactional
-@Rollback  // 各テスト後にロールバック
-class EmployeeServiceTest {
-
-    @BeforeEach
-    void setUp() {
-        // 各テスト前にデータをクリーンアップ
-        employeeRepository.deleteAll();
-        departmentRepository.deleteAll();
-    }
-}
-```
-
-#### 4. プロファイル設定が反映されない
-
-**診断**:
-```bash
-# アクティブプロファイルを確認
-podman-compose exec app mvn test -Dspring.profiles.active=integration -Ddebug
-
-# 設定値を確認
-podman-compose exec app mvn test -Dspring.profiles.active=integration \
-    -Dlogging.level.org.springframework.core.env=DEBUG
-```
-
-**解決方法**:
-```java
-@ActiveProfiles({"integration", "testcontainers"})  // 複数プロファイルを指定
-class IntegrationTest {
-
-    @Test
-    void shouldUseIntegrationProfile(@Value("${spring.profiles.active}") String activeProfile) {
-        // プロファイルが正しく設定されているかを確認
-        assertThat(activeProfile).contains("integration");
-    }
-}
-```
-
-## 📊 パフォーマンス最適化
-
-### TestContainerの最適化設定
-
-```java
-@Container
-static PostgreSQLContainer<?> optimizedPostgres = new PostgreSQLContainer<>("postgres:15")
-        // tmpfsを使用してI/Oを高速化
-        .withTmpFs(Collections.singletonMap("/var/lib/postgresql/data", "rw,size=1g"))
-        // 必要最小限の設定でPostgreSQLを起動
-        .withCommand(
-            "postgres",
-            "-c", "fsync=off",                    // 安全性よりも速度を重視
-            "-c", "synchronous_commit=off",
-            "-c", "checkpoint_segments=32",
-            "-c", "checkpoint_completion_target=0.9",
-            "-c", "wal_buffers=16MB",
-            "-c", "shared_buffers=256MB"
-        )
-        // 不要なログを削減
-        .withLogConsumer(new ToStringConsumer().withRemoveAnsiCodes(false))
-        // ヘルスチェックを最小化
-        .waitingFor(Wait.forLogMessage(".*ready to accept connections.*", 1))
-        .withStartupTimeout(Duration.ofSeconds(60));
-```
-
-### プロファイル別実行時間の目安
-
-| プロファイル | 想定実行時間 | 用途 | 推奨頻度 |
-|-------------|------------|------|----------|
-| `test` | 1-5分 | 単体テスト | 各コミット時 |
-| `integration` | 5-15分 | 統合テスト | Pull Request時 |
-| `performance` | 15-60分 | 負荷テスト | リリース前 |
-| `staging` | 10-30分 | 受け入れテスト | デプロイ前 |
-
-## 🎯 ベストプラクティス
-
-### 1. テストプロファイルの命名規則
-
-```
-test            # 基本単体テスト（H2使用）
-integration     # 統合テスト（TestContainers使用）
-performance     # パフォーマンステスト
-staging         # ステージング環境テスト
-e2e            # エンドツーエンドテスト
-contract       # 契約テスト
-```
-
-### 2. TestContainer設定の共通化
-
-```java
-// 共通設定を抽象クラスで定義
-public abstract class BaseIntegrationTest {
-
-    @Container
-    protected static final PostgreSQLContainer<?> postgres =
-        PostgreSQLContainerFactory.createOptimizedContainer();
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        PostgreSQLContainerFactory.configureSpringProperties(registry, postgres);
-    }
-}
-
-// 各テストクラスで継承
-class EmployeeServiceIntegrationTest extends BaseIntegrationTest {
-    // テストロジックのみに集中
-}
-```
-
-### 3. テストデータ管理の統一
+### 6.2 データリセット戦略
 
 ```java
 @Component
-public class TestDataManager {
+public class TestDataResetter {
 
-    public void loadTestDataForProfile(String profile) {
-        switch (profile) {
-            case "integration":
-                loadIntegrationData();
-                break;
-            case "performance":
-                loadPerformanceData();
-                break;
-            case "staging":
-                loadStagingData();
-                break;
-        }
+    private final JdbcTemplate jdbcTemplate;
+    private final List<String> tableResetOrder;
+
+    public TestDataResetter(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        // 外部キー制約を考慮した順序でテーブルをリセット
+        this.tableResetOrder = Arrays.asList(
+            "employees",      // 外部キーを持つテーブルから
+            "departments",    // 参照されるテーブルへ
+            "audit_logs"      // 監査テーブル
+        );
     }
 
-    private void loadIntegrationData() {
-        // integration用データ投入ロジック
+    public void resetToBaseState() {
+        // 高速なTRUNCATEを使用
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
+
+        tableResetOrder.forEach(tableName -> {
+            jdbcTemplate.execute("TRUNCATE TABLE " + tableName + " RESTART IDENTITY");
+        });
+
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
+
+        // ベース状態のデータを投入
+        loadBaseTestData();
+    }
+
+    public void resetToEmptyState() {
+        // 完全に空の状態にリセット
+        tableResetOrder.forEach(tableName -> {
+            jdbcTemplate.execute("DELETE FROM " + tableName);
+        });
+    }
+
+    private void loadBaseTestData() {
+        // 最小限の基本データのみ投入（高速）
+        jdbcTemplate.execute(
+            """
+            INSERT INTO departments (id, name, code, budget, active) VALUES
+                (1, 'Default Department', 'DEFAULT', 1000000.00, true)
+            """
+        );
     }
 }
 ```
 
-## 📚 学習リソース
+### 6.3 パフォーマンス測定と最適化
 
-### 公式ドキュメント
-- [TestContainers Official Documentation](https://www.testcontainers.org/)
-- [Spring Boot Testing Guide](https://spring.io/guides/gs/testing-web/)
+```java
+@SpringBootTest
+@Testcontainers
+class PerformanceOptimizationTest extends SharedContainerBaseTest {
 
-### 参考記事
-- TestContainers実践ガイド
-- Spring Profilesの効果的な使い方
-- 統合テスト戦略とベストプラクティス
+    @Test
+    void shouldMeasureTestExecutionPerformance() {
+        // 異なる高速化戦略の効果を測定
+        Map<String, Long> strategyPerformance = new HashMap<>();
 
----
+        // 1. コンテナ再作成戦略（ベースライン）
+        long containerRecreationTime = measureExecutionTime(() -> {
+            // 新しいコンテナを作成してテスト実行
+            try (PostgreSQLContainer<?> freshContainer = new PostgreSQLContainer<>("postgres:15")) {
+                freshContainer.start();
+                runStandardTestSuite(freshContainer);
+            }
+        });
+        strategyPerformance.put("container-recreation", containerRecreationTime);
 
-このガイドを参考に、プロジェクトに最適なテストプロファイル構成を設計し、TestContainersを効果的に活用してください。質問がある場合は、[TROUBLESHOOTING.md](TROUBLESHOOTING.md)も合わせてご確認ください。
+        // 2. 共有コンテナ + データリセット戦略
+        long sharedContainerTime = measureExecutionTime(() -> {
+            testDataResetter.resetToBaseState();
+            runStandardTestSuite(sharedPostgres);
+        });
+        strategyPerformance.put("shared-container", sharedContainerTime);
+
+        // 3. トランザクションロールバック戦略
+        long transactionalTime = measureExecutionTime(() -> {
+            runTransactionalTestSuite();
+        });
+        strategyPerformance.put("transactional", transactionalTime);
+
+        // Then: パフォーマンス改善を検証
+        logger.info("Performance comparison: {}", strategyPerformance);
+
+        assertThat(sharedContainerTime)
+            .as("共有コンテナ戦略はコンテナ再作成より高速")
+            .isLessThan(containerRecreationTime * 0.3);  // 70%以上の改善
+
+        assertThat(transactionalTime)
+            .as("トランザクション戦略は最も高速")
+            .isLessThan(sharedContainerTime * 0.5);  // 50%以上の改善
+    }
+
+    @Test
+    void shouldOptimizeTestContainerConfiguration() {
+        // TestContainer最適化設定の効果を測定
+        Map<String, PostgreSQLContainer<?>> configurations = Map.of(
+            "default", new PostgreSQLContainer<>("postgres:15"),
+
+            "optimized", new PostgreSQLContainer<>("postgres:15")
+                .withTmpFs(Collections.singletonMap("/var/lib/postgresql/data", "rw,size=500m"))
+                .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off")
+                .withJavaOpts("-Xmx512m"),
+
+            "minimal", new PostgreSQLContainer<>("postgres:15-alpine")
+                .withTmpFs(Collections.singletonMap("/var/lib/postgresql/data", "rw,size=200m"))
+                .withCommand("postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=20")
+        );
+
+        Map<String, Long> startupTimes = new HashMap<>();
+
+        configurations.forEach((name, container) -> {
+            long startupTime = measureExecutionTime(container::start);
+            startupTimes.put(name, startupTime);
+            container.stop();
+        });
+
+        logger.info("Container startup times: {}", startupTimes);
+
+        // 最適化されたコンテナが高速に起動することを確認
+        assertThat(startupTimes.get("optimized"))
+            .isLessThan(startupTimes.get("default") * 0.8);
+        assertThat(startupTimes.get("minimal"))
+            .isLessThan(startupTimes.get("default") * 0.6);
+    }
+
+    private long measureExecutionTime(Runnable operation) {
+        long startTime = System.currentTimeMillis();
+        operation.run();
+        return System.currentTimeMillis() - startTime;
+    }
+}
+```
+
+### 6.4 実行時間比較
+
+**典型的な実行時間の改善例**:
+
+| 戦略 | 初回実行 | 2回目以降 | 改善率 |
+|------|----------|-----------|--------|
+| コンテナ再作成 | 15秒 | 15秒 | ベースライン |
+| 共有コンテナ + データリセット | 15秒 | 3秒 | 80%改善 |
+| トランザクションロールバック | 2秒 | 1.5秒 | 90%改善 |
+
+## 📋 まとめ
+
+この実践ガイドで紹介した戦略を組み合わせることで、効率的で保守可能なデータベーステスト環境を構築できます。
+
+### 推奨する実装順序
+
+1. **基本的なTestContainers環境** → コンテナ共有設定
+2. **@Sqlによるデータ投入** → Flyway/Liquibaseへの発展
+3. **単純なParameterizedTest** → 複雑なパターンテスト
+4. **AssertJによる基本検証** → Repository + 直接クエリの組み合わせ
+5. **個別最適化** → 統合的な高速化戦略
+
+### 選択の指針
+
+- **高速性重視**: トランザクションロールバック + 共有コンテナ
+- **独立性重視**: コンテナ再作成 + @Sql
+- **複雑性対応**: Flyway/Liquibase + ParameterizedTest
+- **大量テスト**: ParameterizedTest + 直接クエリ検証
+
+各プロジェクトの特性に応じて、最適な組み合わせを選択してください。
