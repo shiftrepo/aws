@@ -70,27 +70,51 @@ java -jar target/java-test-specification-generator-1.0.0.jar --help
 
 ### 🚀 基本的な使い方
 
+#### カバレッジなし（テストケース情報のみ）
+
 ```bash
-# テスト仕様書を生成
+# テスト仕様書を生成（カバレッジなし）
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir ./src/test/java \
-  --output test_specification.xlsx
+  --source-dir . \
+  --output test_specification.xlsx \
+  --no-coverage
 
 # 出力例:
-# ✅ Javaファイル発見: 3個
+# ✅ Javaファイル発見: 16個
 # ✅ テストケース抽出: 35個
 # ✅ テスト仕様書が正常に生成されました: test_specification.xlsx
 ```
 
-### 📊 カバレッジ統合版
+#### カバレッジ統合版（推奨）
+
+**重要**: カバレッジデータを含める場合は以下の手順に従ってください：
 
 ```bash
-# カバレッジレポートディレクトリを指定
+# ステップ1: ビルドとテスト実行（JaCoCoレポート生成）
+mvn clean compile test package
+
+# ステップ2: カバレッジレポートを一時コピー（target除外対策）
+cp -r target/site/jacoco ./coverage-reports
+
+# ステップ3: テスト仕様書を生成（--source-dirにプロジェクトルートを指定）
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir ./src/test/java \
-  --coverage-dir ./target/site/jacoco \
-  --output test_specification_with_coverage.xlsx
+  --source-dir . \
+  --output test_specification.xlsx
+
+# ステップ4: 一時ファイルをクリーンアップ
+rm -rf coverage-reports
+
+# 出力例:
+# ✅ Javaファイル発見: 16個
+# ✅ テストケース抽出: 35個
+# ✅ カバレッジデータ取得: 166個
+# ✅ テスト仕様書が正常に生成されました: test_specification.xlsx
 ```
+
+**注意点**:
+- `--source-dir` には**プロジェクトルート**（`.` または絶対パス）を指定してください
+- `--source-dir ./src/test/java` とすると、カバレッジレポートが見つかりません
+- ツールは `/target/` ディレクトリを自動除外するため、一時的に `coverage-reports` にコピーする必要があります
 
 ### 📁 サンプル出力結果
 
@@ -110,14 +134,20 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 
 ### 🔧 利用可能なオプション
 
-| オプション | 説明 |
-|-----------|------|
-| `--source-dir` | Javaテストファイルのディレクトリ（必須） |
-| `--output` | 出力Excelファイルのパス（必須） |
-| `--coverage-dir` | カバレッジレポートのディレクトリ（オプション） |
-| `--no-coverage` | カバレッジ処理をスキップ |
-| `--log-level DEBUG` | デバッグモード |
-| `--help` | ヘルプ表示 |
+| オプション | 短縮形 | 説明 | デフォルト |
+|-----------|--------|------|-----------|
+| `--source-dir` | `-s` | ソースディレクトリ（**プロジェクトルート**を指定）（必須） | - |
+| `--output` | `-o` | 出力Excelファイルのパス（必須） | - |
+| `--no-coverage` | - | カバレッジ処理をスキップ | false |
+| `--log-level` | - | ログレベル（DEBUG/INFO/WARN/ERROR） | INFO |
+| `--interactive` | `-i` | 対話モードで実行 | false |
+| `--help` | `-h` | ヘルプメッセージを表示 | - |
+| `--version` | `-v` | バージョン情報を表示 | - |
+
+**重要な注意点**:
+- `--source-dir` には**プロジェクトルート**を指定してください（例: `.` または `/path/to/project`）
+- `--source-dir ./src/test/java` のようにテストディレクトリのみを指定すると、カバレッジレポートが見つかりません
+- カバレッジを含める場合は、事前に `coverage-reports` ディレクトリを作成してください（上記の例を参照）
 
 詳細は [STANDALONE_USAGE.md](STANDALONE_USAGE.md) を参照してください。
 
@@ -128,18 +158,23 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 Maven環境がない場合や、ビルドからカバレッジ生成まで一括実行したい場合はDockerを使用できます。
 
 ```bash
-# 完全版ワンライナー: ビルド → テスト → カバレッジ → Excel生成
+# 完全版ワンライナー: ビルド → テスト → カバレッジ → Excel生成 → クリーンアップ
 docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
   bash -c "mvn clean compile test package && \
+           cp -r target/site/jacoco ./coverage-reports && \
            java -jar target/java-test-specification-generator-1.0.0.jar \
            --source-dir /workspace \
-           --output test_specification.xlsx"
+           --output test_specification.xlsx && \
+           rm -rf coverage-reports"
 ```
 
-**注**: Docker実行はビルドとテストを含むため時間がかかります。既にJARファイルがある場合は、上記のJavaコマンドベースの方が高速です。
+**注**:
+- Docker実行はビルドとテストを含むため時間がかかります（初回は依存関係のダウンロードで数分）
+- 既にJARファイルがある場合は、上記のJavaコマンドベースの方が高速です
+- SELinux環境では `:Z` オプションが必要です。非SELinux環境では削除してください
 
 ---
 
@@ -404,35 +439,55 @@ ls -la test_specification_complete.xlsx
 
 ### コマンドライン実行
 
+#### カバレッジ統合版（完全ワークフロー）
+
 ```bash
-# 基本的な使用方法（カバレッジ自動検索）
+# ステップ1: ビルドとテスト実行
+mvn clean compile test package
+
+# ステップ2: カバレッジレポートを一時コピー
+cp -r target/site/jacoco ./coverage-reports
+
+# ステップ3: テスト仕様書を生成
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir ./src/test/java \
+    --source-dir . \
     --output test_specification.xlsx
 
-# カバレッジディレクトリを明示的に指定
-java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir ./src/test/java \
-    --coverage-dir ./target/site/jacoco \
-    --output test_specification.xlsx
+# ステップ4: クリーンアップ
+rm -rf coverage-reports
+```
 
-# カバレッジ処理なし
+#### カバレッジなし
+
+```bash
+# カバレッジ処理をスキップ
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir ./src/test/java \
+    --source-dir . \
     --output test_specification.xlsx \
     --no-coverage
+```
 
-# デバッグモード
+#### デバッグモード
+
+```bash
+# 詳細ログを出力
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir ./src/test/java \
+    --source-dir . \
     --output test_specification.xlsx \
     --log-level DEBUG
+```
 
+#### その他のコマンド
+
+```bash
 # 対話モード
 java -jar target/java-test-specification-generator-1.0.0.jar --interactive
 
 # ヘルプ表示
 java -jar target/java-test-specification-generator-1.0.0.jar --help
+
+# バージョン表示
+java -jar target/java-test-specification-generator-1.0.0.jar --version
 ```
 
 ### スタンドアロン実行（別環境への移行）
@@ -443,12 +498,25 @@ JARファイルを別環境にコピーして独立実行できます。詳細�
 # JARファイルをコピー
 cp target/java-test-specification-generator-1.0.0.jar /path/to/target/environment/
 
-# 別環境で実行
-cd /path/to/target/environment/
-java -jar java-test-specification-generator-1.0.0.jar \
-    --source-dir /path/to/project/src/test/java \
-    --coverage-dir /path/to/project/target/site/jacoco \
+# 別環境で実行（カバレッジ統合版）
+cd /path/to/target/project
+
+# ステップ1: カバレッジレポートを一時コピー
+cp -r target/site/jacoco ./coverage-reports
+
+# ステップ2: テスト仕様書を生成
+java -jar /path/to/target/environment/java-test-specification-generator-1.0.0.jar \
+    --source-dir . \
     --output test_specification.xlsx
+
+# ステップ3: クリーンアップ
+rm -rf coverage-reports
+
+# カバレッジなしで実行
+java -jar /path/to/target/environment/java-test-specification-generator-1.0.0.jar \
+    --source-dir . \
+    --output test_specification.xlsx \
+    --no-coverage
 ```
 
 ### Mavenライフサイクル
