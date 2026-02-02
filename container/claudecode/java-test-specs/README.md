@@ -621,28 +621,49 @@ target/site/jacoco/
 生成されるExcelファイルは4つのシートで構成：
 
 ### 1. Test Details シート
-| No. | Class Name | Method Name | Test Module | Test Case | Coverage % | Branches (Covered/Total) |
-|-----|------------|-------------|-------------|-----------|------------|---------------------------|
-| 1 | BasicCalculatorTest | testConditionalCalculation | CalculatorModule | ConditionalAdditionTest | 100.0% | 8/8 |
-| 2 | BasicCalculatorTest | testMultiplicationBranching | CalculatorModule | MultiplicationTest | 87.5% | 14/16 |
+
+**列構成（12列）:**
+
+| No. | FQCN (完全修飾クラス名) | ソフトウェア・サービス | 項目名 | 試験内容 | 確認項目 | テスト対象モジュール名 | テスト実施ベースラインバージョン | テストケース作成者 | テストケース作成日 | テストケース修正者 | テストケース修正日 |
+|-----|----------------------|---------------------|--------|---------|---------|---------------------|--------------------------|-----------------|-----------------|-----------------|-----------------|
+| 1 | com.example.BasicCalculatorTest.testAddition | 計算サービス | 加算テスト | 加算処理をテスト | 正常動作確認 | BasicCalculator | 1.0.0 | 開発者 | 2026-01-14 | レビュー担当 | 2026-01-14 |
+| 2 | com.example.BasicCalculatorTest.testSubtraction | 計算サービス | 減算テスト | 減算処理をテスト | 正常動作確認 | BasicCalculator | 1.0.0 | 開発者 | 2026-01-14 | レビュー担当 | 2026-01-14 |
+
+**特徴:**
+- **FQCN列（2列目）**: 完全修飾クラス名（パッケージ名.クラス名.メソッド名）でテストケースを一意に識別
+- **日本語項目**: ソフトウェア・サービス、項目名、試験内容、確認項目など
+- **トレーサビリティ**: 作成者、作成日、修正者、修正日を記録
 
 ### 2. Summary シート
-- 処理ファイル数: 2個
-- テストケース数: 6個
-- 全体C1カバレッジ: 94.6%
-- カバー済みブランチ: 140/148
-- 処理時間: 0.312秒
+- 処理ファイル数: 16個
+- テストケース数: 35個
+- 全体C1カバレッジ: 97.8%
+- カバー済みブランチ: 528/540
+- 処理時間: 4.707秒
+- カバレッジエントリ: 166個
 
 ### 3. Coverage シート
-| Class Name | Method Name | Branch Coverage % | Status |
-|------------|-------------|-------------------|--------|
-| BasicCalculatorTest | testConditionalCalculation | 100.0% | Excellent |
-| StringValidatorTest | testEmailValidation | 95.8% | Excellent |
+
+**列構成（17列）:**
+
+| No. | Package | Class Name | Method Name | Source File | Test Class (テストクラス) | Branch Coverage % | Branch (Covered/Total) | ... |
+|-----|---------|------------|-------------|-------------|------------------------|-------------------|------------------------|-----|
+| 1 | com/example | BasicCalculator | add | BasicCalculator.java | com.example.BasicCalculatorTest | 100.0% | 2/2 | ... |
+| 2 | com/example | DataStructures$MinHeap | bubbleUp | DataStructures.java | com.example.DataStructuresTest | 100.0% | 8/8 | ... |
+| 3 | com/example | StringValidator | isValidEmail | StringValidator.java | com.example.StringValidatorTest | 95.8% | 23/24 | ... |
+
+**特徴:**
+- **Test Class列（6列目）**: テスト対象コードを検証しているテストクラスを表示
+- **クラスレベルマッピング**: JaCoCoレポートに基づく正確なテストカバレッジ追跡
+- **メソッドレベル詳細**: 各メソッドのブランチカバレッジ、命令カバレッジ、行カバレッジを表示
+- **ステータス評価**: Excellent（95%以上）、Good（80-95%）、Fair（60-80%）、Poor（60%未満）
 
 ### 4. Configuration シート
 - 処理設定とシステム情報
 - Java版バージョン情報
 - 実行パラメータ
+- カバレッジファイルパス
+- 処理タイムスタンプ
 
 ## 🏗️ 開発者向け情報
 

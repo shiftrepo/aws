@@ -159,8 +159,9 @@ Coverage data is parsed to extract:
 ### Excel Output Structure
 
 Generated Excel contains 4 sheets:
-1. **Test Details** - Complete test case information with Japanese field names:
+1. **Test Details** - Complete test case information with Japanese field names (12 columns):
    - No. (番号)
+   - **FQCN (完全修飾クラス名)** - Fully Qualified Class Name (package.ClassName.methodName)
    - ソフトウェア・サービス (Software/Service)
    - 項目名 (Item Name)
    - 試験内容 (Test Content)
@@ -172,7 +173,10 @@ Generated Excel contains 4 sheets:
    - テストケース修正者 (Modifier)
    - テストケース修正日 (Modified Date)
 2. **Summary** - Overall statistics and metrics
-3. **Coverage** - Detailed coverage breakdown by class/method
+3. **Coverage** - Detailed coverage breakdown by class/method (17 columns):
+   - Includes **Test Class (テストクラス)** column showing which test class covers each target code method
+   - Class-level mapping based on JaCoCo reports (e.g., BasicCalculator → com.example.BasicCalculatorTest)
+   - Branch coverage, instruction coverage, line coverage, and method coverage metrics
 4. **Configuration** - Processing settings and metadata
 
 ## Important Implementation Details

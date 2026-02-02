@@ -12,6 +12,7 @@ public class TestCaseInfo {
     private String filePath;
     private String className;
     private String methodName;
+    private String packageName = "未指定";  // パッケージ名
 
     // アノテーション情報
     private String softwareService = "未指定";  // ソフトウェア・サービス
@@ -57,13 +58,19 @@ public class TestCaseInfo {
         this.extractedAt = LocalDateTime.now();
     }
 
-    // 基本情報コンストラクタ
+    // 基本情報コンストラクタ（後方互換性のため残す）
     public TestCaseInfo(String filePath, String className, String methodName) {
         this();
         this.filePath = filePath;
         this.className = className;
         this.methodName = methodName;
         this.sourceFilePath = filePath;
+    }
+
+    // 基本情報コンストラクタ（パッケージ名付き）
+    public TestCaseInfo(String filePath, String className, String methodName, String packageName) {
+        this(filePath, className, methodName);
+        this.packageName = packageName != null ? packageName : "未指定";
     }
 
     // Getter/Setter メソッド
@@ -76,6 +83,9 @@ public class TestCaseInfo {
 
     public String getMethodName() { return methodName; }
     public void setMethodName(String methodName) { this.methodName = methodName; }
+
+    public String getPackageName() { return packageName; }
+    public void setPackageName(String packageName) { this.packageName = packageName; }
 
     // 新しい日本語フィールドのGetter/Setter
     public String getSoftwareService() { return softwareService; }
@@ -228,6 +238,18 @@ public class TestCaseInfo {
      */
     public String getFullMethodName() {
         return className + "." + methodName;
+    }
+
+    /**
+     * 完全修飾クラス名を取得（FQCN: Fully Qualified Class Name）
+     * 形式: パッケージ名.クラス名.メソッド名
+     */
+    public String getFullyQualifiedName() {
+        if (packageName != null && !packageName.isEmpty() && !"未指定".equals(packageName)) {
+            return packageName + "." + className + "." + methodName;
+        } else {
+            return "未指定." + className + "." + methodName;
+        }
     }
 
     /**

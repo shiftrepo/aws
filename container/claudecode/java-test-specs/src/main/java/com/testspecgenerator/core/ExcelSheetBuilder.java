@@ -45,7 +45,7 @@ public class ExcelSheetBuilder {
             // 各シートを作成
             createTestDetailsSheet(workbook, testCases);
             createSummarySheet(workbook, testCases, coverageData);
-            createCoverageSheet(workbook, coverageData);
+            createCoverageSheet(workbook, testCases, coverageData);
             createConfigurationSheet(workbook, testCases, coverageData);
 
             // ファイルに保存
@@ -78,7 +78,7 @@ public class ExcelSheetBuilder {
         // ヘッダー行を作成（日本語項目）
         Row headerRow = sheet.createRow(0);
         String[] headers = {
-                "No.", "ソフトウェア・サービス", "項目名", "試験内容", "確認項目",
+                "No.", "FQCN (完全修飾クラス名)", "ソフトウェア・サービス", "項目名", "試験内容", "確認項目",
                 "テスト対象モジュール名", "テスト実施ベースラインバージョン",
                 "テストケース作成者", "テストケース作成日", "テストケース修正者", "テストケース修正日"
         };
@@ -96,21 +96,28 @@ public class ExcelSheetBuilder {
 
             // データセルを設定（日本語項目）
             setCellValue(dataRow, 0, i + 1, dataStyle);
-            setCellValue(dataRow, 1, testCase.getSoftwareService(), dataStyle);
-            setCellValue(dataRow, 2, testCase.getTestItemName(), dataStyle);
-            setCellValue(dataRow, 3, testCase.getTestContent(), dataStyle);
-            setCellValue(dataRow, 4, testCase.getConfirmationItem(), dataStyle);
-            setCellValue(dataRow, 5, testCase.getTestModule(), dataStyle);
-            setCellValue(dataRow, 6, testCase.getBaselineVersion(), dataStyle);
-            setCellValue(dataRow, 7, testCase.getCreator(), dataStyle);
-            setCellValue(dataRow, 8, testCase.getCreatedDate(), dataStyle);
-            setCellValue(dataRow, 9, testCase.getModifier(), dataStyle);
-            setCellValue(dataRow, 10, testCase.getModifiedDate(), dataStyle);
+            setCellValue(dataRow, 1, testCase.getFullyQualifiedName(), dataStyle);
+            setCellValue(dataRow, 2, testCase.getSoftwareService(), dataStyle);
+            setCellValue(dataRow, 3, testCase.getTestItemName(), dataStyle);
+            setCellValue(dataRow, 4, testCase.getTestContent(), dataStyle);
+            setCellValue(dataRow, 5, testCase.getConfirmationItem(), dataStyle);
+            setCellValue(dataRow, 6, testCase.getTestModule(), dataStyle);
+            setCellValue(dataRow, 7, testCase.getBaselineVersion(), dataStyle);
+            setCellValue(dataRow, 8, testCase.getCreator(), dataStyle);
+            setCellValue(dataRow, 9, testCase.getCreatedDate(), dataStyle);
+            setCellValue(dataRow, 10, testCase.getModifier(), dataStyle);
+            setCellValue(dataRow, 11, testCase.getModifiedDate(), dataStyle);
         }
 
         // 列幅を自動調整
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
+            // FQCN列は長いパッケージ名に対応
+            if (i == 1) {
+                if (sheet.getColumnWidth(i) < 10000) {
+                    sheet.setColumnWidth(i, 10000);
+                }
+            }
             // 最大幅を制限
             if (sheet.getColumnWidth(i) > 15000) {
                 sheet.setColumnWidth(i, 15000);
@@ -198,16 +205,42 @@ public class ExcelSheetBuilder {
     /**
      * Coverageシートを作成
      */
-    private void createCoverageSheet(XSSFWorkbook workbook, List<CoverageInfo> coverageData) {
+    private void createCoverageSheet(XSSFWorkbook workbook, List<TestCaseInfo> testCases, List<CoverageInfo> coverageData) {
         Sheet sheet = workbook.createSheet(COVERAGE_SHEET);
 
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dataStyle = createDataStyle(workbook);
 
+        // テスト対象クラス名からテストクラスへのマッピングを作成（クラスレベル）
+        java.util.Map<String, java.util.Set<String>> classToTestClassMap = new java.util.HashMap<>();
+        if (testCases != null) {
+            for (TestCaseInfo testCase : testCases) {
+                String testClassName = testCase.getClassName();
+                String packageName = testCase.getPackageName();
+
+                // テストクラスのFQCN（パッケージ名.クラス名）
+                String testClassFQCN;
+                if (packageName != null && !packageName.isEmpty() && !"未指定".equals(packageName)) {
+                    testClassFQCN = packageName + "." + testClassName;
+                } else {
+                    testClassFQCN = testClassName;
+                }
+
+                // テストクラス名から "Test" サフィックスを除去してテスト対象クラス名を推測
+                String targetClassName = testClassName;
+                if (targetClassName.endsWith("Test")) {
+                    targetClassName = targetClassName.substring(0, targetClassName.length() - 4);
+                }
+
+                classToTestClassMap.computeIfAbsent(targetClassName, k -> new java.util.HashSet<>()).add(testClassFQCN);
+            }
+        }
+
         // ヘッダー行
         Row headerRow = sheet.createRow(0);
         String[] headers = {
                 "No.", "Package", "Class Name", "Method Name", "Source File",
+                "Test Class (テストクラス)",
                 "Branch Coverage %", "Branch (Covered/Total)", "Instruction Coverage %", "Instruction (Covered/Total)",
                 "Line Coverage %", "Line (Covered/Total)", "Method Coverage %", "Method (Covered/Total)",
                 "Status", "Report Type", "Primary Coverage (C1)"
@@ -231,6 +264,24 @@ public class ExcelSheetBuilder {
                 setCellValue(dataRow, colIndex++, coverage.getClassName(), dataStyle); // Class Name
                 setCellValue(dataRow, colIndex++, coverage.getMethodName(), dataStyle); // Method Name
                 setCellValue(dataRow, colIndex++, coverage.getSourceFile(), dataStyle); // Source File
+
+                // テストクラスを検索（クラスレベルのマッピング）
+                String className = coverage.getClassName();
+                // 内部クラスの場合は親クラス名を使用（例: DataStructures$MinHeap → DataStructures）
+                if (className.contains("$")) {
+                    className = className.split("\\$")[0];
+                }
+
+                java.util.Set<String> testClasses = classToTestClassMap.get(className);
+                String testClassDisplay;
+                if (testClasses != null && !testClasses.isEmpty()) {
+                    // 複数のテストクラスがある場合はカンマ区切りで表示
+                    // （通常は1つのクラスに対して1つのテストクラスだが、複数の可能性もある）
+                    testClassDisplay = String.join(", ", testClasses);
+                } else {
+                    testClassDisplay = "N/A";
+                }
+                setCellValue(dataRow, colIndex++, testClassDisplay, dataStyle); // Test Class
 
                 // Branch Coverage
                 setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getBranchCoverage()), dataStyle);
@@ -257,6 +308,12 @@ public class ExcelSheetBuilder {
         // 列幅調整
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
+            // Test Class列は長いパッケージ名のため、最小幅を設定
+            if (i == 5) {
+                if (sheet.getColumnWidth(i) < 10000) {
+                    sheet.setColumnWidth(i, 10000);
+                }
+            }
         }
 
         sheet.createFreezePane(0, 1);

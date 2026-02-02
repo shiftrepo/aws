@@ -45,6 +45,12 @@ public class JavaAnnotationParser {
             Pattern.MULTILINE
     );
 
+    // パッケージ名抽出パターン
+    private static final Pattern PACKAGE_PATTERN = Pattern.compile(
+            "^\\s*package\\s+([\\w.]+);",
+            Pattern.MULTILINE
+    );
+
     // サポートするアノテーション名
     private static final Set<String> SUPPORTED_ANNOTATIONS = Set.of(
             // 日本語アノテーション（優先）
@@ -110,6 +116,9 @@ public class JavaAnnotationParser {
             return new ArrayList<>();
         }
 
+        // パッケージ名を抽出
+        String packageName = extractPackageName(content);
+
         // テストメソッドを検索
         List<String> testMethods = extractTestMethods(content);
         logger.debug("テストメソッド発見数: {} in {}", testMethods.size(), className);
@@ -123,7 +132,7 @@ public class JavaAnnotationParser {
         List<TestCaseInfo> testCases = new ArrayList<>();
 
         for (String methodName : testMethods) {
-            TestCaseInfo testCase = new TestCaseInfo(javaFile.toString(), className, methodName);
+            TestCaseInfo testCase = new TestCaseInfo(javaFile.toString(), className, methodName, packageName);
 
             // メソッドレベルのアノテーション抽出
             Map<String, String> methodAnnotations = extractMethodAnnotations(content, methodName);
@@ -175,6 +184,20 @@ public class JavaAnnotationParser {
             return matcher.group(1);
         }
         return null;
+    }
+
+    /**
+     * Javaファイルからパッケージ名を抽出
+     */
+    private String extractPackageName(String content) {
+        Matcher matcher = PACKAGE_PATTERN.matcher(content);
+        if (matcher.find()) {
+            String packageName = matcher.group(1);
+            logger.debug("パッケージ名抽出成功: {}", packageName);
+            return packageName;
+        }
+        logger.debug("パッケージ宣言が見つかりません、デフォルト値を使用: 未指定");
+        return "未指定";
     }
 
     /**
