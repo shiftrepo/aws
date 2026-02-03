@@ -537,11 +537,16 @@ mvn test
 # パッケージ作成（JAR生成）
 mvn package
 
-# JaCoCoカバレッジレポート生成（推奨方法）
-mvn clean compile test jacoco:report
+# JaCoCoカバレッジレポート生成（推奨方法・完全ワークフロー）
+mvn clean compile test jacoco:report package
 
 # カバレッジレポート確認
 ls -la target/site/jacoco/jacoco.xml
+# 期待される出力: -rw-r--r--. 1 user group ~300KB Jan  X XX:XX target/site/jacoco/jacoco.xml
+
+# XMLファイル内容確認
+head -5 target/site/jacoco/jacoco.xml
+# 期待される出力: <?xml version="1.0" encoding="UTF-8"?><report name="JaCoCo Coverage Report">
 
 # 依存関係確認
 mvn dependency:tree

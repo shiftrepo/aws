@@ -179,7 +179,7 @@ public class CoverageReportParser {
             return coverageInfos;
         }
 
-        // 動的パッケージフィルタリング（ツール自体のパッケージは常に除外）
+        // Package filtering: Only exclude tool's own packages - include ALL user packages
         List<CoverageInfo> filteredCoverage = new ArrayList<>();
         int excludedToolPackages = 0;
         int excludedByPackageFilter = 0;
@@ -220,16 +220,11 @@ public class CoverageReportParser {
                         logger.trace("[Coverage Debug] Excluded by package filter: {}", normalizedPackage);
                     }
                 } else {
-                    // Fallback to com.example for backward compatibility
-                    logger.trace("[Coverage Debug] Using default package filter (com.example) for: {}", packageName);
-                    if (packageName.startsWith("com/example") || packageName.startsWith("com.example")) {
-                        filteredCoverage.add(coverage);
-                        logger.debug("[Coverage Debug] Coverage entry added (default filter): {}.{} (package: {}, branch: {:.1f}%)",
-                            coverage.getClassName(), coverage.getMethodName(), packageName, coverage.getBranchCoverage());
-                    } else {
-                        excludedByPackageFilter++;
-                        logger.trace("[Coverage Debug] Excluded by default filter: {}", packageName);
-                    }
+                    // No package filtering - include ALL packages except tool's own packages
+                    logger.trace("[Coverage Debug] No package filter applied - including all packages for: {}", packageName);
+                    filteredCoverage.add(coverage);
+                    logger.debug("[Coverage Debug] Coverage entry added (no filtering): {}.{} (package: {}, branch: {:.1f}%)",
+                        coverage.getClassName(), coverage.getMethodName(), packageName, coverage.getBranchCoverage());
                 }
             } else {
                 logger.debug("[Coverage Debug] Skipping entry with null package: {}.{}",
@@ -239,7 +234,7 @@ public class CoverageReportParser {
 
         String filterDescription = (allowedPackages != null && !allowedPackages.isEmpty())
             ? allowedPackages.toString()
-            : "com.example (default)";
+            : "ALL PACKAGES (no filtering)";
         logger.info("[Coverage Debug] Filtering completed: Total: {} -> Filtered: {} (Filter: {})",
             coverageInfos.size(), filteredCoverage.size(), filterDescription);
         logger.debug("[Coverage Debug] Filter statistics: Tool packages excluded: {}, Package filter excluded: {}",
@@ -254,7 +249,7 @@ public class CoverageReportParser {
                 .collect(java.util.stream.Collectors.toSet());
             originalPackages.forEach(pkg -> logger.warn("[Coverage Debug] - {}", pkg));
             logger.warn("[Coverage Debug] Applied filter: {}", filterDescription);
-            logger.warn("[Coverage Debug] Suggestion: Check if package names match between test files and coverage reports");
+            logger.warn("[Coverage Debug] Note: Tool accepts ALL packages except com.testspecgenerator (tool's own packages)");
         }
 
         return filteredCoverage;
