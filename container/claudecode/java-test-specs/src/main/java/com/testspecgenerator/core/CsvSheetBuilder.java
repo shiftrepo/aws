@@ -36,6 +36,7 @@ public class CsvSheetBuilder {
         String csvPath = generateCsvPath(outputPath, "_test_details");
 
         logger.info("Test Details CSV generation started: {}", csvPath);
+        logger.info("[詳細ログ] CSV出力開始 - Test Detailsシート: {} テストケース", testCases.size());
 
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvPath), StandardCharsets.UTF_8);
              CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
@@ -44,6 +45,8 @@ public class CsvSheetBuilder {
 
             int rowNumber = 1;
             for (TestCaseInfo testCase : testCases) {
+                logger.debug("[詳細ログ] CSV行出力: {} - FQCN: {}, テスト名: {}",
+                           rowNumber, testCase.getFullyQualifiedName(), testCase.getTestItemName());
                 csvPrinter.printRecord(
                     rowNumber++,
                     testCase.getFullyQualifiedName(),

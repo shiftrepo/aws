@@ -179,6 +179,7 @@ public class MultiModuleProcessor {
             }
 
             // Step 2: Parse annotations
+            LOGGER.info(String.format("[詳細ログ] モジュール %s - アノテーション解析開始: %d テストファイル", module.getModuleName(), testFiles.size()));
             JavaAnnotationParser annotationParser = new JavaAnnotationParser();
             List<TestCaseInfo> testCases = new ArrayList<>();
 
@@ -186,12 +187,17 @@ public class MultiModuleProcessor {
                 try {
                     List<TestCaseInfo> fileTestCases = annotationParser.processJavaFile(testFile);
                     testCases.addAll(fileTestCases);
+                    LOGGER.info(String.format("[詳細ログ] モジュール %s - ファイル処理完了: %s (%d テストケース)",
+                               module.getModuleName(), testFile.getFileName(), fileTestCases.size()));
                 } catch (Exception e) {
                     LOGGER.log(Level.WARNING, "Failed to parse test file: " + testFile, e);
                 }
             }
 
+            LOGGER.info(String.format("[詳細ログ] モジュール %s - アノテーション解析完了: %d テストケース抽出", module.getModuleName(), testCases.size()));
+
             // Step 3: Parse coverage reports
+            LOGGER.info(String.format("[詳細ログ] モジュール %s - カバレッジレポート解析開始", module.getModuleName()));
             CoverageReportParser coverageParser = new CoverageReportParser();
             Map<String, Object> coverageData = new HashMap<>();
 
@@ -399,9 +405,26 @@ public class MultiModuleProcessor {
                             info.setLineInfo(linesCovered, linesTotal);
                         }
 
-                        if (coverageMap.get("instructionCoverage") != null) {
-                            // Set other metrics as available
-                            // Note: These would be calculated from covered/total values in real implementation
+                        // Set instruction coverage data
+                        if (coverageMap.get("instructionsCovered") != null && coverageMap.get("instructionsTotal") != null) {
+                            int instructionsCovered = safeConvertToInt(coverageMap.get("instructionsCovered"));
+                            int instructionsTotal = safeConvertToInt(coverageMap.get("instructionsTotal"));
+                            info.setInstructionInfo(instructionsCovered, instructionsTotal);
+                        }
+
+                        // Set method coverage data
+                        if (coverageMap.get("methodsCovered") != null && coverageMap.get("methodsTotal") != null) {
+                            int methodsCovered = safeConvertToInt(coverageMap.get("methodsCovered"));
+                            int methodsTotal = safeConvertToInt(coverageMap.get("methodsTotal"));
+                            info.setMethodInfo(methodsCovered, methodsTotal);
+                        }
+
+                        // Set additional metadata
+                        if (coverageMap.get("sourceFile") != null) {
+                            info.setSourceFile((String) coverageMap.get("sourceFile"));
+                        }
+                        if (coverageMap.get("reportType") != null) {
+                            info.setReportType((String) coverageMap.get("reportType"));
                         }
 
                         coverageInfoList.add(info);

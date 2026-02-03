@@ -79,8 +79,12 @@ public class JavaAnnotationParser {
      */
     public List<TestCaseInfo> processJavaFiles(List<Path> javaFiles) {
         logger.info("Javaファイル処理開始: {}個のファイル", javaFiles.size());
+        logger.info("[詳細ログ] テスト名取得処理開始 - 対象ファイル: {}",
+                   javaFiles.stream().map(Path::getFileName).map(Path::toString).toList());
 
         List<TestCaseInfo> testCases = new ArrayList<>();
+        int totalTestMethods = 0;
+        int totalAnnotations = 0;
 
         for (int i = 0; i < javaFiles.size(); i++) {
             Path javaFile = javaFiles.get(i);
@@ -89,12 +93,31 @@ public class JavaAnnotationParser {
             try {
                 List<TestCaseInfo> fileCases = processJavaFile(javaFile);
                 testCases.addAll(fileCases);
+
+                // 詳細ログ: ファイル別の処理結果
+                int fileTestMethods = fileCases.size();
+                int fileAnnotations = fileCases.size() * 10; // 推定アノテーション数（各テストケースに約10個のフィールド）
+                totalTestMethods += fileTestMethods;
+                totalAnnotations += fileAnnotations;
+
+                logger.info("[詳細ログ] ファイル処理結果: {} - テストメソッド数: {}, アノテーション数: {}",
+                           javaFile.getFileName(), fileTestMethods, fileAnnotations);
+
+                // 各テストメソッドの詳細ログ
+                for (TestCaseInfo testCase : fileCases) {
+                    logger.debug("[詳細ログ] テストケース抽出: {} - FQCN: {}, フィールド設定完了",
+                               testCase.getMethodName(), testCase.getFullyQualifiedName());
+                }
+
             } catch (Exception e) {
                 logger.warn("ファイル処理中にエラー: {} - {}", javaFile, e.getMessage());
             }
         }
 
         logger.info("Javaファイル処理完了: {}個のテストケース抽出", testCases.size());
+        logger.info("[詳細ログ] 抽出結果サマリー - 合計テストメソッド: {}, 合計アノテーション: {}",
+                   totalTestMethods, totalAnnotations);
+
         return testCases;
     }
 

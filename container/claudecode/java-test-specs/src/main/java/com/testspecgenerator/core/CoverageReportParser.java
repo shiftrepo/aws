@@ -57,9 +57,17 @@ public class CoverageReportParser {
         // Convert to Map format for compatibility
         Map<String, Object> coverageData = new java.util.HashMap<>();
         for (int i = 0; i < coverageInfos.size(); i++) {
-            coverageData.put("coverage_" + i, convertCoverageInfoToMap(coverageInfos.get(i)));
+            CoverageInfo coverage = coverageInfos.get(i);
+            coverageData.put("coverage_" + i, convertCoverageInfoToMap(coverage));
+
+            // 詳細ログ: 変換結果の確認
+            logger.debug("[詳細ログ] カバレッジデータ変換: {}.{} - ブランチ: {:.1f}% ({}/{}), 命令: {:.1f}% ({}/{})",
+                        coverage.getClassName(), coverage.getMethodName(),
+                        coverage.getBranchCoverage(), coverage.getBranchesCovered(), coverage.getBranchesTotal(),
+                        coverage.getInstructionCoverage(), coverage.getInstructionsCovered(), coverage.getInstructionsTotal());
         }
 
+        logger.info("[詳細ログ] カバレッジデータ集計完了: {} エントリをMapに変換", coverageInfos.size());
         return coverageData;
     }
 
@@ -978,13 +986,27 @@ public class CoverageReportParser {
         map.put("className", coverage.getClassName());
         map.put("methodName", coverage.getMethodName());
         map.put("packageName", coverage.getPackageName());
+
+        // Coverage percentages
         map.put("branchCoverage", coverage.getBranchCoverage());
         map.put("lineCoverage", coverage.getLineCoverage());
         map.put("instructionCoverage", coverage.getInstructionCoverage());
+        map.put("methodCoverage", coverage.getMethodCoverage());
+
+        // Coverage counts - IMPORTANT: These were missing and causing 0% display
         map.put("branchesCovered", coverage.getBranchesCovered());
         map.put("branchesTotal", coverage.getBranchesTotal());
         map.put("linesCovered", coverage.getLinesCovered());
         map.put("linesTotal", coverage.getLinesTotal());
+        map.put("instructionsCovered", coverage.getInstructionsCovered());
+        map.put("instructionsTotal", coverage.getInstructionsTotal());
+        map.put("methodsCovered", coverage.getMethodsCovered());
+        map.put("methodsTotal", coverage.getMethodsTotal());
+
+        // Additional metadata
+        map.put("sourceFile", coverage.getSourceFile());
+        map.put("reportType", coverage.getReportType());
+
         return map;
     }
 }

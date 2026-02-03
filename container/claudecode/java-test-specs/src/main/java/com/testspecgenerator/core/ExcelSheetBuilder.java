@@ -42,11 +42,17 @@ public class ExcelSheetBuilder {
      */
     public boolean generateTestSpecificationReport(String outputFile, List<TestCaseInfo> testCases, List<CoverageInfo> coverageData) {
         logger.info("Excel report generation started: {}", outputFile);
+        logger.info("[詳細ログ] 結果出力開始 - テストケース数: {}, カバレッジエントリ数: {}", testCases.size(), coverageData.size());
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             // Create each sheet
+            logger.debug("[詳細ログ] Test Detailsシート作成開始...");
             createTestDetailsSheet(workbook, testCases);
+
+            logger.debug("[詳細ログ] Summaryシート作成開始...");
             createSummarySheet(workbook, testCases, coverageData);
+
+            logger.debug("[詳細ログ] Coverageシート作成開始...");
             createCoverageSheet(workbook, testCases, coverageData);
             createConfigurationSheet(workbook, testCases, coverageData);
 
