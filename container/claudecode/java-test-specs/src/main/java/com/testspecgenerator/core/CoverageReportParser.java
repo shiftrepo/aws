@@ -340,7 +340,11 @@ public class CoverageReportParser {
                             logger.trace("[Coverage Debug] Method name decoded: '{}' -> '{}'", methodName, displayMethodName);
                         }
 
-                        CoverageInfo coverageInfo = new CoverageInfo(className, displayMethodName);
+                        // Null safety checks
+                        String safeClassName = (className != null && !className.isEmpty()) ? className : "UnknownClass";
+                        String safeMethodName = (displayMethodName != null && !displayMethodName.isEmpty()) ? displayMethodName : "unknownMethod";
+
+                        CoverageInfo coverageInfo = new CoverageInfo(safeClassName, safeMethodName);
                         coverageInfo.setPackageName(packageName);
                         coverageInfo.setReportType("XML");
 
@@ -752,12 +756,17 @@ public class CoverageReportParser {
      */
     private String extractClassNameFromPath(String classPath) {
         if (classPath == null || classPath.isEmpty()) {
-            return "";
+            return "UnknownClass";
         }
 
         // パッケージパス区切りの最後の要素を取得
         String[] parts = classPath.split("/");
         String className = parts[parts.length - 1];
+
+        // 空文字の場合のsafety check
+        if (className == null || className.isEmpty()) {
+            return "UnknownClass";
+        }
 
         // 内部クラスの場合の処理
         // 注：匿名内部クラスは元のまま残す（FolderScanner$1など）

@@ -301,9 +301,13 @@ public class ExcelSheetBuilder {
 
                 // テストクラスを検索（クラスレベルのマッピング）
                 String className = coverage.getClassName();
-                // 内部クラスの場合は親クラス名を使用（例: DataStructures$MinHeap → DataStructures）
-                if (className.contains("$")) {
-                    className = className.split("\\$")[0];
+                if (className == null) {
+                    className = "Unknown"; // null safety
+                } else {
+                    // 内部クラスの場合は親クラス名を使用（例: DataStructures$MinHeap → DataStructures）
+                    if (className.contains("$")) {
+                        className = className.split("\\$")[0];
+                    }
                 }
 
                 java.util.Set<String> testClasses = classToTestClassMap.get(className);
