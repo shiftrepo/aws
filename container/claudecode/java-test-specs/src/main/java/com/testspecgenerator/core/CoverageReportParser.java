@@ -67,23 +67,73 @@ public class CoverageReportParser {
      * 複数のカバレッジレポートファイルを処理し、動的パッケージフィルタリングを適用して結合された結果を返します
      */
     public List<CoverageInfo> processCoverageReports(List<Path> coverageFiles, List<Path> testFiles) {
-        logger.info("カバレッジレポート処理開始: {}個のファイル", coverageFiles.size());
+        logger.info("[Coverage Debug] Processing coverage reports started: {} files", coverageFiles.size());
+        logger.debug("[Coverage Debug] Input files: {}", coverageFiles.stream().map(Path::toString).toList());
 
         List<CoverageInfo> coverageData = new ArrayList<>();
 
+        // Validate input files first
+        if (coverageFiles.isEmpty()) {
+            logger.warn("[Coverage Debug] No coverage files provided - coverage data will be empty");
+            return coverageData;
+        }
+
         for (int i = 0; i < coverageFiles.size(); i++) {
             Path coverageFile = coverageFiles.get(i);
-            logger.debug("処理中: {} ({}/{})", coverageFile.getFileName(), i + 1, coverageFiles.size());
+            logger.debug("[Coverage Debug] Processing file {}/{}: {}", i + 1, coverageFiles.size(), coverageFile.getFileName());
+            logger.debug("[Coverage Debug] File path: {}", coverageFile.toAbsolutePath());
 
             try {
+                // Check file exists and size
+                if (!Files.exists(coverageFile)) {
+                    logger.error("[Coverage Debug] File does not exist: {}", coverageFile);
+                    continue;
+                }
+
+                long fileSize = Files.size(coverageFile);
+                logger.debug("[Coverage Debug] File size: {} bytes", fileSize);
+
+                if (fileSize == 0) {
+                    logger.warn("[Coverage Debug] File is empty: {} - skipping", coverageFile);
+                    continue;
+                }
+
                 List<CoverageInfo> fileCoverage = processCoverageFile(coverageFile);
+                logger.debug("[Coverage Debug] Extracted {} entries from file: {}", fileCoverage.size(), coverageFile.getFileName());
                 coverageData.addAll(fileCoverage);
+
             } catch (Exception e) {
-                logger.warn("カバレッジファイル処理中にエラー: {} - {}", coverageFile, e.getMessage());
+                logger.error("[Coverage Debug] Error processing coverage file: {} - Error: {} - Cause: {}",
+                    coverageFile, e.getMessage(), e.getCause() != null ? e.getCause().getMessage() : "No specific cause");
+                logger.debug("[Coverage Debug] Full stack trace for file: {}", coverageFile, e);
             }
         }
 
-        logger.info("カバレッジレポート処理完了: {}個のエントリ抽出", coverageData.size());
+        logger.info("[Coverage Debug] Processing completed: {} total entries extracted from {} files",
+            coverageData.size(), coverageFiles.size());
+
+        // Log statistics about extracted data
+        if (!coverageData.isEmpty()) {
+            Map<String, Long> typeStats = coverageData.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    CoverageInfo::getReportType,
+                    java.util.stream.Collectors.counting()));
+            logger.debug("[Coverage Debug] Report type statistics: {}", typeStats);
+
+            Map<String, Long> packageStats = coverageData.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    CoverageInfo::getPackageName,
+                    java.util.stream.Collectors.counting()));
+            logger.debug("[Coverage Debug] Package distribution: {}", packageStats);
+        } else {
+            logger.warn("[Coverage Debug] No coverage data extracted - possible reasons:");
+            logger.warn("[Coverage Debug] 1. XML files do not contain JaCoCo coverage data");
+            logger.warn("[Coverage Debug] 2. Files are in unsupported format (HTML-only without XML)");
+            logger.warn("[Coverage Debug] 3. Package filtering excluded all entries");
+            logger.warn("[Coverage Debug] 4. XML structure does not match expected JaCoCo format");
+            logger.warn("[Coverage Debug] Recommendation: Run 'mvn test jacoco:report' to generate proper XML reports");
+        }
+
         return coverageData;
     }
 
@@ -99,25 +149,51 @@ public class CoverageReportParser {
      */
     public List<CoverageInfo> processCoverageFile(Path coverageFile, java.util.Set<String> allowedPackages) throws IOException {
         String fileName = coverageFile.getFileName().toString().toLowerCase();
+        logger.debug("[Coverage Debug] Processing single file: {} (type: {})", fileName,
+            fileName.endsWith(".xml") ? "XML" : fileName.endsWith(".html") ? "HTML" : "UNKNOWN");
 
         List<CoverageInfo> coverageInfos;
         if (fileName.endsWith(".xml")) {
+            logger.debug("[Coverage Debug] Parsing XML coverage report: {}", coverageFile);
             coverageInfos = parseXmlCoverageReport(coverageFile);
+            logger.debug("[Coverage Debug] XML parsing result: {} entries extracted", coverageInfos.size());
         } else if (fileName.endsWith(".html")) {
+            logger.debug("[Coverage Debug] HTML file detected: {} - HTML parsing is disabled", coverageFile);
+            logger.warn("[Coverage Debug] HTML reports are not processed - use XML reports instead");
+            logger.warn("[Coverage Debug] Reason: HTML parsing is unreliable and inaccurate compared to XML");
+            logger.warn("[Coverage Debug] Solution: Run 'mvn test jacoco:report' to generate XML reports");
             coverageInfos = parseHtmlCoverageReport(coverageFile);
         } else {
-            logger.warn("サポートされていないファイル形式: {}", coverageFile);
+            logger.warn("[Coverage Debug] Unsupported file format: {} - Expected .xml or .html", coverageFile);
+            logger.warn("[Coverage Debug] File will be skipped - no coverage data extracted");
             return new ArrayList<>();
+        }
+
+        logger.debug("[Coverage Debug] Starting package filtering - Raw entries: {}", coverageInfos.size());
+        if (coverageInfos.isEmpty()) {
+            logger.warn("[Coverage Debug] No coverage entries found in file: {}", coverageFile);
+            logger.warn("[Coverage Debug] Possible reasons:");
+            logger.warn("[Coverage Debug] 1. File is not a valid JaCoCo report");
+            logger.warn("[Coverage Debug] 2. File structure does not match expected XML format");
+            logger.warn("[Coverage Debug] 3. File contains no coverage data");
+            return coverageInfos;
         }
 
         // 動的パッケージフィルタリング（ツール自体のパッケージは常に除外）
         List<CoverageInfo> filteredCoverage = new ArrayList<>();
+        int excludedToolPackages = 0;
+        int excludedByPackageFilter = 0;
+
         for (CoverageInfo coverage : coverageInfos) {
             String packageName = coverage.getPackageName();
+            logger.trace("[Coverage Debug] Evaluating entry: {}.{} in package: {}",
+                coverage.getClassName(), coverage.getMethodName(), packageName);
 
             if (packageName != null) {
                 // Always exclude tool's own package
                 if (packageName.startsWith("com.testspecgenerator") || packageName.startsWith("com/testspecgenerator")) {
+                    excludedToolPackages++;
+                    logger.trace("[Coverage Debug] Excluded tool package: {}", packageName);
                     continue;
                 }
 
@@ -125,35 +201,61 @@ public class CoverageReportParser {
                 if (allowedPackages != null && !allowedPackages.isEmpty()) {
                     boolean isAllowed = false;
                     String normalizedPackage = packageName.replace('/', '.');
+                    logger.trace("[Coverage Debug] Checking package '{}' against allowed: {}", normalizedPackage, allowedPackages);
 
                     for (String allowedPackage : allowedPackages) {
                         if (normalizedPackage.startsWith(allowedPackage)) {
                             isAllowed = true;
+                            logger.trace("[Coverage Debug] Package match found: '{}' matches '{}'", normalizedPackage, allowedPackage);
                             break;
                         }
                     }
 
                     if (isAllowed) {
                         filteredCoverage.add(coverage);
-                        logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
-                            coverage.getClassName(), coverage.getMethodName(), packageName);
+                        logger.debug("[Coverage Debug] Coverage entry added: {}.{} (package: {}, branch: {:.1f}%)",
+                            coverage.getClassName(), coverage.getMethodName(), packageName, coverage.getBranchCoverage());
+                    } else {
+                        excludedByPackageFilter++;
+                        logger.trace("[Coverage Debug] Excluded by package filter: {}", normalizedPackage);
                     }
                 } else {
                     // Fallback to com.example for backward compatibility
+                    logger.trace("[Coverage Debug] Using default package filter (com.example) for: {}", packageName);
                     if (packageName.startsWith("com/example") || packageName.startsWith("com.example")) {
                         filteredCoverage.add(coverage);
-                        logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
-                            coverage.getClassName(), coverage.getMethodName(), packageName);
+                        logger.debug("[Coverage Debug] Coverage entry added (default filter): {}.{} (package: {}, branch: {:.1f}%)",
+                            coverage.getClassName(), coverage.getMethodName(), packageName, coverage.getBranchCoverage());
+                    } else {
+                        excludedByPackageFilter++;
+                        logger.trace("[Coverage Debug] Excluded by default filter: {}", packageName);
                     }
                 }
+            } else {
+                logger.debug("[Coverage Debug] Skipping entry with null package: {}.{}",
+                    coverage.getClassName(), coverage.getMethodName());
             }
         }
 
         String filterDescription = (allowedPackages != null && !allowedPackages.isEmpty())
             ? allowedPackages.toString()
             : "com.example (default)";
-        logger.info("カバレッジフィルタリング: 全{}個 -> {}: {}個",
-            coverageInfos.size(), filterDescription, filteredCoverage.size());
+        logger.info("[Coverage Debug] Filtering completed: Total: {} -> Filtered: {} (Filter: {})",
+            coverageInfos.size(), filteredCoverage.size(), filterDescription);
+        logger.debug("[Coverage Debug] Filter statistics: Tool packages excluded: {}, Package filter excluded: {}",
+            excludedToolPackages, excludedByPackageFilter);
+
+        if (filteredCoverage.isEmpty() && !coverageInfos.isEmpty()) {
+            logger.warn("[Coverage Debug] All coverage entries were filtered out!");
+            logger.warn("[Coverage Debug] Original packages found:");
+            Set<String> originalPackages = coverageInfos.stream()
+                .map(CoverageInfo::getPackageName)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+            originalPackages.forEach(pkg -> logger.warn("[Coverage Debug] - {}", pkg));
+            logger.warn("[Coverage Debug] Applied filter: {}", filterDescription);
+            logger.warn("[Coverage Debug] Suggestion: Check if package names match between test files and coverage reports");
+        }
 
         return filteredCoverage;
     }
@@ -162,36 +264,86 @@ public class CoverageReportParser {
      * JaCoCo XMLレポートを解析
      */
     private List<CoverageInfo> parseXmlCoverageReport(Path xmlFile) throws IOException {
-        logger.debug("XMLカバレッジレポート解析: {}", xmlFile);
+        logger.debug("[Coverage Debug] Starting XML coverage report analysis: {}", xmlFile);
 
         List<CoverageInfo> coverageInfos = new ArrayList<>();
-        String content = Files.readString(xmlFile, StandardCharsets.UTF_8);
 
         try {
+            String content = Files.readString(xmlFile, StandardCharsets.UTF_8);
+            logger.debug("[Coverage Debug] File content length: {} characters", content.length());
+
+            // Check if content looks like XML
+            if (!content.trim().startsWith("<?xml") && !content.trim().startsWith("<report")) {
+                logger.error("[Coverage Debug] File does not appear to be XML format: {}", xmlFile);
+                logger.error("[Coverage Debug] File starts with: '{}'", content.length() > 100 ? content.substring(0, 100) + "..." : content);
+                throw new IOException("File is not in XML format");
+            }
+
             // JaCoCo XMLの構造を解析
+            logger.debug("[Coverage Debug] Parsing XML content with JSoup XML parser");
             Document doc = Jsoup.parse(content, "", org.jsoup.parser.Parser.xmlParser());
+
+            // Check if it's a JaCoCo report
+            Element reportElement = doc.selectFirst("report");
+            if (reportElement == null) {
+                logger.error("[Coverage Debug] Not a JaCoCo XML report - missing <report> element");
+                logger.error("[Coverage Debug] Root element: {}", doc.children().isEmpty() ? "None" : doc.children().first().tagName());
+                throw new IOException("Not a valid JaCoCo XML report format");
+            }
+
+            String reportName = reportElement.attr("name");
+            logger.debug("[Coverage Debug] JaCoCo report found: '{}'", reportName);
 
             // パッケージ要素を検索
             Elements packages = doc.select("package");
-            for (Element packageElement : packages) {
-                String packageName = packageElement.attr("name");
+            logger.debug("[Coverage Debug] Found {} packages in XML report", packages.size());
 
-                // パッケージレベルのカウンターは除外（クラス要素のみ処理）
+            if (packages.isEmpty()) {
+                logger.warn("[Coverage Debug] No packages found in XML report - report may be empty");
+                logger.warn("[Coverage Debug] This can happen if no tests were executed or no code was covered");
+                return coverageInfos;
+            }
+
+            int totalClasses = 0;
+            int totalMethods = 0;
+
+            for (int pkgIndex = 0; pkgIndex < packages.size(); pkgIndex++) {
+                Element packageElement = packages.get(pkgIndex);
+                String packageName = packageElement.attr("name");
+                logger.debug("[Coverage Debug] Processing package {}/{}: '{}'", pkgIndex + 1, packages.size(), packageName);
+
                 // クラス要素を検索
                 Elements classes = packageElement.select("class");
-                for (Element classElement : classes) {
+                totalClasses += classes.size();
+                logger.debug("[Coverage Debug] Package '{}' contains {} classes", packageName, classes.size());
+
+                for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+                    Element classElement = classes.get(classIndex);
                     String classPath = classElement.attr("name");
                     String className = extractClassNameFromPath(classPath);
                     String sourceFileName = classElement.attr("sourcefilename");
 
+                    logger.trace("[Coverage Debug] Processing class {}/{} in package '{}': '{}' (source: '{}')",
+                        classIndex + 1, classes.size(), packageName, className, sourceFileName);
+
                     // メソッド要素を検索
                     Elements methods = classElement.select("method");
-                    for (Element methodElement : methods) {
+                    totalMethods += methods.size();
+                    logger.trace("[Coverage Debug] Class '{}' contains {} methods", className, methods.size());
+
+                    for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
+                        Element methodElement = methods.get(methodIndex);
                         String methodName = methodElement.attr("name");
                         int line = parseIntAttribute(methodElement.attr("line"), 0);
 
+                        logger.trace("[Coverage Debug] Processing method {}/{}: '{}' (line: {})",
+                            methodIndex + 1, methods.size(), methodName, line);
+
                         // メソッド名の特殊文字をデコード
                         String displayMethodName = decodeMethodName(methodName);
+                        if (!methodName.equals(displayMethodName)) {
+                            logger.trace("[Coverage Debug] Method name decoded: '{}' -> '{}'", methodName, displayMethodName);
+                        }
 
                         CoverageInfo coverageInfo = new CoverageInfo(className, displayMethodName);
                         coverageInfo.setPackageName(packageName);
@@ -204,44 +356,76 @@ public class CoverageReportParser {
                         } else if (className != null && !className.isEmpty()) {
                             // ソースファイル名が取得できない場合はクラス名から推測
                             finalSourceFile = className + ".java";
+                            logger.trace("[Coverage Debug] Source file name inferred: '{}'", finalSourceFile);
                         }
                         coverageInfo.setSourceFile(finalSourceFile);
 
                         // カウンター要素からメトリクスを抽出
                         Elements counters = methodElement.select("counter");
+                        logger.trace("[Coverage Debug] Method '{}' has {} counters", displayMethodName, counters.size());
+
+                        if (counters.isEmpty()) {
+                            logger.trace("[Coverage Debug] No counters found for method '{}' - method may not be covered", displayMethodName);
+                        }
+
                         for (Element counter : counters) {
                             String type = counter.attr("type");
                             int missed = parseIntAttribute(counter.attr("missed"), 0);
                             int covered = parseIntAttribute(counter.attr("covered"), 0);
+                            int total = covered + missed;
+
+                            logger.trace("[Coverage Debug] Counter type '{}': covered={}, missed={}, total={}, coverage={:.1f}%",
+                                type, covered, missed, total, total > 0 ? (covered * 100.0 / total) : 0.0);
 
                             switch (type) {
                                 case "INSTRUCTION":
-                                    coverageInfo.setInstructionInfo(covered, covered + missed);
+                                    coverageInfo.setInstructionInfo(covered, total);
                                     break;
                                 case "BRANCH":
-                                    coverageInfo.setBranchInfo(covered, covered + missed);
+                                    coverageInfo.setBranchInfo(covered, total);
                                     break;
                                 case "LINE":
-                                    coverageInfo.setLineInfo(covered, covered + missed);
+                                    coverageInfo.setLineInfo(covered, total);
                                     break;
                                 case "METHOD":
-                                    coverageInfo.setMethodInfo(covered, covered + missed);
+                                    coverageInfo.setMethodInfo(covered, total);
                                     break;
+                                default:
+                                    logger.trace("[Coverage Debug] Unknown counter type: '{}'", type);
                             }
                         }
 
                         coverageInfos.add(coverageInfo);
-                        logger.debug("XMLカバレッジ抽出: {}.{} - ブランチ: {:.1f}%",
-                                className, methodName, coverageInfo.getBranchCoverage());
+                        logger.debug("[Coverage Debug] XML coverage entry extracted: {}.{} - Branch: {:.1f}%, Instruction: {:.1f}%",
+                                className, displayMethodName, coverageInfo.getBranchCoverage(), coverageInfo.getInstructionCoverage());
                     }
                 }
             }
 
+            logger.info("[Coverage Debug] XML parsing summary: {} packages, {} classes, {} methods, {} coverage entries",
+                packages.size(), totalClasses, totalMethods, coverageInfos.size());
+
         } catch (Exception e) {
-            logger.error("XMLカバレッジレポート解析エラー: {}", xmlFile, e);
-            throw new IOException("XMLレポート解析に失敗しました", e);
+            logger.error("[Coverage Debug] XML coverage report parsing failed: {}", xmlFile);
+            logger.error("[Coverage Debug] Error type: {}, Message: {}", e.getClass().getSimpleName(), e.getMessage());
+            if (e.getCause() != null) {
+                logger.error("[Coverage Debug] Root cause: {}", e.getCause().getMessage());
+            }
+            logger.debug("[Coverage Debug] Full error details for XML parsing", e);
+
+            // Provide specific guidance based on error type
+            if (e instanceof java.nio.charset.MalformedInputException) {
+                logger.error("[Coverage Debug] File encoding issue - try different character encoding");
+            } else if (e.getMessage().contains("XML")) {
+                logger.error("[Coverage Debug] XML structure issue - verify file is valid JaCoCo XML report");
+            } else if (e instanceof java.nio.file.NoSuchFileException) {
+                logger.error("[Coverage Debug] File not found - check file path and permissions");
+            }
+
+            throw new IOException("Failed to parse XML coverage report", e);
         }
 
+        logger.debug("[Coverage Debug] XML coverage report analysis completed: {} entries extracted", coverageInfos.size());
         return coverageInfos;
     }
 
@@ -250,15 +434,54 @@ public class CoverageReportParser {
      * 注：HTMLレポートはXMLレポートより精度が低いため、可能な限りXMLレポートを使用することを推奨
      */
     private List<CoverageInfo> parseHtmlCoverageReport(Path htmlFile) throws IOException {
-        logger.debug("HTMLカバレッジレポート解析: {}", htmlFile);
+        logger.debug("[Coverage Debug] HTML coverage report analysis requested: {}", htmlFile);
 
         List<CoverageInfo> coverageInfos = new ArrayList<>();
 
         // HTMLレポートの処理は複雑で不正確なため、スキップすることを推奨
-        // XMLレポートが利用可能な場合はそちらを優先する
-        logger.warn("HTMLレポートのパースはスキップされました。XMLレポートを使用してください: {}", htmlFile);
+        logger.warn("[Coverage Debug] HTML report parsing is disabled: {}", htmlFile);
+        logger.warn("[Coverage Debug] Reasons for disabling HTML parsing:");
+        logger.warn("[Coverage Debug] 1. HTML parsing is unreliable and inaccurate");
+        logger.warn("[Coverage Debug] 2. XML reports provide complete and structured data");
+        logger.warn("[Coverage Debug] 3. HTML structure can vary between JaCoCo versions");
+        logger.warn("[Coverage Debug] 4. Method-level coverage details are not easily extractable from HTML");
 
-        // HTMLレポートのパースを無効化（XMLレポートのみ使用）
+        // Check if corresponding XML file exists
+        String htmlFileName = htmlFile.getFileName().toString();
+        Path parentDir = htmlFile.getParent();
+
+        if (parentDir != null) {
+            Path possibleXmlFile = parentDir.resolve("jacoco.xml");
+            logger.debug("[Coverage Debug] Checking for XML alternative: {}", possibleXmlFile);
+
+            if (Files.exists(possibleXmlFile)) {
+                logger.warn("[Coverage Debug] XML report found: {} - Use this instead of HTML", possibleXmlFile);
+                logger.warn("[Coverage Debug] XML file size: {} bytes", Files.size(possibleXmlFile));
+            } else {
+                logger.warn("[Coverage Debug] No XML report found in same directory: {}", parentDir);
+                logger.warn("[Coverage Debug] Generate XML report with: mvn test jacoco:report");
+            }
+        }
+
+        // Provide file information for debugging
+        try {
+            long fileSize = Files.size(htmlFile);
+            logger.debug("[Coverage Debug] HTML file size: {} bytes", fileSize);
+
+            if (fileSize > 0) {
+                logger.debug("[Coverage Debug] HTML file exists and has content - but parsing is intentionally disabled");
+                logger.debug("[Coverage Debug] Alternative solutions:");
+                logger.debug("[Coverage Debug] - Run 'mvn test jacoco:report' to generate XML reports");
+                logger.debug("[Coverage Debug] - Ensure jacoco.xml is available in target/site/jacoco/");
+                logger.debug("[Coverage Debug] - Copy jacoco.xml to coverage-reports/ directory if using source-dir filtering");
+            } else {
+                logger.warn("[Coverage Debug] HTML file is empty: {}", htmlFile);
+            }
+        } catch (IOException e) {
+            logger.warn("[Coverage Debug] Cannot read HTML file: {} - {}", htmlFile, e.getMessage());
+        }
+
+        logger.info("[Coverage Debug] HTML parsing completed (0 entries) - XML reports required for coverage data");
         return coverageInfos;
     }
 
@@ -306,79 +529,134 @@ public class CoverageReportParser {
      * カバレッジデータをテストケースにマージ
      */
     public void mergeCoverageWithTestCases(List<TestCaseInfo> testCases, List<CoverageInfo> coverageData) {
-        logger.debug("カバレッジデータマージ開始: テストケース{}個, カバレッジ{}個", testCases.size(), coverageData.size());
+        logger.debug("[Coverage Debug] Coverage merge started: {} test cases, {} coverage entries", testCases.size(), coverageData.size());
+
+        if (testCases.isEmpty()) {
+            logger.warn("[Coverage Debug] No test cases to merge coverage data with");
+            return;
+        }
+
+        if (coverageData.isEmpty()) {
+            logger.warn("[Coverage Debug] No coverage data available for merging");
+            logger.warn("[Coverage Debug] All test cases will have 0% coverage");
+            return;
+        }
 
         // カバレッジデータをマップ化（高速検索用）
-        // キーをメソッド名のみにし、複数のクラス名パターンに対応
+        logger.debug("[Coverage Debug] Building coverage lookup maps");
         Map<String, List<CoverageInfo>> coverageByMethod = new HashMap<>();
+        Map<String, Set<String>> coverageClassesByMethod = new HashMap<>();
+
         for (CoverageInfo coverage : coverageData) {
             String methodKey = coverage.getMethodName();
             coverageByMethod.computeIfAbsent(methodKey, k -> new ArrayList<>()).add(coverage);
+            coverageClassesByMethod.computeIfAbsent(methodKey, k -> new HashSet<>()).add(coverage.getClassName());
 
             // クラス名もキーとして保存（完全一致用）
             String fullKey = coverage.getClassName() + "." + coverage.getMethodName();
             coverageByMethod.computeIfAbsent(fullKey, k -> new ArrayList<>()).add(coverage);
+
+            logger.trace("[Coverage Debug] Added to lookup: method='{}', fullKey='{}', class='{}'",
+                methodKey, fullKey, coverage.getClassName());
         }
 
+        logger.debug("[Coverage Debug] Coverage lookup built: {} unique method keys, {} unique full keys",
+            coverageByMethod.size(), coverageByMethod.keySet().stream().mapToInt(key -> key.contains(".") ? 1 : 0).sum());
+
         // 各テストケースに対応するカバレッジ情報を検索
-        for (TestCaseInfo testCase : testCases) {
+        int successfulMatches = 0;
+        int failedMatches = 0;
+
+        for (int i = 0; i < testCases.size(); i++) {
+            TestCaseInfo testCase = testCases.get(i);
+            logger.debug("[Coverage Debug] Processing test case {}/{}: {}.{}",
+                i + 1, testCases.size(), testCase.getClassName(), testCase.getMethodName());
+
             // テストクラス名から実装クラス名を推定（"Test"を除去）
             String implClassName = testCase.getClassName().replace("Test", "");
             String testMethodName = testCase.getMethodName();
+            logger.trace("[Coverage Debug] Implementation class inferred: '{}' from test class: '{}'",
+                implClassName, testCase.getClassName());
 
             // テストメソッド名から実際のメソッド名を推定
-            // 例: testAdd -> add, testDivideByZero -> divide
             String targetMethodName = testMethodName;
             if (targetMethodName.startsWith("test")) {
+                String original = targetMethodName;
                 targetMethodName = targetMethodName.substring(4);
                 if (targetMethodName.length() > 0) {
                     targetMethodName = Character.toLowerCase(targetMethodName.charAt(0)) +
                                      (targetMethodName.length() > 1 ? targetMethodName.substring(1) : "");
                 }
-                // キャメルケースから実際のメソッド名を抽出（例: testDivideByZero -> divide）
+                logger.trace("[Coverage Debug] Method name transformation: '{}' -> '{}'", original, targetMethodName);
+
+                // キャメルケースから実際のメソッド名を抽出
                 if (targetMethodName.contains("_")) {
+                    String before = targetMethodName;
                     targetMethodName = targetMethodName.substring(0, targetMethodName.indexOf("_"));
+                    logger.trace("[Coverage Debug] Underscore split: '{}' -> '{}'", before, targetMethodName);
                 } else if (targetMethodName.matches(".*[A-Z].*")) {
-                    // 大文字で始まる部分までを取得
-                    for (int i = 1; i < targetMethodName.length(); i++) {
-                        if (Character.isUpperCase(targetMethodName.charAt(i))) {
-                            targetMethodName = targetMethodName.substring(0, i);
+                    String before = targetMethodName;
+                    for (int j = 1; j < targetMethodName.length(); j++) {
+                        if (Character.isUpperCase(targetMethodName.charAt(j))) {
+                            targetMethodName = targetMethodName.substring(0, j);
                             break;
                         }
                     }
+                    logger.trace("[Coverage Debug] CamelCase split: '{}' -> '{}'", before, targetMethodName);
                 }
             }
 
+            logger.debug("[Coverage Debug] Target method name determined: '{}' for test method: '{}'",
+                targetMethodName, testMethodName);
+
             // 複数のパターンで検索
             CoverageInfo coverage = null;
+            String matchStrategy = "none";
 
             // 1. 実装クラス名 + メソッド名で検索
             String implKey = implClassName + "." + targetMethodName;
             List<CoverageInfo> candidates = coverageByMethod.get(implKey);
+            logger.trace("[Coverage Debug] Strategy 1 - Full key lookup: '{}' -> {} candidates",
+                implKey, candidates != null ? candidates.size() : 0);
+
             if (candidates != null && !candidates.isEmpty()) {
                 coverage = candidates.get(0);
-                logger.debug("カバレッジマッチ（実装クラス）: {} -> {}", testCase.getMethodName(), implKey);
+                matchStrategy = "full-key";
+                logger.debug("[Coverage Debug] Coverage match (full key): {} -> {} (coverage: {:.1f}%)",
+                    testCase.getMethodName(), implKey, coverage.getBranchCoverage());
             }
 
             // 2. メソッド名のみで検索（クラス名が一致しない場合）
             if (coverage == null) {
                 candidates = coverageByMethod.get(targetMethodName);
+                logger.trace("[Coverage Debug] Strategy 2 - Method name lookup: '{}' -> {} candidates",
+                    targetMethodName, candidates != null ? candidates.size() : 0);
+
                 if (candidates != null && !candidates.isEmpty()) {
+                    logger.debug("[Coverage Debug] Available classes for method '{}': {}",
+                        targetMethodName, coverageClassesByMethod.get(targetMethodName));
+
                     // パッケージ名を考慮してベストマッチを探す
                     for (CoverageInfo candidate : candidates) {
+                        logger.trace("[Coverage Debug] Evaluating candidate: class='{}', expected='{}'",
+                            candidate.getClassName(), implClassName);
+
                         if (candidate.getClassName().equals(implClassName) ||
                             candidate.getClassName().endsWith(implClassName)) {
                             coverage = candidate;
-                            logger.debug("カバレッジマッチ（メソッド名）: {} -> {}.{}",
-                                testCase.getMethodName(), candidate.getClassName(), targetMethodName);
+                            matchStrategy = "method-class-match";
+                            logger.debug("[Coverage Debug] Coverage match (method + class): {} -> {}.{} (coverage: {:.1f}%)",
+                                testCase.getMethodName(), candidate.getClassName(), targetMethodName, coverage.getBranchCoverage());
                             break;
                         }
                     }
+
                     // それでも見つからない場合は最初の候補を使用
                     if (coverage == null && !candidates.isEmpty()) {
                         coverage = candidates.get(0);
-                        logger.debug("カバレッジマッチ（メソッド名のみ）: {} -> {}.{}",
-                            testCase.getMethodName(), coverage.getClassName(), targetMethodName);
+                        matchStrategy = "method-first-match";
+                        logger.debug("[Coverage Debug] Coverage match (method only): {} -> {}.{} (coverage: {:.1f}%)",
+                            testCase.getMethodName(), coverage.getClassName(), targetMethodName, coverage.getBranchCoverage());
                     }
                 }
             }
@@ -388,12 +666,37 @@ public class CoverageReportParser {
                 testCase.setCoveragePercent(coverage.getBranchCoverage());
                 testCase.setBranchesCovered(coverage.getBranchesCovered());
                 testCase.setBranchesTotal(coverage.getBranchesTotal());
+                successfulMatches++;
 
-                logger.debug("カバレッジマージ完了: {} -> {:.1f}%",
-                        testCase.getMethodName(), testCase.getCoveragePercent());
+                logger.debug("[Coverage Debug] Coverage merge successful: {} -> {:.1f}% (strategy: {}, branch: {}/{}, instruction: {:.1f}%)",
+                    testCase.getMethodName(), testCase.getCoveragePercent(), matchStrategy,
+                    coverage.getBranchesCovered(), coverage.getBranchesTotal(), coverage.getInstructionCoverage());
             } else {
-                logger.debug("カバレッジ情報が見つかりません: {} (探索: {})",
-                    testCase.getMethodName(), implKey);
+                failedMatches++;
+                logger.debug("[Coverage Debug] Coverage match failed: {} (searched: '{}', method: '{}')",
+                    testCase.getMethodName(), implKey, targetMethodName);
+                logger.trace("[Coverage Debug] Available coverage methods: {}",
+                    coverageByMethod.keySet().stream().filter(key -> !key.contains(".")).limit(10).toList());
+            }
+        }
+
+        logger.info("[Coverage Debug] Coverage merge completed: {} successful matches, {} failed matches out of {} test cases",
+            successfulMatches, failedMatches, testCases.size());
+
+        if (failedMatches > 0) {
+            logger.warn("[Coverage Debug] {} test cases have no coverage data", failedMatches);
+            logger.warn("[Coverage Debug] Possible reasons for failed matches:");
+            logger.warn("[Coverage Debug] 1. Test method names don't match implementation method names");
+            logger.warn("[Coverage Debug] 2. Implementation classes are not covered by any tests");
+            logger.warn("[Coverage Debug] 3. Package filtering excluded relevant coverage data");
+            logger.warn("[Coverage Debug] 4. JaCoCo report doesn't include all executed methods");
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("[Coverage Debug] Sample coverage methods available:");
+                coverageByMethod.keySet().stream()
+                    .filter(key -> !key.contains("."))
+                    .limit(5)
+                    .forEach(method -> logger.debug("[Coverage Debug] - {}", method));
             }
         }
     }
@@ -499,11 +802,55 @@ public class CoverageReportParser {
     public void logCoverageSummary(List<CoverageInfo> coverageData) {
         Map<String, Object> stats = getStatistics(coverageData);
 
-        logger.info("=== カバレッジ解析サマリー ===");
-        logger.info("総エントリ数: {}", stats.get("totalEntries"));
-        logger.info("XMLレポート: {}, HTMLレポート: {}", stats.get("xmlReports"), stats.get("htmlReports"));
-        logger.info("平均ブランチカバレッジ: {:.1f}%", stats.get("averageBranchCoverage"));
-        logger.info("高カバレッジ（80%以上）: {}個", stats.get("highCoverageCount"));
+        logger.info("[Coverage Debug] ========== Coverage Analysis Summary ==========");
+        logger.info("[Coverage Debug] Total entries: {}", stats.get("totalEntries"));
+        logger.info("[Coverage Debug] XML reports: {}, HTML reports: {}", stats.get("xmlReports"), stats.get("htmlReports"));
+        logger.info("[Coverage Debug] Average branch coverage: {:.1f}%", stats.get("averageBranchCoverage"));
+        logger.info("[Coverage Debug] High coverage (80%+): {} entries", stats.get("highCoverageCount"));
+
+        if (coverageData.isEmpty()) {
+            logger.warn("[Coverage Debug] No coverage data available!");
+            logger.warn("[Coverage Debug] This indicates one of the following issues:");
+            logger.warn("[Coverage Debug] 1. No JaCoCo XML reports were found");
+            logger.warn("[Coverage Debug] 2. XML reports were found but contain no coverage data");
+            logger.warn("[Coverage Debug] 3. All coverage entries were filtered out");
+            logger.warn("[Coverage Debug] 4. Tests were not executed before generating reports");
+            logger.warn("[Coverage Debug] Solution: Run 'mvn clean compile test jacoco:report' to generate complete coverage data");
+        } else {
+            // Additional detailed statistics
+            Map<String, Long> packageDistribution = coverageData.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    CoverageInfo::getPackageName,
+                    java.util.stream.Collectors.counting()));
+
+            logger.debug("[Coverage Debug] Package distribution:");
+            packageDistribution.forEach((pkg, count) ->
+                logger.debug("[Coverage Debug] - {}: {} entries", pkg != null ? pkg : "null", count));
+
+            // Coverage quality distribution
+            long excellent = coverageData.stream().mapToLong(c -> c.getBranchCoverage() >= 95.0 ? 1 : 0).sum();
+            long good = coverageData.stream().mapToLong(c -> c.getBranchCoverage() >= 80.0 && c.getBranchCoverage() < 95.0 ? 1 : 0).sum();
+            long fair = coverageData.stream().mapToLong(c -> c.getBranchCoverage() >= 60.0 && c.getBranchCoverage() < 80.0 ? 1 : 0).sum();
+            long poor = coverageData.stream().mapToLong(c -> c.getBranchCoverage() < 60.0 ? 1 : 0).sum();
+
+            logger.info("[Coverage Debug] Coverage quality distribution:");
+            logger.info("[Coverage Debug] - Excellent (95%+): {} entries", excellent);
+            logger.info("[Coverage Debug] - Good (80-95%): {} entries", good);
+            logger.info("[Coverage Debug] - Fair (60-80%): {} entries", fair);
+            logger.info("[Coverage Debug] - Poor (<60%): {} entries", poor);
+
+            // Method name patterns analysis
+            Map<String, Long> methodPatterns = coverageData.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    c -> c.getMethodName().startsWith("<") ? "special" :
+                         c.getMethodName().startsWith("get") || c.getMethodName().startsWith("set") ? "accessor" :
+                         c.getMethodName().startsWith("is") || c.getMethodName().startsWith("has") ? "boolean" : "regular",
+                    java.util.stream.Collectors.counting()));
+
+            logger.debug("[Coverage Debug] Method type distribution: {}", methodPatterns);
+        }
+
+        logger.info("[Coverage Debug] ============================================");
     }
 
     /**
