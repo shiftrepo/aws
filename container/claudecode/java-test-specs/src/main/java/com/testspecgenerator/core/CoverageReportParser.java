@@ -312,12 +312,20 @@ public class CoverageReportParser {
                 totalClasses += classes.size();
                 logger.debug("[Coverage Debug] Package '{}' contains {} classes", packageName, classes.size());
 
+                if (classes.isEmpty()) {
+                    logger.warn("[Coverage Debug] No class elements found in package '{}'", packageName);
+                    logger.debug("[Coverage Debug] Package element HTML: {}", packageElement.html().substring(0, Math.min(200, packageElement.html().length())));
+                }
+
                 for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
                     Element classElement = classes.get(classIndex);
                     String classPath = classElement.attr("name");
                     String className = extractClassNameFromPath(classPath);
                     String sourceFileName = classElement.attr("sourcefilename");
 
+                    // Enhanced debug logging for null investigation
+                    logger.debug("[Coverage Debug] RAW CLASS DATA - classPath='{}', className='{}', sourceFile='{}'",
+                        classPath, className, sourceFileName);
                     logger.trace("[Coverage Debug] Processing class {}/{} in package '{}': '{}' (source: '{}')",
                         classIndex + 1, classes.size(), packageName, className, sourceFileName);
 
@@ -755,16 +763,28 @@ public class CoverageReportParser {
      * クラスパスからクラス名を抽出
      */
     private String extractClassNameFromPath(String classPath) {
+        logger.debug("[Coverage Debug] extractClassNameFromPath input: '{}'", classPath);
+
         if (classPath == null || classPath.isEmpty()) {
+            logger.debug("[Coverage Debug] classPath is null/empty, returning 'UnknownClass'");
             return "UnknownClass";
         }
 
         // パッケージパス区切りの最後の要素を取得
         String[] parts = classPath.split("/");
+        logger.debug("[Coverage Debug] classPath split result: {} parts", parts.length);
+
+        if (parts.length == 0) {
+            logger.debug("[Coverage Debug] No parts after split, returning 'UnknownClass'");
+            return "UnknownClass";
+        }
+
         String className = parts[parts.length - 1];
+        logger.debug("[Coverage Debug] Extracted className: '{}'", className);
 
         // 空文字の場合のsafety check
         if (className == null || className.isEmpty()) {
+            logger.debug("[Coverage Debug] Extracted className is null/empty, returning 'UnknownClass'");
             return "UnknownClass";
         }
 
@@ -772,6 +792,7 @@ public class CoverageReportParser {
         // 注：匿名内部クラスは元のまま残す（FolderScanner$1など）
         // ただし、通常の内部クラスは親クラス名を返す
 
+        logger.debug("[Coverage Debug] Final className result: '{}'", className);
         return className;
     }
 
