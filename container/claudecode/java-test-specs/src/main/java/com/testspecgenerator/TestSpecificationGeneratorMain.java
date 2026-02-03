@@ -173,30 +173,25 @@ public class TestSpecificationGeneratorMain {
                 "Java Test Specification Generator - Javaテストファイルから仕様書を生成",
                 options,
                 "\n使用例:\n" +
-                "  # 基本的な使用方法\n" +
+                "  # 基本的な使用方法（完全なデータ取得）\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
-                "    --source-dir ./src/test/java \\\n" +
+                "    --source-dir . \\\n" +
                 "    --output test_specification.xlsx\n\n" +
                 "  # カバレッジレポートのディレクトリを明示的に指定\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
-                "    --source-dir ./src/test/java \\\n" +
+                "    --source-dir . \\\n" +
                 "    --coverage-dir ./target/site/jacoco \\\n" +
                 "    --output report.xlsx\n\n" +
-                "  # カバレッジ処理をスキップ\n" +
-                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
-                "    --source-dir ./src/test/java \\\n" +
-                "    --output report.xlsx \\\n" +
-                "    --no-coverage\n\n" +
                 "  # ExcelとCSVの両方を生成\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
-                "    --source-dir ./src/test/java \\\n" +
+                "    --source-dir . \\\n" +
                 "    --output report.xlsx \\\n" +
                 "    --csv-output\n\n" +
                 "  # 対話モード\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar --interactive\n\n" +
                 "  # デバッグモード\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
-                "    --source-dir ./src/test/java \\\n" +
+                "    --source-dir . \\\n" +
                 "    --output report.xlsx \\\n" +
                 "    --log-level DEBUG\n");
     }

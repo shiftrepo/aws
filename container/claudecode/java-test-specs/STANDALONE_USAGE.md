@@ -38,19 +38,19 @@ mvn clean compile test package
 java -jar java-test-specification-generator-1.0.0.jar --help
 ```
 
-### 2. カバレッジなし（テストケース情報のみ）
+### 2. CSV出力付き
 
 ```bash
 java -jar java-test-specification-generator-1.0.0.jar \
   --source-dir . \
   --output test_specification.xlsx \
-  --no-coverage
+  --csv-output
 ```
 
 **説明:**
 - `--source-dir` : **プロジェクトルート**を指定（`.` または絶対パス）
 - `--output` : 生成するExcelファイルのパス
-- `--no-coverage` : カバレッジ処理をスキップ
+- `--csv-output` : Excelに加えてCSVファイルも生成
 
 ### 3. カバレッジ統合版（推奨）
 
@@ -159,18 +159,20 @@ java -version
 # 対象プロジェクトに移動
 cd /path/to/target/project
 
-# カバレッジ統合版
+# 標準的な実行（カバレッジ統合版）
 cp -r target/site/jacoco ./coverage-reports
 java -jar /path/to/jar/java-test-specification-generator-1.0.0.jar \
   --source-dir . \
   --output test_specification.xlsx
 rm -rf coverage-reports
 
-# カバレッジなし版
+# CSV出力も含む版
+cp -r target/site/jacoco ./coverage-reports
 java -jar /path/to/jar/java-test-specification-generator-1.0.0.jar \
   --source-dir . \
   --output test_specification.xlsx \
-  --no-coverage
+  --csv-output
+rm -rf coverage-reports
 ```
 
 ## コマンドラインオプション一覧
@@ -179,13 +181,16 @@ java -jar /path/to/jar/java-test-specification-generator-1.0.0.jar \
 |-----------|--------|------|------|
 | `--source-dir` | `-s` | directory | **プロジェクトルート**のディレクトリ（必須）<br>例: `.` または `/path/to/project` |
 | `--output` | `-o` | file | 出力Excelファイルのパス（必須） |
-| `--no-coverage` | - | - | カバレッジレポート処理をスキップ |
+| `--csv-output` | - | - | CSV形式でのテスト仕様書も生成（Excel出力に追加） |
 | `--log-level` | - | level | ログレベル (DEBUG/INFO/WARN/ERROR) |
 | `--interactive` | `-i` | - | 対話モードで実行 |
 | `--help` | `-h` | - | ヘルプメッセージを表示 |
 | `--version` | `-v` | - | バージョン情報を表示 |
 
-**重要**: `--source-dir` には**プロジェクトルート**を指定してください。`./src/test/java` のようにテストディレクトリのみを指定すると、カバレッジレポートが見つかりません。
+**重要**:
+- **標準的な使用法**: `--source-dir .` でテスト + カバレッジ + 実行結果を取得
+- **CSV出力付き**: `--source-dir . --csv-output` でExcelとCSV両方を生成
+- カバレッジデータを含む完全な処理のため、必ずプロジェクトルートを指定してください
 
 ## トラブルシューティング
 
@@ -228,13 +233,12 @@ java -jar java-test-specification-generator-1.0.0.jar \
 
 ## 実行例
 
-### 例1: カバレッジなし（基本的な使用）
+### 例1: 基本的な使用（完全なデータ）
 
 ```bash
 $ java -jar java-test-specification-generator-1.0.0.jar \
     --source-dir . \
-    --output my_test_spec.xlsx \
-    --no-coverage
+    --output my_test_spec.xlsx
 
 📊 Java Test Specification Generator 開始
    バージョン: 1.0.0
@@ -343,9 +347,9 @@ $ rm -rf coverage-reports
 
 A: すべての依存ライブラリ（Apache POI、JaCoCo解析など）が含まれた実行可能JARです。単一ファイルでどこでも実行できる利点があります。
 
-### Q: カバレッジレポートなしで実行できますか？
+### Q: CSV形式でも出力できますか？
 
-A: はい、`--no-coverage` オプションを使用してください。
+A: はい、`--csv-output` オプションを使用してExcelとCSV両方を生成できます。
 
 ### Q: Windowsで実行できますか？
 
@@ -360,8 +364,16 @@ A: 各プロジェクトごとに個別に実行してください。
 問題が発生した場合は、`--log-level DEBUG` オプションで詳細ログを確認してください。
 
 ```bash
+# デバッグモードでの実行例（完全なデータを取得）
 java -jar java-test-specification-generator-1.0.0.jar \
-  --source-dir ./src/test/java \
+  --source-dir . \
   --output test_spec.xlsx \
+  --log-level DEBUG
+
+# CSV出力も含めてデバッグ
+java -jar java-test-specification-generator-1.0.0.jar \
+  --source-dir . \
+  --output test_spec.xlsx \
+  --csv-output \
   --log-level DEBUG
 ```

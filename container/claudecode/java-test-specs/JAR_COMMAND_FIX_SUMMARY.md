@@ -7,9 +7,9 @@
 
 README及びSTANDALONE_USAGE.mdのjarコマンド実行例に**重大な誤り**がありました：
 
-### 誤った例（修正前）
+### 問題のあった例（修正前）
 ```bash
-# ❌ 間違い
+# ❌ 問題あり: テストファイルのみ処理
 java -jar target/java-test-specification-generator-1.0.0.jar \
   --source-dir ./src/test/java \
   --output test_specification.xlsx
@@ -25,6 +25,7 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 1. `--source-dir ./src/test/java` - テストディレクトリのみを指定
    - カバレッジレポート（coverage-reports/jacoco.xml）が見つからない
    - Coverageシートにデータが出力されない
+   - テストファイルの情報のみ処理される
 
 2. `--coverage-dir` オプション - **存在しません**
    - ツールはこのオプションをサポートしていない
@@ -49,12 +50,12 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 rm -rf coverage-reports
 ```
 
-### カバレッジなし
+### CSV出力付き
 ```bash
 java -jar target/java-test-specification-generator-1.0.0.jar \
   --source-dir . \
   --output test_specification.xlsx \
-  --no-coverage
+  --csv-output
 ```
 
 ## 重要なポイント

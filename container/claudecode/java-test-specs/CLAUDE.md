@@ -59,20 +59,25 @@ docker run --rm \
 
 ### Running the Application
 ```bash
-# Basic usage
+# Basic usage (complete data: tests + coverage + execution results)
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir /path/to/java/tests \
+  --source-dir . \
   --output report.xlsx
 
-# Without coverage processing
+# With CSV output (Excel + CSV files)
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir /path/to/java/tests \
+  --source-dir . \
   --output report.xlsx \
-  --no-coverage
+  --csv-output
+
+# Complete workflow with coverage data
+java -jar target/java-test-specification-generator-1.0.0.jar \
+  --source-dir . \
+  --output report.xlsx
 
 # Debug mode
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir /path/to/java/tests \
+  --source-dir . \
   --output report.xlsx \
   --log-level DEBUG
 

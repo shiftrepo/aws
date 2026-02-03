@@ -4,20 +4,20 @@
 
 Coverageシートに何も出力されない問題は、**`--source-dir`パラメータの指定方法**が原因でした。
 
-### 誤った使用例
+### 問題のある使用例
 ```bash
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir /workspace/src/test/java \  # ❌ テストディレクトリのみ
+  --source-dir ./src/test/java \  # ❌ テストディレクトリのみ
   --output test_specification.xlsx
 ```
 
 **結果**: カバレッジレポートファイル（`coverage-reports/jacoco.xml`）が見つからず、
-Coverageシートにヘッダーのみが出力される。
+Coverageシートにヘッダーのみが出力される（テストファイルのみ処理）。
 
 ### 正しい使用例
 ```bash
 java -jar target/java-test-specification-generator-1.0.0.jar \
-  --source-dir /workspace \  # ✅ プロジェクトルート
+  --source-dir . \  # ✅ プロジェクトルート
   --output test_specification.xlsx
 ```
 
