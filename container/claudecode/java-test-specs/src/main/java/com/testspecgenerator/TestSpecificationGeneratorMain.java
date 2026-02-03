@@ -29,6 +29,7 @@ public class TestSpecificationGeneratorMain {
     private final CoverageReportParser coverageParser;
     private final SurefireReportParser surefireParser;
     private final ExcelSheetBuilder excelBuilder;
+    private final CsvSheetBuilder csvBuilder;
     private final EnhancedJavaDocBuilder javaDocBuilder;
 
     private LocalDateTime processingStartTime;
@@ -39,6 +40,7 @@ public class TestSpecificationGeneratorMain {
         this.coverageParser = new CoverageReportParser();
         this.surefireParser = new SurefireReportParser();
         this.excelBuilder = new ExcelSheetBuilder();
+        this.csvBuilder = new CsvSheetBuilder();
         this.javaDocBuilder = new EnhancedJavaDocBuilder();
     }
 
@@ -80,6 +82,7 @@ public class TestSpecificationGeneratorMain {
             String outputFile = cmd.getOptionValue("output");
             String coverageDir = cmd.getOptionValue("coverage-dir");
             boolean includeCoverage = !cmd.hasOption("no-coverage");
+            boolean csvOutput = cmd.hasOption("csv-output");
             String logLevel = cmd.getOptionValue("log-level", "INFO");
 
             if (sourceDir == null || outputFile == null) {
@@ -92,7 +95,7 @@ public class TestSpecificationGeneratorMain {
             setLogLevel(logLevel);
 
             // 処理実行
-            boolean success = generateTestSpecification(sourceDir, outputFile, coverageDir, includeCoverage, false);
+            boolean success = generateTestSpecification(sourceDir, outputFile, coverageDir, includeCoverage, csvOutput, false);
 
             if (!success) {
                 System.exit(1);
@@ -132,6 +135,11 @@ public class TestSpecificationGeneratorMain {
         options.addOption(Option.builder()
                 .longOpt("no-coverage")
                 .desc("カバレッジレポート処理をスキップ")
+                .build());
+
+        options.addOption(Option.builder()
+                .longOpt("csv-output")
+                .desc("CSV形式でのテスト仕様書も生成（Excel出力に追加）")
                 .build());
 
         options.addOption(Option.builder("i")
@@ -179,6 +187,11 @@ public class TestSpecificationGeneratorMain {
                 "    --source-dir ./src/test/java \\\n" +
                 "    --output report.xlsx \\\n" +
                 "    --no-coverage\n\n" +
+                "  # ExcelとCSVの両方を生成\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --source-dir ./src/test/java \\\n" +
+                "    --output report.xlsx \\\n" +
+                "    --csv-output\n\n" +
                 "  # 対話モード\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar --interactive\n\n" +
                 "  # デバッグモード\n" +
@@ -215,7 +228,7 @@ public class TestSpecificationGeneratorMain {
         scanner.close();
 
         try {
-            boolean success = generateTestSpecification(sourceDir, outputFile, null, includeCoverage, true);
+            boolean success = generateTestSpecification(sourceDir, outputFile, null, includeCoverage, false, true);
             if (!success) {
                 System.exit(1);
             }
@@ -226,7 +239,7 @@ public class TestSpecificationGeneratorMain {
     }
 
     public boolean generateTestSpecification(String sourceDirectory, String outputFile,
-                                           String coverageDirectory, boolean includeCoverage, boolean interactive) {
+                                           String coverageDirectory, boolean includeCoverage, boolean csvOutput, boolean interactive) {
         try {
             this.processingStartTime = LocalDateTime.now();
 
@@ -292,6 +305,22 @@ public class TestSpecificationGeneratorMain {
             }
             logger.info("✅ Excelレポート生成完了");
 
+            // Step 4.5: CSV出力（オプション）
+            boolean csvSuccess = true;
+            if (csvOutput) {
+                logger.info("📄 Step 4.5: CSVレポート生成開始...");
+                boolean testDetailsCsvSuccess = csvBuilder.generateTestDetailsCsv(outputFile, testCases);
+                boolean coverageCsvSuccess = csvBuilder.generateCoverageSheetCsv(outputFile, testCases, coverageData);
+
+                csvSuccess = testDetailsCsvSuccess && coverageCsvSuccess;
+
+                if (csvSuccess) {
+                    logger.info("✅ CSVレポート生成完了");
+                } else {
+                    logger.warn("⚠️ CSVレポート生成に一部失敗しましたが、処理を継続します");
+                }
+            }
+
             // Step 5: 拡張JavaDocレポート生成
             logger.info("🌐 Step 5: 拡張JavaDocレポート生成開始...");
             boolean javaDocSuccess = javaDocBuilder.generateEnhancedJavaDoc(testCases, coverageData);
@@ -303,7 +332,7 @@ public class TestSpecificationGeneratorMain {
             }
 
             printSummary(javaFiles.size(), testCases.size(),
-                       coverageData != null ? coverageData.size() : 0, outputFile);
+                       coverageData != null ? coverageData.size() : 0, outputFile, csvOutput);
             return true;
 
         } catch (Exception e) {
@@ -312,7 +341,7 @@ public class TestSpecificationGeneratorMain {
         }
     }
 
-    private void printSummary(int javaFiles, int testCases, int coverageEntries, String outputFile) {
+    private void printSummary(int javaFiles, int testCases, int coverageEntries, String outputFile, boolean csvOutput) {
         LocalDateTime endTime = LocalDateTime.now();
         java.time.Duration duration = java.time.Duration.between(processingStartTime, endTime);
 
@@ -326,19 +355,49 @@ public class TestSpecificationGeneratorMain {
         System.out.println("⏱️ 処理時間: " + formatDuration(duration));
         System.out.println("📊 出力ファイル: " + outputFile);
 
+        // CSV出力ファイル情報も表示
+        if (csvOutput) {
+            String baseName = outputFile.substring(0, outputFile.lastIndexOf('.'));
+            System.out.println("📄 CSV出力ファイル: " + baseName + "_test_details.csv");
+            System.out.println("📄 CSV出力ファイル: " + baseName + "_coverage.csv");
+        }
+
         // ファイルサイズ表示
         try {
             Path outputPath = Paths.get(outputFile);
             if (java.nio.file.Files.exists(outputPath)) {
                 long fileSize = java.nio.file.Files.size(outputPath);
-                System.out.println("📏 ファイルサイズ: " + String.format("%,d", fileSize) + "バイト");
+                System.out.println("📏 Excelファイルサイズ: " + String.format("%,d", fileSize) + "バイト");
+            }
+
+            // CSVファイルサイズも表示
+            if (csvOutput) {
+                String baseName = outputFile.substring(0, outputFile.lastIndexOf('.'));
+                displayCsvFileSize(baseName + "_test_details.csv");
+                displayCsvFileSize(baseName + "_coverage.csv");
             }
         } catch (Exception e) {
             // ファイルサイズ取得エラーは無視
         }
 
         System.out.println("============================================================");
-        System.out.println("✅ テスト仕様書が正常に生成されました: " + outputFile);
+        if (csvOutput) {
+            System.out.println("✅ テスト仕様書（ExcelとCSV）が正常に生成されました");
+        } else {
+            System.out.println("✅ テスト仕様書が正常に生成されました: " + outputFile);
+        }
+    }
+
+    private void displayCsvFileSize(String csvFilePath) {
+        try {
+            Path csvPath = Paths.get(csvFilePath);
+            if (java.nio.file.Files.exists(csvPath)) {
+                long fileSize = java.nio.file.Files.size(csvPath);
+                System.out.println("📏 CSVファイルサイズ (" + csvPath.getFileName() + "): " + String.format("%,d", fileSize) + "バイト");
+            }
+        } catch (Exception e) {
+            // CSVファイルサイズ取得エラーは無視
+        }
     }
 
     private String formatDuration(java.time.Duration duration) {
