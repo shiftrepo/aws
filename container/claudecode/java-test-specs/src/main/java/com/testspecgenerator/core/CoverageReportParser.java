@@ -544,49 +544,19 @@ public class CoverageReportParser {
 
         for (CoverageInfo coverage : coverageData) {
             String methodKey = coverage.getMethodName();
-            String className = coverage.getClassName();
-            String packageName = coverage.getPackageName();
-
-            // Method name only (universal fallback)
             coverageByMethod.computeIfAbsent(methodKey, k -> new ArrayList<>()).add(coverage);
-            coverageClassesByMethod.computeIfAbsent(methodKey, k -> new HashSet<>()).add(className);
+            coverageClassesByMethod.computeIfAbsent(methodKey, k -> new HashSet<>()).add(coverage.getClassName());
 
-            // Simple class name + method (JaCoCo standard format)
-            String simpleKey = className + "." + methodKey;
-            coverageByMethod.computeIfAbsent(simpleKey, k -> new ArrayList<>()).add(coverage);
+            // クラス名もキーとして保存（完全一致用）
+            String fullKey = coverage.getClassName() + "." + coverage.getMethodName();
+            coverageByMethod.computeIfAbsent(fullKey, k -> new ArrayList<>()).add(coverage);
 
-            // Try to construct fully qualified class name if package info is available
-            if (packageName != null && !packageName.isEmpty()) {
-                String normalizedPackage = packageName.replace("/", ".");
-                String fullyQualifiedClassName = normalizedPackage + "." + className;
-                String fqKey = fullyQualifiedClassName + "." + methodKey;
-                coverageByMethod.computeIfAbsent(fqKey, k -> new ArrayList<>()).add(coverage);
-
-                logger.trace("[Coverage Debug] Added to lookup: method='{}', simpleKey='{}', fqKey='{}', class='{}'",
-                    methodKey, simpleKey, fqKey, className);
-            } else {
-                logger.trace("[Coverage Debug] Added to lookup: method='{}', simpleKey='{}', class='{}'",
-                    methodKey, simpleKey, className);
-            }
+            logger.trace("[Coverage Debug] Added to lookup: method='{}', fullKey='{}', class='{}'",
+                methodKey, fullKey, coverage.getClassName());
         }
 
-        logger.debug("[Coverage Debug] Coverage lookup built: {} unique keys total", coverageByMethod.size());
-
-        // Log key distribution for debugging
-        long methodOnlyKeys = coverageByMethod.keySet().stream().mapToLong(key -> !key.contains(".") ? 1 : 0).sum();
-        long simpleClassKeys = coverageByMethod.keySet().stream().mapToLong(key ->
-            key.contains(".") && key.split("\\.").length == 2 ? 1 : 0).sum();
-        long fullyQualifiedKeys = coverageByMethod.keySet().stream().mapToLong(key ->
-            key.contains(".") && key.split("\\.").length > 2 ? 1 : 0).sum();
-
-        logger.debug("[Coverage Debug] Key distribution - Method-only: {}, Simple class: {}, Fully qualified: {}",
-            methodOnlyKeys, simpleClassKeys, fullyQualifiedKeys);
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("[Coverage Debug] Sample keys available:");
-            coverageByMethod.keySet().stream().limit(10)
-                .forEach(key -> logger.trace("[Coverage Debug] - {}", key));
-        }
+        logger.debug("[Coverage Debug] Coverage lookup built: {} unique method keys, {} unique full keys",
+            coverageByMethod.size(), coverageByMethod.keySet().stream().mapToInt(key -> key.contains(".") ? 1 : 0).sum());
 
         // 各テストケースに対応するカバレッジ情報を検索
         int successfulMatches = 0;
@@ -669,16 +639,10 @@ public class CoverageReportParser {
                 // 正規化：パッケージ区切りを統一
                 String normalizedClass = classCandidate.replace("/", ".");
 
-                // Simple class name (last part after dot) - for JaCoCo compatibility
-                String simpleClassName = normalizedClass;
-                if (simpleClassName.contains(".")) {
-                    simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
-                }
-
                 for (String methodCandidate : targetMethodCandidates) {
                     if (methodCandidate == null || methodCandidate.isEmpty()) continue;
 
-                    // 1. フルキー検索（完全修飾クラス名.メソッド名）
+                    // 1. フルキー検索（クラス名.メソッド名）
                     String fullKey = normalizedClass + "." + methodCandidate;
                     List<CoverageInfo> candidates = coverageByMethod.get(fullKey);
                     logger.trace("[Coverage Debug] Full key lookup: '{}' -> {} candidates",
@@ -694,19 +658,23 @@ public class CoverageReportParser {
                         break outerLoop;
                     }
 
-                    // 2. 単純クラス名検索（JaCoCo標準形式対応）
-                    String simpleKey = simpleClassName + "." + methodCandidate;
-                    candidates = coverageByMethod.get(simpleKey);
-                    logger.trace("[Coverage Debug] Simple key lookup: '{}' -> {} candidates",
-                        simpleKey, candidates != null ? candidates.size() : 0);
+                    // 2. クラス名短縮 + メソッド名検索
+                    String shortClassName = normalizedClass;
+                    if (shortClassName.contains(".")) {
+                        shortClassName = shortClassName.substring(shortClassName.lastIndexOf(".") + 1);
+                    }
+                    String shortKey = shortClassName + "." + methodCandidate;
+                    candidates = coverageByMethod.get(shortKey);
+                    logger.trace("[Coverage Debug] Short key lookup: '{}' -> {} candidates",
+                        shortKey, candidates != null ? candidates.size() : 0);
 
                     if (candidates != null && !candidates.isEmpty()) {
                         coverage = candidates.get(0);
-                        matchStrategy = "simple-key";
+                        matchStrategy = "short-key";
                         finalImplClassName = normalizedClass;
                         finalMethodName = methodCandidate;
-                        logger.debug("[Coverage Debug] Coverage match (simple key): {} -> {} (coverage: {:.1f}%)",
-                            testCase.getMethodName(), simpleKey, coverage.getBranchCoverage());
+                        logger.debug("[Coverage Debug] Coverage match (short key): {} -> {} (coverage: {:.1f}%)",
+                            testCase.getMethodName(), shortKey, coverage.getBranchCoverage());
                         break outerLoop;
                     }
                 }
@@ -749,25 +717,11 @@ public class CoverageReportParser {
                 logger.debug("[Coverage Debug] Coverage match failed: {} (class candidates: {}, method candidates: '{}')",
                     testCase.getMethodName(), java.util.Arrays.toString(implCandidates),
                     java.util.Arrays.toString(targetMethodCandidates));
-
-                // Enhanced debugging for failed matches
-                logger.debug("[Coverage Debug] Failed match analysis for: {}", testCase.getMethodName());
-
-                // Show what simple keys were tried vs what's available
-                Set<String> availableSimpleKeys = coverageByMethod.keySet().stream()
-                    .filter(key -> key.contains(".") && key.split("\\.").length == 2)
-                    .collect(java.util.stream.Collectors.toSet());
-                logger.debug("[Coverage Debug] Available simple keys ({}): {}",
-                    availableSimpleKeys.size(),
-                    availableSimpleKeys.stream().limit(5).collect(java.util.stream.Collectors.toList()));
-
-                // Show what method-only keys are available
-                Set<String> availableMethodKeys = coverageByMethod.keySet().stream()
-                    .filter(key -> !key.contains("."))
-                    .collect(java.util.stream.Collectors.toSet());
-                logger.debug("[Coverage Debug] Available method-only keys ({}): {}",
-                    availableMethodKeys.size(),
-                    availableMethodKeys.stream().limit(5).collect(java.util.stream.Collectors.toSet()));
+                logger.trace("[Coverage Debug] Available coverage methods: {}",
+                    coverageByMethod.keySet().stream().filter(key -> !key.contains(".")).limit(10).toList());
+                logger.trace("[Coverage Debug] Available coverage classes: {}",
+                    coverageByMethod.values().stream().flatMap(List::stream)
+                        .map(CoverageInfo::getClassName).distinct().limit(10).toList());
             }
         }
 
