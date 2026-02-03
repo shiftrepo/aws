@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 修正版：JaCoCoカバレッジ対応 parent pom.xml -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.example</groupId>
+  <artifactId>parent</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+
+  <!-- ⭐ 追加：プロパティ設定 -->
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- テストフレームワーク -->
+    <junit.version>5.10.1</junit.version>
+
+    <!-- ⭐ JaCoCo バージョン -->
+    <jacoco.version>0.8.11</jacoco.version>
+
+    <!-- Mavenプラグインバージョン -->
+    <maven-compiler.version>3.11.0</maven-compiler.version>
+    <maven-surefire.version>3.0.0-M9</maven-surefire.version>
+  </properties>
+
+  <!-- ⭐ 追加：モジュール定義（実際のモジュール名に置き換える） -->
+  <modules>
+    <module>module-1</module>
+    <module>module-2</module>
+    <!-- 実際のモジュール名を追加 -->
+  </modules>
+
+  <!-- ⭐ 追加：依存関係管理 -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!-- （推奨）Nexus へのアクセスは settings.xml の mirror を使う。
+       ここでは例として POM にも明示（認証は書かないこと） -->
+  <repositories>
+    <repository>
+      <id>nexus-releases</id>
+      <url>https://nexus.example.com/repository/maven-releases/</url>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>nexus-snapshots</id>
+      <url>https://nexus.example.com/repository/maven-snapshots/</url>
+      <releases><enabled>false</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
+  <!-- プラグインが Nexus にある場合は pluginRepositories も必要 -->
+  <pluginRepositories>
+    <pluginRepository>
+      <id>nexus-plugins</id>
+      <url>https://nexus.example.com/repository/maven-plugins/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <!-- ⭐ 修正：実行される plugins に移動 -->
+    <plugins>
+      <!-- 既存のツール実行プラグイン -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
+        <dependencies>
+          <!-- 実行したいツール（Nexus 上のアーティファクト） -->
+          <dependency>
+            <groupId>com.example.tools</groupId>
+            <artifactId>my-tool</artifactId>
+            <version>1.2.3</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>run-my-tool</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <!-- 依存に入れたツール JAR のメインクラス -->
+              <mainClass>com.example.tools.MyToolMain</mainClass>
+
+              <!-- 引数がある場合 -->
+              <arguments>
+                <argument>--input</argument>
+                <argument>${project.basedir}/target/output.dat</argument>
+                <argument>--mode</argument>
+                <argument>strict</argument>
+              </arguments>
+
+              <!-- 必要ならプロジェクト依存もクラスパスに含める -->
+              <includeProjectDependencies>true</includeProjectDependencies>
+
+              <!-- マルチモジュールでルートで一回だけ実行したいなら -->
+              <systemProperties>
+                <systemProperty>
+                  <key>exec.aggregate</key>
+                  <value>true</value>
+                </systemProperty>
+              </systemProperties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- ⭐ 追加：Maven Compiler Plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler.version}</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <encoding>${project.build.sourceEncoding}</encoding>
+        </configuration>
+      </plugin>
+
+      <!-- ⭐ 追加：Maven Surefire Plugin（テスト実行） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire.version}</version>
+        <configuration>
+          <!-- JaCoCoエージェントのargLineを継承 -->
+          <argLine>${argLine} -Dfile.encoding=UTF-8</argLine>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+
+      <!-- ⭐ 追加：JaCoCoプラグイン（カバレッジ収集の核心） -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <!-- テスト前にJaCoCoエージェントを準備 -->
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+
+          <!-- テスト後に各モジュールのレポート生成 -->
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+
+          <!-- マルチモジュール集約レポート生成 -->
+          <execution>
+            <id>report-aggregate</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+
+    <!-- バージョン管理（オプション） -->
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <!-- 任意：profile でオン/オフ可能に -->
+  <profiles>
+    <profile>
+      <id>with-tool</id>
+      <activation>
+        <property>
+          <name>runTool</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <!-- ここに plugins を移すと -DrunTool=true の時だけ実行 -->
+    </profile>
+  </profiles>
+
+</project>

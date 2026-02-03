@@ -1,0 +1,21 @@
+{
+  "successfulModules": 2,
+  "totalTestCases": 7,
+  "totalModules": 2,
+  "failedModules": 0,
+  "modules": [
+    {
+      "testCases": 3,
+      "processingTimeMs": 99,
+      "name": "module-a",
+      "status": "SUCCESS"
+    },
+    {
+      "testCases": 4,
+      "processingTimeMs": 85,
+      "name": "module-b",
+      "status": "SUCCESS"
+    }
+  ],
+  "timestamp": "Tue Feb 03 12:58:23 UTC 2026"
+}
