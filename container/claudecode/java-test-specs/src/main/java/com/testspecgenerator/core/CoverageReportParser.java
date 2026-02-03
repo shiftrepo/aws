@@ -567,91 +567,137 @@ public class CoverageReportParser {
             logger.debug("[Coverage Debug] Processing test case {}/{}: {}.{}",
                 i + 1, testCases.size(), testCase.getClassName(), testCase.getMethodName());
 
-            // テストクラス名から実装クラス名を推定（"Test"を除去）
-            String implClassName = testCase.getClassName().replace("Test", "");
+            // テストクラス名から実装クラス名を推定（パッケージを保持してTestのみ除去）
+            String implClassName = testCase.getClassName();
             String testMethodName = testCase.getMethodName();
-            logger.trace("[Coverage Debug] Implementation class inferred: '{}' from test class: '{}'",
-                implClassName, testCase.getClassName());
 
-            // テストメソッド名から実際のメソッド名を推定
-            String targetMethodName = testMethodName;
-            if (targetMethodName.startsWith("test")) {
-                String original = targetMethodName;
-                targetMethodName = targetMethodName.substring(4);
-                if (targetMethodName.length() > 0) {
-                    targetMethodName = Character.toLowerCase(targetMethodName.charAt(0)) +
-                                     (targetMethodName.length() > 1 ? targetMethodName.substring(1) : "");
-                }
-                logger.trace("[Coverage Debug] Method name transformation: '{}' -> '{}'", original, targetMethodName);
+            // 複数パターンでの実装クラス名推定
+            String[] implCandidates = new String[4];
+            implCandidates[0] = implClassName; // そのまま
+            implCandidates[1] = implClassName.replace("Test", ""); // Test除去
+            if (implClassName.endsWith("Test")) {
+                implCandidates[2] = implClassName.substring(0, implClassName.length() - 4); // 末尾Test除去
+            } else {
+                implCandidates[2] = implClassName;
+            }
+            // テストパッケージをメインパッケージに変換
+            implCandidates[3] = implClassName.replace(".test.", ".").replace("Test", "");
 
-                // キャメルケースから実際のメソッド名を抽出
-                if (targetMethodName.contains("_")) {
-                    String before = targetMethodName;
-                    targetMethodName = targetMethodName.substring(0, targetMethodName.indexOf("_"));
-                    logger.trace("[Coverage Debug] Underscore split: '{}' -> '{}'", before, targetMethodName);
-                } else if (targetMethodName.matches(".*[A-Z].*")) {
-                    String before = targetMethodName;
-                    for (int j = 1; j < targetMethodName.length(); j++) {
-                        if (Character.isUpperCase(targetMethodName.charAt(j))) {
-                            targetMethodName = targetMethodName.substring(0, j);
+            logger.trace("[Coverage Debug] Implementation class candidates: {} from test class: '{}'",
+                java.util.Arrays.toString(implCandidates), testCase.getClassName());
+
+            // テストメソッド名から実際のメソッド名を推定（複数のパターンを生成）
+            String[] targetMethodCandidates = new String[6];
+            targetMethodCandidates[0] = testMethodName; // そのまま
+
+            if (testMethodName.startsWith("test")) {
+                String stripped = testMethodName.substring(4);
+                if (stripped.length() > 0) {
+                    String lowercased = Character.toLowerCase(stripped.charAt(0)) +
+                                       (stripped.length() > 1 ? stripped.substring(1) : "");
+                    targetMethodCandidates[1] = lowercased; // testXxx -> xxx
+
+                    // CamelCase分割パターン
+                    for (int j = 1; j < lowercased.length(); j++) {
+                        if (Character.isUpperCase(lowercased.charAt(j))) {
+                            targetMethodCandidates[2] = lowercased.substring(0, j); // 最初の大文字まで
                             break;
                         }
                     }
-                    logger.trace("[Coverage Debug] CamelCase split: '{}' -> '{}'", before, targetMethodName);
+                    // アンダースコア分割パターン
+                    if (lowercased.contains("_")) {
+                        targetMethodCandidates[3] = lowercased.substring(0, lowercased.indexOf("_"));
+                    }
+                    // 共通パターン（Valid, Invalid, Test, Case等を除去）
+                    String cleaned = lowercased
+                        .replaceFirst("Valid$", "")
+                        .replaceFirst("Invalid$", "")
+                        .replaceFirst("Test$", "")
+                        .replaceFirst("Case$", "");
+                    targetMethodCandidates[4] = cleaned;
                 }
             }
+            // ケースインセンシティブな検索用
+            targetMethodCandidates[5] = testMethodName.toLowerCase();
 
-            logger.debug("[Coverage Debug] Target method name determined: '{}' for test method: '{}'",
-                targetMethodName, testMethodName);
+            logger.trace("[Coverage Debug] Method name candidates: {} from test method: '{}'",
+                java.util.Arrays.toString(targetMethodCandidates), testMethodName);
 
-            // 複数のパターンで検索
+            logger.debug("[Coverage Debug] Target method candidates generated: {} for test method: '{}'",
+                java.util.Arrays.toString(targetMethodCandidates), testMethodName);
+
+            // 複数の候補パターンで検索
             CoverageInfo coverage = null;
             String matchStrategy = "none";
+            String finalImplClassName = null;
+            String finalMethodName = null;
 
-            // 1. 実装クラス名 + メソッド名で検索
-            String implKey = implClassName + "." + targetMethodName;
-            List<CoverageInfo> candidates = coverageByMethod.get(implKey);
-            logger.trace("[Coverage Debug] Strategy 1 - Full key lookup: '{}' -> {} candidates",
-                implKey, candidates != null ? candidates.size() : 0);
+            // 複数の実装クラス候補とメソッド名候補を組み合わせて検索
+            outerLoop: for (String classCandidate : implCandidates) {
+                if (classCandidate == null || classCandidate.isEmpty()) continue;
 
-            if (candidates != null && !candidates.isEmpty()) {
-                coverage = candidates.get(0);
-                matchStrategy = "full-key";
-                logger.debug("[Coverage Debug] Coverage match (full key): {} -> {} (coverage: {:.1f}%)",
-                    testCase.getMethodName(), implKey, coverage.getBranchCoverage());
-            }
+                // 正規化：パッケージ区切りを統一
+                String normalizedClass = classCandidate.replace("/", ".");
 
-            // 2. メソッド名のみで検索（クラス名が一致しない場合）
-            if (coverage == null) {
-                candidates = coverageByMethod.get(targetMethodName);
-                logger.trace("[Coverage Debug] Strategy 2 - Method name lookup: '{}' -> {} candidates",
-                    targetMethodName, candidates != null ? candidates.size() : 0);
+                for (String methodCandidate : targetMethodCandidates) {
+                    if (methodCandidate == null || methodCandidate.isEmpty()) continue;
 
-                if (candidates != null && !candidates.isEmpty()) {
-                    logger.debug("[Coverage Debug] Available classes for method '{}': {}",
-                        targetMethodName, coverageClassesByMethod.get(targetMethodName));
+                    // 1. フルキー検索（クラス名.メソッド名）
+                    String fullKey = normalizedClass + "." + methodCandidate;
+                    List<CoverageInfo> candidates = coverageByMethod.get(fullKey);
+                    logger.trace("[Coverage Debug] Full key lookup: '{}' -> {} candidates",
+                        fullKey, candidates != null ? candidates.size() : 0);
 
-                    // パッケージ名を考慮してベストマッチを探す
-                    for (CoverageInfo candidate : candidates) {
-                        logger.trace("[Coverage Debug] Evaluating candidate: class='{}', expected='{}'",
-                            candidate.getClassName(), implClassName);
-
-                        if (candidate.getClassName().equals(implClassName) ||
-                            candidate.getClassName().endsWith(implClassName)) {
-                            coverage = candidate;
-                            matchStrategy = "method-class-match";
-                            logger.debug("[Coverage Debug] Coverage match (method + class): {} -> {}.{} (coverage: {:.1f}%)",
-                                testCase.getMethodName(), candidate.getClassName(), targetMethodName, coverage.getBranchCoverage());
-                            break;
-                        }
+                    if (candidates != null && !candidates.isEmpty()) {
+                        coverage = candidates.get(0);
+                        matchStrategy = "full-key";
+                        finalImplClassName = normalizedClass;
+                        finalMethodName = methodCandidate;
+                        logger.debug("[Coverage Debug] Coverage match (full key): {} -> {} (coverage: {:.1f}%)",
+                            testCase.getMethodName(), fullKey, coverage.getBranchCoverage());
+                        break outerLoop;
                     }
 
-                    // それでも見つからない場合は最初の候補を使用
-                    if (coverage == null && !candidates.isEmpty()) {
+                    // 2. クラス名短縮 + メソッド名検索
+                    String shortClassName = normalizedClass;
+                    if (shortClassName.contains(".")) {
+                        shortClassName = shortClassName.substring(shortClassName.lastIndexOf(".") + 1);
+                    }
+                    String shortKey = shortClassName + "." + methodCandidate;
+                    candidates = coverageByMethod.get(shortKey);
+                    logger.trace("[Coverage Debug] Short key lookup: '{}' -> {} candidates",
+                        shortKey, candidates != null ? candidates.size() : 0);
+
+                    if (candidates != null && !candidates.isEmpty()) {
                         coverage = candidates.get(0);
-                        matchStrategy = "method-first-match";
+                        matchStrategy = "short-key";
+                        finalImplClassName = normalizedClass;
+                        finalMethodName = methodCandidate;
+                        logger.debug("[Coverage Debug] Coverage match (short key): {} -> {} (coverage: {:.1f}%)",
+                            testCase.getMethodName(), shortKey, coverage.getBranchCoverage());
+                        break outerLoop;
+                    }
+                }
+            }
+
+            // 3. メソッド名のみで検索（最後の手段）
+            if (coverage == null) {
+                for (String methodCandidate : targetMethodCandidates) {
+                    if (methodCandidate == null || methodCandidate.isEmpty()) continue;
+
+                    List<CoverageInfo> methodCandidates = coverageByMethod.get(methodCandidate);
+                    logger.trace("[Coverage Debug] Method only lookup: '{}' -> {} candidates",
+                        methodCandidate, methodCandidates != null ? methodCandidates.size() : 0);
+
+                    if (methodCandidates != null && !methodCandidates.isEmpty()) {
+                        // 最初の候補を使用（パッケージ問わず）
+                        coverage = methodCandidates.get(0);
+                        matchStrategy = "method-only";
+                        finalImplClassName = coverage.getClassName();
+                        finalMethodName = methodCandidate;
                         logger.debug("[Coverage Debug] Coverage match (method only): {} -> {}.{} (coverage: {:.1f}%)",
-                            testCase.getMethodName(), coverage.getClassName(), targetMethodName, coverage.getBranchCoverage());
+                            testCase.getMethodName(), coverage.getClassName(), methodCandidate, coverage.getBranchCoverage());
+                        break;
                     }
                 }
             }
@@ -668,10 +714,14 @@ public class CoverageReportParser {
                     coverage.getBranchesCovered(), coverage.getBranchesTotal(), coverage.getInstructionCoverage());
             } else {
                 failedMatches++;
-                logger.debug("[Coverage Debug] Coverage match failed: {} (searched: '{}', method: '{}')",
-                    testCase.getMethodName(), implKey, targetMethodName);
+                logger.debug("[Coverage Debug] Coverage match failed: {} (class candidates: {}, method candidates: '{}')",
+                    testCase.getMethodName(), java.util.Arrays.toString(implCandidates),
+                    java.util.Arrays.toString(targetMethodCandidates));
                 logger.trace("[Coverage Debug] Available coverage methods: {}",
                     coverageByMethod.keySet().stream().filter(key -> !key.contains(".")).limit(10).toList());
+                logger.trace("[Coverage Debug] Available coverage classes: {}",
+                    coverageByMethod.values().stream().flatMap(List::stream)
+                        .map(CoverageInfo::getClassName).distinct().limit(10).toList());
             }
         }
 
@@ -683,8 +733,9 @@ public class CoverageReportParser {
             logger.warn("[Coverage Debug] Possible reasons for failed matches:");
             logger.warn("[Coverage Debug] 1. Test method names don't match implementation method names");
             logger.warn("[Coverage Debug] 2. Implementation classes are not covered by any tests");
-            logger.warn("[Coverage Debug] 3. Package filtering excluded relevant coverage data");
+            logger.warn("[Coverage Debug] 3. Package structure differs between test and implementation");
             logger.warn("[Coverage Debug] 4. JaCoCo report doesn't include all executed methods");
+            logger.warn("[Coverage Debug] 5. Class name patterns don't match (e.g., UserServiceTest vs UserService)");
 
             if (logger.isDebugEnabled()) {
                 logger.debug("[Coverage Debug] Sample coverage methods available:");

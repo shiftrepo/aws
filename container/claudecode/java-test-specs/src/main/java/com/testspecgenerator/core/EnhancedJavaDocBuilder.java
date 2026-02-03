@@ -308,13 +308,28 @@ public class EnhancedJavaDocBuilder {
         html.append(generateHtmlHeader(className + " - Enhanced JavaDoc", getClassPageStyle()));
 
         html.append("<div class=\"container\">");
+        // パッケージ名を動的に取得（カバレッジまたはテストから推定）
+        String packageName = "Unknown Package";
+        if (coverage != null && coverage.getPackageName() != null && !coverage.getPackageName().isEmpty()) {
+            packageName = coverage.getPackageName().replace("/", ".");
+        } else if (!tests.isEmpty() && tests.get(0).getClassName() != null) {
+            // テストクラス名からパッケージ名を推定
+            String testClassName = tests.get(0).getClassName();
+            int lastDot = testClassName.lastIndexOf('.');
+            if (lastDot > 0) {
+                String testPackage = testClassName.substring(0, lastDot);
+                // "Test"を除去してimpl package名を推定
+                packageName = testPackage.replace(".test", "").replace("Test", "");
+            }
+        }
+
         html.append(String.format("""
             <div class="header">
                 <h1 class="class-title">%s</h1>
-                <p class="package-info">パッケージ: com.example</p>
+                <p class="package-info">パッケージ: %s</p>
                 <p class="package-info">ソースファイル: %s.java</p>
             </div>
-            """, className, className));
+            """, className, packageName, className));
 
         // カバレッジセクション
         if (coverage != null) {
