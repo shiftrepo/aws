@@ -386,16 +386,16 @@ public class MultiModuleProcessor {
                             info.setPackageName((String) coverageMap.get("packageName"));
                         }
 
-                        // Set coverage metrics
+                        // Set coverage metrics with safe type conversion
                         if (coverageMap.get("branchesCovered") != null && coverageMap.get("branchesTotal") != null) {
-                            Integer branchesCovered = (Integer) coverageMap.get("branchesCovered");
-                            Integer branchesTotal = (Integer) coverageMap.get("branchesTotal");
+                            int branchesCovered = safeConvertToInt(coverageMap.get("branchesCovered"));
+                            int branchesTotal = safeConvertToInt(coverageMap.get("branchesTotal"));
                             info.setBranchInfo(branchesCovered, branchesTotal);
                         }
 
                         if (coverageMap.get("linesCovered") != null && coverageMap.get("linesTotal") != null) {
-                            Integer linesCovered = (Integer) coverageMap.get("linesCovered");
-                            Integer linesTotal = (Integer) coverageMap.get("linesTotal");
+                            int linesCovered = safeConvertToInt(coverageMap.get("linesCovered"));
+                            int linesTotal = safeConvertToInt(coverageMap.get("linesTotal"));
                             info.setLineInfo(linesCovered, linesTotal);
                         }
 
@@ -413,6 +413,29 @@ public class MultiModuleProcessor {
         }
 
         return coverageInfoList;
+    }
+
+    /**
+     * Safely converts an Object to int, handling various numeric types.
+     */
+    private int safeConvertToInt(Object value) {
+        if (value == null) return 0;
+
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof Long) {
+            return ((Long) value).intValue();
+        } else if (value instanceof Double) {
+            return ((Double) value).intValue();
+        } else if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+
+        return 0; // Default fallback
     }
 
     /**
