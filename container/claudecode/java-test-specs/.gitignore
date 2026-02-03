@@ -102,6 +102,36 @@ scratch_*.xlsx
 # Allow test_specification_*.xlsx output files
 !test_specification_*.xlsx
 
+# Test output artifacts
+complete-coverage-test.xlsx
+debug-test.xlsx
+final-coverage-test.xlsx
+test-backward-compatibility.xlsx
+test_correct_path.xlsx
+test_correct_path_test_details.csv
+test_demo_with_csv.xlsx
+test_demo_with_csv_coverage.csv
+test_demo_with_csv_test_details.csv
+test_execution_demo.xlsx
+test_project_root.xlsx
+test_project_root_coverage.csv
+test_project_root_test_details.csv
+test_regular.xlsx
+test_specification_with_csv.xlsx
+test_specification_with_csv_coverage.csv
+test_specification_with_csv_test_details.csv
+test_verification_final.xlsx
+test_verification_final_coverage.csv
+test_verification_final_test_details.csv
+test_with_csv.xlsx
+test_with_csv_coverage.csv
+test_with_csv_test_details.csv
+
+# Test directories
+test-ascii-output/
+test-multimodule/
+multimodule-*/
+
 *_test.py
 *_check*.py
 display_*.py
