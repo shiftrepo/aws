@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Scanner;
 
 /**
- * Java Test Specification Generator メインクラス
+ * Java Test Specification Generator Main Class
  *
- * Javaテストファイルからカスタムアノテーションを抽出し、
- * JaCoCoカバレッジレポートと統合してExcelテスト仕様書を自動生成します。
+ * Extracts custom annotations from Java test files and
+ * automatically generates Excel test specification documents integrated with JaCoCo coverage reports.
  */
 public class TestSpecificationGeneratorMain {
 
@@ -50,7 +50,7 @@ public class TestSpecificationGeneratorMain {
         try {
             app.run(args);
         } catch (Exception e) {
-            logger.error("アプリケーション実行エラー", e);
+            logger.error("Application execution error", e);
             System.exit(1);
         }
     }
@@ -77,32 +77,47 @@ public class TestSpecificationGeneratorMain {
                 return;
             }
 
-            // コマンドライン引数から設定を取得
+            // Get configuration from command line arguments
             String sourceDir = cmd.getOptionValue("source-dir");
             String outputFile = cmd.getOptionValue("output");
+            String projectRoot = cmd.getOptionValue("project-root");
+            String outputDir = cmd.getOptionValue("output-dir");
             String coverageDir = cmd.getOptionValue("coverage-dir");
             boolean includeCoverage = !cmd.hasOption("no-coverage");
             boolean csvOutput = cmd.hasOption("csv-output");
             String logLevel = cmd.getOptionValue("log-level", "INFO");
 
-            if (sourceDir == null || outputFile == null) {
-                System.err.println("エラー: --source-dir と --output は必須パラメータです");
-                printHelp(options);
-                System.exit(1);
-            }
-
-            // ログレベル設定
+            // Set log level
             setLogLevel(logLevel);
 
-            // 処理実行
-            boolean success = generateTestSpecification(sourceDir, outputFile, coverageDir, includeCoverage, csvOutput, false);
+            // Multi-module mode check
+            boolean isMultiModuleMode = projectRoot != null && outputDir != null;
 
-            if (!success) {
-                System.exit(1);
+            if (isMultiModuleMode) {
+                // Multi-module processing
+                logger.info("Running in multi-module mode");
+                boolean success = generateMultiModuleSpecification(projectRoot, outputDir, csvOutput);
+                if (!success) {
+                    System.exit(1);
+                }
+            } else {
+                // Single module mode (backward compatibility)
+                if (sourceDir == null || outputFile == null) {
+                    System.err.println("Error: --source-dir and --output are required parameters for single-module mode");
+                    System.err.println("To use multi-module mode, specify --project-root and --output-dir");
+                    printHelp(options);
+                    System.exit(1);
+                }
+
+                // Execute processing
+                boolean success = generateTestSpecification(sourceDir, outputFile, coverageDir, includeCoverage, csvOutput, false);
+                if (!success) {
+                    System.exit(1);
+                }
             }
 
         } catch (ParseException e) {
-            System.err.println("コマンドライン引数解析エラー: " + e.getMessage());
+            System.err.println("Command line argument parsing error: " + e.getMessage());
             printHelp(options);
             System.exit(1);
         }
@@ -115,53 +130,68 @@ public class TestSpecificationGeneratorMain {
                 .longOpt("source-dir")
                 .hasArg()
                 .argName("directory")
-                .desc("Javaテストファイルのソースディレクトリ")
+                .desc("Source directory of Java test files")
                 .build());
 
         options.addOption(Option.builder("o")
                 .longOpt("output")
                 .hasArg()
                 .argName("file")
-                .desc("出力Excelファイルのパス")
+                .desc("Path of output Excel file")
                 .build());
 
         options.addOption(Option.builder("c")
                 .longOpt("coverage-dir")
                 .hasArg()
                 .argName("directory")
-                .desc("カバレッジレポートのディレクトリ（省略時はソースディレクトリから自動検索）")
+                .desc("Coverage report directory (auto-search from source directory if omitted)")
                 .build());
 
         options.addOption(Option.builder()
                 .longOpt("no-coverage")
-                .desc("カバレッジレポート処理をスキップ")
+                .desc("Skip coverage report processing")
                 .build());
 
         options.addOption(Option.builder()
                 .longOpt("csv-output")
-                .desc("CSV形式でのテスト仕様書も生成（Excel出力に追加）")
+                .desc("Generate test specification in CSV format as well (additional to Excel output)")
                 .build());
 
         options.addOption(Option.builder("i")
                 .longOpt("interactive")
-                .desc("対話モードで実行")
+                .desc("Run in interactive mode")
                 .build());
 
         options.addOption(Option.builder()
                 .longOpt("log-level")
                 .hasArg()
                 .argName("level")
-                .desc("ログレベル (DEBUG/INFO/WARNING/ERROR)")
+                .desc("Log level (DEBUG/INFO/WARNING/ERROR)")
                 .build());
 
         options.addOption(Option.builder("h")
                 .longOpt("help")
-                .desc("このヘルプメッセージを表示")
+                .desc("Show this help message")
                 .build());
 
         options.addOption(Option.builder("v")
                 .longOpt("version")
-                .desc("バージョン情報を表示")
+                .desc("Show version information")
+                .build());
+
+        // Multi-module support options
+        options.addOption(Option.builder("pr")
+                .longOpt("project-root")
+                .hasArg()
+                .argName("directory")
+                .desc("Root directory of multi-module project (where pom.xml is located)")
+                .build());
+
+        options.addOption(Option.builder("od")
+                .longOpt("output-dir")
+                .hasArg()
+                .argName("directory")
+                .desc("Output directory (for multi-module: sub-folders are automatically created)")
                 .build());
 
         return options;
@@ -170,26 +200,35 @@ public class TestSpecificationGeneratorMain {
     private void printHelp(Options options) {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("java -jar java-test-specification-generator-1.0.0.jar",
-                "Java Test Specification Generator - Javaテストファイルから仕様書を生成",
+                "Java Test Specification Generator - Generate specification from Java test files",
                 options,
-                "\n使用例:\n" +
-                "  # 基本的な使用方法（完全なデータ取得）\n" +
+                "\nUsage Examples:\n" +
+                "  # Basic usage (single module: complete data retrieval)\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
                 "    --source-dir . \\\n" +
                 "    --output test_specification.xlsx\n\n" +
-                "  # カバレッジレポートのディレクトリを明示的に指定\n" +
+                "  # Multi-module project processing\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --project-root /path/to/multimodule-project \\\n" +
+                "    --output-dir /path/to/output\n\n" +
+                "  # Multi-module + CSV output\n" +
+                "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
+                "    --project-root . \\\n" +
+                "    --output-dir ./reports \\\n" +
+                "    --csv-output\n\n" +
+                "  # Explicitly specify coverage report directory (single module)\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
                 "    --source-dir . \\\n" +
                 "    --coverage-dir ./target/site/jacoco \\\n" +
                 "    --output report.xlsx\n\n" +
-                "  # ExcelとCSVの両方を生成\n" +
+                "  # Generate both Excel and CSV (single module)\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
                 "    --source-dir . \\\n" +
                 "    --output report.xlsx \\\n" +
                 "    --csv-output\n\n" +
-                "  # 対話モード\n" +
+                "  # Interactive mode (single module)\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar --interactive\n\n" +
-                "  # デバッグモード\n" +
+                "  # Debug mode\n" +
                 "  java -jar java-test-specification-generator-1.0.0.jar \\\n" +
                 "    --source-dir . \\\n" +
                 "    --output report.xlsx \\\n" +
@@ -203,20 +242,20 @@ public class TestSpecificationGeneratorMain {
     private void runInteractiveMode() {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("=== Java Test Specification Generator 対話モード ===");
-        System.out.println("バージョン: " + VERSION);
+        System.out.println("=== Java Test Specification Generator Interactive Mode ===");
+        System.out.println("Version: " + VERSION);
         System.out.println();
 
-        // ソースディレクトリ入力
-        System.out.print("ソースディレクトリのパスを入力してください: ");
+        // Source directory input
+        System.out.print("Please enter the source directory path: ");
         String sourceDir = scanner.nextLine().trim();
 
-        // 出力ファイル入力
-        System.out.print("出力Excelファイルのパスを入力してください: ");
+        // Output file input
+        System.out.print("Please enter the output Excel file path: ");
         String outputFile = scanner.nextLine().trim();
 
-        // カバレッジ処理確認
-        System.out.print("カバレッジレポートを処理しますか？ (y/n) [y]: ");
+        // Coverage processing confirmation
+        System.out.print("Process coverage reports? (y/n) [y]: ");
         String coverageInput = scanner.nextLine().trim();
         boolean includeCoverage = coverageInput.isEmpty() || coverageInput.toLowerCase().startsWith("y");
 
@@ -228,7 +267,7 @@ public class TestSpecificationGeneratorMain {
                 System.exit(1);
             }
         } catch (Exception e) {
-            logger.error("処理中にエラーが発生しました", e);
+            logger.error("Error occurred during processing", e);
             System.exit(1);
         }
     }
@@ -238,92 +277,92 @@ public class TestSpecificationGeneratorMain {
         try {
             this.processingStartTime = LocalDateTime.now();
 
-            logger.info("📊 Java Test Specification Generator 開始");
-            logger.info("   バージョン: {}", VERSION);
-            logger.info("   ソース: {}", sourceDirectory);
-            logger.info("   出力: {}", outputFile);
+            logger.info("Java Test Specification Generator started");
+            logger.info("   Version: {}", VERSION);
+            logger.info("   Source: {}", sourceDirectory);
+            logger.info("   Output: {}", outputFile);
 
-            // Step 1: Javaファイルスキャン
-            logger.info("🔍 Step 1: Javaファイルスキャン開始...");
+            // Step 1: Java file scanning
+            logger.info("Step 1: Java file scanning started...");
             List<Path> javaFiles = folderScanner.scanForJavaFiles(Paths.get(sourceDirectory));
-            logger.info("✅ Javaファイル発見: {}個", javaFiles.size());
+            logger.info("Java files found: {} files", javaFiles.size());
 
             if (javaFiles.isEmpty()) {
-                logger.error("❌ Javaファイルが見つかりません");
+                logger.error("No Java files found");
                 return false;
             }
 
-            // Step 2: アノテーション解析
-            logger.info("📝 Step 2: アノテーション解析開始...");
+            // Step 2: Annotation parsing
+            logger.info("Step 2: Annotation parsing started...");
             List<TestCaseInfo> testCases = annotationParser.processJavaFiles(javaFiles);
-            logger.info("✅ テストケース抽出: {}個", testCases.size());
+            logger.info("Test cases extracted: {} cases", testCases.size());
 
-            // Step 3: カバレッジレポート処理
+            // Step 3: Coverage report processing
             List<CoverageInfo> coverageData = null;
             if (includeCoverage) {
-                logger.info("📈 Step 3: カバレッジレポート処理開始...");
+                logger.info("Step 3: Coverage report processing started...");
 
-                // カバレッジディレクトリの決定
+                // Determine coverage directory
                 String coverageScanDir = (coverageDirectory != null) ? coverageDirectory : sourceDirectory;
                 if (coverageDirectory != null) {
-                    logger.info("   カバレッジディレクトリ: {}", coverageDirectory);
+                    logger.info("   Coverage directory: {}", coverageDirectory);
                 }
 
                 List<Path> coverageFiles = folderScanner.scanForCoverageReports(Paths.get(coverageScanDir));
                 coverageData = coverageParser.processCoverageReports(coverageFiles);
-                logger.info("✅ カバレッジデータ取得: {}個", coverageData.size());
+                logger.info("Coverage data retrieved: {} entries", coverageData.size());
 
-                // カバレッジデータをテストケースにマージ
+                // Merge coverage data with test cases
                 coverageParser.mergeCoverageWithTestCases(testCases, coverageData);
             } else {
-                logger.info("⏭️ Step 3: カバレッジレポート処理をスキップ");
+                logger.info("Step 3: Skipping coverage report processing");
             }
 
-            // Step 3.5: Surefireテストレポート処理
-            logger.info("📊 Step 3.5: テスト実行結果処理開始...");
+            // Step 3.5: Surefire test report processing
+            logger.info("Step 3.5: Test execution result processing started...");
             List<Path> surefireReports = folderScanner.scanForSurefireReports(Paths.get(sourceDirectory));
             if (!surefireReports.isEmpty()) {
                 List<TestExecutionInfo> executionResults = surefireParser.parseSurefireReports(surefireReports);
                 surefireParser.mergeExecutionResults(testCases, executionResults);
-                logger.info("✅ テスト実行結果取得: {}個のテストスイート", executionResults.size());
+                logger.info("Test execution results retrieved: {} test suites", executionResults.size());
             } else {
-                logger.info("⚠️ Surefireテストレポートが見つかりません - テスト実行結果は0/0と表示されます");
+                logger.info("WARNING: Surefire test reports not found - test execution results will be displayed as 0/0");
             }
 
-            // Step 4: Excelレポート生成
-            logger.info("📊 Step 4: Excelレポート生成開始...");
+            // Step 4: Excel report generation
+            logger.info("Step 4: Excel report generation started...");
             boolean excelSuccess = excelBuilder.generateTestSpecificationReport(outputFile, testCases, coverageData);
 
             if (!excelSuccess) {
-                logger.error("❌ Excelレポート生成に失敗しました");
+                logger.error("Excel report generation failed");
                 return false;
             }
-            logger.info("✅ Excelレポート生成完了");
+            logger.info("Excel report generation completed");
 
-            // Step 4.5: CSV出力（オプション）
+            // Step 4.5: CSV output (optional)
             boolean csvSuccess = true;
             if (csvOutput) {
-                logger.info("📄 Step 4.5: CSVレポート生成開始...");
+                logger.info("Step 4.5: CSV report generation started...");
                 boolean testDetailsCsvSuccess = csvBuilder.generateTestDetailsCsv(outputFile, testCases);
                 boolean coverageCsvSuccess = csvBuilder.generateCoverageSheetCsv(outputFile, testCases, coverageData);
 
                 csvSuccess = testDetailsCsvSuccess && coverageCsvSuccess;
 
                 if (csvSuccess) {
-                    logger.info("✅ CSVレポート生成完了");
+                    logger.info("CSV report generation completed");
                 } else {
-                    logger.warn("⚠️ CSVレポート生成に一部失敗しましたが、処理を継続します");
+                    logger.warn("CSV report generation partially failed, but processing continues");
                 }
             }
 
-            // Step 5: 拡張JavaDocレポート生成
-            logger.info("🌐 Step 5: 拡張JavaDocレポート生成開始...");
+            // Step 5: Enhanced JavaDoc report generation
+            logger.info("Step 5: Enhanced JavaDoc report generation started...");
             boolean javaDocSuccess = javaDocBuilder.generateEnhancedJavaDoc(testCases, coverageData);
 
             if (javaDocSuccess) {
-                logger.info("✅ 拡張JavaDocレポート生成完了");
+                logger.info("Enhanced JavaDoc report generation completed");
             } else {
-                logger.warn("⚠️ 拡張JavaDocレポート生成に失敗しましたが、処理を継続します");
+                logger.warn("Enhanced JavaDoc report generation failed, but processing continues");
             }
 
             printSummary(javaFiles.size(), testCases.size(),
@@ -331,7 +370,7 @@ public class TestSpecificationGeneratorMain {
             return true;
 
         } catch (Exception e) {
-            logger.error("処理中にエラーが発生しました", e);
+            logger.error("Error occurred during processing", e);
             return false;
         }
     }
@@ -342,44 +381,44 @@ public class TestSpecificationGeneratorMain {
 
         System.out.println();
         System.out.println("============================================================");
-        System.out.println("🎉 処理完了サマリー");
+        System.out.println("Processing Completed Summary");
         System.out.println("============================================================");
-        System.out.println("📁 Javaファイル処理: " + javaFiles + "個");
-        System.out.println("🧪 テストケース抽出: " + testCases + "個");
-        System.out.println("📈 カバレッジエントリ: " + coverageEntries + "個");
-        System.out.println("⏱️ 処理時間: " + formatDuration(duration));
-        System.out.println("📊 出力ファイル: " + outputFile);
+        System.out.println("Java files processed: " + javaFiles + " files");
+        System.out.println("Test cases extracted: " + testCases + " cases");
+        System.out.println("Coverage entries: " + coverageEntries + " entries");
+        System.out.println("Processing time: " + formatDuration(duration));
+        System.out.println("Output file: " + outputFile);
 
-        // CSV出力ファイル情報も表示
+        // Display CSV output file information as well
         if (csvOutput) {
             String baseName = outputFile.substring(0, outputFile.lastIndexOf('.'));
-            System.out.println("📄 CSV出力ファイル: " + baseName + "_test_details.csv");
-            System.out.println("📄 CSV出力ファイル: " + baseName + "_coverage.csv");
+            System.out.println("CSV output file: " + baseName + "_test_details.csv");
+            System.out.println("CSV output file: " + baseName + "_coverage.csv");
         }
 
-        // ファイルサイズ表示
+        // Display file size
         try {
             Path outputPath = Paths.get(outputFile);
             if (java.nio.file.Files.exists(outputPath)) {
                 long fileSize = java.nio.file.Files.size(outputPath);
-                System.out.println("📏 Excelファイルサイズ: " + String.format("%,d", fileSize) + "バイト");
+                System.out.println("Excel file size: " + String.format("%,d", fileSize) + " bytes");
             }
 
-            // CSVファイルサイズも表示
+            // Display CSV file sizes as well
             if (csvOutput) {
                 String baseName = outputFile.substring(0, outputFile.lastIndexOf('.'));
                 displayCsvFileSize(baseName + "_test_details.csv");
                 displayCsvFileSize(baseName + "_coverage.csv");
             }
         } catch (Exception e) {
-            // ファイルサイズ取得エラーは無視
+            // Ignore file size retrieval errors
         }
 
         System.out.println("============================================================");
         if (csvOutput) {
-            System.out.println("✅ テスト仕様書（ExcelとCSV）が正常に生成されました");
+            System.out.println("Test specification (Excel and CSV) has been successfully generated");
         } else {
-            System.out.println("✅ テスト仕様書が正常に生成されました: " + outputFile);
+            System.out.println("Test specification has been successfully generated: " + outputFile);
         }
     }
 
@@ -388,10 +427,10 @@ public class TestSpecificationGeneratorMain {
             Path csvPath = Paths.get(csvFilePath);
             if (java.nio.file.Files.exists(csvPath)) {
                 long fileSize = java.nio.file.Files.size(csvPath);
-                System.out.println("📏 CSVファイルサイズ (" + csvPath.getFileName() + "): " + String.format("%,d", fileSize) + "バイト");
+                System.out.println("CSV file size (" + csvPath.getFileName() + "): " + String.format("%,d", fileSize) + " bytes");
             }
         } catch (Exception e) {
-            // CSVファイルサイズ取得エラーは無視
+            // Ignore CSV file size retrieval errors
         }
     }
 
@@ -400,15 +439,133 @@ public class TestSpecificationGeneratorMain {
         long millis = duration.toMillis() % 1000;
 
         if (seconds > 0) {
-            return String.format("%d.%03d秒", seconds, millis);
+            return String.format("%d.%03ds", seconds, millis);
         } else {
-            return String.format("0.%03d秒", millis);
+            return String.format("0.%03ds", millis);
         }
     }
 
+    /**
+     * Multi-module specification generation
+     */
+    public boolean generateMultiModuleSpecification(String projectRootPath, String outputDirPath, boolean csvOutput) {
+        try {
+            this.processingStartTime = LocalDateTime.now();
+
+            logger.info("Java Test Specification Generator (Multi-Module) started");
+            logger.info("   Version: {}", VERSION);
+            logger.info("   Project root: {}", projectRootPath);
+            logger.info("   Output directory: {}", outputDirPath);
+
+            Path projectRoot = Paths.get(projectRootPath);
+            Path outputDir = Paths.get(outputDirPath);
+
+            // Check if it's really a multi-module project
+            if (!MavenModuleAnalyzer.isMultiModuleProject(projectRoot)) {
+                logger.error("The specified directory is not a Maven multi-module project: {}", projectRoot);
+                logger.info("For single module, use --source-dir and --output options");
+                return false;
+            }
+
+            // Analyze project structure
+            logger.info("Step 1: Multi-module project analysis started...");
+            MavenModuleAnalyzer analyzer = new MavenModuleAnalyzer();
+            List<ModuleInfo> modules = analyzer.analyzeProject(projectRoot);
+
+            if (modules.isEmpty()) {
+                logger.error("No modules found");
+                return false;
+            }
+
+            logger.info("Modules found: {} modules", modules.size());
+            for (ModuleInfo module : modules) {
+                String status = module.isValid() ? "OK" : "ERROR";
+                logger.info("  [{}] {}", status, module.getModuleName());
+                if (!module.isValid()) {
+                    logger.warn("    Error: {}", module.getValidationError());
+                }
+            }
+
+            // Process all modules
+            logger.info("Step 2: Multi-module processing started...");
+            MultiModuleProcessor processor = new MultiModuleProcessor();
+            List<ModuleResult> results;
+
+            try {
+                results = processor.processAllModules(modules, outputDir, csvOutput);
+            } finally {
+                processor.shutdown();
+            }
+
+            // Summary
+            long successful = results.stream().mapToLong(r -> r.isSuccessful() ? 1 : 0).sum();
+            long failed = results.size() - successful;
+            long totalTestCases = results.stream()
+                .filter(ModuleResult::isSuccessful)
+                .mapToLong(r -> r.hasTestCases() ? r.getTestCases().size() : 0)
+                .sum();
+
+            printMultiModuleSummary(modules.size(), (int) successful, (int) failed,
+                                  (int) totalTestCases, outputDirPath, csvOutput, results);
+
+            return successful > 0; // Success if at least one module was processed successfully
+
+        } catch (Exception e) {
+            logger.error("Error occurred during multi-module processing", e);
+            return false;
+        }
+    }
+
+    private void printMultiModuleSummary(int totalModules, int successfulModules, int failedModules,
+                                       int totalTestCases, String outputDir, boolean csvOutput, List<ModuleResult> results) {
+        LocalDateTime endTime = LocalDateTime.now();
+        java.time.Duration duration = java.time.Duration.between(processingStartTime, endTime);
+
+        System.out.println();
+        System.out.println("============================================================");
+        System.out.println("Multi-Module Processing Completed Summary");
+        System.out.println("============================================================");
+        System.out.println("Total modules: " + totalModules + " modules");
+        System.out.println("Successful modules: " + successfulModules + " modules");
+        if (failedModules > 0) {
+            System.out.println("Failed modules: " + failedModules + " modules");
+        }
+        System.out.println("Total test cases: " + totalTestCases + " cases");
+        System.out.println("Processing time: " + formatDuration(duration));
+        System.out.println("Output directory: " + outputDir);
+
+        System.out.println();
+        System.out.println("Generated files:");
+        System.out.println("  Combined report: combined-report.xlsx");
+        if (csvOutput) {
+            System.out.println("  Combined CSV: combined-report_test_details.csv, combined-report_coverage.csv");
+        }
+
+        for (ModuleResult result : results) {
+            if (result.isSuccessful()) {
+                String moduleName = result.getModuleInfo().getModuleName();
+                System.out.println("  " + moduleName + "/report.xlsx");
+                if (csvOutput && result.hasTestCases()) {
+                    System.out.println("    " + moduleName + "/report_test_details.csv, report_coverage.csv");
+                }
+            }
+        }
+
+        System.out.println("  Processing summary: modules-summary.json");
+        System.out.println("============================================================");
+
+        if (failedModules > 0) {
+            System.out.println("WARNING: Some modules failed to process, but other modules were processed successfully");
+            System.out.println("See modules-summary.json for details");
+        } else {
+            System.out.println("All modules were processed successfully");
+        }
+        System.out.println();
+    }
+
     private void setLogLevel(String logLevel) {
-        // ログレベルの設定はlogback.xmlで管理
-        // ここでは設定確認のみ
-        logger.debug("ログレベル設定: {}", logLevel);
+        // Log level configuration is managed by logback.xml
+        // Only configuration confirmation is done here
+        logger.debug("Log level setting: {}", logLevel);
     }
 }

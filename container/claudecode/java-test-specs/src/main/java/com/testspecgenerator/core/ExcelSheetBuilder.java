@@ -1,6 +1,7 @@
 package com.testspecgenerator.core;
 
 import com.testspecgenerator.model.CoverageInfo;
+import com.testspecgenerator.model.ModuleResult;
 import com.testspecgenerator.model.TestCaseInfo;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -15,63 +16,96 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Excelテスト仕様書を生成するクラス
+ * Class for generating Excel test specification documents
  */
 public class ExcelSheetBuilder {
 
     private static final Logger logger = LoggerFactory.getLogger(ExcelSheetBuilder.class);
 
-    // シート名定数
+    // Sheet name constants
     private static final String TEST_DETAILS_SHEET = "Test Details";
     private static final String SUMMARY_SHEET = "Summary";
     private static final String COVERAGE_SHEET = "Coverage";
     private static final String CONFIGURATION_SHEET = "Configuration";
 
-    // 色定数
+    // Color constants
     private static final short COLOR_LIGHT_BLUE = IndexedColors.LIGHT_BLUE.getIndex();
     private static final short COLOR_LIGHT_YELLOW = IndexedColors.LIGHT_YELLOW.getIndex();
     private static final short COLOR_LIGHT_GREEN = IndexedColors.LIGHT_GREEN.getIndex();
     private static final short COLOR_WHITE = IndexedColors.WHITE.getIndex();
 
     /**
-     * テスト仕様書Excelレポートを生成
+     * Generate test specification Excel report
      */
     public boolean generateTestSpecificationReport(String outputFile, List<TestCaseInfo> testCases, List<CoverageInfo> coverageData) {
-        logger.info("Excelレポート生成開始: {}", outputFile);
+        logger.info("Excel report generation started: {}", outputFile);
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            // 各シートを作成
+            // Create each sheet
             createTestDetailsSheet(workbook, testCases);
             createSummarySheet(workbook, testCases, coverageData);
             createCoverageSheet(workbook, testCases, coverageData);
             createConfigurationSheet(workbook, testCases, coverageData);
 
-            // ファイルに保存
+            // Save to file
             try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                 workbook.write(outputStream);
             }
 
-            // ファイルサイズを取得
+            // Get file size
             long fileSize = Files.size(Paths.get(outputFile));
-            logger.info("Excelレポート生成完了: {} ({:,}バイト)", outputFile, fileSize);
+            logger.info("Excel report generation completed: {} ({:,} bytes)", outputFile, fileSize);
 
             return true;
 
         } catch (Exception e) {
-            logger.error("Excelレポート生成エラー", e);
+            logger.error("Excel report generation error", e);
             return false;
         }
     }
 
     /**
-     * Test Detailsシートを作成
+     * Multi-module combined report generation
+     */
+    public boolean generateCombinedReport(List<TestCaseInfo> allTestCases, Map<String, Object> allCoverageData,
+                                        String outputFile, List<ModuleResult> results) {
+        logger.info("Multi-module combined Excel report generation started: {}", outputFile);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            // Create enhanced sheets for multi-module support
+            createTestDetailsSheetWithModules(workbook, allTestCases, results);
+            createSummarySheetWithModules(workbook, allTestCases, allCoverageData, results);
+            createCoverageSheetWithModules(workbook, allTestCases, allCoverageData, results);
+            createModulesSheet(workbook, results);
+            createConfigurationSheetWithModules(workbook, allTestCases, allCoverageData, results);
+
+            // Save to file
+            try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+                workbook.write(outputStream);
+            }
+
+            // Get file size
+            long fileSize = Files.size(Paths.get(outputFile));
+            logger.info("Multi-module combined Excel report generation completed: {} ({:,} bytes)", outputFile, fileSize);
+
+            return true;
+
+        } catch (Exception e) {
+            logger.error("Multi-module combined Excel report generation error", e);
+            return false;
+        }
+    }
+
+    /**
+     * Create Test Details sheet
      */
     private void createTestDetailsSheet(XSSFWorkbook workbook, List<TestCaseInfo> testCases) {
         Sheet sheet = workbook.createSheet(TEST_DETAILS_SHEET);
 
-        // スタイルを作成
+        // Create styles
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dataStyle = createDataStyle(workbook);
 
@@ -366,7 +400,7 @@ public class ExcelSheetBuilder {
 
     // スタイル作成メソッド群
 
-    private CellStyle createHeaderStyle(XSSFWorkbook workbook) {
+    private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
         font.setBold(true);
@@ -507,5 +541,214 @@ public class ExcelSheetBuilder {
             return 0.0;
         }
         return (double) totalPassed / totalTests * 100.0;
+    }
+
+    // Multi-module specific sheet creation methods
+
+    /**
+     * Creates Test Details sheet with module information for multi-module projects
+     */
+    private void createTestDetailsSheetWithModules(Workbook workbook, List<TestCaseInfo> testCases, List<ModuleResult> results) {
+        Sheet sheet = workbook.createSheet(TEST_DETAILS_SHEET);
+
+        // Create header style
+        CellStyle headerStyle = createHeaderStyle(workbook);
+
+        // Header row with module column
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {
+            "No.", "FQCN (完全修飾クラス名)", "Module Name", "ソフトウェア・サービス", "項目名", "試験内容",
+            "確認項目", "テスト対象モジュール名", "テスト実施ベースラインバージョン",
+            "テストケース作成者", "テストケース作成日", "テストケース修正者", "テストケース修正日"
+        };
+
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        // Data rows
+        int rowIndex = 1;
+        for (ModuleResult result : results) {
+            if (!result.isSuccessful() || !result.hasTestCases()) continue;
+
+            String moduleName = result.getModuleInfo().getModuleName();
+            for (TestCaseInfo testCase : result.getTestCases()) {
+                Row row = sheet.createRow(rowIndex);
+
+                row.createCell(0).setCellValue(rowIndex);
+                row.createCell(1).setCellValue(testCase.getFullyQualifiedName());
+                row.createCell(2).setCellValue(moduleName);
+                row.createCell(3).setCellValue(testCase.getSoftwareService());
+                row.createCell(4).setCellValue(testCase.getTestItemName());
+                row.createCell(5).setCellValue(testCase.getTestContent());
+                row.createCell(6).setCellValue(testCase.getConfirmationItem());
+                row.createCell(7).setCellValue(testCase.getTestModule());
+                row.createCell(8).setCellValue(testCase.getBaselineVersion());
+                row.createCell(9).setCellValue(testCase.getCreator());
+                row.createCell(10).setCellValue(testCase.getCreatedDate());
+                row.createCell(11).setCellValue(testCase.getModifier());
+                row.createCell(12).setCellValue(testCase.getModifiedDate());
+
+                rowIndex++;
+            }
+        }
+
+        // Auto-size columns
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    /**
+     * Creates Summary sheet with multi-module statistics
+     */
+    private void createSummarySheetWithModules(Workbook workbook, List<TestCaseInfo> allTestCases,
+                                             Map<String, Object> allCoverageData, List<ModuleResult> results) {
+        Sheet sheet = workbook.createSheet(SUMMARY_SHEET);
+
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        int rowIndex = 0;
+
+        // Overall summary
+        Row titleRow = sheet.createRow(rowIndex++);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellValue("マルチモジュールプロジェクト統合サマリー");
+        titleCell.setCellStyle(headerStyle);
+
+        rowIndex++; // Empty row
+
+        // Project statistics
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("総モジュール数: " + results.size());
+        long successful = results.stream().mapToLong(r -> r.isSuccessful() ? 1 : 0).sum();
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("成功したモジュール: " + successful);
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("失敗したモジュール: " + (results.size() - successful));
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("総テストケース: " + allTestCases.size());
+
+        rowIndex++; // Empty row
+
+        // Module-by-module breakdown
+        Row moduleHeaderRow = sheet.createRow(rowIndex++);
+        String[] moduleHeaders = {"Module Name", "Status", "Test Cases", "Processing Time (ms)"};
+        for (int i = 0; i < moduleHeaders.length; i++) {
+            Cell cell = moduleHeaderRow.createCell(i);
+            cell.setCellValue(moduleHeaders[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        for (ModuleResult result : results) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(result.getModuleInfo().getModuleName());
+            row.createCell(1).setCellValue(result.getProcessingStatus().toString());
+            row.createCell(2).setCellValue(result.hasTestCases() ? result.getTestCases().size() : 0);
+            row.createCell(3).setCellValue(result.getProcessingTimeMs());
+        }
+
+        // Auto-size columns
+        for (int i = 0; i < 4; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    /**
+     * Creates Coverage sheet with module information
+     */
+    private void createCoverageSheetWithModules(Workbook workbook, List<TestCaseInfo> allTestCases,
+                                              Map<String, Object> allCoverageData, List<ModuleResult> results) {
+        // For now, create a simplified coverage sheet
+        // In a full implementation, this would need to aggregate coverage data from all modules
+        Sheet sheet = workbook.createSheet(COVERAGE_SHEET);
+
+        CellStyle headerStyle = createHeaderStyle(workbook);
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"Module Name", "Test Cases", "Coverage Status"};
+
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 1;
+        for (ModuleResult result : results) {
+            if (!result.isSuccessful()) continue;
+
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(result.getModuleInfo().getModuleName());
+            row.createCell(1).setCellValue(result.hasTestCases() ? result.getTestCases().size() : 0);
+            row.createCell(2).setCellValue(result.hasCoverageData() ? "Available" : "No Coverage Data");
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    /**
+     * Creates a new Modules sheet with module processing details
+     */
+    private void createModulesSheet(Workbook workbook, List<ModuleResult> results) {
+        Sheet sheet = workbook.createSheet("Modules");
+
+        CellStyle headerStyle = createHeaderStyle(workbook);
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {
+            "Module Name", "Status", "Test Cases", "Has Coverage", "Processing Time (ms)", "Error Message"
+        };
+
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 1;
+        for (ModuleResult result : results) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(result.getModuleInfo().getModuleName());
+            row.createCell(1).setCellValue(result.getProcessingStatus().toString());
+            row.createCell(2).setCellValue(result.hasTestCases() ? result.getTestCases().size() : 0);
+            row.createCell(3).setCellValue(result.hasCoverageData() ? "Yes" : "No");
+            row.createCell(4).setCellValue(result.getProcessingTimeMs());
+            row.createCell(5).setCellValue(result.getErrorMessage() != null ? result.getErrorMessage() : "");
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    /**
+     * Creates Configuration sheet with multi-module information
+     */
+    private void createConfigurationSheetWithModules(Workbook workbook, List<TestCaseInfo> allTestCases,
+                                                    Map<String, Object> allCoverageData, List<ModuleResult> results) {
+        Sheet sheet = workbook.createSheet(CONFIGURATION_SHEET);
+
+        int rowIndex = 0;
+
+        // Processing information
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("処理モード: マルチモジュール");
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("処理日時: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("総モジュール数: " + results.size());
+
+        long successful = results.stream().mapToLong(r -> r.isSuccessful() ? 1 : 0).sum();
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("成功モジュール数: " + successful);
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("総テストケース数: " + allTestCases.size());
+
+        rowIndex++; // Empty row
+
+        // Module list
+        sheet.createRow(rowIndex++).createCell(0).setCellValue("処理されたモジュール:");
+        for (ModuleResult result : results) {
+            String status = result.isSuccessful() ? "✓" : "✗";
+            sheet.createRow(rowIndex++).createCell(0)
+                 .setCellValue(status + " " + result.getModuleInfo().getModuleName());
+        }
+
+        sheet.autoSizeColumn(0);
     }
 }

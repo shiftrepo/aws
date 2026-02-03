@@ -15,9 +15,11 @@ Java Test Specification Generatorは、Javaテストファイルからカスタ�
 - **📈 C1カバレッジ分析**: JaCoCoカバレッジレポートと統合した条件判定カバレッジメトリクス
 - **📊 プロフェッショナルなExcelレポート**: 4シート構成の詳細分析レポート
 - **🖥️ コマンドライン対応**: CLI実行と対話モードをサポート
-- **🐧 Linuxサポート**: Ubuntu/Debian/CentOS/RHEL/Fedora対応
+- **🐧 Linuxサポート**: Ubuntu/Debian/CentOS/RHEL/Fedora対応（ASCII文字出力対応）
 - **📂 再帰的スキャン**: プロジェクト全体のディレクトリ構造を自動処理
 - **🏗️ Maven対応**: 標準的なJavaプロジェクト構造とビルドツール
+- **🌐 国際化対応**: Linux/English環境でのASCII文字出力による機種依存文字回避
+- **🔬 高カバレッジ**: 68%のコードカバレッジを達成した堅牢な実装
 
 ## ⚡ クイックスタート（Javaコマンドベース） 🎯 推奨
 
@@ -91,7 +93,7 @@ java -jar target/java-test-specification-generator-1.0.0.jar \
 
 ```bash
 # ステップ1: ビルドとテスト実行（JaCoCoレポート生成）
-mvn clean compile test package
+mvn clean compile test jacoco:report package
 
 # ステップ2: カバレッジレポートを一時コピー（target除外対策）
 cp -r target/site/jacoco ./coverage-reports
@@ -164,7 +166,7 @@ docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  bash -c "mvn clean compile test package && \
+  bash -c "mvn clean compile test jacoco:report package && \
            cp -r target/site/jacoco ./coverage-reports && \
            java -jar target/java-test-specification-generator-1.0.0.jar \
            --source-dir /workspace \
@@ -299,7 +301,7 @@ docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  bash -c "mvn clean compile test package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification_complete.xlsx && rm -rf coverage-reports"
+  bash -c "mvn clean compile test jacoco:report package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification_complete.xlsx && rm -rf coverage-reports"
 
 # またはステップごとに実行する場合:
 # 1. ビルド・テスト・カバレッジ生成
@@ -398,7 +400,7 @@ docker run --rm \
   -v "$(pwd)":/workspace:Z \
   -w /workspace \
   maven:3.9-eclipse-temurin-17 \
-  bash -c "mvn clean compile test package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification_complete.xlsx && rm -rf coverage-reports"
+  bash -c "mvn clean compile test jacoco:report package && cp -r target/site/jacoco ./coverage-reports && java -jar target/java-test-specification-generator-1.0.0.jar --source-dir /workspace --output test_specification_complete.xlsx && rm -rf coverage-reports"
 
 # 3. 結果確認
 ls -la test_specification_complete.xlsx
@@ -535,8 +537,8 @@ mvn test
 # パッケージ作成（JAR生成）
 mvn package
 
-# JaCoCoカバレッジレポート生成（testと同時実行）
-mvn clean compile test
+# JaCoCoカバレッジレポート生成（推奨方法）
+mvn clean compile test jacoco:report
 
 # カバレッジレポート確認
 ls -la target/site/jacoco/jacoco.xml
@@ -985,30 +987,43 @@ grep "annotation" test_spec_generator.log
 
 #### ❌ **問題8: カバレッジレポートが見つからない**
 
-**エラー**: `Coverage files found: 0`
+**エラー**: `Coverage files found: 0` または `Coverage data: 0 entries`
+
+**重要**: このツールはXMLレポート（jacoco.xml）のみを解析対象とし、HTMLレポートは処理しません。
 
 **解決手順:**
 ```bash
 # Step 1: JaCoCoレポートファイルの確認
 find . -name "*.xml" -path "*/jacoco*" 2>/dev/null
 find . -name "*coverage*.xml" 2>/dev/null
-find . -name "*coverage*.html" 2>/dev/null
 
-# Step 2: JaCoCoレポートを生成（推奨方法）
-mvn clean compile test
+# Step 2: JaCoCoレポートを生成（⭐推奨方法）
+mvn clean compile test jacoco:report
 
-# Step 3: 生成されたファイルを確認
+# Step 3: 生成されたXMLファイルを確認
 ls -la target/site/jacoco/jacoco.xml
-# 期待される出力: -rw-r--r--. 1 user group 114443 Jan  7 06:43 target/site/jacoco/jacoco.xml
+# 期待される出力: -rw-r--r--. 1 user group 310KB Jan  7 06:43 target/site/jacoco/jacoco.xml
 
-# Step 4: カバレッジ統合でテスト仕様書生成
+# Step 4: XMLレポート内容の確認
+head -20 target/site/jacoco/jacoco.xml
+# 期待される内容: <?xml version="1.0" encoding="UTF-8"?><report name="JaCoCo Coverage Report">
+
+# Step 5: カバレッジ統合でテスト仕様書生成
 # target除外対策として一時コピーしてから実行
 cp -r target/site/jacoco ./coverage-reports
 java -jar target/java-test-specification-generator-1.0.0.jar \
-    --source-dir /path/to/project \
+    --source-dir . \
     --output test_result.xlsx
 rm -rf coverage-reports
+
+# ⚠️ 注意: target/site/jacoco/index.htmlがあってもXMLファイルがない場合は
+# 上記のjacoco:reportコマンドでXMLレポートを明示的に生成してください
 ```
+
+**よくある原因と対策:**
+- **HTMLのみでXMLなし**: `mvn jacoco:report`でXML生成
+- **古いMavenキャッシュ**: `rm -rf ~/.m2/repository/org/jacoco` してからリビルド
+- **JaCoCoプラグイン未設定**: pom.xmlにjacoco-maven-pluginの設定を確認
 
 ### 🏢 特殊環境での問題
 
@@ -1077,9 +1092,49 @@ docker run --rm \
   bash -c "echo 'コンテナ内で実行中' && mvn --version"
 ```
 
+### 🌐 国際化・環境対応の問題
+
+#### ❌ **問題11: Linux/English環境での文字化け**
+
+**問題**: Linux環境やEnglish locale環境での日本語文字や絵文字の表示問題
+
+**解決方法**: 本ツールは全ログとコンソール出力をASCII文字に統一済み
+```bash
+# ツール実行時の出力例（ASCII文字のみ）
+java -jar target/java-test-specification-generator-1.0.0.jar \
+    --source-dir . \
+    --output test_result.xlsx
+
+# 出力例（日本語環境と同様の情報をASCII文字で表示）:
+# Java Test Specification Generator started
+#    Version: 1.0.0
+#    Source: /path/to/project
+#    Output: test_result.xlsx
+#
+# Step 1: Scanning Java files...
+# [OK] Java files found: 16
+#
+# Step 2: Parsing annotations...
+# [OK] Test cases extracted: 35
+#
+# Step 3: Processing coverage reports...
+# [OK] Coverage data retrieved: 166 entries
+#
+# Step 4: Building Excel report...
+# [OK] Excel report generated successfully
+#
+# [OK] Test specification successfully generated: test_result.xlsx
+```
+
+**特徴:**
+- 機種依存文字（絵文字、記号）を完全排除
+- 2バイト文字をASCII文字に置換
+- Linux環境での完全互換性を確保
+- ログファイルもASCII文字のみ出力
+
 ### 📊 出力とログの問題
 
-#### ❌ **問題11: Excel出力が正しくない**
+#### ❌ **問題12: Excel出力が正しくない**
 
 **問題**: 空のExcelファイルや文字化け
 
@@ -1208,15 +1263,17 @@ java -Dlogback.configurationFile=custom-logback.xml \
 
 ## 🔄 バージョン情報
 
-### Version 1.0.0 (Java版) - 2026-01-07 ⭐ **現在のバージョン**
+### Version 1.0.0 (Java版) - 2026-02-03 ⭐ **現在のバージョン**
 - ✅ **完全Java実装**: 最新のJava 17技術スタック
 - ⚡ **高速処理**: 0.3秒での処理実現
 - 🖥️ **CLI対応**: コマンドライン実行サポート
 - 🐧 **Linuxサポート**: Ubuntu/Debian/CentOS/RHEL/Fedora対応
 - 🏗️ **Maven統合**: 標準的なJavaプロジェクト構造
 - 📊 **同等のExcel生成**: 4シート構成の詳細レポート
-- 🧪 **JUnitテスト**: 包括的なテストカバレッジ
+- 🧪 **JUnitテスト**: 包括的なテストカバレッジ（68%コードカバレッジ達成）
 - 🔄 **PythonとVBA版からの完全移行**: 統一されたJava実装
+- 🌐 **国際化対応**: ASCII文字出力による Linux/English 環境完全対応
+- 🔍 **改善されたカバレッジ処理**: jacoco:report コマンドによる確実なXMLレポート生成
 
 ### 📜 移行履歴
 

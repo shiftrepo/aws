@@ -45,6 +45,28 @@ public class CoverageReportParser {
      * カバレッジレポートファイルのリストを処理
      */
     public List<CoverageInfo> processCoverageReports(List<Path> coverageFiles) {
+        return processCoverageReports(coverageFiles, null);
+    }
+
+    /**
+     * 複数のカバレッジレポートファイルを処理し、動的パッケージフィルタリングを適用
+     */
+    public Map<String, Object> parseCoverageReports(List<Path> coverageFiles, List<Path> testFiles) {
+        List<CoverageInfo> coverageInfos = processCoverageReports(coverageFiles, testFiles);
+
+        // Convert to Map format for compatibility
+        Map<String, Object> coverageData = new java.util.HashMap<>();
+        for (int i = 0; i < coverageInfos.size(); i++) {
+            coverageData.put("coverage_" + i, convertCoverageInfoToMap(coverageInfos.get(i)));
+        }
+
+        return coverageData;
+    }
+
+    /**
+     * 複数のカバレッジレポートファイルを処理し、動的パッケージフィルタリングを適用して結合された結果を返します
+     */
+    public List<CoverageInfo> processCoverageReports(List<Path> coverageFiles, List<Path> testFiles) {
         logger.info("カバレッジレポート処理開始: {}個のファイル", coverageFiles.size());
 
         List<CoverageInfo> coverageData = new ArrayList<>();
@@ -69,6 +91,13 @@ public class CoverageReportParser {
      * 単一のカバレッジレポートファイルを処理
      */
     public List<CoverageInfo> processCoverageFile(Path coverageFile) throws IOException {
+        return processCoverageFile(coverageFile, null);
+    }
+
+    /**
+     * 単一のカバレッジレポートファイルを処理し、動的パッケージフィルタリングを適用
+     */
+    public List<CoverageInfo> processCoverageFile(Path coverageFile, java.util.Set<String> allowedPackages) throws IOException {
         String fileName = coverageFile.getFileName().toString().toLowerCase();
 
         List<CoverageInfo> coverageInfos;
@@ -81,24 +110,50 @@ public class CoverageReportParser {
             return new ArrayList<>();
         }
 
-        // com.exampleパッケージのカバレッジのみをフィルタリング
-        // （ツール自体のカバレッジは除外）
+        // 動的パッケージフィルタリング（ツール自体のパッケージは常に除外）
         List<CoverageInfo> filteredCoverage = new ArrayList<>();
         for (CoverageInfo coverage : coverageInfos) {
             String packageName = coverage.getPackageName();
-            if (packageName != null && packageName.startsWith("com/example")) {
-                filteredCoverage.add(coverage);
-                logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
-                    coverage.getClassName(), coverage.getMethodName(), packageName);
-            } else if (packageName != null && packageName.startsWith("com.example")) {
-                filteredCoverage.add(coverage);
-                logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
-                    coverage.getClassName(), coverage.getMethodName(), packageName);
+
+            if (packageName != null) {
+                // Always exclude tool's own package
+                if (packageName.startsWith("com.testspecgenerator") || packageName.startsWith("com/testspecgenerator")) {
+                    continue;
+                }
+
+                // If allowedPackages is provided, use dynamic filtering
+                if (allowedPackages != null && !allowedPackages.isEmpty()) {
+                    boolean isAllowed = false;
+                    String normalizedPackage = packageName.replace('/', '.');
+
+                    for (String allowedPackage : allowedPackages) {
+                        if (normalizedPackage.startsWith(allowedPackage)) {
+                            isAllowed = true;
+                            break;
+                        }
+                    }
+
+                    if (isAllowed) {
+                        filteredCoverage.add(coverage);
+                        logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
+                            coverage.getClassName(), coverage.getMethodName(), packageName);
+                    }
+                } else {
+                    // Fallback to com.example for backward compatibility
+                    if (packageName.startsWith("com/example") || packageName.startsWith("com.example")) {
+                        filteredCoverage.add(coverage);
+                        logger.debug("カバレッジ追加: {}.{} (パッケージ: {})",
+                            coverage.getClassName(), coverage.getMethodName(), packageName);
+                    }
+                }
             }
         }
 
-        logger.info("カバレッジフィルタリング: 全{}個 -> com.example: {}個",
-            coverageInfos.size(), filteredCoverage.size());
+        String filterDescription = (allowedPackages != null && !allowedPackages.isEmpty())
+            ? allowedPackages.toString()
+            : "com.example (default)";
+        logger.info("カバレッジフィルタリング: 全{}個 -> {}: {}個",
+            coverageInfos.size(), filterDescription, filteredCoverage.size());
 
         return filteredCoverage;
     }
@@ -449,5 +504,64 @@ public class CoverageReportParser {
         logger.info("XMLレポート: {}, HTMLレポート: {}", stats.get("xmlReports"), stats.get("htmlReports"));
         logger.info("平均ブランチカバレッジ: {:.1f}%", stats.get("averageBranchCoverage"));
         logger.info("高カバレッジ（80%以上）: {}個", stats.get("highCoverageCount"));
+    }
+
+    /**
+     * Extract package names from test files for dynamic filtering
+     */
+    private java.util.Set<String> getFilteredPackageNames(List<Path> testFiles) {
+        java.util.Set<String> packageNames = new java.util.HashSet<>();
+
+        if (testFiles == null || testFiles.isEmpty()) {
+            return packageNames;
+        }
+
+        for (Path testFile : testFiles) {
+            try {
+                String packageName = extractPackageFromFile(testFile);
+                if (packageName != null && !packageName.isEmpty()) {
+                    packageNames.add(packageName);
+                    logger.debug("パッケージ名抽出: {} -> {}", testFile.getFileName(), packageName);
+                }
+            } catch (Exception e) {
+                logger.debug("パッケージ名抽出失敗: {} - {}", testFile, e.getMessage());
+            }
+        }
+
+        logger.info("動的パッケージ検出完了: {} unique packages from {} test files",
+                   packageNames.size(), testFiles.size());
+        return packageNames;
+    }
+
+    /**
+     * Extract package name from a Java file
+     */
+    private String extractPackageFromFile(Path javaFile) throws java.io.IOException {
+        try (java.io.BufferedReader reader = Files.newBufferedReader(javaFile)) {
+            return reader.lines()
+                .limit(50) // Only check first 50 lines for package declaration
+                .filter(line -> line.trim().startsWith("package "))
+                .map(line -> line.trim().replaceFirst("package\\s+", "").replaceAll(";.*", ""))
+                .findFirst()
+                .orElse(null);
+        }
+    }
+
+    /**
+     * Convert CoverageInfo to Map for compatibility with existing code
+     */
+    private Map<String, Object> convertCoverageInfoToMap(CoverageInfo coverage) {
+        Map<String, Object> map = new java.util.HashMap<>();
+        map.put("className", coverage.getClassName());
+        map.put("methodName", coverage.getMethodName());
+        map.put("packageName", coverage.getPackageName());
+        map.put("branchCoverage", coverage.getBranchCoverage());
+        map.put("lineCoverage", coverage.getLineCoverage());
+        map.put("instructionCoverage", coverage.getInstructionCoverage());
+        map.put("branchesCovered", coverage.getBranchesCovered());
+        map.put("branchesTotal", coverage.getBranchesTotal());
+        map.put("linesCovered", coverage.getLinesCovered());
+        map.put("linesTotal", coverage.getLinesTotal());
+        return map;
     }
 }
