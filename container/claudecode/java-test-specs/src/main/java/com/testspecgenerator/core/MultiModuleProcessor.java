@@ -368,16 +368,44 @@ public class MultiModuleProcessor {
             return coverageInfoList;
         }
 
-        // This is a simplified conversion - in reality, we'd need to understand
-        // the actual structure of the coverage data
+        // Convert coverage data back to CoverageInfo objects
         for (Map.Entry<String, Object> entry : coverageData.entrySet()) {
             try {
                 if (entry.getValue() instanceof Map) {
-                    Map<String, Object> coverageEntry = (Map<String, Object>) entry.getValue();
-                    CoverageInfo info = new CoverageInfo();
-                    // Set up basic coverage info based on available data
-                    // This would need to be implemented based on actual CoverageInfo structure
-                    coverageInfoList.add(info);
+                    Map<String, Object> coverageMap = (Map<String, Object>) entry.getValue();
+
+                    // Extract required fields
+                    String className = (String) coverageMap.get("className");
+                    String methodName = (String) coverageMap.get("methodName");
+
+                    if (className != null && methodName != null) {
+                        CoverageInfo info = new CoverageInfo(className, methodName);
+
+                        // Set package name
+                        if (coverageMap.get("packageName") != null) {
+                            info.setPackageName((String) coverageMap.get("packageName"));
+                        }
+
+                        // Set coverage metrics
+                        if (coverageMap.get("branchesCovered") != null && coverageMap.get("branchesTotal") != null) {
+                            Integer branchesCovered = (Integer) coverageMap.get("branchesCovered");
+                            Integer branchesTotal = (Integer) coverageMap.get("branchesTotal");
+                            info.setBranchInfo(branchesCovered, branchesTotal);
+                        }
+
+                        if (coverageMap.get("linesCovered") != null && coverageMap.get("linesTotal") != null) {
+                            Integer linesCovered = (Integer) coverageMap.get("linesCovered");
+                            Integer linesTotal = (Integer) coverageMap.get("linesTotal");
+                            info.setLineInfo(linesCovered, linesTotal);
+                        }
+
+                        if (coverageMap.get("instructionCoverage") != null) {
+                            // Set other metrics as available
+                            // Note: These would be calculated from covered/total values in real implementation
+                        }
+
+                        coverageInfoList.add(info);
+                    }
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Failed to convert coverage entry: " + entry.getKey(), e);
