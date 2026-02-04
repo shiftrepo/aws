@@ -10,7 +10,8 @@ build/
 # Testing
 coverage/
 .nyc_output/
-tests/coverage/
+tests/coverage/*
+!tests/coverage/screenshots/
 test-results/
 playwright-report/
 
