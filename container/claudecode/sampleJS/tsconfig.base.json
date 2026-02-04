@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@samplejs/domain": ["./modules/domain/src"],
+      "@samplejs/application": ["./modules/application/src"],
+      "@samplejs/api": ["./modules/api/src"],
+      "@samplejs/ui": ["./modules/ui/src"],
+      "@samplejs/util": ["./modules/util/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", ".nyc_output", "coverage"]
+}

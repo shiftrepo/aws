@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>職員保守システム - デモ画面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background-color: #f9fafb;
+      color: #111827;
+      padding: 20px;
+    }
+
+    .demo-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: #111827;
+    }
+
+    .screen-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 40px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .screen-title {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .screen-description {
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+
+    .mockup {
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      background: #f9fafb;
+      font-family: monospace;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: 500;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    .button-primary {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .button-secondary {
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+
+    .button-danger {
+      background-color: #dc2626;
+      color: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+      background-color: #f9fafb;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    tr:hover {
+      background-color: #f9fafb;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .error-message {
+      background-color: #fee2e2;
+      color: #dc2626;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+
+    .error-input {
+      border-color: #dc2626;
+    }
+
+    .error-text {
+      color: #dc2626;
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .status-success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-error {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+
+    .code-block {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h1>📊 職員保守システム - デモ画面一覧</h1>
+
+    <!-- 1. 職員一覧画面（データあり） -->
+    <div class="screen-section">
+      <div class="screen-title">✅ 1. 職員一覧画面（正常系）</div>
+      <div class="screen-description">
+        職員のリストを表示する画面です。編集・削除ボタンが各行に表示されます。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Employee Management</h2>
+          <span class="button button-primary">Add Employee</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Hire Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>山田太郎</td>
+              <td>yamada@example.com</td>
+              <td>開発部</td>
+              <td>シニアエンジニア</td>
+              <td>2020-04-01</td>
+              <td>
+                <span class="button button-secondary" style="font-size: 0.875rem; padding: 4px 12px;">Edit</span>
+                <span class="button button-danger" style="font-size: 0.875rem; padding: 4px 12px;">Delete</span>
+              </td>
+            </tr>
+            <tr>
+              <td>佐藤花子</td>
+              <td>sato@example.com</td>
+              <td>営業部</td>
+              <td>マネージャー</td>
+              <td>2019-07-15</td>
+              <td>
+                <span class="button button-secondary" style="font-size: 0.875rem; padding: 4px 12px;">Edit</span>
+                <span class="button button-danger" style="font-size: 0.875rem; padding: 4px 12px;">Delete</span>
+              </td>
+            </tr>
+            <tr>
+              <td>鈴木一郎</td>
+              <td>suzuki@example.com</td>
+              <td>人事部</td>
+              <td>スペシャリスト</td>
+              <td>2021-01-10</td>
+              <td>
+                <span class="button button-secondary" style="font-size: 0.875rem; padding: 4px 12px;">Edit</span>
+                <span class="button button-danger" style="font-size: 0.875rem; padding: 4px 12px;">Delete</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. 空の状態 -->
+    <div class="screen-section">
+      <div class="screen-title">⚠️ 2. 職員一覧画面（空の状態）</div>
+      <div class="screen-description">
+        職員データが存在しない場合の表示です。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Employee Management</h2>
+          <span class="button button-primary">Add Employee</span>
+        </div>
+        <div class="empty-state">
+          No employees found. Click 'Add Employee' to create one.
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 新規作成フォーム -->
+    <div class="screen-section">
+      <div class="screen-title">✅ 3. 職員新規作成フォーム</div>
+      <div class="screen-description">
+        新しい職員を登録するためのフォームです。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Add New Employee</h2>
+        </div>
+        <form>
+          <div class="form-group">
+            <label class="form-label">Name <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" placeholder="田中健太">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span style="color: #dc2626;">*</span></label>
+            <input type="email" class="form-input" placeholder="tanaka@example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" placeholder="マーケティング部">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" placeholder="アシスタント">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hire Date <span style="color: #dc2626;">*</span></label>
+            <input type="date" class="form-input" value="2024-01-15">
+          </div>
+          <div style="margin-top: 24px;">
+            <span class="button button-primary">Create</span>
+            <span class="button button-secondary">Cancel</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. バリデーションエラー -->
+    <div class="screen-section">
+      <div class="screen-title">❌ 4. フォームバリデーションエラー</div>
+      <div class="screen-description">
+        必須項目が未入力、またはメールアドレス形式が不正な場合のエラー表示です。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Add New Employee</h2>
+        </div>
+        <form>
+          <div class="form-group">
+            <label class="form-label">Name <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input error-input" value="">
+            <div class="error-text">Name is required</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span style="color: #dc2626;">*</span></label>
+            <input type="email" class="form-input error-input" value="invalid-email">
+            <div class="error-text">Invalid email format</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input error-input" value="">
+            <div class="error-text">Department is required</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" value="">
+            <div class="error-text">Position is required</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hire Date <span style="color: #dc2626;">*</span></label>
+            <input type="date" class="form-input error-input" value="">
+            <div class="error-text">Hire date is required</div>
+          </div>
+          <div style="margin-top: 24px;">
+            <span class="button button-primary">Create</span>
+            <span class="button button-secondary">Cancel</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. API エラー -->
+    <div class="screen-section">
+      <div class="screen-title">❌ 5. APIエラー（サーバーエラー）</div>
+      <div class="screen-description">
+        サーバーがエラーを返した場合の表示です（HTTP 500など）。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Add New Employee</h2>
+        </div>
+        <div class="error-message">
+          API Error: 500 - {"error":"Internal Server Error"}
+        </div>
+        <form>
+          <div class="form-group">
+            <label class="form-label">Name <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" value="Test User">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span style="color: #dc2626;">*</span></label>
+            <input type="email" class="form-input" value="test@example.com">
+          </div>
+          <div style="margin-top: 24px;">
+            <span class="button button-primary">Create</span>
+            <span class="button button-secondary">Cancel</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 6. ネットワークエラー -->
+    <div class="screen-section">
+      <div class="screen-title">❌ 6. ネットワークエラー</div>
+      <div class="screen-description">
+        APIサーバーに接続できない場合のエラー表示です。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Employee Management</h2>
+          <span class="button button-primary">Add Employee</span>
+        </div>
+        <div class="error-message">
+          Network Error: No response received
+        </div>
+        <div class="empty-state">
+          Unable to load employee data
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. 編集フォーム -->
+    <div class="screen-section">
+      <div class="screen-title">✅ 7. 職員編集フォーム</div>
+      <div class="screen-description">
+        既存の職員情報を編集するフォームです。データが事前にロードされています。
+      </div>
+      <div class="mockup">
+        <div class="page-header">
+          <h2 style="font-size: 2rem; font-weight: bold;">Edit Employee</h2>
+        </div>
+        <form>
+          <div class="form-group">
+            <label class="form-label">Name <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" value="高橋美咲">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span style="color: #dc2626;">*</span></label>
+            <input type="email" class="form-input" value="takahashi@example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" value="総務部">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position <span style="color: #dc2626;">*</span></label>
+            <input type="text" class="form-input" value="シニアリーダー" style="background-color: #fef3c7;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hire Date <span style="color: #dc2626;">*</span></label>
+            <input type="date" class="form-input" value="2018-03-20">
+          </div>
+          <div style="margin-top: 24px;">
+            <span class="button button-primary">Update</span>
+            <span class="button button-secondary">Cancel</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- アーキテクチャ情報 -->
+    <div class="screen-section">
+      <div class="screen-title">🏗️ アーキテクチャ構成</div>
+      <div class="screen-description">
+        本プロジェクトはMaven風のマルチモジュール構成で実装されています。
+      </div>
+      <div class="code-block">
+domain      → 依存なし（純粋なビジネスロジック）
+util        → 依存なし（ユーティリティ）
+application → domain のみに依存（UseCase層）
+api         → domain, application に依存（API通信）
+ui          → domain, application, util に依存（UIコンポーネント）
+web (app)   → すべてのモジュールに依存可能
+      </div>
+      <div style="margin-top: 20px;">
+        <span class="status-badge status-success">✓ ESLintで依存方向を強制</span>
+        <span class="status-badge status-success">✓ TypeScript strict mode</span>
+        <span class="status-badge status-success">✓ カバレッジ80%以上</span>
+      </div>
+    </div>
+
+    <!-- テスト状況 -->
+    <div class="screen-section">
+      <div class="screen-title">🧪 テスト実装状況</div>
+      <div class="mockup">
+        <h3 style="margin-bottom: 10px;">単体テスト (Vitest)</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li>✅ Domain: Employee, EmployeeId, Email のテスト</li>
+          <li>✅ Application: CreateEmployeeUseCase のテスト</li>
+          <li>✅ API: EmployeeRepository のテスト (MSW使用)</li>
+          <li>✅ UI: Button コンポーネントのテスト</li>
+          <li>✅ Util: EmailValidator のテスト</li>
+        </ul>
+
+        <h3 style="margin: 20px 0 10px 0;">E2Eテスト (Playwright)</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li>✅ 職員一覧の表示</li>
+          <li>✅ 職員の新規作成</li>
+          <li>✅ 職員情報の編集</li>
+          <li>✅ 職員の削除</li>
+          <li>✅ フォームバリデーション</li>
+          <li>✅ APIエラーハンドリング</li>
+          <li>✅ ネットワークエラー</li>
+        </ul>
+
+        <h3 style="margin: 20px 0 10px 0;">カバレッジ統合</h3>
+        <p style="margin-left: 20px;">
+          Unit Test + E2E Test のカバレッジをマージして統合レポートを生成<br>
+          目標: Lines 80%, Statements 80%, Functions 80%, Branches 80%
+        </p>
+      </div>
+    </div>
+
+    <!-- 実行方法 -->
+    <div class="screen-section">
+      <div class="screen-title">🚀 ローカル実行方法</div>
+      <div class="code-block">
+# 依存関係のインストール
+pnpm install
+
+# Playwrightブラウザのインストール
+pnpm playwright:install
+
+# 開発サーバー起動
+pnpm dev
+
+# ブラウザで http://localhost:3000 を開く
+
+# テスト実行（別ターミナル）
+pnpm test              # 単体テスト
+pnpm build:web         # ビルド
+pnpm test:e2e          # E2Eテスト
+pnpm coverage:report   # カバレッジレポート生成
+      </div>
+    </div>
+
+    <!-- 注意事項 -->
+    <div class="screen-section" style="background-color: #fef3c7; border-left: 4px solid #f59e0b;">
+      <div class="screen-title" style="color: #92400e;">⚠️ 注意事項</div>
+      <p style="color: #92400e; line-height: 1.6;">
+        このデモページは、実際のブラウザでのレンダリング結果のモックアップです。<br>
+        実際のアプリケーションは、上記の実行方法に従ってローカル環境で起動してご確認ください。<br>
+        <br>
+        現在の実行環境（サーバー環境）では、Chromiumの実行に必要なシステムライブラリが不足しているため、
+        E2Eテストの実行とスクリーンショットの自動取得ができません。<br>
+        <br>
+        <strong>推奨: ローカル開発環境（macOS, Windows, Ubuntu Desktop）での実行</strong>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

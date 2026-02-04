@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/playwright:v1.58.0-jammy
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
+COPY modules/*/package.json ./modules/*/
+
+# Install pnpm
+RUN npm install -g pnpm@8.10.0
+
+# Install dependencies
+COPY . .
+RUN pnpm install --no-frozen-lockfile
+
+# Build application
+ENV VITE_COVERAGE=true
+RUN pnpm build:web
+
+CMD ["pnpm", "test:e2e"]

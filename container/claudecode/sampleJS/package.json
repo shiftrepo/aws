@@ -1,0 +1,39 @@
+{
+  "name": "@samplejs/root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Employee Management System - Frontend Project with React + Playwright + Coverage",
+  "author": "Sample Project Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter web build",
+    "test": "pnpm -r test",
+    "test:e2e": "playwright test",
+    "test:coverage": "cross-env VITE_COVERAGE=true pnpm build:web && playwright test && pnpm coverage:report",
+    "coverage:report": "node scripts/collect-coverage.js",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "type-check": "pnpm -r type-check",
+    "playwright:install": "playwright install --with-deps chromium",
+    "preview": "pnpm --filter web preview",
+    "clean": "pnpm -r clean && rm -rf node_modules .nyc_output coverage tests/coverage"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.54.0",
+    "eslint-plugin-import": "^2.29.0",
+    "nyc": "^15.1.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  },
+  "packageManager": "pnpm@8.10.0"
+}

@@ -1,0 +1,361 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - README.md
+      - docs/**
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  NODE_VERSION: '18.x'
+  PNPM_VERSION: '8.10.0'
+  COVERAGE_THRESHOLD: 80
+
+stages:
+  - stage: Install
+    displayName: 'Install Dependencies'
+    jobs:
+      - job: InstallJob
+        displayName: 'Install pnpm and dependencies'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+              pnpm --version
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - script: |
+              pnpm playwright:install
+            displayName: 'Install Playwright browsers'
+
+          - task: Cache@2
+            displayName: 'Cache node_modules'
+            inputs:
+              key: 'pnpm | "$(Agent.OS)" | pnpm-lock.yaml'
+              path: |
+                node_modules
+                apps/**/node_modules
+                modules/**/node_modules
+              restoreKeys: |
+                pnpm | "$(Agent.OS)"
+
+  - stage: Lint
+    displayName: 'Lint & Type Check'
+    dependsOn: Install
+    jobs:
+      - job: LintJob
+        displayName: 'Run linters and type checking'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - script: |
+              pnpm lint
+            displayName: 'Run ESLint (with architecture checks)'
+
+          - script: |
+              pnpm type-check
+            displayName: 'Run TypeScript type checking'
+
+  - stage: UnitTest
+    displayName: 'Unit Tests'
+    dependsOn: Lint
+    jobs:
+      - job: UnitTestJob
+        displayName: 'Run unit tests with Vitest'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - script: |
+              pnpm test
+            displayName: 'Run unit tests'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/junit.xml'
+              failTaskOnFailedTests: true
+
+  - stage: Build
+    displayName: 'Build Application'
+    dependsOn: UnitTest
+    jobs:
+      - job: BuildJob
+        displayName: 'Build web application'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - script: |
+              VITE_COVERAGE=true pnpm build:web
+            displayName: 'Build with coverage instrumentation'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish build artifacts'
+            inputs:
+              PathtoPublish: 'apps/web/dist'
+              ArtifactName: 'web-app'
+              publishLocation: 'Container'
+
+  - stage: E2ETest
+    displayName: 'E2E Tests'
+    dependsOn: Build
+    jobs:
+      - job: E2ETestJob
+        displayName: 'Run Playwright E2E tests'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - task: DownloadBuildArtifacts@1
+            displayName: 'Download build artifacts'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'web-app'
+              downloadPath: 'apps/web'
+
+          - script: |
+              mv apps/web/web-app apps/web/dist
+            displayName: 'Restore build artifacts'
+
+          - script: |
+              pnpm playwright:install
+            displayName: 'Install Playwright browsers'
+
+          - script: |
+              pnpm test:e2e
+            displayName: 'Run E2E tests'
+            env:
+              CI: 'true'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish E2E test results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'tests/coverage/results.json'
+              failTaskOnFailedTests: false
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Playwright report'
+            condition: always()
+            inputs:
+              PathtoPublish: 'tests/coverage/playwright-report'
+              ArtifactName: 'playwright-report'
+              publishLocation: 'Container'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish screenshots and videos'
+            condition: failed()
+            inputs:
+              PathtoPublish: 'tests/coverage/test-results'
+              ArtifactName: 'test-failures'
+              publishLocation: 'Container'
+
+  - stage: Coverage
+    displayName: 'Coverage Report'
+    dependsOn: E2ETest
+    jobs:
+      - job: CoverageJob
+        displayName: 'Generate and publish coverage reports'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - script: |
+              pnpm coverage:report
+            displayName: 'Generate coverage reports'
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publish coverage to Azure DevOps'
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: 'coverage/cobertura-coverage.xml'
+              reportDirectory: 'coverage'
+              failIfCoverageEmpty: true
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish coverage artifacts'
+            inputs:
+              PathtoPublish: 'coverage'
+              ArtifactName: 'coverage-report'
+              publishLocation: 'Container'
+
+          - script: |
+              echo "Checking coverage thresholds..."
+              node -e "
+                const fs = require('fs');
+                const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+                const total = summary.total;
+                const threshold = $(COVERAGE_THRESHOLD);
+
+                const checks = {
+                  'Lines': total.lines.pct,
+                  'Statements': total.statements.pct,
+                  'Functions': total.functions.pct,
+                  'Branches': total.branches.pct
+                };
+
+                let failed = false;
+                for (const [name, value] of Object.entries(checks)) {
+                  const status = value >= threshold ? 'PASS' : 'FAIL';
+                  console.log(\`[\${status}] \${name}: \${value}% (threshold: \${threshold}%)\`);
+                  if (value < threshold) failed = true;
+                }
+
+                if (failed) {
+                  console.error('Coverage thresholds not met!');
+                  process.exit(1);
+                }
+              "
+            displayName: 'Check coverage thresholds'
+
+  - stage: SonarQube
+    displayName: 'SonarQube Analysis (Optional)'
+    dependsOn: Coverage
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: SonarQubeJob
+        displayName: 'Run SonarQube analysis'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              npm install -g pnpm@$(PNPM_VERSION)
+            displayName: 'Install pnpm'
+
+          - script: |
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies'
+
+          - task: DownloadBuildArtifacts@1
+            displayName: 'Download coverage report'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'coverage-report'
+              downloadPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: SonarQubePrepare@5
+            displayName: 'Prepare SonarQube analysis'
+            inputs:
+              SonarQube: 'SonarQube-Connection'
+              scannerMode: 'CLI'
+              configMode: 'manual'
+              cliProjectKey: 'employee-management-frontend'
+              cliProjectName: 'Employee Management Frontend'
+              cliSources: '.'
+              extraProperties: |
+                sonar.javascript.lcov.reportPaths=coverage-report/lcov.info
+                sonar.coverage.exclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.config.ts
+                sonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts
+                sonar.typescript.node=/usr/local/bin/node
+
+          - task: SonarQubeAnalyze@5
+            displayName: 'Run SonarQube analysis'
+
+          - task: SonarQubePublish@5
+            displayName: 'Publish SonarQube results'
+            inputs:
+              pollingTimeoutSec: '300'
+
+  - stage: Deploy
+    displayName: 'Deploy (Optional)'
+    dependsOn: Coverage
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployJob
+        displayName: 'Deploy to environment'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  displayName: 'Download build artifacts'
+                  inputs:
+                    buildType: 'current'
+                    downloadType: 'single'
+                    artifactName: 'web-app'
+                    downloadPath: '$(System.DefaultWorkingDirectory)'
+
+                - script: |
+                    echo "Deploy artifacts to target environment"
+                    echo "Artifacts location: $(System.DefaultWorkingDirectory)/web-app"
+                  displayName: 'Deploy application'
