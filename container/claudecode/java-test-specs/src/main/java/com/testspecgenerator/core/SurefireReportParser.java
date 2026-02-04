@@ -47,7 +47,7 @@ public class SurefireReportParser {
             }
         }
 
-        logger.info("Surefireレポート解析完了: {}個のテストスイート", executionInfos.size());
+        logger.info("Surefire report analysis completed: {} test suites", executionInfos.size());
         return executionInfos;
     }
 
@@ -59,7 +59,7 @@ public class SurefireReportParser {
     private TestExecutionInfo parseSingleReport(Path reportFile) throws IOException {
         File file = reportFile.toFile();
         if (!file.exists() || !file.canRead()) {
-            logger.warn("レポートファイルが読み取れません: {}", reportFile);
+            logger.warn("Cannot read report file: {}", reportFile);
             return null;
         }
 
@@ -69,7 +69,7 @@ public class SurefireReportParser {
         // testsuite要素を取得
         Element testSuite = doc.selectFirst("testsuite");
         if (testSuite == null) {
-            logger.warn("testsuite要素が見つかりません: {}", reportFile);
+            logger.warn("testsuite element not found: {}", reportFile);
             return null;
         }
 
@@ -202,7 +202,7 @@ public class SurefireReportParser {
             }
         }
 
-        logger.info("テスト実行結果の統合完了: {}個のテストクラス", testCasesByClass.size());
+        logger.info("Test execution result integration completed: {} test classes", testCasesByClass.size());
     }
 
     /**

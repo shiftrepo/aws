@@ -42,7 +42,7 @@ public class FolderScanner {
             ".vscode"
     );
 
-    // 最大ファイルサイズ (10MB)
+    // 最大ファイルsize (10MB)
     private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
 
     /**
@@ -60,7 +60,7 @@ public class FolderScanner {
         }
 
         if (!Files.isDirectory(sourceDirectory)) {
-            logger.warn("指定されたパスはディレクトリではありません: {}", sourceDirectory);
+            logger.warn("Specified path is not a directory: {}", sourceDirectory);
             return new ArrayList<>();
         }
 
@@ -72,7 +72,7 @@ public class FolderScanner {
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                     String dirName = dir.getFileName().toString();
                     if (EXCLUDED_DIRECTORIES.contains(dirName)) {
-                        logger.debug("ディレクトリをスキップ: {}", dir);
+                        logger.debug("Skipping directory: {}", dir);
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                     return FileVisitResult.CONTINUE;
@@ -83,30 +83,30 @@ public class FolderScanner {
                     try {
                         if (isJavaFile(file) && isFileSizeValid(file)) {
                             javaFiles.add(file);
-                            logger.debug("Javaファイル発見: {}", file);
+                            logger.debug("Java file found: {}", file);
                         }
                     } catch (Exception e) {
-                        logger.warn("ファイルチェック中にエラー: {} - {}", file, e.getMessage());
+                        logger.warn("Error checking file: {} - {}", file, e.getMessage());
                     }
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    logger.warn("ファイルアクセス失敗: {} - {}", file, exc.getMessage());
+                    logger.warn("File access failed: {} - {}", file, exc.getMessage());
                     return FileVisitResult.CONTINUE;
                 }
             });
 
         } catch (IOException e) {
-            logger.error("ディレクトリスキャン中にエラー", e);
+            logger.error("Error during directory scan", e);
             return new ArrayList<>();
         }
 
         // ファイル名でソート
         javaFiles.sort(Comparator.comparing(Path::toString));
 
-        logger.info("Javaファイルスキャン完了: {}個のファイルを発見", javaFiles.size());
+        logger.info("Java file scan completed: {} files found", javaFiles.size());
         return javaFiles;
     }
 
@@ -118,15 +118,15 @@ public class FolderScanner {
      */
     public List<Path> scanForCoverageReports(Path sourceDirectory) {
         logger.info("[Scanner Debug] Coverage report scanning started: {}", sourceDirectory);
-        logger.debug("[Scanner Debug] 検索ディレクトリの絶対パス: {}", sourceDirectory.toAbsolutePath());
+        logger.debug("[Scanner Debug] Search directory absolute path: {}", sourceDirectory.toAbsolutePath());
 
         if (!Files.exists(sourceDirectory)) {
-            logger.warn("[Scanner Debug] 指定されたディレクトリが存在しません: {}", sourceDirectory);
+            logger.warn("[Scanner Debug] Specified directory does not exist: {}", sourceDirectory);
             return new ArrayList<>();
         }
 
         if (!Files.isDirectory(sourceDirectory)) {
-            logger.warn("[Scanner Debug] 指定されたパスはディレクトリではありません: {}", sourceDirectory);
+            logger.warn("[Scanner Debug] Specified path is not a directory: {}", sourceDirectory);
             return new ArrayList<>();
         }
 
@@ -135,7 +135,7 @@ public class FolderScanner {
         final int[] totalDirectoriesScanned = {0};
         final int[] skippedDirectories = {0};
 
-        logger.debug("[Scanner Debug] カバレッジファイルパターン: {}", COVERAGE_FILE_PATTERNS);
+        logger.debug("[Scanner Debug] Coverage file patterns: {}", COVERAGE_FILE_PATTERNS);
 
         try {
             Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<Path>() {
@@ -150,7 +150,7 @@ public class FolderScanner {
                     // (JaCoCoレポートはtarget/site/jacocoにあるため)
                     if (EXCLUDED_DIRECTORIES.contains(dirName) && !"target".equals(dirName)) {
                         skippedDirectories[0]++;
-                        logger.debug("[Scanner Debug] ディレクトリをスキップ ({}): {}", skippedDirectories[0], dir);
+                        logger.debug("[Scanner Debug] Skipping directory ({}): {}", skippedDirectories[0], dir);
                         return FileVisitResult.SKIP_SUBTREE;
                     }
 
@@ -168,18 +168,18 @@ public class FolderScanner {
 
                     try {
                         String fileName = file.getFileName().toString();
-                        logger.trace("[Scanner Debug] ファイル検査 {}: {} (サイズ: {} bytes)",
+                        logger.trace("[Scanner Debug] ファイル検査 {}: {} (size: {} bytes)",
                                    totalFilesScanned[0], fileName, attrs.size());
 
                         boolean isCoverageMatch = isCoverageFile(file);
                         boolean isSizeValid = isFileSizeValid(file);
 
-                        logger.trace("[Scanner Debug] ファイル判定: {} - カバレッジファイル: {}, サイズ有効: {}",
+                        logger.trace("[Scanner Debug] ファイル判定: {} - カバレッジファイル: {}, size有効: {}",
                                    fileName, isCoverageMatch, isSizeValid);
 
                         if (isCoverageMatch && isSizeValid) {
                             coverageFiles.add(file);
-                            logger.info("[Scanner Debug] カバレッジファイル発見 ({}): {} (サイズ: {} bytes)",
+                            logger.info("[Scanner Debug] Coverage file found ({}): {} (size: {} bytes)",
                                        coverageFiles.size(), file, attrs.size());
 
                             // ファイルの詳細情報をログ出力
@@ -193,41 +193,41 @@ public class FolderScanner {
                                 logger.debug("[Scanner Debug] ファイル内容読み取り失敗: {} - {}", file, e.getMessage());
                             }
                         } else if (isCoverageMatch && !isSizeValid) {
-                            logger.warn("[Scanner Debug] カバレッジファイルだがサイズ無効: {} (サイズ: {})", file, attrs.size());
+                            logger.warn("[Scanner Debug] カバレッジファイルだがsize無効: {} (size: {})", file, attrs.size());
                         } else if (!isCoverageMatch && fileName.contains("jacoco")) {
                             logger.debug("[Scanner Debug] JaCoCoファイルだがパターン不一致: {}", file);
                         }
                     } catch (Exception e) {
-                        logger.warn("[Scanner Debug] ファイルチェック中にエラー: {} - {}", file, e.getMessage());
+                        logger.warn("[Scanner Debug] Error checking file: {} - {}", file, e.getMessage());
                     }
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    logger.warn("[Scanner Debug] ファイルアクセス失敗: {} - {}", file, exc.getMessage());
+                    logger.warn("[Scanner Debug] File access failed: {} - {}", file, exc.getMessage());
                     return FileVisitResult.CONTINUE;
                 }
             });
 
         } catch (IOException e) {
-            logger.error("[Scanner Debug] ディレクトリスキャン中にエラー", e);
+            logger.error("[Scanner Debug] Error during directory scan", e);
             return new ArrayList<>();
         }
 
         // ファイル名でソート
         coverageFiles.sort(Comparator.comparing(Path::toString));
 
-        // 詳細なスキャン統計
-        logger.info("[Scanner Debug] スキャン統計:");
-        logger.info("[Scanner Debug] - スキャンしたディレクトリ数: {}", totalDirectoriesScanned[0]);
-        logger.info("[Scanner Debug] - スキップしたディレクトリ数: {}", skippedDirectories[0]);
-        logger.info("[Scanner Debug] - スキャンしたファイル数: {}", totalFilesScanned[0]);
-        logger.info("[Scanner Debug] - 発見したカバレッジファイル数: {}", coverageFiles.size());
+        // 詳細なScan statistics
+        logger.info("[Scanner Debug] Scan statistics:");
+        logger.info("[Scanner Debug] - Directories scanned: {}", totalDirectoriesScanned[0]);
+        logger.info("[Scanner Debug] - Directories skipped: {}", skippedDirectories[0]);
+        logger.info("[Scanner Debug] - Files scanned: {}", totalFilesScanned[0]);
+        logger.info("[Scanner Debug] - Coverage files found: {}", coverageFiles.size());
 
         if (coverageFiles.isEmpty()) {
-            logger.warn("[Scanner Debug] カバレッジファイルが見つかりませんでした");
-            logger.warn("[Scanner Debug] 考えられる原因:");
+            logger.warn("[Scanner Debug] No coverage files found");
+            logger.warn("[Scanner Debug] Possible causes:");
             logger.warn("[Scanner Debug] 1. JaCoCoレポートが生成されていない - 'mvn test jacoco:report' を実行してください");
             logger.warn("[Scanner Debug] 2. 検索ディレクトリが間違っている - プロジェクトルートを指定してください");
             logger.warn("[Scanner Debug] 3. target/site/jacoco/ ディレクトリが存在しない");
@@ -255,12 +255,12 @@ public class FolderScanner {
                     long fileSize = Files.size(file);
                     logger.info("[Scanner Debug] {}. {} ({}bytes)", i + 1, file, fileSize);
                 } catch (IOException e) {
-                    logger.info("[Scanner Debug] {}. {} (サイズ取得失敗)", i + 1, file);
+                    logger.info("[Scanner Debug] {}. {} (size取得失敗)", i + 1, file);
                 }
             }
         }
 
-        logger.info("[Scanner Debug] カバレッジレポートスキャン完了: {}個のファイルを発見", coverageFiles.size());
+        logger.info("[Scanner Debug] Coverage report scan completed: {} files found", coverageFiles.size());
         return coverageFiles;
     }
 
@@ -271,7 +271,7 @@ public class FolderScanner {
      * @return 発見されたSurefireレポートファイル（TEST-*.xml）のリスト
      */
     public List<Path> scanForSurefireReports(Path sourceDirectory) {
-        logger.info("Surefireテストレポートスキャン開始: {}", sourceDirectory);
+        logger.info("Surefire test report scan started: {}", sourceDirectory);
 
         if (!Files.exists(sourceDirectory)) {
             logger.warn("Specified directory does not exist: {}", sourceDirectory);
@@ -279,7 +279,7 @@ public class FolderScanner {
         }
 
         if (!Files.isDirectory(sourceDirectory)) {
-            logger.warn("指定されたパスはディレクトリではありません: {}", sourceDirectory);
+            logger.warn("Specified path is not a directory: {}", sourceDirectory);
             return new ArrayList<>();
         }
 
@@ -292,12 +292,12 @@ public class FolderScanner {
                     String dirName = dir.getFileName().toString();
                     // Surefireレポートはtarget/surefire-reportsにあるため、targetは除外しない
                     if (EXCLUDED_DIRECTORIES.contains(dirName) && !"target".equals(dirName)) {
-                        logger.debug("ディレクトリをスキップ: {}", dir);
+                        logger.debug("Skipping directory: {}", dir);
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                     // surefire-reportsディレクトリを優先的に検索
                     if ("surefire-reports".equals(dirName)) {
-                        logger.debug("Surefireレポートディレクトリ発見: {}", dir);
+                        logger.debug("Surefire report directory found: {}", dir);
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -307,30 +307,30 @@ public class FolderScanner {
                     try {
                         if (isSurefireReportFile(file) && isFileSizeValid(file)) {
                             surefireFiles.add(file);
-                            logger.debug("Surefireレポート発見: {}", file);
+                            logger.debug("Surefire report found: {}", file);
                         }
                     } catch (Exception e) {
-                        logger.warn("ファイルチェック中にエラー: {} - {}", file, e.getMessage());
+                        logger.warn("Error checking file: {} - {}", file, e.getMessage());
                     }
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    logger.warn("ファイルアクセス失敗: {} - {}", file, exc.getMessage());
+                    logger.warn("File access failed: {} - {}", file, exc.getMessage());
                     return FileVisitResult.CONTINUE;
                 }
             });
 
         } catch (IOException e) {
-            logger.error("ディレクトリスキャン中にエラー", e);
+            logger.error("Error during directory scan", e);
             return new ArrayList<>();
         }
 
         // ファイル名でソート
         surefireFiles.sort(Comparator.comparing(Path::toString));
 
-        logger.info("Surefireレポートスキャン完了: {}個のファイルを発見", surefireFiles.size());
+        logger.info("Surefire report scan completed: {} files found", surefireFiles.size());
         return surefireFiles;
     }
 
@@ -427,18 +427,18 @@ public class FolderScanner {
     }
 
     /**
-     * ファイルサイズが有効かどうかをチェック
+     * ファイルsizeが有効かどうかをチェック
      */
     private boolean isFileSizeValid(Path file) {
         try {
             long fileSize = Files.size(file);
             if (fileSize > MAX_FILE_SIZE) {
-                logger.warn("ファイルサイズが大きすぎます（{}MB）: {}", fileSize / (1024 * 1024), file);
+                logger.warn("File size too large（{}MB）: {}", fileSize / (1024 * 1024), file);
                 return false;
             }
             return fileSize > 0; // 空ファイルは除外
         } catch (IOException e) {
-            logger.warn("ファイルサイズ取得エラー: {} - {}", file, e.getMessage());
+            logger.warn("Error getting file size: {} - {}", file, e.getMessage());
             return false;
         }
     }
@@ -498,6 +498,6 @@ public class FolderScanner {
         logger.info("カバレッジファイル: {}個", stats.get("coverageFileCount"));
         logger.info("  - XML: {}個", stats.get("xmlCoverageCount"));
         logger.info("  - HTML: {}個", stats.get("htmlCoverageCount"));
-        logger.info("対象ディレクトリ: {}個", stats.get("directoryCount"));
+        logger.info("Target directories: {}個", stats.get("directoryCount"));
     }
 }

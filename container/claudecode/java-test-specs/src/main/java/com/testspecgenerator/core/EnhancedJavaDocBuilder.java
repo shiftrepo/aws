@@ -56,7 +56,7 @@ public class EnhancedJavaDocBuilder {
             // テストリンクページを生成
             generateTestLinkPages(testsByClass);
 
-            logger.info("✅ 拡張JavaDoc生成完了: {}", OUTPUT_DIR);
+            logger.info("✅ Enhanced JavaDoc generation completed: {}", OUTPUT_DIR);
             return true;
 
         } catch (Exception e) {
@@ -200,21 +200,21 @@ public class EnhancedJavaDocBuilder {
         for (String className : testsByClass.keySet().stream().sorted().collect(Collectors.toList())) {
             // テストクラス名から実装クラス名を推定 (TestサフィックスをTrim)
             String implClassName = className.endsWith("Test") ? className.substring(0, className.length() - 4) : className;
-            logger.info("DEBUG: {} → {}", className, implClassName);
+            logger.info("DEBUG: {} -> {}", className, implClassName);
 
-            // 実装クラス名に対応するカバレッジ情報を検索
-            // 直接マッチ、または内部クラス（$記号を含む）も含めて検索
+            // Search for coverage information corresponding to implementation class name
+            // Match directly or include inner classes (containing $ symbol)
             CoverageInfo coverage = coverageByClass.get(implClassName);
-            logger.info("DEBUG: 直接検索 {} → {}", implClassName, coverage != null ? "見つかった" : "null");
+            logger.info("DEBUG: Direct search {} -> {}", implClassName, coverage != null ? "found" : "null");
 
             if (coverage == null) {
-                // 内部クラスを含む場合の検索 (例: DataStructures → DataStructures$MinHeap等)
+                // Search including inner classes (e.g., DataStructures -> DataStructures$MinHeap, etc.)
                 coverage = coverageByClass.entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith(implClassName + "$") || entry.getKey().equals(implClassName))
                     .map(Map.Entry::getValue)
                     .findFirst()
                     .orElse(null);
-                logger.info("DEBUG: 内部クラス検索 {} → {}", implClassName, coverage != null ? "見つかった" : "null");
+                logger.info("DEBUG: Inner class search {} -> {}", implClassName, coverage != null ? "found" : "null");
             }
 
             String coverageText = "";
@@ -245,7 +245,7 @@ public class EnhancedJavaDocBuilder {
                 coverageText = String.format("%.1f%%", branchCoverage);
                 badgeClass = branchCoverage >= 80 ? "coverage-high" : "coverage-medium";
             } else {
-                logger.info("DEBUG: {} カバレッジ情報なし", implClassName);
+                logger.info("DEBUG: {} No coverage information", implClassName);
                 coverageText = "0.0%";
                 badgeClass = "coverage-low";
             }

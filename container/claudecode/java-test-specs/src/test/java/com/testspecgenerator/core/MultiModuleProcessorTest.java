@@ -107,9 +107,21 @@ class MultiModuleProcessorTest {
         assertTrue(Files.exists(outputDir.resolve("combined-report.xlsx")));
         assertTrue(Files.exists(outputDir.resolve("module-a").resolve("report.xlsx")));
 
+        // Debug: List all files in output directory
+        System.out.println("[DEBUG] Files in outputDir: " + outputDir);
+        try (var stream = Files.walk(outputDir)) {
+            stream.filter(Files::isRegularFile)
+                  .forEach(p -> System.out.println("[DEBUG]   - " + outputDir.relativize(p)));
+        }
+
         // Verify CSV files
-        assertTrue(Files.exists(outputDir.resolve("combined-report_test_details.csv")));
-        assertTrue(Files.exists(outputDir.resolve("combined-report_coverage.csv")));
+        Path testDetailsPath = outputDir.resolve("combined-report_test_details.csv");
+        Path coveragePath = outputDir.resolve("combined-report_coverage.csv");
+        System.out.println("[DEBUG] Checking: " + testDetailsPath + " exists=" + Files.exists(testDetailsPath));
+        System.out.println("[DEBUG] Checking: " + coveragePath + " exists=" + Files.exists(coveragePath));
+
+        assertTrue(Files.exists(testDetailsPath), "Test details CSV should exist: " + testDetailsPath);
+        assertTrue(Files.exists(coveragePath), "Coverage CSV should exist: " + coveragePath);
     }
 
     /**
@@ -243,12 +255,32 @@ class MultiModuleProcessorTest {
 
         Files.writeString(testDir.resolve(toCamelCase(moduleName) + "Test.java"), testContent);
 
+        // Create dummy JaCoCo XML for coverage testing
+        Path coverageDir = moduleRoot.resolve("target/site/jacoco");
+        Files.createDirectories(coverageDir);
+        String jacocoXml = String.format("""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <report name="JaCoCo Coverage">
+              <package name="com/example">
+                <class name="com/example/TestClass">
+                  <method name="testMethod" desc="()V">
+                    <counter type="BRANCH" missed="0" covered="2"/>
+                    <counter type="LINE" missed="0" covered="5"/>
+                    <counter type="INSTRUCTION" missed="0" covered="20"/>
+                    <counter type="METHOD" missed="0" covered="1"/>
+                  </method>
+                </class>
+              </package>
+            </report>
+            """);
+        Files.writeString(coverageDir.resolve("jacoco.xml"), jacocoXml);
+
         return ModuleInfo.builder()
             .moduleName(moduleName)
             .moduleRoot(moduleRoot)
             .sourceDir(moduleRoot.resolve("src/main/java"))
             .testDir(testDir)
-            .coverageDir(moduleRoot.resolve("target/site/jacoco"))
+            .coverageDir(coverageDir)
             .pomPath(moduleRoot.resolve("pom.xml"))
             .build();
     }

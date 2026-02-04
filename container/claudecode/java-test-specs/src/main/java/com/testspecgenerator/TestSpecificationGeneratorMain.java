@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -300,22 +301,73 @@ public class TestSpecificationGeneratorMain {
             // Step 3: Coverage report processing
             List<CoverageInfo> coverageData = null;
             if (includeCoverage) {
-                logger.info("Step 3: Coverage report processing started...");
+                logger.info("========== Step 3: Coverage report processing started ==========");
+                logger.info("[MAIN LINE-BY-LINE] includeCoverage flag: {}", includeCoverage);
 
                 // Determine coverage directory
                 String coverageScanDir = (coverageDirectory != null) ? coverageDirectory : sourceDirectory;
+                logger.info("[MAIN LINE-BY-LINE] Coverage scan directory: '{}'", coverageScanDir);
                 if (coverageDirectory != null) {
-                    logger.info("   Coverage directory: {}", coverageDirectory);
+                    logger.info("[MAIN LINE-BY-LINE] Using explicitly specified coverage directory: {}", coverageDirectory);
+                } else {
+                    logger.info("[MAIN LINE-BY-LINE] Using source directory as coverage directory: {}", sourceDirectory);
                 }
 
+                logger.info("[MAIN LINE-BY-LINE] Calling folderScanner.scanForCoverageReports()...");
                 List<Path> coverageFiles = folderScanner.scanForCoverageReports(Paths.get(coverageScanDir));
+                logger.info("[MAIN LINE-BY-LINE] Coverage files found: {}", coverageFiles.size());
+
+                if (coverageFiles.isEmpty()) {
+                    logger.warn("[MAIN LINE-BY-LINE] NO COVERAGE FILES FOUND!");
+                    logger.warn("[MAIN LINE-BY-LINE] This will result in 0% coverage for all tests");
+                } else {
+                    logger.info("[MAIN LINE-BY-LINE] Listing coverage files:");
+                    for (int i = 0; i < coverageFiles.size(); i++) {
+                        logger.info("[MAIN LINE-BY-LINE]   File {}: {}", i + 1, coverageFiles.get(i));
+                    }
+                }
+
+                logger.info("[MAIN LINE-BY-LINE] Calling coverageParser.processCoverageReports() with {} files...", coverageFiles.size());
                 coverageData = coverageParser.processCoverageReports(coverageFiles);
-                logger.info("Coverage data retrieved: {} entries", coverageData.size());
+                logger.info("[MAIN LINE-BY-LINE] coverageParser.processCoverageReports() RETURNED");
+                logger.info("[MAIN LINE-BY-LINE] coverageData variable assigned (isNull: {})", coverageData == null);
+
+                if (coverageData == null) {
+                    logger.error("[MAIN LINE-BY-LINE] CRITICAL: coverageData is NULL!");
+                    coverageData = new ArrayList<>();
+                    logger.info("[MAIN LINE-BY-LINE] Created empty ArrayList to prevent NullPointerException");
+                }
+
+                logger.info("[MAIN LINE-BY-LINE] Coverage data size: {}", coverageData.size());
+                logger.info("[MAIN LINE-BY-LINE] Coverage data retrieved: {} entries", coverageData.size());
+
+                if (coverageData.isEmpty()) {
+                    logger.warn("[MAIN LINE-BY-LINE] ========== WARNING: COVERAGE DATA IS EMPTY ==========");
+                    logger.warn("[MAIN LINE-BY-LINE] All tests will show 0% coverage");
+                    logger.warn("[MAIN LINE-BY-LINE] Possible causes:");
+                    logger.warn("[MAIN LINE-BY-LINE] 1. No XML coverage reports found");
+                    logger.warn("[MAIN LINE-BY-LINE] 2. Coverage reports are empty or invalid");
+                    logger.warn("[MAIN LINE-BY-LINE] 3. All coverage entries were filtered out");
+                    logger.warn("[MAIN LINE-BY-LINE] 4. Package name mismatch");
+                } else {
+                    logger.info("[MAIN LINE-BY-LINE] Sample coverage entries:");
+                    int sampleSize = Math.min(3, coverageData.size());
+                    for (int i = 0; i < sampleSize; i++) {
+                        CoverageInfo sample = coverageData.get(i);
+                        logger.info("[MAIN LINE-BY-LINE]   Entry {}: {}.{} (package: {}, branch: {:.1f}%)",
+                            i + 1, sample.getClassName(), sample.getMethodName(),
+                            sample.getPackageName(), sample.getBranchCoverage());
+                    }
+                }
 
                 // Merge coverage data with test cases
+                logger.info("[MAIN LINE-BY-LINE] Calling mergeCoverageWithTestCases()...");
+                logger.info("[MAIN LINE-BY-LINE]   testCases.size(): {}", testCases.size());
+                logger.info("[MAIN LINE-BY-LINE]   coverageData.size(): {}", coverageData.size());
                 coverageParser.mergeCoverageWithTestCases(testCases, coverageData);
+                logger.info("[MAIN LINE-BY-LINE] mergeCoverageWithTestCases() completed");
             } else {
-                logger.info("Step 3: Skipping coverage report processing");
+                logger.info("Step 3: Skipping coverage report processing (includeCoverage=false)");
             }
 
             // Step 3.5: Surefire test report processing
@@ -330,14 +382,26 @@ public class TestSpecificationGeneratorMain {
             }
 
             // Step 4: Excel report generation
-            logger.info("Step 4: Excel report generation started...");
+            logger.info("========== Step 4: Excel report generation started ==========");
+            logger.info("[MAIN LINE-BY-LINE] Output file: {}", outputFile);
+            logger.info("[MAIN LINE-BY-LINE] testCases to pass: {} entries", testCases.size());
+            logger.info("[MAIN LINE-BY-LINE] coverageData to pass: {} entries (isNull: {})",
+                coverageData != null ? coverageData.size() : -1, coverageData == null);
+
+            if (coverageData == null) {
+                logger.error("[MAIN LINE-BY-LINE] CRITICAL: coverageData is NULL before passing to Excel builder!");
+                coverageData = new ArrayList<>();
+            }
+
+            logger.info("[MAIN LINE-BY-LINE] Calling excelBuilder.generateTestSpecificationReport()...");
             boolean excelSuccess = excelBuilder.generateTestSpecificationReport(outputFile, testCases, coverageData);
+            logger.info("[MAIN LINE-BY-LINE] excelBuilder.generateTestSpecificationReport() returned: {}", excelSuccess);
 
             if (!excelSuccess) {
-                logger.error("Excel report generation failed");
+                logger.error("[MAIN LINE-BY-LINE] Excel report generation FAILED");
                 return false;
             }
-            logger.info("Excel report generation completed");
+            logger.info("[MAIN LINE-BY-LINE] Excel report generation completed successfully");
 
             // Step 4.5: CSV output (optional)
             boolean csvSuccess = true;

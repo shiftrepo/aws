@@ -7,11 +7,13 @@ import java.util.Objects;
 /**
  * Represents the processing results for a single module including test cases,
  * coverage data, and processing status information.
+ *
+ * SIMPLIFIED: coverageData is now List<CoverageInfo> (no Map conversion)
  */
 public class ModuleResult {
     private final ModuleInfo moduleInfo;
     private final List<TestCaseInfo> testCases;
-    private final Map<String, Object> coverageData;
+    private final List<CoverageInfo> coverageData;  // SIMPLIFIED: Changed from Map to List
     private final ProcessingStatus processingStatus;
     private final String errorMessage;
     private final long processingTimeMs;
@@ -33,7 +35,7 @@ public class ModuleResult {
         return testCases;
     }
 
-    public Map<String, Object> getCoverageData() {
+    public List<CoverageInfo> getCoverageData() {  // SIMPLIFIED: Changed return type
         return coverageData;
     }
 
@@ -97,7 +99,7 @@ public class ModuleResult {
     public static class Builder {
         private ModuleInfo moduleInfo;
         private List<TestCaseInfo> testCases;
-        private Map<String, Object> coverageData;
+        private List<CoverageInfo> coverageData;  // SIMPLIFIED: Changed from Map to List
         private ProcessingStatus processingStatus = ProcessingStatus.SUCCESS;
         private String errorMessage;
         private long processingTimeMs;
@@ -112,7 +114,7 @@ public class ModuleResult {
             return this;
         }
 
-        public Builder coverageData(Map<String, Object> coverageData) {
+        public Builder coverageData(List<CoverageInfo> coverageData) {  // SIMPLIFIED: Changed parameter type
             this.coverageData = coverageData;
             return this;
         }

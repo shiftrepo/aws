@@ -42,17 +42,17 @@ public class ExcelSheetBuilder {
      */
     public boolean generateTestSpecificationReport(String outputFile, List<TestCaseInfo> testCases, List<CoverageInfo> coverageData) {
         logger.info("Excel report generation started: {}", outputFile);
-        logger.info("[詳細ログ] 結果出力開始 - テストケース数: {}, カバレッジエントリ数: {}", testCases.size(), coverageData.size());
+        logger.info("[Detail Log] Output generation started - Test cases: {}, Coverage entries: {}", testCases.size(), coverageData.size());
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             // Create each sheet
-            logger.debug("[詳細ログ] Test Detailsシート作成開始...");
+            logger.debug("[Detail Log] Creating Test Details sheet...");
             createTestDetailsSheet(workbook, testCases);
 
-            logger.debug("[詳細ログ] Summaryシート作成開始...");
+            logger.debug("[Detail Log] Creating Summary sheet...");
             createSummarySheet(workbook, testCases, coverageData);
 
-            logger.debug("[詳細ログ] Coverageシート作成開始...");
+            logger.debug("[Detail Log] Creating Coverage sheet...");
             createCoverageSheet(workbook, testCases, coverageData);
             createConfigurationSheet(workbook, testCases, coverageData);
 
@@ -246,10 +246,33 @@ public class ExcelSheetBuilder {
      * Coverageシートを作成
      */
     private void createCoverageSheet(XSSFWorkbook workbook, List<TestCaseInfo> testCases, List<CoverageInfo> coverageData) {
+        logger.info("[Excel LINE-BY-LINE] ========== Creating Coverage Sheet ==========");
+        logger.info("[Excel LINE-BY-LINE] coverageData parameter: isNull={}", coverageData == null);
+        if (coverageData != null) {
+            logger.info("[Excel LINE-BY-LINE] coverageData.size(): {}", coverageData.size());
+            if (!coverageData.isEmpty()) {
+                logger.info("[Excel LINE-BY-LINE] Sample coverage entries:");
+                int sampleSize = Math.min(3, coverageData.size());
+                for (int i = 0; i < sampleSize; i++) {
+                    CoverageInfo sample = coverageData.get(i);
+                    logger.info("[Excel LINE-BY-LINE]   Entry {}: {}.{} (package: {}, branch: {}%, covered: {}, total: {})",
+                        i + 1, sample.getClassName(), sample.getMethodName(),
+                        sample.getPackageName(), sample.getBranchCoverage(),
+                        sample.getBranchesCovered(), sample.getBranchesTotal());
+                }
+            } else {
+                logger.warn("[Excel LINE-BY-LINE] coverageData is EMPTY!");
+            }
+        } else {
+            logger.error("[Excel LINE-BY-LINE] coverageData is NULL!");
+        }
+
         Sheet sheet = workbook.createSheet(COVERAGE_SHEET);
+        logger.debug("[Excel LINE-BY-LINE] Coverage sheet created: {}", COVERAGE_SHEET);
 
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dataStyle = createDataStyle(workbook);
+        logger.debug("[Excel LINE-BY-LINE] Styles created");
 
         // テスト対象クラス名からテストクラスへのマッピングを作成（クラスレベル）
         java.util.Map<String, java.util.Set<String>> classToTestClassMap = new java.util.HashMap<>();
@@ -293,9 +316,17 @@ public class ExcelSheetBuilder {
         }
 
         // データ行
+        logger.info("[Excel LINE-BY-LINE] Creating data rows...");
         if (coverageData != null) {
+            logger.info("[Excel LINE-BY-LINE] coverageData is NOT null, size: {}", coverageData.size());
+            logger.info("[Excel LINE-BY-LINE] Starting loop to create {} data rows", coverageData.size());
+
             for (int i = 0; i < coverageData.size(); i++) {
                 CoverageInfo coverage = coverageData.get(i);
+                logger.info("[Excel LINE-BY-LINE] Processing row {}/{}: {}.{} - Branch: {}%, Line: {}%",
+                    i + 1, coverageData.size(),
+                    coverage.getClassName(), coverage.getMethodName(),
+                    coverage.getBranchCoverage(), coverage.getLineCoverage());
                 Row dataRow = sheet.createRow(i + 1);
 
                 int colIndex = 0;
@@ -347,6 +378,9 @@ public class ExcelSheetBuilder {
                 setCellValue(dataRow, colIndex++, coverage.getReportType(), dataStyle); // Report Type
                 setCellValue(dataRow, colIndex++, String.format("%.1f%%", coverage.getPrimaryCoverage()), dataStyle); // Primary Coverage (C1)
             }
+            logger.info("[Excel LINE-BY-LINE] Data row loop completed: {} rows written", coverageData.size());
+        } else {
+            logger.warn("[Excel LINE-BY-LINE] coverageData is NULL - no rows written!");
         }
 
         // 列幅調整

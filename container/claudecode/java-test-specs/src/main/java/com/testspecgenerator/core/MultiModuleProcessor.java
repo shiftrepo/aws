@@ -173,7 +173,7 @@ public class MultiModuleProcessor {
                 LOGGER.info("No test files found in module: " + module.getModuleName());
                 return resultBuilder
                     .testCases(new ArrayList<>())
-                    .coverageData(new HashMap<>())
+                    .coverageData(new ArrayList<>())  // SIMPLIFIED: Changed from HashMap to ArrayList
                     .processingTimeMs(System.currentTimeMillis() - startTime)
                     .build();
             }
@@ -187,25 +187,40 @@ public class MultiModuleProcessor {
                 try {
                     List<TestCaseInfo> fileTestCases = annotationParser.processJavaFile(testFile);
                     testCases.addAll(fileTestCases);
-                    LOGGER.info(String.format("[詳細ログ] モジュール %s - ファイル処理完了: %s (%d テストケース)",
+                    LOGGER.info(String.format("[Detail Log] Module %s - File processing completed: %s (%d test cases)",
                                module.getModuleName(), testFile.getFileName(), fileTestCases.size()));
                 } catch (Exception e) {
                     LOGGER.log(Level.WARNING, "Failed to parse test file: " + testFile, e);
                 }
             }
 
-            LOGGER.info(String.format("[詳細ログ] モジュール %s - アノテーション解析完了: %d テストケース抽出", module.getModuleName(), testCases.size()));
+            LOGGER.info(String.format("[Detail Log] Module %s - Annotation analysis completed: %d Test cases extracted", module.getModuleName(), testCases.size()));
 
-            // Step 3: Parse coverage reports
-            LOGGER.info(String.format("[詳細ログ] モジュール %s - カバレッジレポート解析開始", module.getModuleName()));
+            // Step 3: Parse coverage reports (SIMPLIFIED - No Map conversion)
+            LOGGER.info(String.format("[Detail Log] Module %s - Coverage report analysis started", module.getModuleName()));
             CoverageReportParser coverageParser = new CoverageReportParser();
-            Map<String, Object> coverageData = new HashMap<>();
+            List<CoverageInfo> coverageData = new ArrayList<>();
 
             try {
                 // Look for coverage reports in the module
                 List<Path> coverageFiles = scanner.scanForCoverageReports(module.getModuleRoot());
                 if (!coverageFiles.isEmpty()) {
-                    coverageData = coverageParser.parseCoverageReports(coverageFiles, testFiles);
+                    LOGGER.info("[SIMPLIFIED] Calling processCoverageReports() directly - NO Map conversion!");
+                    coverageData = coverageParser.processCoverageReports(coverageFiles, testFiles);
+                    LOGGER.info(String.format("[SIMPLIFIED] Coverage data retrieved: %d entries (direct List<CoverageInfo>)",
+                               coverageData != null ? coverageData.size() : 0));
+
+                    // Log sample data to verify
+                    if (coverageData != null && !coverageData.isEmpty()) {
+                        int sampleSize = Math.min(3, coverageData.size());
+                        for (int i = 0; i < sampleSize; i++) {
+                            CoverageInfo sample = coverageData.get(i);
+                            LOGGER.info(String.format("[SIMPLIFIED] Sample %d: %s.%s - Branch: %.1f%%, Line: %.1f%%, Instruction: %.1f%%",
+                                       i + 1, sample.getClassName(), sample.getMethodName(),
+                                       sample.getBranchCoverage(), sample.getLineCoverage(),
+                                       sample.getInstructionCoverage()));
+                        }
+                    }
                 } else {
                     LOGGER.info("No coverage reports found for module: " + module.getModuleName());
                 }
@@ -245,47 +260,57 @@ public class MultiModuleProcessor {
             return;
         }
 
-        // Combine all test cases
+        // Combine all test cases and coverage data (SIMPLIFIED)
         List<TestCaseInfo> allTestCases = new ArrayList<>();
-        Map<String, Object> allCoverageData = new HashMap<>();
+        List<CoverageInfo> allCoverageData = new ArrayList<>();  // SIMPLIFIED: Changed from Map to List
 
         for (ModuleResult result : successfulResults) {
-            // Add module name to each test case
+            // Add test cases
             if (result.hasTestCases()) {
-                for (TestCaseInfo testCase : result.getTestCases()) {
-                    // Create a copy with module information (we'll need to modify TestCaseInfo to support this)
-                    allTestCases.add(testCase);
-                }
+                allTestCases.addAll(result.getTestCases());
+                LOGGER.info(String.format("[SIMPLIFIED] Added %d test cases from module: %s",
+                           result.getTestCases().size(), result.getModuleInfo().getModuleName()));
             }
 
+            // Add coverage data (SIMPLIFIED: Just combine lists, no Map conversion)
             if (result.hasCoverageData()) {
-                // Prefix coverage data keys with module name to avoid conflicts
-                String modulePrefix = result.getModuleInfo().getModuleName() + ".";
-                for (Map.Entry<String, Object> entry : result.getCoverageData().entrySet()) {
-                    allCoverageData.put(modulePrefix + entry.getKey(), entry.getValue());
-                }
+                List<CoverageInfo> moduleCoverage = result.getCoverageData();
+                allCoverageData.addAll(moduleCoverage);
+                LOGGER.info(String.format("[SIMPLIFIED] Added %d coverage entries from module: %s",
+                           moduleCoverage.size(), result.getModuleInfo().getModuleName()));
             }
         }
 
-        // Generate Excel report
+        LOGGER.info(String.format("[SIMPLIFIED] Combined totals: %d test cases, %d coverage entries",
+                   allTestCases.size(), allCoverageData.size()));
+
+        // Generate Excel report (SIMPLIFIED: Pass List instead of Map)
         Path excelOutput = outputDir.resolve("combined-report.xlsx");
         ExcelSheetBuilder excelBuilder = new ExcelSheetBuilder();
 
-        // We need to extend ExcelSheetBuilder to support module information
-        excelBuilder.generateCombinedReport(allTestCases, allCoverageData, excelOutput.toString(), results);
+        // SIMPLIFIED: generateTestSpecificationReport works with List<CoverageInfo>
+        boolean success = excelBuilder.generateTestSpecificationReport(excelOutput.toString(), allTestCases, allCoverageData);
+        if (!success) {
+            throw new IOException("Failed to generate combined Excel report");
+        }
 
         LOGGER.info("Combined Excel report generated: " + excelOutput);
 
-        // Generate CSV files if requested
+        // Generate CSV files if requested (SIMPLIFIED: Use standard methods)
         if (csvOutput) {
             CsvSheetBuilder csvBuilder = new CsvSheetBuilder();
 
-            Path csvTestDetails = outputDir.resolve("combined-report_test_details.csv");
-            Path csvCoverage = outputDir.resolve("combined-report_coverage.csv");
+            // SIMPLIFIED: Use existing methods that work with List<CoverageInfo>
+            // Note: generateTestDetailsCsv/generateCoverageSheetCsv expect path WITH .xlsx extension
+            String excelPathStr = excelOutput.toString();
+            boolean testDetailsCsvSuccess = csvBuilder.generateTestDetailsCsv(excelPathStr, allTestCases);
+            boolean coverageCsvSuccess = csvBuilder.generateCoverageSheetCsv(excelPathStr, allTestCases, allCoverageData);
 
-            csvBuilder.generateCombinedCsvFiles(allTestCases, allCoverageData, csvTestDetails, csvCoverage, results);
-
-            LOGGER.info("Combined CSV reports generated: " + csvTestDetails + ", " + csvCoverage);
+            if (testDetailsCsvSuccess && coverageCsvSuccess) {
+                LOGGER.info("Combined CSV reports generated successfully");
+            } else {
+                LOGGER.warning("Some CSV reports failed to generate");
+            }
         }
     }
 
@@ -301,11 +326,13 @@ public class MultiModuleProcessor {
         Path excelOutput = moduleOutputDir.resolve("report.xlsx");
         ExcelSheetBuilder excelBuilder = new ExcelSheetBuilder();
 
-        // Convert to the format expected by ExcelSheetBuilder
-        List<CoverageInfo> coverageInfoList = convertToCoverageInfoList(result.getCoverageData());
-        excelBuilder.generateTestSpecificationReport(excelOutput.toString(), result.getTestCases(), coverageInfoList);
+        // SIMPLIFIED: No conversion needed - coverageData is already List<CoverageInfo>
+        List<CoverageInfo> coverageData = result.getCoverageData();
+        LOGGER.info(String.format("[SIMPLIFIED] Generating Excel for module %s with %d coverage entries (direct List)",
+                   moduleName, coverageData != null ? coverageData.size() : 0));
+        excelBuilder.generateTestSpecificationReport(excelOutput.toString(), result.getTestCases(), coverageData);
 
-        LOGGER.fine("Module Excel report generated: " + excelOutput);
+        LOGGER.info("Module Excel report generated: " + excelOutput);
 
         // Generate CSV files if requested
         if (csvOutput && result.hasTestCases()) {
@@ -314,9 +341,10 @@ public class MultiModuleProcessor {
             Path csvTestDetails = moduleOutputDir.resolve("report_test_details.csv");
             Path csvCoverage = moduleOutputDir.resolve("report_coverage.csv");
 
-            csvBuilder.generateCsvFiles(result.getTestCases(), result.getCoverageData(), csvTestDetails, csvCoverage);
+            // SIMPLIFIED: No conversion needed
+            csvBuilder.generateCsvFiles(result.getTestCases(), coverageData, csvTestDetails, csvCoverage);
 
-            LOGGER.fine("Module CSV reports generated: " + csvTestDetails + ", " + csvCoverage);
+            LOGGER.info("Module CSV reports generated: " + csvTestDetails + ", " + csvCoverage);
         }
     }
 
@@ -372,16 +400,16 @@ public class MultiModuleProcessor {
         List<CoverageInfo> coverageInfoList = new ArrayList<>();
 
         if (coverageData == null) {
-            LOGGER.warning("[MultiModule Debug] カバレッジデータがnullです - 空のリストを返します");
+            LOGGER.warning("[MultiModule Debug] Coverage data is NULL - returning empty list");
             return coverageInfoList;
         }
 
         if (coverageData.isEmpty()) {
-            LOGGER.warning("[MultiModule Debug] カバレッジデータが空です - 空のリストを返します");
+            LOGGER.warning("[MultiModule Debug] Coverage data is EMPTY - returning empty list");
             return coverageInfoList;
         }
 
-        LOGGER.info("[MultiModule Debug] 変換対象: " + coverageData.size() + " エントリ");
+        LOGGER.info("[MultiModule Debug] Conversion target: " + coverageData.size() + " entries");
 
         // Convert coverage data back to CoverageInfo objects
         int successCount = 0;
@@ -391,20 +419,20 @@ public class MultiModuleProcessor {
             String entryKey = entry.getKey();
             Object entryValue = entry.getValue();
 
-            LOGGER.fine("[MultiModule Debug] 処理中: キー='" + entryKey + "', 値タイプ=" +
+            LOGGER.info("[MultiModule Debug] Processing entry: key='" + entryKey + "', value type=" +
                        (entryValue != null ? entryValue.getClass().getSimpleName() : "null"));
 
             try {
                 if (entryValue instanceof Map) {
                     Map<String, Object> coverageMap = (Map<String, Object>) entryValue;
-                    LOGGER.fine("[MultiModule Debug] Mapエントリ処理: " + coverageMap.size() + " フィールド");
+                    LOGGER.fine("[MultiModule Debug] Map entry processing: " + coverageMap.size() + " fields");
 
                     // Extract required fields with detailed logging
                     String className = (String) coverageMap.get("className");
                     String methodName = (String) coverageMap.get("methodName");
                     String packageName = (String) coverageMap.get("packageName");
 
-                    LOGGER.fine("[MultiModule Debug] 基本情報抽出: class='" + className + "', method='" + methodName + "', package='" + packageName + "'");
+                    LOGGER.fine("[MultiModule Debug] Basic info extracted: class='" + className + "', method='" + methodName + "', package='" + packageName + "'");
 
                     if (className != null && methodName != null) {
                         CoverageInfo info = new CoverageInfo(className, methodName);
@@ -412,32 +440,34 @@ public class MultiModuleProcessor {
                         // Set package name
                         if (packageName != null) {
                             info.setPackageName(packageName);
-                            LOGGER.fine("[MultiModule Debug] パッケージ名設定: " + packageName);
+                            LOGGER.fine("[MultiModule Debug] Package name set: " + packageName);
                         }
 
                         // Set coverage metrics with safe type conversion and detailed logging
-                        LOGGER.fine("[MultiModule Debug] ブランチカバレッジ変換開始");
+                        LOGGER.info("[MultiModule Debug] Branch coverage conversion started for: " + className + "." + methodName);
                         Object branchesCoveredObj = coverageMap.get("branchesCovered");
                         Object branchesTotalObj = coverageMap.get("branchesTotal");
+
+                        LOGGER.info("[MultiModule Debug] Retrieved from Map: branchesCovered=" + branchesCoveredObj + " (" +
+                                   (branchesCoveredObj != null ? branchesCoveredObj.getClass().getSimpleName() : "null") +
+                                   "), branchesTotal=" + branchesTotalObj + " (" +
+                                   (branchesTotalObj != null ? branchesTotalObj.getClass().getSimpleName() : "null") + ")");
 
                         if (branchesCoveredObj != null && branchesTotalObj != null) {
                             int branchesCovered = safeConvertToInt(branchesCoveredObj);
                             int branchesTotal = safeConvertToInt(branchesTotalObj);
                             info.setBranchInfo(branchesCovered, branchesTotal);
 
-                            LOGGER.fine("[MultiModule Debug] ブランチカバレッジ設定: " + branchesCovered + "/" + branchesTotal +
-                                       " = " + (branchesTotal > 0 ? (branchesCovered * 100.0 / branchesTotal) : 0.0) + "%");
-                            LOGGER.fine("[MultiModule Debug] 元の値: branchesCovered=" + branchesCoveredObj + " (" +
-                                       (branchesCoveredObj != null ? branchesCoveredObj.getClass().getSimpleName() : "null") +
-                                       "), branchesTotal=" + branchesTotalObj + " (" +
-                                       (branchesTotalObj != null ? branchesTotalObj.getClass().getSimpleName() : "null") + ")");
+                            double calculatedPercentage = branchesTotal > 0 ? (branchesCovered * 100.0 / branchesTotal) : 0.0;
+                            LOGGER.info("[MultiModule Debug] Branch coverage set: " + branchesCovered + "/" + branchesTotal +
+                                       " = " + calculatedPercentage + "%, After setBranchInfo: getBranchCoverage()=" + info.getBranchCoverage() + "%");
                         } else {
-                            LOGGER.warning("[MultiModule Debug] ブランチカバレッジデータが不完全: branchesCovered=" + branchesCoveredObj +
+                            LOGGER.warning("[MultiModule Debug] Branch coverage data incomplete: branchesCovered=" + branchesCoveredObj +
                                          ", branchesTotal=" + branchesTotalObj);
                         }
 
                         // Line coverage
-                        LOGGER.fine("[MultiModule Debug] ラインカバレッジ変換開始");
+                        LOGGER.fine("[MultiModule Debug] Line coverage conversion started");
                         Object linesCoveredObj = coverageMap.get("linesCovered");
                         Object linesTotalObj = coverageMap.get("linesTotal");
 
@@ -446,14 +476,14 @@ public class MultiModuleProcessor {
                             int linesTotal = safeConvertToInt(linesTotalObj);
                             info.setLineInfo(linesCovered, linesTotal);
 
-                            LOGGER.fine("[MultiModule Debug] ラインカバレッジ設定: " + linesCovered + "/" + linesTotal +
+                            LOGGER.fine("[MultiModule Debug] Line coverage set: " + linesCovered + "/" + linesTotal +
                                        " = " + (linesTotal > 0 ? (linesCovered * 100.0 / linesTotal) : 0.0) + "%");
                         } else {
-                            LOGGER.fine("[MultiModule Debug] ラインカバレッジデータなし");
+                            LOGGER.fine("[MultiModule Debug] No line coverage data");
                         }
 
                         // Set instruction coverage data
-                        LOGGER.fine("[MultiModule Debug] 命令カバレッジ変換開始");
+                        LOGGER.fine("[MultiModule Debug] Instruction coverage conversion started");
                         Object instructionsCoveredObj = coverageMap.get("instructionsCovered");
                         Object instructionsTotalObj = coverageMap.get("instructionsTotal");
 
@@ -462,10 +492,10 @@ public class MultiModuleProcessor {
                             int instructionsTotal = safeConvertToInt(instructionsTotalObj);
                             info.setInstructionInfo(instructionsCovered, instructionsTotal);
 
-                            LOGGER.fine("[MultiModule Debug] 命令カバレッジ設定: " + instructionsCovered + "/" + instructionsTotal +
+                            LOGGER.fine("[MultiModule Debug] Instruction coverage set: " + instructionsCovered + "/" + instructionsTotal +
                                        " = " + (instructionsTotal > 0 ? (instructionsCovered * 100.0 / instructionsTotal) : 0.0) + "%");
                         } else {
-                            LOGGER.fine("[MultiModule Debug] 命令カバレッジデータなし");
+                            LOGGER.fine("[MultiModule Debug] No instruction coverage data");
                         }
 
                         // Set method coverage data
@@ -477,7 +507,7 @@ public class MultiModuleProcessor {
                             int methodsTotal = safeConvertToInt(methodsTotalObj);
                             info.setMethodInfo(methodsCovered, methodsTotal);
 
-                            LOGGER.fine("[MultiModule Debug] メソッドカバレッジ設定: " + methodsCovered + "/" + methodsTotal +
+                            LOGGER.fine("[MultiModule Debug] Method coverage set: " + methodsCovered + "/" + methodsTotal +
                                        " = " + (methodsTotal > 0 ? (methodsCovered * 100.0 / methodsTotal) : 0.0) + "%");
                         }
 
@@ -487,50 +517,51 @@ public class MultiModuleProcessor {
 
                         if (sourceFile != null) {
                             info.setSourceFile(sourceFile);
-                            LOGGER.fine("[MultiModule Debug] ソースファイル設定: " + sourceFile);
+                            LOGGER.fine("[MultiModule Debug] Source file set: " + sourceFile);
                         }
                         if (reportType != null) {
                             info.setReportType(reportType);
-                            LOGGER.fine("[MultiModule Debug] レポートタイプ設定: " + reportType);
+                            LOGGER.fine("[MultiModule Debug] Report type set: " + reportType);
                         }
 
                         coverageInfoList.add(info);
                         successCount++;
 
-                        LOGGER.info("[MultiModule Debug] 変換成功 (" + successCount + "/" + coverageData.size() + "): " +
-                                   className + "." + methodName + " - ブランチ: " + info.getBranchCoverage() + "%");
+                        LOGGER.info("[MultiModule Debug] Conversion SUCCESS (" + successCount + "/" + coverageData.size() + "): " +
+                                   className + "." + methodName + " - Branch: " + info.getBranchCoverage() + "%, Line: " + info.getLineCoverage() +
+                                   "%, Instruction: " + info.getInstructionCoverage() + "%");
                     } else {
                         failureCount++;
-                        LOGGER.warning("[MultiModule Debug] 必要フィールド不足でスキップ (" + failureCount + "): className=" +
+                        LOGGER.warning("[MultiModule Debug] SKIP - Missing required fields (" + failureCount + "): className=" +
                                      className + ", methodName=" + methodName);
                     }
                 } else {
                     failureCount++;
-                    LOGGER.warning("[MultiModule Debug] 非Mapエントリをスキップ (" + failureCount + "): " + entryKey +
+                    LOGGER.warning("[MultiModule Debug] SKIP - Non-Map entry (" + failureCount + "): " + entryKey +
                                  " -> " + (entryValue != null ? entryValue.getClass().getSimpleName() : "null"));
                 }
             } catch (Exception e) {
                 failureCount++;
-                LOGGER.log(Level.WARNING, "[MultiModule Debug] 変換エラー (" + failureCount + "): " + entryKey, e);
+                LOGGER.log(Level.WARNING, "[MultiModule Debug] Conversion ERROR (" + failureCount + "): " + entryKey, e);
             }
         }
 
-        LOGGER.info("[MultiModule Debug] Map → CoverageInfo変換完了: 成功=" + successCount + ", 失敗=" + failureCount +
-                   ", 総数=" + coverageData.size() + " → 結果=" + coverageInfoList.size() + " エントリ");
+        LOGGER.info("[MultiModule Debug] Map -> CoverageInfo conversion COMPLETED: Success=" + successCount + ", Failed=" + failureCount +
+                   ", Total=" + coverageData.size() + " -> Result=" + coverageInfoList.size() + " entries");
 
         if (coverageInfoList.isEmpty() && !coverageData.isEmpty()) {
-            LOGGER.severe("[MultiModule Debug] 重大: 元データは存在するが変換結果が空です!");
-            LOGGER.severe("[MultiModule Debug] 元データのキー例: " + coverageData.keySet().stream().limit(5).toArray());
+            LOGGER.severe("[MultiModule Debug] CRITICAL: Source data exists but conversion result is EMPTY!");
+            LOGGER.severe("[MultiModule Debug] Sample source data keys: " + coverageData.keySet().stream().limit(5).toArray());
 
-            // サンプルデータの詳細表示
+            // Display sample data details
             if (!coverageData.isEmpty()) {
                 Map.Entry<String, Object> sample = coverageData.entrySet().iterator().next();
-                LOGGER.severe("[MultiModule Debug] サンプルエントリ詳細: key=" + sample.getKey() +
+                LOGGER.severe("[MultiModule Debug] Sample entry details: key=" + sample.getKey() +
                              ", value=" + sample.getValue());
                 if (sample.getValue() instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> sampleMap = (Map<String, Object>) sample.getValue();
-                    LOGGER.severe("[MultiModule Debug] サンプルMapの内容: " + sampleMap);
+                    LOGGER.severe("[MultiModule Debug] Sample Map contents: " + sampleMap);
                 }
             }
         }
@@ -542,72 +573,71 @@ public class MultiModuleProcessor {
      * Safely converts an Object to int, handling various numeric types.
      */
     private int safeConvertToInt(Object value) {
-        LOGGER.finest("[Type Conversion Debug] 型変換開始: " + (value != null ? value.getClass().getSimpleName() : "null") + " -> int");
-        LOGGER.finest("[Type Conversion Debug] 元の値: " + value);
+        LOGGER.info("[Type Conversion Debug] Type conversion started: " + (value != null ? value.getClass().getSimpleName() : "null") + " -> int, value: " + value);
 
         if (value == null) {
-            LOGGER.fine("[Type Conversion Debug] null値のため0を返します");
+            LOGGER.warning("[Type Conversion Debug] NULL value - returning 0");
             return 0;
         }
 
         if (value instanceof Integer) {
             Integer intValue = (Integer) value;
-            LOGGER.finest("[Type Conversion Debug] Integer型: " + intValue);
+            LOGGER.info("[Type Conversion Debug] Integer type: " + intValue);
             return intValue;
         } else if (value instanceof Long) {
             Long longValue = (Long) value;
             int intValue = longValue.intValue();
-            LOGGER.finest("[Type Conversion Debug] Long型変換: " + longValue + " -> " + intValue);
+            LOGGER.info("[Type Conversion Debug] Long type conversion: " + longValue + " -> " + intValue);
 
             if (longValue > Integer.MAX_VALUE) {
-                LOGGER.warning("[Type Conversion Debug] Long値がInteger範囲を超えています: " + longValue + " -> " + intValue);
+                LOGGER.warning("[Type Conversion Debug] Long value exceeds Integer range: " + longValue + " -> " + intValue);
             }
             return intValue;
         } else if (value instanceof Double) {
             Double doubleValue = (Double) value;
             int intValue = doubleValue.intValue();
-            LOGGER.finest("[Type Conversion Debug] Double型変換: " + doubleValue + " -> " + intValue);
+            LOGGER.info("[Type Conversion Debug] Double type conversion: " + doubleValue + " -> " + intValue);
 
             if (doubleValue != intValue) {
-                LOGGER.fine("[Type Conversion Debug] Double値の小数部が切り捨てられました: " + doubleValue + " -> " + intValue);
+                LOGGER.warning("[Type Conversion Debug] Double decimal truncated: " + doubleValue + " -> " + intValue);
             }
             return intValue;
         } else if (value instanceof Float) {
             Float floatValue = (Float) value;
             int intValue = floatValue.intValue();
-            LOGGER.finest("[Type Conversion Debug] Float型変換: " + floatValue + " -> " + intValue);
+            LOGGER.info("[Type Conversion Debug] Float type conversion: " + floatValue + " -> " + intValue);
 
             if (floatValue != intValue) {
-                LOGGER.fine("[Type Conversion Debug] Float値の小数部が切り捨てられました: " + floatValue + " -> " + intValue);
+                LOGGER.warning("[Type Conversion Debug] Float decimal truncated: " + floatValue + " -> " + intValue);
             }
             return intValue;
         } else if (value instanceof String) {
             String stringValue = (String) value;
-            LOGGER.finest("[Type Conversion Debug] String型解析試行: '" + stringValue + "'");
+            LOGGER.info("[Type Conversion Debug] String type parsing attempt: '" + stringValue + "'");
 
             if (stringValue.isEmpty()) {
-                LOGGER.fine("[Type Conversion Debug] 空文字列のため0を返します");
+                LOGGER.warning("[Type Conversion Debug] Empty string - returning 0");
                 return 0;
             }
 
             try {
                 int intValue = Integer.parseInt(stringValue);
-                LOGGER.finest("[Type Conversion Debug] String解析成功: '" + stringValue + "' -> " + intValue);
+                LOGGER.info("[Type Conversion Debug] String parsing success: '" + stringValue + "' -> " + intValue);
                 return intValue;
             } catch (NumberFormatException e) {
-                LOGGER.warning("[Type Conversion Debug] String解析失敗: '" + stringValue + "' -> 0 (エラー: " + e.getMessage() + ")");
+                LOGGER.warning("[Type Conversion Debug] String parsing failed: '" + stringValue + "' -> 0 (error: " + e.getMessage() + ")");
                 return 0;
             }
         } else if (value instanceof Number) {
-            // その他のNumber型（BigInteger、BigDecimalなど）
+            // Other Number types (BigInteger, BigDecimal, etc.)
             Number numberValue = (Number) value;
             int intValue = numberValue.intValue();
-            LOGGER.finest("[Type Conversion Debug] その他Number型変換: " + numberValue + " (" + numberValue.getClass().getSimpleName() + ") -> " + intValue);
+            LOGGER.info("[Type Conversion Debug] Other Number type conversion: " + numberValue + " (" + numberValue.getClass().getSimpleName() + ") -> " + intValue);
             return intValue;
         }
 
-        // 予期しない型
-        LOGGER.warning("[Type Conversion Debug] 予期しない型です - 0を返します: " + value.getClass().getSimpleName() + " 値: " + value);
+        // Unexpected type
+        LOGGER.warning("[Type Conversion Debug] Unexpected type - returning 0: " + value.getClass().getSimpleName() + " value: " + value);
         return 0; // Default fallback
     }
 

@@ -82,17 +82,17 @@ public class CoverageReportParser {
             coverageData.put(mapKey, coverageMap);
 
             // 詳細ログ: 変換前後の数値確認
-            logger.debug("[Map Conversion Debug] 変換完了 {}/{}: {}.{}", i + 1, coverageInfos.size(),
+            logger.debug("[Map Conversion Debug] Conversion completed {}/{}: {}.{}", i + 1, coverageInfos.size(),
                         coverage.getClassName(), coverage.getMethodName());
-            logger.debug("[Map Conversion Debug] - ブランチ: {:.1f}% ({}/{})",
+            logger.debug("[Map Conversion Debug] - Branch: {}% ({}/{})",
                         coverage.getBranchCoverage(), coverage.getBranchesCovered(), coverage.getBranchesTotal());
-            logger.debug("[Map Conversion Debug] - 命令: {:.1f}% ({}/{})",
+            logger.debug("[Map Conversion Debug] - Instruction: {}% ({}/{})",
                         coverage.getInstructionCoverage(), coverage.getInstructionsCovered(), coverage.getInstructionsTotal());
-            logger.debug("[Map Conversion Debug] - ライン: {:.1f}% ({}/{})",
+            logger.debug("[Map Conversion Debug] - Line: {}% ({}/{})",
                         coverage.getLineCoverage(), coverage.getLinesCovered(), coverage.getLinesTotal());
 
-            // Map変換後の数値確認
-            logger.trace("[Map Conversion Debug] Map変換後確認:");
+            // Verify values after Map conversion
+            logger.trace("[Map Conversion Debug] Verification after Map conversion:");
             logger.trace("[Map Conversion Debug] - branchesCovered: {}", coverageMap.get("branchesCovered"));
             logger.trace("[Map Conversion Debug] - branchesTotal: {}", coverageMap.get("branchesTotal"));
             logger.trace("[Map Conversion Debug] - branchCoverage: {}", coverageMap.get("branchCoverage"));
@@ -104,7 +104,7 @@ public class CoverageReportParser {
         logger.info("[Map Conversion Debug] Coverage data Map conversion completed: {} entries -> {} Map entries",
                    coverageInfos.size(), coverageData.size());
 
-        // Map全体の概要統計
+        // Map overall statistics
         if (!coverageData.isEmpty()) {
             int totalWithBranchData = 0;
             double totalBranchCoverage = 0.0;
@@ -125,7 +125,7 @@ public class CoverageReportParser {
                 }
             }
 
-            logger.debug("[Map Conversion Debug] Map統計: {} エントリ中 {} エントリにブランチデータ有り, 平均: {:.1f}%",
+            logger.debug("[Map Conversion Debug] Map statistics: {} entries total, {} entries with branch data, average: {}%",
                         coverageData.size(), totalWithBranchData,
                         totalWithBranchData > 0 ? totalBranchCoverage / totalWithBranchData : 0.0);
         }
@@ -137,73 +137,117 @@ public class CoverageReportParser {
      * 複数のカバレッジレポートファイルを処理し、動的パッケージフィルタリングを適用して結合された結果を返します
      */
     public List<CoverageInfo> processCoverageReports(List<Path> coverageFiles, List<Path> testFiles) {
-        logger.info("[Coverage Debug] Processing coverage reports started: {} files", coverageFiles.size());
-        logger.debug("[Coverage Debug] Input files: {}", coverageFiles.stream().map(Path::toString).toList());
+        logger.info("[Coverage Debug LINE-BY-LINE] ========== COVERAGE PROCESSING STARTED ==========");
+        logger.info("[Coverage Debug LINE-BY-LINE] Input: {} coverage files", coverageFiles.size());
+        logger.debug("[Coverage Debug LINE-BY-LINE] Coverage file list:");
+        for (int idx = 0; idx < coverageFiles.size(); idx++) {
+            logger.debug("[Coverage Debug LINE-BY-LINE]   File {}: {}", idx + 1, coverageFiles.get(idx));
+        }
 
         List<CoverageInfo> coverageData = new ArrayList<>();
+        logger.debug("[Coverage Debug LINE-BY-LINE] Created empty coverageData list (size={})", coverageData.size());
 
         // Validate input files first
         if (coverageFiles.isEmpty()) {
-            logger.warn("[Coverage Debug] No coverage files provided - coverage data will be empty");
+            logger.warn("[Coverage Debug LINE-BY-LINE] No coverage files provided - returning empty list");
             return coverageData;
         }
 
+        logger.debug("[Coverage Debug LINE-BY-LINE] Starting file-by-file processing loop");
         for (int i = 0; i < coverageFiles.size(); i++) {
             Path coverageFile = coverageFiles.get(i);
-            logger.debug("[Coverage Debug] Processing file {}/{}: {}", i + 1, coverageFiles.size(), coverageFile.getFileName());
-            logger.debug("[Coverage Debug] File path: {}", coverageFile.toAbsolutePath());
+            logger.info("[Coverage Debug LINE-BY-LINE] ========== Processing file {}/{} ==========", i + 1, coverageFiles.size());
+            logger.info("[Coverage Debug LINE-BY-LINE] File name: {}", coverageFile.getFileName());
+            logger.info("[Coverage Debug LINE-BY-LINE] File path: {}", coverageFile.toAbsolutePath());
 
             try {
                 // Check file exists and size
-                if (!Files.exists(coverageFile)) {
-                    logger.error("[Coverage Debug] File does not exist: {}", coverageFile);
+                boolean fileExists = Files.exists(coverageFile);
+                logger.debug("[Coverage Debug LINE-BY-LINE] File exists check: {}", fileExists);
+
+                if (!fileExists) {
+                    logger.error("[Coverage Debug LINE-BY-LINE] File does not exist - skipping: {}", coverageFile);
                     continue;
                 }
 
                 long fileSize = Files.size(coverageFile);
-                logger.debug("[Coverage Debug] File size: {} bytes", fileSize);
+                logger.info("[Coverage Debug LINE-BY-LINE] File size: {} bytes", fileSize);
 
                 if (fileSize == 0) {
-                    logger.warn("[Coverage Debug] File is empty: {} - skipping", coverageFile);
+                    logger.warn("[Coverage Debug LINE-BY-LINE] File is empty - skipping: {}", coverageFile);
                     continue;
                 }
 
+                logger.debug("[Coverage Debug LINE-BY-LINE] Calling processCoverageFile() for: {}", coverageFile.getFileName());
+                int beforeSize = coverageData.size();
+                logger.debug("[Coverage Debug LINE-BY-LINE] coverageData size BEFORE processing: {}", beforeSize);
+
                 List<CoverageInfo> fileCoverage = processCoverageFile(coverageFile);
-                logger.debug("[Coverage Debug] Extracted {} entries from file: {}", fileCoverage.size(), coverageFile.getFileName());
+                logger.info("[Coverage Debug LINE-BY-LINE] processCoverageFile() returned {} entries", fileCoverage.size());
+
+                if (fileCoverage.isEmpty()) {
+                    logger.warn("[Coverage Debug LINE-BY-LINE] No coverage entries extracted from file: {}", coverageFile.getFileName());
+                } else {
+                    logger.debug("[Coverage Debug LINE-BY-LINE] Sample entries from file:");
+                    int sampleCount = Math.min(3, fileCoverage.size());
+                    for (int j = 0; j < sampleCount; j++) {
+                        CoverageInfo sample = fileCoverage.get(j);
+                        logger.debug("[Coverage Debug LINE-BY-LINE]   Entry {}: {}.{} (package: {}, branch: {}%)",
+                            j + 1, sample.getClassName(), sample.getMethodName(), sample.getPackageName(), sample.getBranchCoverage());
+                    }
+                }
+
+                logger.debug("[Coverage Debug LINE-BY-LINE] Adding {} entries to coverageData", fileCoverage.size());
                 coverageData.addAll(fileCoverage);
+                int afterSize = coverageData.size();
+                logger.info("[Coverage Debug LINE-BY-LINE] coverageData size AFTER adding: {} (added: {})", afterSize, afterSize - beforeSize);
 
             } catch (Exception e) {
-                logger.error("[Coverage Debug] Error processing coverage file: {} - Error: {} - Cause: {}",
-                    coverageFile, e.getMessage(), e.getCause() != null ? e.getCause().getMessage() : "No specific cause");
-                logger.debug("[Coverage Debug] Full stack trace for file: {}", coverageFile, e);
+                logger.error("[Coverage Debug LINE-BY-LINE] ========== EXCEPTION OCCURRED ==========");
+                logger.error("[Coverage Debug LINE-BY-LINE] File: {}", coverageFile);
+                logger.error("[Coverage Debug LINE-BY-LINE] Exception type: {}", e.getClass().getName());
+                logger.error("[Coverage Debug LINE-BY-LINE] Exception message: {}", e.getMessage());
+                if (e.getCause() != null) {
+                    logger.error("[Coverage Debug LINE-BY-LINE] Root cause: {}", e.getCause().getMessage());
+                }
+                logger.error("[Coverage Debug LINE-BY-LINE] Full stack trace:", e);
             }
         }
 
-        logger.info("[Coverage Debug] Processing completed: {} total entries extracted from {} files",
-            coverageData.size(), coverageFiles.size());
+        logger.info("[Coverage Debug LINE-BY-LINE] ========== FILE PROCESSING LOOP COMPLETED ==========");
+        logger.info("[Coverage Debug LINE-BY-LINE] FINAL coverageData size: {}", coverageData.size());
+        logger.info("[Coverage Debug LINE-BY-LINE] Total entries extracted from {} files: {}", coverageFiles.size(), coverageData.size());
 
         // Log statistics about extracted data
         if (!coverageData.isEmpty()) {
+            logger.debug("[Coverage Debug LINE-BY-LINE] Calculating statistics for {} entries", coverageData.size());
+
             Map<String, Long> typeStats = coverageData.stream()
                 .collect(java.util.stream.Collectors.groupingBy(
                     CoverageInfo::getReportType,
                     java.util.stream.Collectors.counting()));
-            logger.debug("[Coverage Debug] Report type statistics: {}", typeStats);
+            logger.info("[Coverage Debug LINE-BY-LINE] Report type statistics: {}", typeStats);
 
             Map<String, Long> packageStats = coverageData.stream()
                 .collect(java.util.stream.Collectors.groupingBy(
                     CoverageInfo::getPackageName,
                     java.util.stream.Collectors.counting()));
-            logger.debug("[Coverage Debug] Package distribution: {}", packageStats);
+            logger.info("[Coverage Debug LINE-BY-LINE] Package distribution: {}", packageStats);
+
+            logger.debug("[Coverage Debug LINE-BY-LINE] Listing all package names:");
+            packageStats.keySet().forEach(pkg -> logger.debug("[Coverage Debug LINE-BY-LINE]   - {}", pkg));
         } else {
-            logger.warn("[Coverage Debug] No coverage data extracted - possible reasons:");
-            logger.warn("[Coverage Debug] 1. XML files do not contain JaCoCo coverage data");
-            logger.warn("[Coverage Debug] 2. Files are in unsupported format (HTML-only without XML)");
-            logger.warn("[Coverage Debug] 3. Package filtering excluded all entries");
-            logger.warn("[Coverage Debug] 4. XML structure does not match expected JaCoCo format");
-            logger.warn("[Coverage Debug] Recommendation: Run 'mvn test jacoco:report' to generate proper XML reports");
+            logger.warn("[Coverage Debug LINE-BY-LINE] ========== NO COVERAGE DATA EXTRACTED ==========");
+            logger.warn("[Coverage Debug LINE-BY-LINE] Possible reasons:");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 1. XML files do not contain JaCoCo coverage data");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 2. Files are in unsupported format (HTML-only without XML)");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 3. Package filtering excluded all entries");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 4. XML structure does not match expected JaCoCo format");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 5. All coverage entries were filtered out");
+            logger.warn("[Coverage Debug LINE-BY-LINE] Recommendation: Run 'mvn test jacoco:report' to generate proper XML reports");
         }
 
+        logger.info("[Coverage Debug LINE-BY-LINE] ========== RETURNING {} ENTRIES ==========", coverageData.size());
         return coverageData;
     }
 
@@ -239,14 +283,25 @@ public class CoverageReportParser {
             return new ArrayList<>();
         }
 
-        logger.debug("[Coverage Debug] Starting package filtering - Raw entries: {}", coverageInfos.size());
+        logger.info("[Coverage Debug LINE-BY-LINE] ========== PACKAGE FILTERING STARTED ==========");
+        logger.info("[Coverage Debug LINE-BY-LINE] Raw entries BEFORE filtering: {}", coverageInfos.size());
+        logger.info("[Coverage Debug LINE-BY-LINE] allowedPackages parameter: {}", allowedPackages);
+
         if (coverageInfos.isEmpty()) {
-            logger.warn("[Coverage Debug] No coverage entries found in file: {}", coverageFile);
-            logger.warn("[Coverage Debug] Possible reasons:");
-            logger.warn("[Coverage Debug] 1. File is not a valid JaCoCo report");
-            logger.warn("[Coverage Debug] 2. File structure does not match expected XML format");
-            logger.warn("[Coverage Debug] 3. File contains no coverage data");
+            logger.warn("[Coverage Debug LINE-BY-LINE] No coverage entries found in file: {}", coverageFile);
+            logger.warn("[Coverage Debug LINE-BY-LINE] Possible reasons:");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 1. File is not a valid JaCoCo report");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 2. File structure does not match expected XML format");
+            logger.warn("[Coverage Debug LINE-BY-LINE] 3. File contains no coverage data");
             return coverageInfos;
+        }
+
+        // Log all raw entries before filtering
+        logger.debug("[Coverage Debug LINE-BY-LINE] Listing ALL {} raw entries:", coverageInfos.size());
+        for (int i = 0; i < coverageInfos.size(); i++) {
+            CoverageInfo info = coverageInfos.get(i);
+            logger.debug("[Coverage Debug LINE-BY-LINE]   Raw entry {}: {}.{} (package: {}, branch: {}%)",
+                i + 1, info.getClassName(), info.getMethodName(), info.getPackageName(), info.getBranchCoverage());
         }
 
         // Package filtering: Only exclude tool's own packages - include ALL user packages
@@ -254,70 +309,101 @@ public class CoverageReportParser {
         int excludedToolPackages = 0;
         int excludedByPackageFilter = 0;
 
-        for (CoverageInfo coverage : coverageInfos) {
+        logger.info("[Coverage Debug LINE-BY-LINE] Starting filtering loop (entry-by-entry)");
+        for (int i = 0; i < coverageInfos.size(); i++) {
+            CoverageInfo coverage = coverageInfos.get(i);
             String packageName = coverage.getPackageName();
-            logger.trace("[Coverage Debug] Evaluating entry: {}.{} in package: {}",
-                coverage.getClassName(), coverage.getMethodName(), packageName);
+            String className = coverage.getClassName();
+            String methodName = coverage.getMethodName();
+
+            logger.debug("[Coverage Debug LINE-BY-LINE] ===== Entry {}/{} =====", i + 1, coverageInfos.size());
+            logger.debug("[Coverage Debug LINE-BY-LINE] Class: {}", className);
+            logger.debug("[Coverage Debug LINE-BY-LINE] Method: {}", methodName);
+            logger.debug("[Coverage Debug LINE-BY-LINE] Package: {}", packageName);
+            logger.debug("[Coverage Debug LINE-BY-LINE] Branch coverage: {}% ({}/{})",
+                coverage.getBranchCoverage(), coverage.getBranchesCovered(), coverage.getBranchesTotal());
 
             if (packageName != null) {
+                logger.debug("[Coverage Debug LINE-BY-LINE] Package is not null - proceeding with filter check");
+
                 // NOTE: Package exclusion removed to support any package names
                 // Previously excluded com.testspecgenerator packages causing mapping failures
 
                 // If allowedPackages is provided, use dynamic filtering
                 if (allowedPackages != null && !allowedPackages.isEmpty()) {
+                    logger.debug("[Coverage Debug LINE-BY-LINE] allowedPackages filter IS PROVIDED: {}", allowedPackages);
+
                     boolean isAllowed = false;
                     String normalizedPackage = packageName.replace('/', '.');
-                    logger.trace("[Coverage Debug] Checking package '{}' against allowed: {}", normalizedPackage, allowedPackages);
+                    logger.debug("[Coverage Debug LINE-BY-LINE] Normalized package name: '{}' (original: '{}')", normalizedPackage, packageName);
 
+                    logger.debug("[Coverage Debug LINE-BY-LINE] Checking against {} allowed packages:", allowedPackages.size());
                     for (String allowedPackage : allowedPackages) {
+                        logger.debug("[Coverage Debug LINE-BY-LINE]   Checking if '{}' starts with '{}'", normalizedPackage, allowedPackage);
                         if (normalizedPackage.startsWith(allowedPackage)) {
                             isAllowed = true;
-                            logger.trace("[Coverage Debug] Package match found: '{}' matches '{}'", normalizedPackage, allowedPackage);
+                            logger.info("[Coverage Debug LINE-BY-LINE]   MATCH FOUND: '{}' matches '{}'", normalizedPackage, allowedPackage);
                             break;
+                        } else {
+                            logger.debug("[Coverage Debug LINE-BY-LINE]   No match: '{}' does not start with '{}'", normalizedPackage, allowedPackage);
                         }
                     }
 
                     if (isAllowed) {
+                        logger.info("[Coverage Debug LINE-BY-LINE] ADDING entry (passed filter): {}.{}", className, methodName);
                         filteredCoverage.add(coverage);
-                        logger.debug("[Coverage Debug] Coverage entry added: {}.{} (package: {}, branch: {:.1f}%)",
-                            coverage.getClassName(), coverage.getMethodName(), packageName, coverage.getBranchCoverage());
+                        logger.debug("[Coverage Debug LINE-BY-LINE] filteredCoverage size now: {}", filteredCoverage.size());
                     } else {
                         excludedByPackageFilter++;
-                        logger.trace("[Coverage Debug] Excluded by package filter: {}", normalizedPackage);
+                        logger.warn("[Coverage Debug LINE-BY-LINE] EXCLUDING entry (failed filter): {}.{} (package: {})",
+                            className, methodName, normalizedPackage);
+                        logger.debug("[Coverage Debug LINE-BY-LINE] excludedByPackageFilter count now: {}", excludedByPackageFilter);
                     }
                 } else {
-                    // No package filtering - include ALL packages except tool's own packages
-                    logger.trace("[Coverage Debug] No package filter applied - including all packages for: {}", packageName);
+                    // No package filtering - include ALL packages
+                    logger.info("[Coverage Debug LINE-BY-LINE] NO package filter - ADDING entry: {}.{} (package: {})",
+                        className, methodName, packageName);
                     filteredCoverage.add(coverage);
-                    logger.debug("[Coverage Debug] Coverage entry added (no filtering): {}.{} (package: {}, branch: {:.1f}%)",
-                        coverage.getClassName(), coverage.getMethodName(), packageName, coverage.getBranchCoverage());
+                    logger.debug("[Coverage Debug LINE-BY-LINE] filteredCoverage size now: {}", filteredCoverage.size());
                 }
             } else {
-                logger.debug("[Coverage Debug] Skipping entry with null package: {}.{}",
-                    coverage.getClassName(), coverage.getMethodName());
+                logger.warn("[Coverage Debug LINE-BY-LINE] SKIPPING entry with NULL package: {}.{}", className, methodName);
             }
         }
 
         String filterDescription = (allowedPackages != null && !allowedPackages.isEmpty())
             ? allowedPackages.toString()
             : "ALL PACKAGES (no filtering)";
-        logger.info("[Coverage Debug] Filtering completed: Total: {} -> Filtered: {} (Filter: {})",
-            coverageInfos.size(), filteredCoverage.size(), filterDescription);
-        logger.debug("[Coverage Debug] Filter statistics: Tool packages excluded: {}, Package filter excluded: {}",
-            excludedToolPackages, excludedByPackageFilter);
+        logger.info("[Coverage Debug LINE-BY-LINE] ========== FILTERING COMPLETED ==========");
+        logger.info("[Coverage Debug LINE-BY-LINE] Total entries BEFORE filtering: {}", coverageInfos.size());
+        logger.info("[Coverage Debug LINE-BY-LINE] Total entries AFTER filtering: {}", filteredCoverage.size());
+        logger.info("[Coverage Debug LINE-BY-LINE] Filter description: {}", filterDescription);
+        logger.info("[Coverage Debug LINE-BY-LINE] Excluded by tool package filter: {}", excludedToolPackages);
+        logger.info("[Coverage Debug LINE-BY-LINE] Excluded by allowedPackages filter: {}", excludedByPackageFilter);
 
         if (filteredCoverage.isEmpty() && !coverageInfos.isEmpty()) {
-            logger.warn("[Coverage Debug] All coverage entries were filtered out!");
-            logger.warn("[Coverage Debug] Original packages found:");
+            logger.error("[Coverage Debug LINE-BY-LINE] ========== ALL ENTRIES WERE FILTERED OUT ==========");
+            logger.error("[Coverage Debug LINE-BY-LINE] This is the root cause of 0% coverage!");
+
             Set<String> originalPackages = coverageInfos.stream()
                 .map(CoverageInfo::getPackageName)
                 .filter(Objects::nonNull)
                 .collect(java.util.stream.Collectors.toSet());
-            originalPackages.forEach(pkg -> logger.warn("[Coverage Debug] - {}", pkg));
-            logger.warn("[Coverage Debug] Applied filter: {}", filterDescription);
-            logger.warn("[Coverage Debug] Note: Tool accepts ALL packages except com.testspecgenerator (tool's own packages)");
+
+            logger.error("[Coverage Debug LINE-BY-LINE] Original packages found ({}): ", originalPackages.size());
+            originalPackages.forEach(pkg -> logger.error("[Coverage Debug LINE-BY-LINE]   - {}", pkg));
+
+            logger.error("[Coverage Debug LINE-BY-LINE] Applied filter: {}", filterDescription);
+            if (allowedPackages != null && !allowedPackages.isEmpty()) {
+                logger.error("[Coverage Debug LINE-BY-LINE] Allowed packages ({}): ", allowedPackages.size());
+                allowedPackages.forEach(pkg -> logger.error("[Coverage Debug LINE-BY-LINE]   - {}", pkg));
+                logger.error("[Coverage Debug LINE-BY-LINE] PROBLEM: None of the original packages matched any allowed packages!");
+            } else {
+                logger.error("[Coverage Debug LINE-BY-LINE] PROBLEM: No filtering should be applied but all entries were still excluded!");
+            }
         }
 
+        logger.info("[Coverage Debug LINE-BY-LINE] ========== RETURNING {} FILTERED ENTRIES ==========", filteredCoverage.size());
         return filteredCoverage;
     }
 
@@ -371,7 +457,10 @@ public class CoverageReportParser {
             for (int pkgIndex = 0; pkgIndex < packages.size(); pkgIndex++) {
                 Element packageElement = packages.get(pkgIndex);
                 String packageName = packageElement.attr("name");
-                logger.debug("[Coverage Debug] Processing package {}/{}: '{}'", pkgIndex + 1, packages.size(), packageName);
+                logger.info("[Coverage Debug LINE-BY-LINE] ========== Processing package {}/{} ==========", pkgIndex + 1, packages.size());
+                logger.info("[Coverage Debug LINE-BY-LINE] Package name RAW: '{}'", packageName);
+                logger.debug("[Coverage Debug LINE-BY-LINE] Package element tag: {}", packageElement.tagName());
+                logger.debug("[Coverage Debug LINE-BY-LINE] Package element has 'name' attribute: {}", packageElement.hasAttr("name"));
 
                 // クラス要素を検索
                 Elements classes = packageElement.select("class");
@@ -389,11 +478,12 @@ public class CoverageReportParser {
                     String className = extractClassNameFromPath(classPath);
                     String sourceFileName = classElement.attr("sourcefilename");
 
-                    // Enhanced debug logging for null investigation
-                    logger.debug("[Coverage Debug] RAW CLASS DATA - classPath='{}', className='{}', sourceFile='{}'",
-                        classPath, className, sourceFileName);
-                    logger.trace("[Coverage Debug] Processing class {}/{} in package '{}': '{}' (source: '{}')",
-                        classIndex + 1, classes.size(), packageName, className, sourceFileName);
+                    logger.info("[Coverage Debug LINE-BY-LINE] --- Processing class {}/{} in package '{}' ---", classIndex + 1, classes.size(), packageName);
+                    logger.info("[Coverage Debug LINE-BY-LINE] RAW classPath attribute: '{}'", classPath);
+                    logger.info("[Coverage Debug LINE-BY-LINE] Extracted className: '{}'", className);
+                    logger.info("[Coverage Debug LINE-BY-LINE] Source file name: '{}'", sourceFileName);
+                    logger.debug("[Coverage Debug LINE-BY-LINE] Class element tag: {}", classElement.tagName());
+                    logger.debug("[Coverage Debug LINE-BY-LINE] Class element has 'name' attribute: {}", classElement.hasAttr("name"));
 
                     // メソッド要素を検索
                     Elements methods = classElement.select("method");
@@ -405,22 +495,35 @@ public class CoverageReportParser {
                         String methodName = methodElement.attr("name");
                         int line = parseIntAttribute(methodElement.attr("line"), 0);
 
-                        logger.trace("[Coverage Debug] Processing method {}/{}: '{}' (line: {})",
-                            methodIndex + 1, methods.size(), methodName, line);
+                        logger.info("[Coverage Debug LINE-BY-LINE] +++ Processing method {}/{} +++", methodIndex + 1, methods.size());
+                        logger.info("[Coverage Debug LINE-BY-LINE] RAW method name: '{}'", methodName);
+                        logger.info("[Coverage Debug LINE-BY-LINE] Method line number: {}", line);
 
                         // メソッド名の特殊文字をデコード
                         String displayMethodName = decodeMethodName(methodName);
                         if (!methodName.equals(displayMethodName)) {
-                            logger.trace("[Coverage Debug] Method name decoded: '{}' -> '{}'", methodName, displayMethodName);
+                            logger.debug("[Coverage Debug LINE-BY-LINE] Method name DECODED: '{}' -> '{}'", methodName, displayMethodName);
+                        } else {
+                            logger.debug("[Coverage Debug LINE-BY-LINE] Method name (no decoding needed): '{}'", displayMethodName);
                         }
 
                         // Null safety checks
+                        logger.debug("[Coverage Debug LINE-BY-LINE] Performing null safety checks");
+                        logger.debug("[Coverage Debug LINE-BY-LINE]   className: '{}' (isNull: {})", className, className == null);
+                        logger.debug("[Coverage Debug LINE-BY-LINE]   displayMethodName: '{}' (isNull: {})", displayMethodName, displayMethodName == null);
+
                         String safeClassName = (className != null && !className.isEmpty()) ? className : "UnknownClass";
                         String safeMethodName = (displayMethodName != null && !displayMethodName.isEmpty()) ? displayMethodName : "unknownMethod";
+
+                        logger.info("[Coverage Debug LINE-BY-LINE] Creating CoverageInfo object:");
+                        logger.info("[Coverage Debug LINE-BY-LINE]   - className: '{}'", safeClassName);
+                        logger.info("[Coverage Debug LINE-BY-LINE]   - methodName: '{}'", safeMethodName);
+                        logger.info("[Coverage Debug LINE-BY-LINE]   - packageName: '{}'", packageName);
 
                         CoverageInfo coverageInfo = new CoverageInfo(safeClassName, safeMethodName);
                         coverageInfo.setPackageName(packageName);
                         coverageInfo.setReportType("XML");
+                        logger.debug("[Coverage Debug LINE-BY-LINE] CoverageInfo object created, packageName set to: '{}'", coverageInfo.getPackageName());
 
                         // ソースファイル名の設定（nullチェックと特殊ケースの処理）
                         String finalSourceFile = "";
@@ -447,7 +550,7 @@ public class CoverageReportParser {
                             int covered = parseIntAttribute(counter.attr("covered"), 0);
                             int total = covered + missed;
 
-                            logger.trace("[Coverage Debug] Counter type '{}': covered={}, missed={}, total={}, coverage={:.1f}%",
+                            logger.trace("[Coverage Debug] Counter type '{}': covered={}, missed={}, total={}, coverage={}%",
                                 type, covered, missed, total, total > 0 ? (covered * 100.0 / total) : 0.0);
 
                             switch (type) {
@@ -468,9 +571,16 @@ public class CoverageReportParser {
                             }
                         }
 
+                        int beforeAdd = coverageInfos.size();
+                        logger.debug("[Coverage Debug LINE-BY-LINE] coverageInfos list size BEFORE add: {}", beforeAdd);
+
                         coverageInfos.add(coverageInfo);
-                        logger.debug("[Coverage Debug] XML coverage entry extracted: {}.{} - Branch: {:.1f}%, Instruction: {:.1f}%",
-                                className, displayMethodName, coverageInfo.getBranchCoverage(), coverageInfo.getInstructionCoverage());
+
+                        int afterAdd = coverageInfos.size();
+                        logger.info("[Coverage Debug LINE-BY-LINE] CoverageInfo ADDED to list (size: {} -> {})", beforeAdd, afterAdd);
+                        logger.info("[Coverage Debug LINE-BY-LINE] Added entry: {}.{} (package: {}, branch: {}%, instruction: {}%)",
+                                safeClassName, safeMethodName, packageName,
+                                coverageInfo.getBranchCoverage(), coverageInfo.getInstructionCoverage());
                     }
                 }
             }
@@ -731,7 +841,7 @@ public class CoverageReportParser {
                         matchStrategy = "full-key";
                         finalImplClassName = normalizedClass;
                         finalMethodName = methodCandidate;
-                        logger.debug("[Coverage Debug] Coverage match (full key): {} -> {} (coverage: {:.1f}%)",
+                        logger.debug("[Coverage Debug] Coverage match (full key): {} -> {} (coverage: {}%)",
                             testCase.getMethodName(), fullKey, coverage.getBranchCoverage());
                         break outerLoop;
                     }
@@ -751,7 +861,7 @@ public class CoverageReportParser {
                         matchStrategy = "short-key";
                         finalImplClassName = normalizedClass;
                         finalMethodName = methodCandidate;
-                        logger.debug("[Coverage Debug] Coverage match (short key): {} -> {} (coverage: {:.1f}%)",
+                        logger.debug("[Coverage Debug] Coverage match (short key): {} -> {} (coverage: {}%)",
                             testCase.getMethodName(), shortKey, coverage.getBranchCoverage());
                         break outerLoop;
                     }
@@ -773,7 +883,7 @@ public class CoverageReportParser {
                         matchStrategy = "method-only";
                         finalImplClassName = coverage.getClassName();
                         finalMethodName = methodCandidate;
-                        logger.debug("[Coverage Debug] Coverage match (method only): {} -> {}.{} (coverage: {:.1f}%)",
+                        logger.debug("[Coverage Debug] Coverage match (method only): {} -> {}.{} (coverage: {}%)",
                             testCase.getMethodName(), coverage.getClassName(), methodCandidate, coverage.getBranchCoverage());
                         break;
                     }
@@ -787,7 +897,7 @@ public class CoverageReportParser {
                 testCase.setBranchesTotal(coverage.getBranchesTotal());
                 successfulMatches++;
 
-                logger.debug("[Coverage Debug] Coverage merge successful: {} -> {:.1f}% (strategy: {}, branch: {}/{}, instruction: {:.1f}%)",
+                logger.debug("[Coverage Debug] Coverage merge successful: {} -> {}% (strategy: {}, branch: {}/{}, instruction: {}%)",
                     testCase.getMethodName(), testCase.getCoveragePercent(), matchStrategy,
                     coverage.getBranchesCovered(), coverage.getBranchesTotal(), coverage.getInstructionCoverage());
             } else {
@@ -964,7 +1074,7 @@ public class CoverageReportParser {
             CoverageInfo coverage = coverageData.get(i);
             double branchCoverage = coverage.getBranchCoverage();
 
-            logger.trace("[Statistics Debug] カバレッジ計算 {}/{}: {}.{} = {:.1f}% (branch: {}/{}, instruction: {:.1f}%)",
+            logger.trace("[Statistics Debug] Coverage calculation {}/{}: {}.{} = {}% (branch: {}/{}, instruction: {}%)",
                         i + 1, totalEntries, coverage.getClassName(), coverage.getMethodName(),
                         branchCoverage, coverage.getBranchesCovered(), coverage.getBranchesTotal(),
                         coverage.getInstructionCoverage());
@@ -983,14 +1093,14 @@ public class CoverageReportParser {
         double averageBranchCoverage = validCoverageEntries > 0 ? totalBranchCoverage / validCoverageEntries : 0.0;
         stats.put("averageBranchCoverage", averageBranchCoverage);
 
-        logger.debug("[Statistics Debug] ブランチカバレッジ統計完了:");
-        logger.debug("[Statistics Debug] - 平均: {:.1f}% (有効エントリ: {}/{})", averageBranchCoverage, validCoverageEntries, totalEntries);
-        logger.debug("[Statistics Debug] - 範囲: {:.1f}% - {:.1f}%",
+        logger.debug("[Statistics Debug] Branch coverage statistics completed:");
+        logger.debug("[Statistics Debug] - Average: {}% (valid entries: {}/{})", averageBranchCoverage, validCoverageEntries, totalEntries);
+        logger.debug("[Statistics Debug] - Range: {}% - {}%",
                     minCoverage != Double.MAX_VALUE ? minCoverage : 0.0,
                     maxCoverage != Double.MIN_VALUE ? maxCoverage : 0.0);
 
-        // 高カバレッジケース数（80%以上）
-        logger.debug("[Statistics Debug] 高カバレッジケース計算開始（80%以上）");
+        // High coverage cases (80% or higher)
+        logger.debug("[Statistics Debug] High coverage case calculation started (80% or higher)");
         long highCoverageCount = 0;
 
         for (int i = 0; i < coverageData.size(); i++) {
@@ -999,16 +1109,16 @@ public class CoverageReportParser {
 
             if (branchCoverage >= 80.0) {
                 highCoverageCount++;
-                logger.trace("[Statistics Debug] 高カバレッジ {}: {}.{} = {:.1f}%",
+                logger.trace("[Statistics Debug] High coverage {}: {}.{} = {}%",
                            highCoverageCount, coverage.getClassName(), coverage.getMethodName(), branchCoverage);
             }
         }
 
         stats.put("highCoverageCount", highCoverageCount);
-        logger.debug("[Statistics Debug] 高カバレッジケース計算完了: {} エントリ ({}%)",
+        logger.debug("[Statistics Debug] High coverage case calculation completed: {} entries ({}%)",
                     highCoverageCount, totalEntries > 0 ? (highCoverageCount * 100 / totalEntries) : 0);
 
-        logger.info("[Statistics Debug] 統計計算完了 - 総エントリ: {}, XML: {}, 平均カバレッジ: {:.1f}%, 高カバレッジ: {}",
+        logger.info("[Statistics Debug] Statistics calculation completed - Total entries: {}, XML: {}, Average coverage: {}%, High coverage: {}",
                    totalEntries, xmlReports, averageBranchCoverage, highCoverageCount);
 
         return stats;
@@ -1023,7 +1133,7 @@ public class CoverageReportParser {
         logger.info("[Coverage Debug] ========== Coverage Analysis Summary ==========");
         logger.info("[Coverage Debug] Total entries: {}", stats.get("totalEntries"));
         logger.info("[Coverage Debug] XML reports: {}, HTML reports: {}", stats.get("xmlReports"), stats.get("htmlReports"));
-        logger.info("[Coverage Debug] Average branch coverage: {:.1f}%", stats.get("averageBranchCoverage"));
+        logger.info("[Coverage Debug] Average branch coverage: {}%", stats.get("averageBranchCoverage"));
         logger.info("[Coverage Debug] High coverage (80%+): {} entries", stats.get("highCoverageCount"));
 
         if (coverageData.isEmpty()) {
@@ -1143,10 +1253,10 @@ public class CoverageReportParser {
         map.put("instructionCoverage", instructionCoverage);
         map.put("methodCoverage", methodCoverage);
 
-        logger.trace("[Convert Debug] カバレッジ率設定: branch={:.1f}%, line={:.1f}%, instruction={:.1f}%, method={:.1f}%",
+        logger.trace("[Convert Debug] Coverage rates set: branch={}%, line={}%, instruction={}%, method={}%",
                     branchCoverage, lineCoverage, instructionCoverage, methodCoverage);
 
-        // Coverage counts - 最も重要なデータ（これが失われると0%表示になる）
+        // Coverage counts - Most important data (if lost, will display 0%)
         int branchesCovered = coverage.getBranchesCovered();
         int branchesTotal = coverage.getBranchesTotal();
         int linesCovered = coverage.getLinesCovered();
@@ -1165,17 +1275,21 @@ public class CoverageReportParser {
         map.put("methodsCovered", methodsCovered);
         map.put("methodsTotal", methodsTotal);
 
-        logger.trace("[Convert Debug] カバレッジ数値設定:");
-        logger.trace("[Convert Debug] - ブランチ: {}/{} = {:.1f}%",
-                    branchesCovered, branchesTotal, branchesTotal > 0 ? (branchesCovered * 100.0 / branchesTotal) : 0.0);
-        logger.trace("[Convert Debug] - ライン: {}/{} = {:.1f}%",
-                    linesCovered, linesTotal, linesTotal > 0 ? (linesCovered * 100.0 / linesTotal) : 0.0);
-        logger.trace("[Convert Debug] - 命令: {}/{} = {:.1f}%",
-                    instructionsCovered, instructionsTotal, instructionsTotal > 0 ? (instructionsCovered * 100.0 / instructionsTotal) : 0.0);
+        logger.info("[Convert Debug] Coverage counts set for {}.{}: Branch={}/{} ({}%), Line={}/{}, Instruction={}/{}, Method={}/{}",
+                    className, methodName,
+                    branchesCovered, branchesTotal, branchesTotal > 0 ? (branchesCovered * 100.0 / branchesTotal) : 0.0,
+                    linesCovered, linesTotal,
+                    instructionsCovered, instructionsTotal,
+                    methodsCovered, methodsTotal);
+        logger.info("[Convert Debug] Map entry types after put: branchesCovered={} ({}), branchesTotal={} ({})",
+                    map.get("branchesCovered"),
+                    map.get("branchesCovered") != null ? map.get("branchesCovered").getClass().getSimpleName() : "null",
+                    map.get("branchesTotal"),
+                    map.get("branchesTotal") != null ? map.get("branchesTotal").getClass().getSimpleName() : "null");
 
-        // データ検証：重要な数値が失われていないかチェック
+        // Data validation: Check if important values are lost
         if (branchesTotal == 0 && instructionsTotal == 0 && linesTotal == 0) {
-            logger.warn("[Convert Debug] 警告: {}.{} - 全てのカバレッジ総数が0です。データが正しく抽出されていない可能性があります",
+            logger.warn("[Convert Debug] WARNING: {}.{} - All coverage totals are 0. Data may not be extracted correctly",
                        className, methodName);
         } else if (branchesCovered == 0 && instructionsCovered == 0 && linesCovered == 0) {
             logger.warn("[Convert Debug] 警告: {}.{} - 全てのカバレッジ実行数が0です。テストが実行されていない可能性があります",

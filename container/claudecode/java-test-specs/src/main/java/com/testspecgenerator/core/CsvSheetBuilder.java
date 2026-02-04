@@ -36,7 +36,7 @@ public class CsvSheetBuilder {
         String csvPath = generateCsvPath(outputPath, "_test_details");
 
         logger.info("Test Details CSV generation started: {}", csvPath);
-        logger.info("[詳細ログ] CSV出力開始 - Test Detailsシート: {} テストケース", testCases.size());
+        logger.info("[Detail Log] CSV output started - Test Detailsシート: {} テストケース", testCases.size());
 
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvPath), StandardCharsets.UTF_8);
              CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
@@ -45,7 +45,7 @@ public class CsvSheetBuilder {
 
             int rowNumber = 1;
             for (TestCaseInfo testCase : testCases) {
-                logger.debug("[詳細ログ] CSV行出力: {} - FQCN: {}, テスト名: {}",
+                logger.debug("[Detail Log] CSV行出力: {} - FQCN: {}, テスト名: {}",
                            rowNumber, testCase.getFullyQualifiedName(), testCase.getTestItemName());
                 csvPrinter.printRecord(
                     rowNumber++,
@@ -86,7 +86,7 @@ public class CsvSheetBuilder {
         logger.info("Coverage CSV生成開始: {}", csvPath);
 
         if (coverageData == null || coverageData.isEmpty()) {
-            logger.warn("⚠️ カバレッジデータが空のため、Coverage CSVの生成をスキップします");
+            logger.warn("⚠️ Skipping Coverage CSV generation because coverage data is empty");
             return true;
         }
 
@@ -245,7 +245,7 @@ public class CsvSheetBuilder {
      */
     public boolean generateCombinedCsvFiles(List<TestCaseInfo> allTestCases, Map<String, Object> allCoverageData,
                                           Path testDetailsPath, Path coveragePath, List<ModuleResult> results) {
-        logger.info("マルチモジュール統合CSV生成開始");
+        logger.info("Multi-module integrated CSV generation started");
 
         boolean success = true;
 
@@ -256,7 +256,7 @@ public class CsvSheetBuilder {
         success &= generateCombinedCoverageCsv(coveragePath, allTestCases, allCoverageData, results);
 
         if (success) {
-            logger.info("マルチモジュール統合CSV生成完了");
+            logger.info("Multi-module integrated CSV generation completed");
         } else {
             logger.warn("マルチモジュール統合CSV生成に一部失敗しました");
         }
@@ -267,18 +267,20 @@ public class CsvSheetBuilder {
     /**
      * Generates individual CSV files for a single module
      */
-    public boolean generateCsvFiles(List<TestCaseInfo> testCases, Map<String, Object> coverageData,
+    // SIMPLIFIED: Changed parameter type from Map to List<CoverageInfo>
+    public boolean generateCsvFiles(List<TestCaseInfo> testCases, List<CoverageInfo> coverageData,
                                    Path testDetailsPath, Path coveragePath) {
-        logger.info("モジュール個別CSV生成開始: {}", testDetailsPath.getParent());
+        logger.info("[SIMPLIFIED] Individual module CSV generation started: {}", testDetailsPath.getParent());
+        logger.info("[SIMPLIFIED] Coverage data: {} entries (direct List<CoverageInfo>)",
+                   coverageData != null ? coverageData.size() : 0);
 
         boolean success = true;
 
         // Use existing methods for individual modules
         success &= generateTestDetailsCsv(testDetailsPath.toString(), testCases);
 
-        // Convert coverage data for the existing method
-        List<CoverageInfo> coverageInfoList = convertToCoverageInfoList(coverageData);
-        success &= generateCoverageSheetCsv(coveragePath.toString(), testCases, coverageInfoList);
+        // SIMPLIFIED: No conversion needed - coverageData is already List<CoverageInfo>
+        success &= generateCoverageSheetCsv(coveragePath.toString(), testCases, coverageData);
 
         return success;
     }
@@ -287,7 +289,7 @@ public class CsvSheetBuilder {
      * Generates combined test details CSV with module information
      */
     private boolean generateCombinedTestDetailsCsv(Path csvPath, List<TestCaseInfo> allTestCases, List<ModuleResult> results) {
-        logger.info("統合Test Details CSV生成開始: {}", csvPath);
+        logger.info("Integrated Test Details CSV generation started: {}", csvPath);
 
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath, StandardCharsets.UTF_8);
              CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
@@ -318,7 +320,7 @@ public class CsvSheetBuilder {
                 }
             }
 
-            logger.info("統合Test Details CSV生成完了: {} ({} rows)", csvPath, rowNumber - 1);
+            logger.info("Integrated Test Details CSV generation completed: {} ({} rows)", csvPath, rowNumber - 1);
             return true;
 
         } catch (IOException e) {
@@ -332,7 +334,7 @@ public class CsvSheetBuilder {
      */
     private boolean generateCombinedCoverageCsv(Path csvPath, List<TestCaseInfo> allTestCases,
                                               Map<String, Object> allCoverageData, List<ModuleResult> results) {
-        logger.info("統合Coverage CSV生成開始: {}", csvPath);
+        logger.info("Integrated Coverage CSV generation started: {}", csvPath);
 
         try (BufferedWriter writer = Files.newBufferedWriter(csvPath, StandardCharsets.UTF_8);
              CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
@@ -377,7 +379,7 @@ public class CsvSheetBuilder {
                 }
             }
 
-            logger.info("統合Coverage CSV生成完了: {} ({} rows)", csvPath, rowNumber - 1);
+            logger.info("Integrated Coverage CSV generation completed: {} ({} rows)", csvPath, rowNumber - 1);
             return true;
 
         } catch (IOException e) {

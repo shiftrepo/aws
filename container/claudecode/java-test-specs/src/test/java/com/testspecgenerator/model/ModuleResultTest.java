@@ -46,9 +46,11 @@ class ModuleResultTest {
             new TestCaseInfo("path2", "Class2", "method2")
         );
 
-        Map<String, Object> coverageData = new HashMap<>();
-        coverageData.put("coverage1", "data1");
-        coverageData.put("coverage2", "data2");
+        // SIMPLIFIED: Changed from Map to List<CoverageInfo>
+        List<CoverageInfo> coverageData = Arrays.asList(
+            new CoverageInfo("TestClass1", "testMethod1"),
+            new CoverageInfo("TestClass2", "testMethod2")
+        );
 
         long processingTime = 1000L;
 
@@ -164,17 +166,17 @@ class ModuleResultTest {
             .moduleRoot(Paths.get("/empty"))
             .build();
 
-        // Execute - with empty lists/maps
+        // Execute - with empty lists (SIMPLIFIED: Changed HashMap to ArrayList)
         ModuleResult result = ModuleResult.builder()
             .moduleInfo(moduleInfo)
             .testCases(new ArrayList<>())
-            .coverageData(new HashMap<>())
+            .coverageData(new ArrayList<>())  // SIMPLIFIED: Changed from HashMap to ArrayList
             .build();
 
         // Verify
         assertTrue(result.isSuccessful());
         assertFalse(result.hasTestCases());  // Empty list
-        assertFalse(result.hasCoverageData());  // Empty map
+        assertFalse(result.hasCoverageData());  // Empty list
 
         // Execute - with null data
         ModuleResult nullResult = ModuleResult.builder()

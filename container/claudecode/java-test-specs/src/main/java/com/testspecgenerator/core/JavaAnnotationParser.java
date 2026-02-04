@@ -78,8 +78,8 @@ public class JavaAnnotationParser {
      * Javaファイルのリストを処理してテストケース情報を抽出
      */
     public List<TestCaseInfo> processJavaFiles(List<Path> javaFiles) {
-        logger.info("Javaファイル処理開始: {}個のファイル", javaFiles.size());
-        logger.info("[詳細ログ] テスト名取得処理開始 - 対象ファイル: {}",
+        logger.info("Java file processing started: {} files", javaFiles.size());
+        logger.info("[Detail Log] Test name extraction started - Target files: {}",
                    javaFiles.stream().map(Path::getFileName).map(Path::toString).toList());
 
         List<TestCaseInfo> testCases = new ArrayList<>();
@@ -88,34 +88,34 @@ public class JavaAnnotationParser {
 
         for (int i = 0; i < javaFiles.size(); i++) {
             Path javaFile = javaFiles.get(i);
-            logger.debug("処理中: {} ({}/{})", javaFile.getFileName(), i + 1, javaFiles.size());
+            logger.debug("Processing: {} ({}/{})", javaFile.getFileName(), i + 1, javaFiles.size());
 
             try {
                 List<TestCaseInfo> fileCases = processJavaFile(javaFile);
                 testCases.addAll(fileCases);
 
-                // 詳細ログ: ファイル別の処理結果
+                // Detail log: File-by-file processing results
                 int fileTestMethods = fileCases.size();
-                int fileAnnotations = fileCases.size() * 10; // 推定アノテーション数（各テストケースに約10個のフィールド）
+                int fileAnnotations = fileCases.size() * 10; // Estimated annotations (approx. 10 fields per test case)
                 totalTestMethods += fileTestMethods;
                 totalAnnotations += fileAnnotations;
 
-                logger.info("[詳細ログ] ファイル処理結果: {} - テストメソッド数: {}, アノテーション数: {}",
+                logger.info("[Detail Log] File processing result: {} - Test methods: {}, Annotations: {}",
                            javaFile.getFileName(), fileTestMethods, fileAnnotations);
 
-                // 各テストメソッドの詳細ログ
+                // Detail log for each test method
                 for (TestCaseInfo testCase : fileCases) {
-                    logger.debug("[詳細ログ] テストケース抽出: {} - FQCN: {}, フィールド設定完了",
+                    logger.debug("[Detail Log] Test case extracted: {} - FQCN: {}, Fields set",
                                testCase.getMethodName(), testCase.getFullyQualifiedName());
                 }
 
             } catch (Exception e) {
-                logger.warn("ファイル処理中にエラー: {} - {}", javaFile, e.getMessage());
+                logger.warn("Error processing file: {} - {}", javaFile, e.getMessage());
             }
         }
 
-        logger.info("Javaファイル処理完了: {}個のテストケース抽出", testCases.size());
-        logger.info("[詳細ログ] 抽出結果サマリー - 合計テストメソッド: {}, 合計アノテーション: {}",
+        logger.info("Java file processing completed: {} test cases extracted", testCases.size());
+        logger.info("[Detail Log] Extraction summary - Total test methods: {}, Total annotations: {}",
                    totalTestMethods, totalAnnotations);
 
         return testCases;
@@ -128,7 +128,7 @@ public class JavaAnnotationParser {
         // ファイル内容を読み込み
         String content = readFileWithEncoding(javaFile);
         if (content == null || content.trim().isEmpty()) {
-            logger.warn("ファイル内容が空または読み込めません: {}", javaFile);
+            logger.warn("File content is empty or cannot be read: {}", javaFile);
             return new ArrayList<>();
         }
 
@@ -144,10 +144,10 @@ public class JavaAnnotationParser {
 
         // テストメソッドを検索
         List<String> testMethods = extractTestMethods(content);
-        logger.debug("テストメソッド発見数: {} in {}", testMethods.size(), className);
+        logger.debug("Test methods found: {} in {}", testMethods.size(), className);
 
         if (testMethods.isEmpty()) {
-            logger.debug("テストメソッドが見つかりません: {}", javaFile);
+            logger.debug("No test methods found: {}", javaFile);
             return new ArrayList<>();
         }
 
@@ -172,7 +172,7 @@ public class JavaAnnotationParser {
 
             testCases.add(testCase);
 
-            logger.debug("テストケース抽出: {}.{} - モジュール: {}, ケース: {}",
+            logger.debug("Test case extracted: {}.{} - Module: {}, Case: {}",
                     className, methodName,
                     testCase.getTestModule(), testCase.getTestCase());
         }
@@ -187,7 +187,7 @@ public class JavaAnnotationParser {
         for (Charset charset : ENCODING_CANDIDATES) {
             try {
                 String content = Files.readString(filePath, charset);
-                logger.debug("ファイル読み込み成功: {} ({})", filePath, charset.name());
+                logger.debug("File read successfully: {} ({})", filePath, charset.name());
                 return content;
             } catch (IOException e) {
                 logger.debug("エンコーディング {} で読み込み失敗: {}", charset.name(), filePath);
@@ -195,7 +195,7 @@ public class JavaAnnotationParser {
         }
 
         logger.error("すべてのエンコーディングで読み込み失敗: {}", filePath);
-        throw new IOException("ファイルを読み込めません: " + filePath);
+        throw new IOException("Cannot read file: " + filePath);
     }
 
     /**
@@ -233,7 +233,7 @@ public class JavaAnnotationParser {
         while (matcher.find()) {
             String methodName = matcher.group(1);
             methods.add(methodName);
-            logger.debug("テストメソッド発見: {} at position {}", methodName, matcher.start());
+            logger.debug("Test method found: {} at position {}", methodName, matcher.start());
         }
 
         return methods;
@@ -254,10 +254,10 @@ public class JavaAnnotationParser {
         Matcher matcher = methodPattern.matcher(content);
         if (matcher.find()) {
             String javadocContent = matcher.group(1);
-            logger.debug("メソッド {} のJavaDoc抽出成功: {}", methodName, javadocContent.trim());
+            logger.debug("Method {} JavaDoc extraction successful: {}", methodName, javadocContent.trim());
             return parseAnnotations(javadocContent);
         } else {
-            logger.debug("メソッド {} のJavaDoc抽出失敗", methodName);
+            logger.debug("Method {} JavaDoc extraction failed", methodName);
         }
 
         return new HashMap<>();
@@ -327,7 +327,7 @@ public class JavaAnnotationParser {
 
             if (SUPPORTED_ANNOTATIONS.contains(annotationName)) {
                 annotations.put(annotationName, value);
-                logger.debug("アノテーション解析: {} = {}", annotationName, value);
+                logger.debug("Annotation parsed: {} = {}", annotationName, value);
             }
         }
     }
@@ -472,10 +472,10 @@ public class JavaAnnotationParser {
     public void logProcessingSummary(List<TestCaseInfo> testCases) {
         Map<String, Object> stats = getStatistics(testCases);
 
-        logger.info("=== アノテーション解析サマリー ===");
-        logger.info("総テストケース数: {}", stats.get("totalTestCases"));
-        logger.info("対象クラス数: {}", stats.get("classCount"));
-        logger.info("アノテーション付きケース: {}", stats.get("annotatedCases"));
-        logger.info("アノテーション完成度: {:.1f}%", stats.get("annotationCompleteness"));
+        logger.info("=== Annotation Analysis Summary ===");
+        logger.info("Total test cases: {}", stats.get("totalTestCases"));
+        logger.info("Target classes: {}", stats.get("classCount"));
+        logger.info("Annotated cases: {}", stats.get("annotatedCases"));
+        logger.info("Annotation completeness: {}%", stats.get("annotationCompleteness"));
     }
 }
