@@ -63,12 +63,55 @@
 
 ### 画面イメージ
 
-実際の画面のスクリーンショットは `tests/coverage/screenshots/` フォルダにあります：
+実際の画面を以下に示します。
 
-- `10-employee-list-with-data.png` - 職員一覧画面
-- `11-create-form.png` - 新規登録フォーム
-- `14-edit-form-loaded.png` - 編集フォーム
-- `06-api-error.png` - エラー表示の例
+#### 1. 職員一覧画面（データあり）
+
+3名の職員が表示され、各行にEdit/Deleteボタンがあります。
+
+![職員一覧画面](tests/coverage/screenshots/10-employee-list-with-data.png)
+
+#### 2. 空の状態
+
+職員データがない場合は、わかりやすいメッセージが表示されます。
+
+![空の状態](tests/coverage/screenshots/09-empty-state.png)
+
+#### 3. 新規作成フォーム
+
+職員を新規登録するフォームです。必須項目には「*」マークが表示されます。
+
+![新規作成フォーム](tests/coverage/screenshots/11-create-form.png)
+
+#### 4. 入力済みフォーム
+
+すべてのフィールドに入力した状態です。
+
+![入力済みフォーム](tests/coverage/screenshots/12-filled-form.png)
+
+#### 5. 編集フォーム
+
+既存の職員情報を編集できます。データは自動的にロードされます。
+
+![編集フォーム](tests/coverage/screenshots/14-edit-form-loaded.png)
+
+#### 6. バリデーションエラー
+
+必須項目が未入力の場合、ブラウザ標準のバリデーションメッセージが表示されます。
+
+![バリデーションエラー](tests/coverage/screenshots/02-validation-errors.png)
+
+#### 7. APIエラー
+
+サーバーエラーが発生した場合、赤い背景でエラーメッセージが表示されます。
+
+![APIエラー](tests/coverage/screenshots/06-api-error.png)
+
+#### 8. ネットワークエラー
+
+APIサーバーに接続できない場合のエラー表示です。
+
+![ネットワークエラー](tests/coverage/screenshots/07-network-error.png)
 
 ---
 
