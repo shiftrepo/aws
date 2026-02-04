@@ -179,7 +179,7 @@ public class MultiModuleProcessor {
             }
 
             // Step 2: Parse annotations
-            LOGGER.info(String.format("[詳細ログ] モジュール %s - アノテーション解析開始: %d テストファイル", module.getModuleName(), testFiles.size()));
+            LOGGER.info(String.format("[Detail Log] Module %s - Annotation analysis started: %d test files", module.getModuleName(), testFiles.size()));
             JavaAnnotationParser annotationParser = new JavaAnnotationParser();
             List<TestCaseInfo> testCases = new ArrayList<>();
 
@@ -368,70 +368,170 @@ public class MultiModuleProcessor {
      */
     @SuppressWarnings("unchecked")
     private List<CoverageInfo> convertToCoverageInfoList(Map<String, Object> coverageData) {
+        LOGGER.info("[MultiModule Debug] Map -> CoverageInfo conversion started: " + (coverageData != null ? coverageData.size() : 0) + " entries");
         List<CoverageInfo> coverageInfoList = new ArrayList<>();
 
         if (coverageData == null) {
+            LOGGER.warning("[MultiModule Debug] カバレッジデータがnullです - 空のリストを返します");
             return coverageInfoList;
         }
 
-        // Convert coverage data back to CoverageInfo objects
-        for (Map.Entry<String, Object> entry : coverageData.entrySet()) {
-            try {
-                if (entry.getValue() instanceof Map) {
-                    Map<String, Object> coverageMap = (Map<String, Object>) entry.getValue();
+        if (coverageData.isEmpty()) {
+            LOGGER.warning("[MultiModule Debug] カバレッジデータが空です - 空のリストを返します");
+            return coverageInfoList;
+        }
 
-                    // Extract required fields
+        LOGGER.info("[MultiModule Debug] 変換対象: " + coverageData.size() + " エントリ");
+
+        // Convert coverage data back to CoverageInfo objects
+        int successCount = 0;
+        int failureCount = 0;
+
+        for (Map.Entry<String, Object> entry : coverageData.entrySet()) {
+            String entryKey = entry.getKey();
+            Object entryValue = entry.getValue();
+
+            LOGGER.fine("[MultiModule Debug] 処理中: キー='" + entryKey + "', 値タイプ=" +
+                       (entryValue != null ? entryValue.getClass().getSimpleName() : "null"));
+
+            try {
+                if (entryValue instanceof Map) {
+                    Map<String, Object> coverageMap = (Map<String, Object>) entryValue;
+                    LOGGER.fine("[MultiModule Debug] Mapエントリ処理: " + coverageMap.size() + " フィールド");
+
+                    // Extract required fields with detailed logging
                     String className = (String) coverageMap.get("className");
                     String methodName = (String) coverageMap.get("methodName");
+                    String packageName = (String) coverageMap.get("packageName");
+
+                    LOGGER.fine("[MultiModule Debug] 基本情報抽出: class='" + className + "', method='" + methodName + "', package='" + packageName + "'");
 
                     if (className != null && methodName != null) {
                         CoverageInfo info = new CoverageInfo(className, methodName);
 
                         // Set package name
-                        if (coverageMap.get("packageName") != null) {
-                            info.setPackageName((String) coverageMap.get("packageName"));
+                        if (packageName != null) {
+                            info.setPackageName(packageName);
+                            LOGGER.fine("[MultiModule Debug] パッケージ名設定: " + packageName);
                         }
 
-                        // Set coverage metrics with safe type conversion
-                        if (coverageMap.get("branchesCovered") != null && coverageMap.get("branchesTotal") != null) {
-                            int branchesCovered = safeConvertToInt(coverageMap.get("branchesCovered"));
-                            int branchesTotal = safeConvertToInt(coverageMap.get("branchesTotal"));
+                        // Set coverage metrics with safe type conversion and detailed logging
+                        LOGGER.fine("[MultiModule Debug] ブランチカバレッジ変換開始");
+                        Object branchesCoveredObj = coverageMap.get("branchesCovered");
+                        Object branchesTotalObj = coverageMap.get("branchesTotal");
+
+                        if (branchesCoveredObj != null && branchesTotalObj != null) {
+                            int branchesCovered = safeConvertToInt(branchesCoveredObj);
+                            int branchesTotal = safeConvertToInt(branchesTotalObj);
                             info.setBranchInfo(branchesCovered, branchesTotal);
+
+                            LOGGER.fine("[MultiModule Debug] ブランチカバレッジ設定: " + branchesCovered + "/" + branchesTotal +
+                                       " = " + (branchesTotal > 0 ? (branchesCovered * 100.0 / branchesTotal) : 0.0) + "%");
+                            LOGGER.fine("[MultiModule Debug] 元の値: branchesCovered=" + branchesCoveredObj + " (" +
+                                       (branchesCoveredObj != null ? branchesCoveredObj.getClass().getSimpleName() : "null") +
+                                       "), branchesTotal=" + branchesTotalObj + " (" +
+                                       (branchesTotalObj != null ? branchesTotalObj.getClass().getSimpleName() : "null") + ")");
+                        } else {
+                            LOGGER.warning("[MultiModule Debug] ブランチカバレッジデータが不完全: branchesCovered=" + branchesCoveredObj +
+                                         ", branchesTotal=" + branchesTotalObj);
                         }
 
-                        if (coverageMap.get("linesCovered") != null && coverageMap.get("linesTotal") != null) {
-                            int linesCovered = safeConvertToInt(coverageMap.get("linesCovered"));
-                            int linesTotal = safeConvertToInt(coverageMap.get("linesTotal"));
+                        // Line coverage
+                        LOGGER.fine("[MultiModule Debug] ラインカバレッジ変換開始");
+                        Object linesCoveredObj = coverageMap.get("linesCovered");
+                        Object linesTotalObj = coverageMap.get("linesTotal");
+
+                        if (linesCoveredObj != null && linesTotalObj != null) {
+                            int linesCovered = safeConvertToInt(linesCoveredObj);
+                            int linesTotal = safeConvertToInt(linesTotalObj);
                             info.setLineInfo(linesCovered, linesTotal);
+
+                            LOGGER.fine("[MultiModule Debug] ラインカバレッジ設定: " + linesCovered + "/" + linesTotal +
+                                       " = " + (linesTotal > 0 ? (linesCovered * 100.0 / linesTotal) : 0.0) + "%");
+                        } else {
+                            LOGGER.fine("[MultiModule Debug] ラインカバレッジデータなし");
                         }
 
                         // Set instruction coverage data
-                        if (coverageMap.get("instructionsCovered") != null && coverageMap.get("instructionsTotal") != null) {
-                            int instructionsCovered = safeConvertToInt(coverageMap.get("instructionsCovered"));
-                            int instructionsTotal = safeConvertToInt(coverageMap.get("instructionsTotal"));
+                        LOGGER.fine("[MultiModule Debug] 命令カバレッジ変換開始");
+                        Object instructionsCoveredObj = coverageMap.get("instructionsCovered");
+                        Object instructionsTotalObj = coverageMap.get("instructionsTotal");
+
+                        if (instructionsCoveredObj != null && instructionsTotalObj != null) {
+                            int instructionsCovered = safeConvertToInt(instructionsCoveredObj);
+                            int instructionsTotal = safeConvertToInt(instructionsTotalObj);
                             info.setInstructionInfo(instructionsCovered, instructionsTotal);
+
+                            LOGGER.fine("[MultiModule Debug] 命令カバレッジ設定: " + instructionsCovered + "/" + instructionsTotal +
+                                       " = " + (instructionsTotal > 0 ? (instructionsCovered * 100.0 / instructionsTotal) : 0.0) + "%");
+                        } else {
+                            LOGGER.fine("[MultiModule Debug] 命令カバレッジデータなし");
                         }
 
                         // Set method coverage data
-                        if (coverageMap.get("methodsCovered") != null && coverageMap.get("methodsTotal") != null) {
-                            int methodsCovered = safeConvertToInt(coverageMap.get("methodsCovered"));
-                            int methodsTotal = safeConvertToInt(coverageMap.get("methodsTotal"));
+                        Object methodsCoveredObj = coverageMap.get("methodsCovered");
+                        Object methodsTotalObj = coverageMap.get("methodsTotal");
+
+                        if (methodsCoveredObj != null && methodsTotalObj != null) {
+                            int methodsCovered = safeConvertToInt(methodsCoveredObj);
+                            int methodsTotal = safeConvertToInt(methodsTotalObj);
                             info.setMethodInfo(methodsCovered, methodsTotal);
+
+                            LOGGER.fine("[MultiModule Debug] メソッドカバレッジ設定: " + methodsCovered + "/" + methodsTotal +
+                                       " = " + (methodsTotal > 0 ? (methodsCovered * 100.0 / methodsTotal) : 0.0) + "%");
                         }
 
                         // Set additional metadata
-                        if (coverageMap.get("sourceFile") != null) {
-                            info.setSourceFile((String) coverageMap.get("sourceFile"));
+                        String sourceFile = (String) coverageMap.get("sourceFile");
+                        String reportType = (String) coverageMap.get("reportType");
+
+                        if (sourceFile != null) {
+                            info.setSourceFile(sourceFile);
+                            LOGGER.fine("[MultiModule Debug] ソースファイル設定: " + sourceFile);
                         }
-                        if (coverageMap.get("reportType") != null) {
-                            info.setReportType((String) coverageMap.get("reportType"));
+                        if (reportType != null) {
+                            info.setReportType(reportType);
+                            LOGGER.fine("[MultiModule Debug] レポートタイプ設定: " + reportType);
                         }
 
                         coverageInfoList.add(info);
+                        successCount++;
+
+                        LOGGER.info("[MultiModule Debug] 変換成功 (" + successCount + "/" + coverageData.size() + "): " +
+                                   className + "." + methodName + " - ブランチ: " + info.getBranchCoverage() + "%");
+                    } else {
+                        failureCount++;
+                        LOGGER.warning("[MultiModule Debug] 必要フィールド不足でスキップ (" + failureCount + "): className=" +
+                                     className + ", methodName=" + methodName);
                     }
+                } else {
+                    failureCount++;
+                    LOGGER.warning("[MultiModule Debug] 非Mapエントリをスキップ (" + failureCount + "): " + entryKey +
+                                 " -> " + (entryValue != null ? entryValue.getClass().getSimpleName() : "null"));
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Failed to convert coverage entry: " + entry.getKey(), e);
+                failureCount++;
+                LOGGER.log(Level.WARNING, "[MultiModule Debug] 変換エラー (" + failureCount + "): " + entryKey, e);
+            }
+        }
+
+        LOGGER.info("[MultiModule Debug] Map → CoverageInfo変換完了: 成功=" + successCount + ", 失敗=" + failureCount +
+                   ", 総数=" + coverageData.size() + " → 結果=" + coverageInfoList.size() + " エントリ");
+
+        if (coverageInfoList.isEmpty() && !coverageData.isEmpty()) {
+            LOGGER.severe("[MultiModule Debug] 重大: 元データは存在するが変換結果が空です!");
+            LOGGER.severe("[MultiModule Debug] 元データのキー例: " + coverageData.keySet().stream().limit(5).toArray());
+
+            // サンプルデータの詳細表示
+            if (!coverageData.isEmpty()) {
+                Map.Entry<String, Object> sample = coverageData.entrySet().iterator().next();
+                LOGGER.severe("[MultiModule Debug] サンプルエントリ詳細: key=" + sample.getKey() +
+                             ", value=" + sample.getValue());
+                if (sample.getValue() instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> sampleMap = (Map<String, Object>) sample.getValue();
+                    LOGGER.severe("[MultiModule Debug] サンプルMapの内容: " + sampleMap);
+                }
             }
         }
 
@@ -442,22 +542,72 @@ public class MultiModuleProcessor {
      * Safely converts an Object to int, handling various numeric types.
      */
     private int safeConvertToInt(Object value) {
-        if (value == null) return 0;
+        LOGGER.finest("[Type Conversion Debug] 型変換開始: " + (value != null ? value.getClass().getSimpleName() : "null") + " -> int");
+        LOGGER.finest("[Type Conversion Debug] 元の値: " + value);
 
-        if (value instanceof Integer) {
-            return (Integer) value;
-        } else if (value instanceof Long) {
-            return ((Long) value).intValue();
-        } else if (value instanceof Double) {
-            return ((Double) value).intValue();
-        } else if (value instanceof String) {
-            try {
-                return Integer.parseInt((String) value);
-            } catch (NumberFormatException e) {
-                return 0;
-            }
+        if (value == null) {
+            LOGGER.fine("[Type Conversion Debug] null値のため0を返します");
+            return 0;
         }
 
+        if (value instanceof Integer) {
+            Integer intValue = (Integer) value;
+            LOGGER.finest("[Type Conversion Debug] Integer型: " + intValue);
+            return intValue;
+        } else if (value instanceof Long) {
+            Long longValue = (Long) value;
+            int intValue = longValue.intValue();
+            LOGGER.finest("[Type Conversion Debug] Long型変換: " + longValue + " -> " + intValue);
+
+            if (longValue > Integer.MAX_VALUE) {
+                LOGGER.warning("[Type Conversion Debug] Long値がInteger範囲を超えています: " + longValue + " -> " + intValue);
+            }
+            return intValue;
+        } else if (value instanceof Double) {
+            Double doubleValue = (Double) value;
+            int intValue = doubleValue.intValue();
+            LOGGER.finest("[Type Conversion Debug] Double型変換: " + doubleValue + " -> " + intValue);
+
+            if (doubleValue != intValue) {
+                LOGGER.fine("[Type Conversion Debug] Double値の小数部が切り捨てられました: " + doubleValue + " -> " + intValue);
+            }
+            return intValue;
+        } else if (value instanceof Float) {
+            Float floatValue = (Float) value;
+            int intValue = floatValue.intValue();
+            LOGGER.finest("[Type Conversion Debug] Float型変換: " + floatValue + " -> " + intValue);
+
+            if (floatValue != intValue) {
+                LOGGER.fine("[Type Conversion Debug] Float値の小数部が切り捨てられました: " + floatValue + " -> " + intValue);
+            }
+            return intValue;
+        } else if (value instanceof String) {
+            String stringValue = (String) value;
+            LOGGER.finest("[Type Conversion Debug] String型解析試行: '" + stringValue + "'");
+
+            if (stringValue.isEmpty()) {
+                LOGGER.fine("[Type Conversion Debug] 空文字列のため0を返します");
+                return 0;
+            }
+
+            try {
+                int intValue = Integer.parseInt(stringValue);
+                LOGGER.finest("[Type Conversion Debug] String解析成功: '" + stringValue + "' -> " + intValue);
+                return intValue;
+            } catch (NumberFormatException e) {
+                LOGGER.warning("[Type Conversion Debug] String解析失敗: '" + stringValue + "' -> 0 (エラー: " + e.getMessage() + ")");
+                return 0;
+            }
+        } else if (value instanceof Number) {
+            // その他のNumber型（BigInteger、BigDecimalなど）
+            Number numberValue = (Number) value;
+            int intValue = numberValue.intValue();
+            LOGGER.finest("[Type Conversion Debug] その他Number型変換: " + numberValue + " (" + numberValue.getClass().getSimpleName() + ") -> " + intValue);
+            return intValue;
+        }
+
+        // 予期しない型
+        LOGGER.warning("[Type Conversion Debug] 予期しない型です - 0を返します: " + value.getClass().getSimpleName() + " 値: " + value);
         return 0; // Default fallback
     }
 

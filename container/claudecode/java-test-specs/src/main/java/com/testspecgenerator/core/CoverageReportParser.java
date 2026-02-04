@@ -52,22 +52,84 @@ public class CoverageReportParser {
      * 複数のカバレッジレポートファイルを処理し、動的パッケージフィルタリングを適用
      */
     public Map<String, Object> parseCoverageReports(List<Path> coverageFiles, List<Path> testFiles) {
+        logger.debug("[Map Conversion Debug] Coverage report processing started: {} files", coverageFiles.size());
+
         List<CoverageInfo> coverageInfos = processCoverageReports(coverageFiles, testFiles);
+        logger.debug("[Map Conversion Debug] CoverageInfo processing completed: {} entries extracted", coverageInfos.size());
 
         // Convert to Map format for compatibility
         Map<String, Object> coverageData = new java.util.HashMap<>();
-        for (int i = 0; i < coverageInfos.size(); i++) {
-            CoverageInfo coverage = coverageInfos.get(i);
-            coverageData.put("coverage_" + i, convertCoverageInfoToMap(coverage));
+        logger.debug("[Map Conversion Debug] Map conversion started: converting {} entries to Map", coverageInfos.size());
 
-            // 詳細ログ: 変換結果の確認
-            logger.debug("[詳細ログ] カバレッジデータ変換: {}.{} - ブランチ: {:.1f}% ({}/{}), 命令: {:.1f}% ({}/{})",
-                        coverage.getClassName(), coverage.getMethodName(),
-                        coverage.getBranchCoverage(), coverage.getBranchesCovered(), coverage.getBranchesTotal(),
-                        coverage.getInstructionCoverage(), coverage.getInstructionsCovered(), coverage.getInstructionsTotal());
+        if (coverageInfos.isEmpty()) {
+            logger.warn("[Map Conversion Debug] Coverage data is empty - returning empty Map");
+            logger.warn("[Map Conversion Debug] Possible causes:");
+            logger.warn("[Map Conversion Debug] 1. Coverage files not found");
+            logger.warn("[Map Conversion Debug] 2. XML file parsing failed");
+            logger.warn("[Map Conversion Debug] 3. All entries excluded by package filtering");
+            logger.warn("[Map Conversion Debug] 4. JaCoCo report not generated");
+            return coverageData;
         }
 
-        logger.info("[詳細ログ] カバレッジデータ集計完了: {} エントリをMapに変換", coverageInfos.size());
+        for (int i = 0; i < coverageInfos.size(); i++) {
+            CoverageInfo coverage = coverageInfos.get(i);
+            String mapKey = "coverage_" + i;
+
+            logger.trace("[Map Conversion Debug] エントリ{}/{}: キー='{}', クラス='{}'",
+                        i + 1, coverageInfos.size(), mapKey, coverage.getClassName());
+
+            Map<String, Object> coverageMap = convertCoverageInfoToMap(coverage);
+            coverageData.put(mapKey, coverageMap);
+
+            // 詳細ログ: 変換前後の数値確認
+            logger.debug("[Map Conversion Debug] 変換完了 {}/{}: {}.{}", i + 1, coverageInfos.size(),
+                        coverage.getClassName(), coverage.getMethodName());
+            logger.debug("[Map Conversion Debug] - ブランチ: {:.1f}% ({}/{})",
+                        coverage.getBranchCoverage(), coverage.getBranchesCovered(), coverage.getBranchesTotal());
+            logger.debug("[Map Conversion Debug] - 命令: {:.1f}% ({}/{})",
+                        coverage.getInstructionCoverage(), coverage.getInstructionsCovered(), coverage.getInstructionsTotal());
+            logger.debug("[Map Conversion Debug] - ライン: {:.1f}% ({}/{})",
+                        coverage.getLineCoverage(), coverage.getLinesCovered(), coverage.getLinesTotal());
+
+            // Map変換後の数値確認
+            logger.trace("[Map Conversion Debug] Map変換後確認:");
+            logger.trace("[Map Conversion Debug] - branchesCovered: {}", coverageMap.get("branchesCovered"));
+            logger.trace("[Map Conversion Debug] - branchesTotal: {}", coverageMap.get("branchesTotal"));
+            logger.trace("[Map Conversion Debug] - branchCoverage: {}", coverageMap.get("branchCoverage"));
+            logger.trace("[Map Conversion Debug] - instructionsCovered: {}", coverageMap.get("instructionsCovered"));
+            logger.trace("[Map Conversion Debug] - instructionsTotal: {}", coverageMap.get("instructionsTotal"));
+            logger.trace("[Map Conversion Debug] - instructionCoverage: {}", coverageMap.get("instructionCoverage"));
+        }
+
+        logger.info("[Map Conversion Debug] Coverage data Map conversion completed: {} entries -> {} Map entries",
+                   coverageInfos.size(), coverageData.size());
+
+        // Map全体の概要統計
+        if (!coverageData.isEmpty()) {
+            int totalWithBranchData = 0;
+            double totalBranchCoverage = 0.0;
+
+            for (Map.Entry<String, Object> entry : coverageData.entrySet()) {
+                if (entry.getValue() instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> itemMap = (Map<String, Object>) entry.getValue();
+
+                    Object branchCoverageObj = itemMap.get("branchCoverage");
+                    if (branchCoverageObj instanceof Number) {
+                        double branchCoverage = ((Number) branchCoverageObj).doubleValue();
+                        if (branchCoverage > 0) {
+                            totalWithBranchData++;
+                            totalBranchCoverage += branchCoverage;
+                        }
+                    }
+                }
+            }
+
+            logger.debug("[Map Conversion Debug] Map統計: {} エントリ中 {} エントリにブランチデータ有り, 平均: {:.1f}%",
+                        coverageData.size(), totalWithBranchData,
+                        totalWithBranchData > 0 ? totalBranchCoverage / totalWithBranchData : 0.0);
+        }
+
         return coverageData;
     }
 
@@ -198,12 +260,8 @@ public class CoverageReportParser {
                 coverage.getClassName(), coverage.getMethodName(), packageName);
 
             if (packageName != null) {
-                // Always exclude tool's own package
-                if (packageName.startsWith("com.testspecgenerator") || packageName.startsWith("com/testspecgenerator")) {
-                    excludedToolPackages++;
-                    logger.trace("[Coverage Debug] Excluded tool package: {}", packageName);
-                    continue;
-                }
+                // NOTE: Package exclusion removed to support any package names
+                // Previously excluded com.testspecgenerator packages causing mapping failures
 
                 // If allowedPackages is provided, use dynamic filtering
                 if (allowedPackages != null && !allowedPackages.isEmpty()) {
@@ -854,28 +912,104 @@ public class CoverageReportParser {
      * カバレッジデータの統計情報を取得
      */
     public Map<String, Object> getStatistics(List<CoverageInfo> coverageData) {
+        logger.debug("[Statistics Debug] Statistics calculation started: {} entries", coverageData.size());
         Map<String, Object> stats = new HashMap<>();
 
-        stats.put("totalEntries", coverageData.size());
+        // 基本統計
+        int totalEntries = coverageData.size();
+        stats.put("totalEntries", totalEntries);
+        logger.debug("[Statistics Debug] 基本統計 - 総エントリ数: {}", totalEntries);
 
-        // レポートタイプ別統計
-        long xmlReports = coverageData.stream()
-                .mapToLong(c -> "XML".equals(c.getReportType()) ? 1 : 0)
-                .sum();
+        if (totalEntries == 0) {
+            logger.warn("[Statistics Debug] Coverage data is empty - all statistics will be 0");
+            stats.put("xmlReports", 0L);
+            stats.put("htmlReports", 0L);
+            stats.put("averageBranchCoverage", 0.0);
+            stats.put("highCoverageCount", 0L);
+            return stats;
+        }
+
+        // レポートタイプ別統計（1行ずつデバッグ）
+        logger.debug("[Statistics Debug] レポートタイプ別統計計算開始");
+        long xmlReports = 0;
+        long htmlReports = 0;
+
+        for (int i = 0; i < coverageData.size(); i++) {
+            CoverageInfo coverage = coverageData.get(i);
+            String reportType = coverage.getReportType();
+            logger.trace("[Statistics Debug] エントリ{}/{}: クラス={}, メソッド={}, レポートタイプ='{}'",
+                        i + 1, totalEntries, coverage.getClassName(), coverage.getMethodName(), reportType);
+
+            if ("XML".equals(reportType)) {
+                xmlReports++;
+                logger.trace("[Statistics Debug] XMLレポート数: {} (+1)", xmlReports);
+            } else {
+                htmlReports++;
+                logger.trace("[Statistics Debug] HTMLレポート数: {} (+1)", htmlReports);
+            }
+        }
+
         stats.put("xmlReports", xmlReports);
-        stats.put("htmlReports", coverageData.size() - xmlReports);
+        stats.put("htmlReports", htmlReports);
+        logger.debug("[Statistics Debug] レポートタイプ統計完了 - XML: {}, HTML: {}", xmlReports, htmlReports);
 
-        // カバレッジ統計
-        OptionalDouble avgBranchCoverage = coverageData.stream()
-                .mapToDouble(CoverageInfo::getBranchCoverage)
-                .average();
-        stats.put("averageBranchCoverage", avgBranchCoverage.orElse(0.0));
+        // カバレッジ統計（1行ずつデバッグ）
+        logger.debug("[Statistics Debug] ブランチカバレッジ統計計算開始");
+        double totalBranchCoverage = 0.0;
+        int validCoverageEntries = 0;
+        double minCoverage = Double.MAX_VALUE;
+        double maxCoverage = Double.MIN_VALUE;
+
+        for (int i = 0; i < coverageData.size(); i++) {
+            CoverageInfo coverage = coverageData.get(i);
+            double branchCoverage = coverage.getBranchCoverage();
+
+            logger.trace("[Statistics Debug] カバレッジ計算 {}/{}: {}.{} = {:.1f}% (branch: {}/{}, instruction: {:.1f}%)",
+                        i + 1, totalEntries, coverage.getClassName(), coverage.getMethodName(),
+                        branchCoverage, coverage.getBranchesCovered(), coverage.getBranchesTotal(),
+                        coverage.getInstructionCoverage());
+
+            if (!Double.isNaN(branchCoverage) && branchCoverage >= 0.0) {
+                totalBranchCoverage += branchCoverage;
+                validCoverageEntries++;
+                minCoverage = Math.min(minCoverage, branchCoverage);
+                maxCoverage = Math.max(maxCoverage, branchCoverage);
+                logger.trace("[Statistics Debug] 累積カバレッジ: {:.2f}%, 有効エントリ数: {}", totalBranchCoverage, validCoverageEntries);
+            } else {
+                logger.trace("[Statistics Debug] 無効なカバレッジ値をスキップ: {}", branchCoverage);
+            }
+        }
+
+        double averageBranchCoverage = validCoverageEntries > 0 ? totalBranchCoverage / validCoverageEntries : 0.0;
+        stats.put("averageBranchCoverage", averageBranchCoverage);
+
+        logger.debug("[Statistics Debug] ブランチカバレッジ統計完了:");
+        logger.debug("[Statistics Debug] - 平均: {:.1f}% (有効エントリ: {}/{})", averageBranchCoverage, validCoverageEntries, totalEntries);
+        logger.debug("[Statistics Debug] - 範囲: {:.1f}% - {:.1f}%",
+                    minCoverage != Double.MAX_VALUE ? minCoverage : 0.0,
+                    maxCoverage != Double.MIN_VALUE ? maxCoverage : 0.0);
 
         // 高カバレッジケース数（80%以上）
-        long highCoverageCount = coverageData.stream()
-                .mapToLong(c -> c.getBranchCoverage() >= 80.0 ? 1 : 0)
-                .sum();
+        logger.debug("[Statistics Debug] 高カバレッジケース計算開始（80%以上）");
+        long highCoverageCount = 0;
+
+        for (int i = 0; i < coverageData.size(); i++) {
+            CoverageInfo coverage = coverageData.get(i);
+            double branchCoverage = coverage.getBranchCoverage();
+
+            if (branchCoverage >= 80.0) {
+                highCoverageCount++;
+                logger.trace("[Statistics Debug] 高カバレッジ {}: {}.{} = {:.1f}%",
+                           highCoverageCount, coverage.getClassName(), coverage.getMethodName(), branchCoverage);
+            }
+        }
+
         stats.put("highCoverageCount", highCoverageCount);
+        logger.debug("[Statistics Debug] 高カバレッジケース計算完了: {} エントリ ({}%)",
+                    highCoverageCount, totalEntries > 0 ? (highCoverageCount * 100 / totalEntries) : 0);
+
+        logger.info("[Statistics Debug] 統計計算完了 - 総エントリ: {}, XML: {}, 平均カバレッジ: {:.1f}%, 高カバレッジ: {}",
+                   totalEntries, xmlReports, averageBranchCoverage, highCoverageCount);
 
         return stats;
     }
@@ -970,7 +1104,7 @@ public class CoverageReportParser {
     private String extractPackageFromFile(Path javaFile) throws java.io.IOException {
         try (java.io.BufferedReader reader = Files.newBufferedReader(javaFile)) {
             return reader.lines()
-                .limit(50) // Only check first 50 lines for package declaration
+                .limit(200) // Only check first 200 lines for package declaration
                 .filter(line -> line.trim().startsWith("package "))
                 .map(line -> line.trim().replaceFirst("package\\s+", "").replaceAll(";.*", ""))
                 .findFirst()
@@ -982,30 +1116,93 @@ public class CoverageReportParser {
      * Convert CoverageInfo to Map for compatibility with existing code
      */
     private Map<String, Object> convertCoverageInfoToMap(CoverageInfo coverage) {
+        logger.trace("[Convert Debug] Map変換開始: {}.{}", coverage.getClassName(), coverage.getMethodName());
+
         Map<String, Object> map = new java.util.HashMap<>();
-        map.put("className", coverage.getClassName());
-        map.put("methodName", coverage.getMethodName());
-        map.put("packageName", coverage.getPackageName());
 
-        // Coverage percentages
-        map.put("branchCoverage", coverage.getBranchCoverage());
-        map.put("lineCoverage", coverage.getLineCoverage());
-        map.put("instructionCoverage", coverage.getInstructionCoverage());
-        map.put("methodCoverage", coverage.getMethodCoverage());
+        // 基本情報
+        String className = coverage.getClassName();
+        String methodName = coverage.getMethodName();
+        String packageName = coverage.getPackageName();
 
-        // Coverage counts - IMPORTANT: These were missing and causing 0% display
-        map.put("branchesCovered", coverage.getBranchesCovered());
-        map.put("branchesTotal", coverage.getBranchesTotal());
-        map.put("linesCovered", coverage.getLinesCovered());
-        map.put("linesTotal", coverage.getLinesTotal());
-        map.put("instructionsCovered", coverage.getInstructionsCovered());
-        map.put("instructionsTotal", coverage.getInstructionsTotal());
-        map.put("methodsCovered", coverage.getMethodsCovered());
-        map.put("methodsTotal", coverage.getMethodsTotal());
+        map.put("className", className);
+        map.put("methodName", methodName);
+        map.put("packageName", packageName);
+
+        logger.trace("[Convert Debug] 基本情報設定: class='{}', method='{}', package='{}'",
+                    className, methodName, packageName);
+
+        // Coverage percentages - 元の値をログ出力
+        double branchCoverage = coverage.getBranchCoverage();
+        double lineCoverage = coverage.getLineCoverage();
+        double instructionCoverage = coverage.getInstructionCoverage();
+        double methodCoverage = coverage.getMethodCoverage();
+
+        map.put("branchCoverage", branchCoverage);
+        map.put("lineCoverage", lineCoverage);
+        map.put("instructionCoverage", instructionCoverage);
+        map.put("methodCoverage", methodCoverage);
+
+        logger.trace("[Convert Debug] カバレッジ率設定: branch={:.1f}%, line={:.1f}%, instruction={:.1f}%, method={:.1f}%",
+                    branchCoverage, lineCoverage, instructionCoverage, methodCoverage);
+
+        // Coverage counts - 最も重要なデータ（これが失われると0%表示になる）
+        int branchesCovered = coverage.getBranchesCovered();
+        int branchesTotal = coverage.getBranchesTotal();
+        int linesCovered = coverage.getLinesCovered();
+        int linesTotal = coverage.getLinesTotal();
+        int instructionsCovered = coverage.getInstructionsCovered();
+        int instructionsTotal = coverage.getInstructionsTotal();
+        int methodsCovered = coverage.getMethodsCovered();
+        int methodsTotal = coverage.getMethodsTotal();
+
+        map.put("branchesCovered", branchesCovered);
+        map.put("branchesTotal", branchesTotal);
+        map.put("linesCovered", linesCovered);
+        map.put("linesTotal", linesTotal);
+        map.put("instructionsCovered", instructionsCovered);
+        map.put("instructionsTotal", instructionsTotal);
+        map.put("methodsCovered", methodsCovered);
+        map.put("methodsTotal", methodsTotal);
+
+        logger.trace("[Convert Debug] カバレッジ数値設定:");
+        logger.trace("[Convert Debug] - ブランチ: {}/{} = {:.1f}%",
+                    branchesCovered, branchesTotal, branchesTotal > 0 ? (branchesCovered * 100.0 / branchesTotal) : 0.0);
+        logger.trace("[Convert Debug] - ライン: {}/{} = {:.1f}%",
+                    linesCovered, linesTotal, linesTotal > 0 ? (linesCovered * 100.0 / linesTotal) : 0.0);
+        logger.trace("[Convert Debug] - 命令: {}/{} = {:.1f}%",
+                    instructionsCovered, instructionsTotal, instructionsTotal > 0 ? (instructionsCovered * 100.0 / instructionsTotal) : 0.0);
+
+        // データ検証：重要な数値が失われていないかチェック
+        if (branchesTotal == 0 && instructionsTotal == 0 && linesTotal == 0) {
+            logger.warn("[Convert Debug] 警告: {}.{} - 全てのカバレッジ総数が0です。データが正しく抽出されていない可能性があります",
+                       className, methodName);
+        } else if (branchesCovered == 0 && instructionsCovered == 0 && linesCovered == 0) {
+            logger.warn("[Convert Debug] 警告: {}.{} - 全てのカバレッジ実行数が0です。テストが実行されていない可能性があります",
+                       className, methodName);
+        }
 
         // Additional metadata
-        map.put("sourceFile", coverage.getSourceFile());
-        map.put("reportType", coverage.getReportType());
+        String sourceFile = coverage.getSourceFile();
+        String reportType = coverage.getReportType();
+
+        map.put("sourceFile", sourceFile);
+        map.put("reportType", reportType);
+
+        logger.trace("[Convert Debug] メタデータ設定: sourceFile='{}', reportType='{}'", sourceFile, reportType);
+
+        // 最終的なMap内容の検証
+        logger.trace("[Convert Debug] Map変換完了: {} フィールド設定, キー: {}",
+                    map.size(), map.keySet());
+
+        // クリティカルなフィールドの存在確認
+        boolean hasCriticalData = map.containsKey("branchesCovered") && map.containsKey("branchesTotal") &&
+                                 map.get("branchesCovered") != null && map.get("branchesTotal") != null;
+
+        if (!hasCriticalData) {
+            logger.error("[Convert Debug] エラー: 重要なカバレッジデータがMapに設定されていません: {}.{}",
+                        className, methodName);
+        }
 
         return map;
     }
