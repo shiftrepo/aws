@@ -1,0 +1,402 @@
+---
+# ========================================
+# Kubernetes Dashboard インストール - Ansible
+# ========================================
+# K3s用のKubernetes Dashboard Web UIをインストール
+# 管理者ユーザーとトークンを作成
+# 外部アクセス用のポート転送を設定
+# ========================================
+
+- name: Install Kubernetes Dashboard for K3s
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  become_method: sudo
+
+  vars:
+    kubectl_path: "/usr/local/bin/kubectl"
+    dashboard_version: "v2.7.0"
+    dashboard_namespace: "kubernetes-dashboard"
+    dashboard_external_port: 5001
+    dashboard_nodeport: 30443
+
+  tasks:
+    # ========================================
+    # Step 1: Kubernetes Dashboard インストール
+    # ========================================
+
+    - name: Install Kubernetes Dashboard
+      shell: |
+        {{ kubectl_path }} apply -f https://raw.githubusercontent.com/kubernetes/dashboard/{{ dashboard_version }}/aio/deploy/recommended.yaml
+      register: dashboard_install
+      changed_when: "'created' in dashboard_install.stdout or 'configured' in dashboard_install.stdout"
+      failed_when: false
+
+    - name: Wait for Dashboard pods to be ready
+      shell: |
+        {{ kubectl_path }} wait --for=condition=ready pod \
+          -l k8s-app=kubernetes-dashboard \
+          -n {{ dashboard_namespace }} \
+          --timeout=60s
+      register: wait_result
+      retries: 3
+      delay: 10
+      until: wait_result.rc == 0
+      failed_when: false
+
+    # ========================================
+    # Step 2: 管理者ユーザー作成
+    # ========================================
+
+    - name: Create Dashboard admin ServiceAccount
+      shell: |
+        cat <<EOF | {{ kubectl_path }} apply -f -
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: admin-user
+          namespace: {{ dashboard_namespace }}
+        EOF
+      register: sa_result
+      changed_when: "'created' in sa_result.stdout or 'configured' in sa_result.stdout"
+
+    - name: Create Dashboard admin ClusterRoleBinding
+      shell: |
+        cat <<EOF | {{ kubectl_path }} apply -f -
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: admin-user
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: cluster-admin
+        subjects:
+        - kind: ServiceAccount
+          name: admin-user
+          namespace: {{ dashboard_namespace }}
+        EOF
+      register: crb_result
+      changed_when: "'created' in crb_result.stdout or 'configured' in crb_result.stdout"
+
+    # ========================================
+    # Step 3: トークン作成
+    # ========================================
+
+    - name: Create Dashboard admin token Secret
+      shell: |
+        cat <<EOF | {{ kubectl_path }} apply -f -
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: admin-user-token
+          namespace: {{ dashboard_namespace }}
+          annotations:
+            kubernetes.io/service-account.name: admin-user
+        type: kubernetes.io/service-account-token
+        EOF
+      register: token_secret
+      changed_when: "'created' in token_secret.stdout or 'configured' in token_secret.stdout"
+
+    - name: Wait for token to be generated
+      pause:
+        seconds: 5
+
+    - name: Get Dashboard admin token
+      shell: |
+        {{ kubectl_path }} get secret admin-user-token \
+          -n {{ dashboard_namespace }} \
+          -o jsonpath='{.data.token}' | base64 -d
+      register: dashboard_token
+      changed_when: false
+
+    - name: Save token to file
+      copy:
+        content: "{{ dashboard_token.stdout }}"
+        dest: /tmp/kubernetes-dashboard-token.txt
+        mode: '0600'
+
+    # ========================================
+    # Step 4: NodePort Service作成
+    # ========================================
+
+    - name: Create NodePort Service for Dashboard
+      shell: |
+        cat <<EOF | {{ kubectl_path }} apply -f -
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: kubernetes-dashboard-nodeport
+          namespace: {{ dashboard_namespace }}
+        spec:
+          type: NodePort
+          selector:
+            k8s-app: kubernetes-dashboard
+          ports:
+          - protocol: TCP
+            port: 443
+            targetPort: 8443
+            nodePort: {{ dashboard_nodeport }}
+        EOF
+      register: nodeport_result
+      changed_when: "'created' in nodeport_result.stdout or 'configured' in nodeport_result.stdout"
+
+    # ========================================
+    # Step 5: 外部アクセス用ポート転送
+    # ========================================
+
+    - name: Check if socat is installed
+      command: which socat
+      register: socat_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install socat if not present
+      package:
+        name: socat
+        state: present
+      when: socat_check.rc != 0
+
+    - name: Get node IP
+      shell: hostname -I | awk '{print $1}'
+      register: node_ip
+      changed_when: false
+
+    - name: Stop existing dashboard port forward service
+      systemd:
+        name: k3s-dashboard-forward
+        state: stopped
+      failed_when: false
+
+    - name: Create systemd service for Dashboard port forwarding
+      copy:
+        dest: /etc/systemd/system/k3s-dashboard-forward.service
+        content: |
+          [Unit]
+          Description=K3s Dashboard Port Forward ({{ dashboard_external_port }} -> {{ dashboard_nodeport }})
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          ExecStart=/usr/bin/socat TCP-LISTEN:{{ dashboard_external_port }},bind=0.0.0.0,fork,reuseaddr TCP:{{ node_ip.stdout }}:{{ dashboard_nodeport }}
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Dashboard port forward service
+      systemd:
+        name: k3s-dashboard-forward
+        enabled: yes
+        state: started
+
+    # ========================================
+    # Step 6: ファイアウォール設定
+    # ========================================
+
+    - name: Check if firewalld is running
+      systemd:
+        name: firewalld
+      register: firewalld_status
+      failed_when: false
+
+    - name: Open Dashboard port in firewall
+      firewalld:
+        port: "{{ dashboard_external_port }}/tcp"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      when: firewalld_status.status.ActiveState == "active"
+      failed_when: false
+
+    # ========================================
+    # Step 7: 状態確認
+    # ========================================
+
+    - name: Get Dashboard pods status
+      shell: |
+        {{ kubectl_path }} get pods -n {{ dashboard_namespace }}
+      register: dashboard_pods
+      changed_when: false
+
+    - name: Get Dashboard services
+      shell: |
+        {{ kubectl_path }} get svc -n {{ dashboard_namespace }}
+      register: dashboard_svcs
+      changed_when: false
+
+    - name: Get public IP
+      uri:
+        url: http://169.254.169.254/latest/meta-data/public-ipv4
+        return_content: yes
+        timeout: 5
+      register: public_ip
+      failed_when: false
+      changed_when: false
+
+    # ========================================
+    # Step 8: レポート作成
+    # ========================================
+
+    - name: Create installation report
+      copy:
+        dest: "/root/aws.git/container/claudecode/ArgoCD/K3S-DASHBOARD-INSTALLATION.md"
+        content: |
+          # Kubernetes Dashboard インストール完了レポート
+
+          **日時**: {{ ansible_date_time.iso8601 }}
+          **ステータス**: ✅ 完了
+
+          ---
+
+          ## 📊 インストール詳細
+
+          ### Dashboard情報
+          - **Version**: {{ dashboard_version }}
+          - **Namespace**: {{ dashboard_namespace }}
+          - **NodePort**: {{ dashboard_nodeport }}
+          - **External Port**: {{ dashboard_external_port }}
+
+          ### アクセス情報
+
+          #### 外部アクセス（HTTPS）
+          ```
+          {% if public_ip.content is defined %}
+          URL: https://{{ public_ip.content }}:{{ dashboard_external_port }}
+          URL: https://ec2-{{ public_ip.content | replace('.', '-') }}.compute-1.amazonaws.com:{{ dashboard_external_port }}
+          {% else %}
+          URL: https://localhost:{{ dashboard_external_port }}
+          {% endif %}
+          ```
+
+          #### ログイントークン
+          ```
+          {{ dashboard_token.stdout }}
+          ```
+
+          トークンファイル: `/tmp/kubernetes-dashboard-token.txt`
+
+          ---
+
+          ## 🔐 ログイン手順
+
+          1. **ブラウザでアクセス**
+          ```
+          {% if public_ip.content is defined %}
+          https://{{ public_ip.content }}:{{ dashboard_external_port }}
+          {% else %}
+          https://localhost:{{ dashboard_external_port }}
+          {% endif %}
+          ```
+
+          2. **証明書警告をスキップ**
+          - 自己署名証明書のため警告が表示されます
+          - 「詳細設定」→「安全でないサイトに進む」をクリック
+
+          3. **トークンでログイン**
+          - 「Token」を選択
+          - 上記のトークンをコピー&ペースト
+          - 「Sign in」をクリック
+
+          ---
+
+          ## 📊 デプロイ状態
+
+          ### Pods
+          ```
+          {{ dashboard_pods.stdout }}
+          ```
+
+          ### Services
+          ```
+          {{ dashboard_svcs.stdout }}
+          ```
+
+          ---
+
+          ## 🔄 再インストール方法
+
+          ```bash
+          cd /root/aws.git/container/claudecode/ArgoCD
+          ansible-playbook -i ansible/inventory/hosts.yml \
+            ansible/playbooks/install_k3s_dashboard.yml
+          ```
+
+          ---
+
+          ## 🗑️ アンインストール方法
+
+          ```bash
+          # Dashboardリソース削除
+          kubectl delete namespace {{ dashboard_namespace }}
+
+          # ポート転送サービス停止
+          systemctl stop k3s-dashboard-forward
+          systemctl disable k3s-dashboard-forward
+          rm -f /etc/systemd/system/k3s-dashboard-forward.service
+          systemctl daemon-reload
+          ```
+
+          ---
+
+          ## 📝 トラブルシューティング
+
+          ### Podが起動しない
+          ```bash
+          kubectl get pods -n {{ dashboard_namespace }}
+          kubectl describe pod <pod-name> -n {{ dashboard_namespace }}
+          kubectl logs <pod-name> -n {{ dashboard_namespace }}
+          ```
+
+          ### トークンが無効
+          ```bash
+          # 新しいトークン取得
+          kubectl get secret admin-user-token \
+            -n {{ dashboard_namespace }} \
+            -o jsonpath='{.data.token}' | base64 -d
+          ```
+
+          ### ポート転送が動作しない
+          ```bash
+          # サービス状態確認
+          systemctl status k3s-dashboard-forward
+
+          # 再起動
+          systemctl restart k3s-dashboard-forward
+
+          # ログ確認
+          journalctl -u k3s-dashboard-forward -f
+          ```
+
+          ---
+
+          **Kubernetes Dashboard のインストールが完了しました！**
+        mode: '0644'
+
+    - name: Display installation summary
+      debug:
+        msg:
+          - "========================================="
+          - "Kubernetes Dashboard インストール完了"
+          - "========================================="
+          - ""
+          - "アクセスURL:"
+          - "{% if public_ip.content is defined %}https://{{ public_ip.content }}:{{ dashboard_external_port }}{% else %}https://localhost:{{ dashboard_external_port }}{% endif %}"
+          - ""
+          - "ログイントークン:"
+          - "{{ dashboard_token.stdout }}"
+          - ""
+          - "詳細レポート: /root/aws.git/container/claudecode/ArgoCD/K3S-DASHBOARD-INSTALLATION.md"
+          - "========================================="
+
+  tags:
+    - k3s
+    - dashboard
+    - install
