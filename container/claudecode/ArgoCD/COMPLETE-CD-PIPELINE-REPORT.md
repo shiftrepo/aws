@@ -1,6 +1,6 @@
 # 完全CD自動化パイプライン実行レポート
 
-**実行日時**: 2026-02-05T09:17:14Z
+**実行日時**: 2026-02-05T09:19:08Z
 **ステータス**: ✅ 完了
 
 ---
@@ -83,15 +83,15 @@ curl http://localhost:5000/v2/orgmgmt-frontend/tags/list
 ### Pod Status
 ```
 NAME                                READY   STATUS    RESTARTS   AGE   IP           NODE                         NOMINATED NODE   READINESS GATES
-orgmgmt-frontend-76f8596466-gtcl5   1/1     Running   0          8s    10.42.0.31   ip-10-0-1-191.ec2.internal   <none>           <none>
-orgmgmt-frontend-76f8596466-pvh8b   1/1     Running   0          15s   10.42.0.30   ip-10-0-1-191.ec2.internal   <none>           <none>
-orgmgmt-frontend-76f8596466-wxz8l   1/1     Running   0          15s   10.42.0.29   ip-10-0-1-191.ec2.internal   <none>           <none>
+orgmgmt-frontend-559c68bd74-mzhfx   1/1     Running   0          16s   10.42.0.32   ip-10-0-1-191.ec2.internal   <none>           <none>
+orgmgmt-frontend-559c68bd74-rnz5k   1/1     Running   0          8s    10.42.0.34   ip-10-0-1-191.ec2.internal   <none>           <none>
+orgmgmt-frontend-559c68bd74-v62mt   1/1     Running   0          16s   10.42.0.33   ip-10-0-1-191.ec2.internal   <none>           <none>
 ```
 
 ### Service Status
 ```
 NAME               TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
-orgmgmt-frontend   NodePort   10.43.224.118   <none>        5006:30006/TCP   69m
+orgmgmt-frontend   NodePort   10.43.224.118   <none>        5006:30006/TCP   71m
 ```
 
 ### ヘルスチェック

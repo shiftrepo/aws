@@ -517,6 +517,10 @@
             dest: "{{ base_dir }}/COMPLETE-CD-PIPELINE-REPORT.md"
             mode: '0644'
 
+        - name: Build access URL
+          set_fact:
+            access_url: "{{ 'http://' + public_ip.content + ':5006' if public_ip.content is defined and public_ip.content else 'http://localhost:5006' }}"
+
         - name: Build final summary message
           set_fact:
             final_summary:
@@ -531,7 +535,7 @@
               - ""
               - "Report: {{ base_dir }}/COMPLETE-CD-PIPELINE-REPORT.md"
               - ""
-              - "{{ 'Access URL: http://' + public_ip.content + ':5006' if public_ip.content is defined else 'Access URL: http://localhost:5006' }}"
+              - "Access URL: {{ access_url }}"
               - "========================================="
 
         - name: Display final summary
