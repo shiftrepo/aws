@@ -1,0 +1,147 @@
+---
+# ========================================
+# ポート80でのアクセスを有効化
+# ========================================
+# 標準HTTPポート（80）でフロントエンドにアクセス可能にする
+# ========================================
+
+- name: Enable port 80 access for frontend
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+
+  vars:
+    service_port_80: 80
+    service_port_5006: 5006
+    nodeport: 30006
+
+  tasks:
+    # ========================================
+    # Phase 1: ポート80への転送設定
+    # ========================================
+
+    - name: Phase 1 - Setup port 80 forwarding
+      block:
+        - name: Create systemd service for port 80 forwarding
+          copy:
+            content: |
+              [Unit]
+              Description=K3s Frontend Port Forward (80 -> 30006)
+              After=k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              ExecStart=/usr/bin/socat TCP-LISTEN:80,bind=0.0.0.0,fork,reuseaddr TCP:10.0.1.191:30006
+              Restart=always
+              RestartSec=10
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/k3s-frontend-forward-80.service
+            mode: '0644'
+          register: portforward_80_service
+
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+          when: portforward_80_service.changed
+
+        - name: Enable and start port 80 forwarding service
+          systemd:
+            name: k3s-frontend-forward-80
+            state: started
+            enabled: yes
+
+        - name: Wait for service to be ready
+          pause:
+            seconds: 3
+
+      tags:
+        - port80
+
+    # ========================================
+    # Phase 2: AWS Security Group設定
+    # ========================================
+
+    - name: Phase 2 - Configure AWS Security Group
+      block:
+        - name: Get instance metadata
+          uri:
+            url: http://169.254.169.254/latest/meta-data/instance-id
+            return_content: yes
+          register: instance_id
+
+        - name: Get region
+          uri:
+            url: http://169.254.169.254/latest/meta-data/placement/region
+            return_content: yes
+          register: region
+
+        - name: Add port 80 to security group
+          shell: |
+            aws ec2 authorize-security-group-ingress \
+              --region {{ region.content }} \
+              --group-id sg-00421a9c400795ec7 \
+              --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges="[{CidrIp=0.0.0.0/0,Description='HTTP standard port for frontend'}]"
+          register: sg_result
+          failed_when: false
+          changed_when: "'SecurityGroupRuleId' in sg_result.stdout"
+
+      tags:
+        - aws
+
+    # ========================================
+    # Phase 3: アクセステスト
+    # ========================================
+
+    - name: Phase 3 - Test access
+      block:
+        - name: Get public IP
+          uri:
+            url: http://169.254.169.254/latest/meta-data/public-ipv4
+            return_content: yes
+          register: public_ip
+
+        - name: Test localhost port 80
+          uri:
+            url: "http://127.0.0.1:80/health"
+            method: GET
+            return_content: yes
+          register: local_80_test
+          failed_when: false
+
+        - name: Test localhost port 5006
+          uri:
+            url: "http://127.0.0.1:5006/health"
+            method: GET
+            return_content: yes
+          register: local_5006_test
+          failed_when: false
+
+        - name: Display access URLs
+          debug:
+            msg:
+              - "========================================="
+              - "Frontend Service Access URLs"
+              - "========================================="
+              - ""
+              - "Standard HTTP (Port 80):"
+              - "  http://ec2-13-219-96-72.compute-1.amazonaws.com"
+              - "  http://{{ public_ip.content }}"
+              - ""
+              - "Alternative (Port 5006):"
+              - "  http://ec2-13-219-96-72.compute-1.amazonaws.com:5006"
+              - "  http://{{ public_ip.content }}:5006"
+              - ""
+              - "NodePort Direct (Port 30006):"
+              - "  http://ec2-13-219-96-72.compute-1.amazonaws.com:30006"
+              - "  http://{{ public_ip.content }}:30006"
+              - ""
+              - "Test Results:"
+              - "  Port 80: {{ 'SUCCESS' if local_80_test.status == 200 else 'FAILED' }}"
+              - "  Port 5006: {{ 'SUCCESS' if local_5006_test.status == 200 else 'FAILED' }}"
+              - "========================================="
+
+      tags:
+        - test

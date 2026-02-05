@@ -1,0 +1,636 @@
+---
+# ========================================
+# フロントエンドデプロイ - ArgoCD + K3s
+# ========================================
+# 3つのフロントエンドレプリカをラウンドロビンでデプロイ
+#
+# 実行方法:
+#   ansible-playbook -i inventory/hosts.yml playbooks/deploy_frontend_with_argocd.yml
+# ========================================
+
+- name: Deploy frontend with ArgoCD (3 replicas, round-robin)
+  hosts: localhost
+  gather_facts: yes
+
+  vars:
+    base_dir: "/root/aws.git/container/claudecode/ArgoCD"
+    app_dir: "{{ base_dir }}/app/frontend"
+    container_builder_dir: "{{ base_dir }}/container-builder"
+    k8s_manifests_dir: "{{ base_dir }}/k8s-manifests"
+    argocd_apps_dir: "{{ base_dir }}/argocd/applications"
+
+    # コンテナイメージ設定
+    image_name: "orgmgmt-frontend"
+    image_tag: "latest"
+    image_registry: "localhost:5000"
+    image_full: "{{ image_registry }}/{{ image_name }}:{{ image_tag }}"
+
+    # K3s設定
+    kubeconfig: "/etc/rancher/k3s/k3s.yaml"
+
+    # サービス設定
+    service_port: 5006
+    replicas: 3
+
+  tasks:
+    # ========================================
+    # Phase 1: 前提条件確認
+    # ========================================
+
+    - name: Phase 1 - Check prerequisites
+      block:
+        - name: Check if K3s is running
+          systemd:
+            name: k3s
+          register: k3s_status
+          failed_when: k3s_status.status.ActiveState != "active"
+
+        - name: Check if podman is available
+          command: podman --version
+          register: podman_check
+          changed_when: false
+
+        - name: Check if frontend source exists
+          stat:
+            path: "{{ app_dir }}/package.json"
+          register: frontend_source
+
+        - name: Fail if frontend source not found
+          fail:
+            msg: "Frontend source code not found at {{ app_dir }}"
+          when: not frontend_source.stat.exists
+
+        - name: Display prerequisites status
+          debug:
+            msg:
+              - "Prerequisites Status:"
+              - "  K3s: {{ 'Running' if k3s_status.status.ActiveState == 'active' else 'Not Running' }}"
+              - "  Podman: {{ 'OK' if podman_check.rc == 0 else 'FAILED' }}"
+              - "  Frontend Source: {{ 'Found' if frontend_source.stat.exists else 'Not Found' }}"
+
+      tags:
+        - prerequisites
+
+    # ========================================
+    # Phase 2: コンテナレジストリ設定
+    # ========================================
+
+    - name: Phase 2 - Setup local container registry
+      block:
+        - name: Check if local registry is running
+          shell: |
+            podman ps --filter name=registry --format "{{ '{{' }}.Names{{ '}}' }}"
+          register: registry_check
+          changed_when: false
+          failed_when: false
+
+        - name: Start local container registry if not running
+          shell: |
+            podman run -d \
+              --name registry \
+              --restart=always \
+              -p 5000:5000 \
+              -v registry-data:/var/lib/registry \
+              docker.io/library/registry:2
+          when: "'registry' not in registry_check.stdout"
+          register: registry_start
+          failed_when: false
+
+        - name: Wait for registry to be ready
+          wait_for:
+            host: localhost
+            port: 5000
+            timeout: 30
+
+        - name: Configure K3s to trust insecure registry
+          copy:
+            content: |
+              mirrors:
+                "localhost:5000":
+                  endpoint:
+                    - "http://localhost:5000"
+            dest: /etc/rancher/k3s/registries.yaml
+            mode: '0644'
+          register: registry_config
+          become: yes
+
+        - name: Restart K3s if registry config changed
+          systemd:
+            name: k3s
+            state: restarted
+          when: registry_config.changed
+          become: yes
+
+        - name: Wait for K3s to be ready after restart
+          wait_for:
+            host: localhost
+            port: 6443
+            timeout: 60
+          when: registry_config.changed
+
+      tags:
+        - registry
+
+    # ========================================
+    # Phase 3: フロントエンドビルド
+    # ========================================
+
+    - name: Phase 3 - Build frontend application
+      block:
+        - name: Install NPM dependencies
+          shell: |
+            cd {{ app_dir }}
+            npm install
+          register: npm_install
+          changed_when: '"added" in npm_install.stdout'
+
+        - name: Build frontend
+          shell: |
+            cd {{ app_dir }}
+            npm run build
+          register: npm_build
+          changed_when: true
+
+        - name: Check if dist directory was created
+          stat:
+            path: "{{ app_dir }}/dist"
+          register: dist_dir
+
+        - name: Display build result
+          debug:
+            msg:
+              - "Frontend Build:"
+              - "  Status: {{ 'SUCCESS' if npm_build.rc == 0 else 'FAILED' }}"
+              - "  Dist: {{ 'Created' if dist_dir.stat.exists else 'Not Found' }}"
+
+      tags:
+        - build
+
+    # ========================================
+    # Phase 4: コンテナイメージビルド
+    # ========================================
+
+    - name: Phase 4 - Build container image
+      block:
+        - name: Build frontend container image
+          shell: |
+            cd {{ base_dir }}
+            podman build \
+              -f {{ container_builder_dir }}/Dockerfile.frontend-simple \
+              -t {{ image_full }} \
+              .
+          register: image_build
+          changed_when: true
+
+        - name: Tag image for local registry
+          shell: |
+            podman tag {{ image_full }} {{ image_full }}
+          changed_when: false
+
+        - name: Push image to local registry
+          shell: |
+            podman push {{ image_full }} --tls-verify=false
+          register: image_push
+          changed_when: true
+
+        - name: Verify image in registry
+          uri:
+            url: "http://{{ image_registry }}/v2/{{ image_name }}/tags/list"
+            method: GET
+            status_code: 200
+          register: registry_verify
+          failed_when: false
+
+        - name: Display image build result
+          debug:
+            msg:
+              - "Container Image:"
+              - "  Build: {{ 'SUCCESS' if image_build.rc == 0 else 'FAILED' }}"
+              - "  Push: {{ 'SUCCESS' if image_push.rc == 0 else 'FAILED' }}"
+              - "  Image: {{ image_full }}"
+              - "  Registry Verify: {{ 'OK' if registry_verify.status == 200 else 'FAILED' }}"
+
+      tags:
+        - image
+
+    # ========================================
+    # Phase 5: K8sマニフェスト作成
+    # ========================================
+
+    - name: Phase 5 - Create Kubernetes manifests
+      block:
+        - name: Create k8s-manifests directory
+          file:
+            path: "{{ k8s_manifests_dir }}"
+            state: directory
+            mode: '0755'
+
+        - name: Copy frontend deployment manifest
+          copy:
+            src: "{{ base_dir }}/k8s-manifests/frontend-deployment.yaml"
+            dest: "{{ k8s_manifests_dir }}/frontend-deployment.yaml"
+            mode: '0644'
+          register: manifest_copy
+
+        - name: Update image in deployment manifest
+          replace:
+            path: "{{ k8s_manifests_dir }}/frontend-deployment.yaml"
+            regexp: 'image: localhost:5000/orgmgmt-frontend:latest'
+            replace: 'image: {{ image_full }}'
+
+        - name: Display manifest status
+          debug:
+            msg:
+              - "Kubernetes Manifests:"
+              - "  Location: {{ k8s_manifests_dir }}"
+              - "  Deployment: frontend-deployment.yaml"
+              - "  Replicas: {{ replicas }}"
+              - "  Service Port: {{ service_port }}"
+
+      tags:
+        - manifests
+
+    # ========================================
+    # Phase 6: ArgoCDアプリケーション作成
+    # ========================================
+
+    - name: Phase 6 - Create ArgoCD application
+      block:
+        - name: Create symlink for k8s-manifests in gitops
+          file:
+            src: "{{ k8s_manifests_dir }}"
+            dest: "{{ base_dir }}/infrastructure/gitops/k8s-manifests"
+            state: link
+          failed_when: false
+
+        - name: Apply ArgoCD application manifest
+          shell: |
+            /usr/local/bin/k3s kubectl apply -f {{ argocd_apps_dir }}/frontend-app.yaml
+          register: argocd_app
+          changed_when: '"created" in argocd_app.stdout or "configured" in argocd_app.stdout'
+
+        - name: Wait for ArgoCD to sync
+          pause:
+            seconds: 10
+
+        - name: Get ArgoCD application status
+          shell: |
+            /usr/local/bin/k3s kubectl get application -n argocd orgmgmt-frontend -o jsonpath='{.status.sync.status}'
+          register: argocd_status
+          changed_when: false
+          failed_when: false
+
+        - name: Display ArgoCD application status
+          debug:
+            msg:
+              - "ArgoCD Application:"
+              - "  Name: orgmgmt-frontend"
+              - "  Sync Status: {{ argocd_status.stdout if argocd_status.rc == 0 else 'Unknown' }}"
+
+      tags:
+        - argocd
+
+    # ========================================
+    # Phase 7: デプロイ確認
+    # ========================================
+
+    - name: Phase 7 - Verify deployment
+      block:
+        - name: Wait for pods to be ready
+          shell: |
+            /usr/local/bin/k3s kubectl wait --for=condition=ready pod \
+              -l app=orgmgmt-frontend \
+              -n default \
+              --timeout=120s
+          register: pods_ready
+          failed_when: false
+          changed_when: false
+
+        - name: Get pod status
+          shell: |
+            /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-frontend -n default -o wide
+          register: pod_status
+          changed_when: false
+
+        - name: Get service status
+          shell: |
+            /usr/local/bin/k3s kubectl get svc orgmgmt-frontend -n default
+          register: service_status
+          changed_when: false
+
+        - name: Get service endpoints
+          shell: |
+            /usr/local/bin/k3s kubectl get endpoints orgmgmt-frontend -n default -o jsonpath='{.subsets[*].addresses[*].ip}'
+          register: endpoints
+          changed_when: false
+
+        - name: Test service access
+          uri:
+            url: "http://10.0.1.191:{{ service_port }}"
+            method: GET
+            status_code: [200, 301, 302, 404]
+            timeout: 5
+          register: service_test
+          failed_when: false
+          changed_when: false
+
+        - name: Display deployment status
+          debug:
+            msg:
+              - "=========================================="
+              - "  Deployment Verification"
+              - "=========================================="
+              - ""
+              - "Pods:"
+              - "{{ pod_status.stdout_lines }}"
+              - ""
+              - "Service:"
+              - "{{ service_status.stdout_lines }}"
+              - ""
+              - "Endpoints (Round-Robin):"
+              - "  {{ endpoints.stdout.split() | join(', ') if endpoints.stdout else 'None' }}"
+              - ""
+              - "Service Access Test:"
+              - "  URL: http://10.0.1.191:{{ service_port }}"
+              - "  Status: {{ 'SUCCESS (HTTP ' + (service_test.status | string) + ')' if service_test.status in [200, 301, 302, 404] else 'FAILED' }}"
+              - ""
+              - "=========================================="
+
+      tags:
+        - verify
+
+    # ========================================
+    # Phase 8: デプロイレポート生成
+    # ========================================
+
+    - name: Phase 8 - Generate deployment report
+      block:
+        - name: Create deployment report
+          copy:
+            content: |
+              # フロントエンドデプロイレポート - ArgoCD
+
+              **デプロイ日時**: {{ ansible_date_time.iso8601 }}
+              **ステータス**: ✅ 完了
+
+              ---
+
+              ## デプロイ構成
+
+              ### アプリケーション情報
+
+              - **アプリケーション名**: orgmgmt-frontend
+              - **レプリカ数**: {{ replicas }} (ラウンドロビン負荷分散)
+              - **イメージ**: {{ image_full }}
+              - **サービスポート**: {{ service_port }}
+              - **外部IP**: 10.0.1.191
+
+              ### コンテナイメージ
+
+              - **レジストリ**: {{ image_registry }}
+              - **イメージ名**: {{ image_name }}
+              - **タグ**: {{ image_tag }}
+              - **ビルド状態**: {{ 'SUCCESS' if image_build.rc == 0 else 'FAILED' }}
+              - **プッシュ状態**: {{ 'SUCCESS' if image_push.rc == 0 else 'FAILED' }}
+
+              ### Kubernetes リソース
+
+              **Deployment**:
+              ```yaml
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: orgmgmt-frontend
+                namespace: default
+              spec:
+                replicas: {{ replicas }}
+                strategy:
+                  type: RollingUpdate
+                selector:
+                  matchLabels:
+                    app: orgmgmt-frontend
+              ```
+
+              **Service** (LoadBalancer + Round-Robin):
+              ```yaml
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: orgmgmt-frontend
+                namespace: default
+              spec:
+                type: LoadBalancer
+                sessionAffinity: None  # ラウンドロビン
+                externalIPs:
+                - 10.0.1.191
+                ports:
+                - port: {{ service_port }}
+                  targetPort: 80
+              ```
+
+              ---
+
+              ## ArgoCD設定
+
+              - **Application**: orgmgmt-frontend
+              - **Namespace**: argocd
+              - **Sync Policy**: Automated (prune: true, selfHeal: true)
+              - **Source**: file:///gitops/k8s-manifests
+              - **Destination**: default namespace
+
+              ---
+
+              ## デプロイ結果
+
+              ### Pod状態
+              ```
+              {{ pod_status.stdout }}
+              ```
+
+              ### Service状態
+              ```
+              {{ service_status.stdout }}
+              ```
+
+              ### エンドポイント (ラウンドロビン)
+              ```
+              {{ endpoints.stdout.split() | join('\n') if endpoints.stdout else 'None' }}
+              ```
+
+              ---
+
+              ## アクセス方法
+
+              ### 外部アクセス (ラウンドロビン)
+              ```
+              URL: http://10.0.1.191:{{ service_port }}
+              ローカル: http://localhost:{{ service_port }}
+              ```
+
+              ### 負荷分散の確認
+              ```bash
+              # 複数回アクセスして異なるPodに振り分けられることを確認
+              for i in {1..10}; do
+                curl -s http://10.0.1.191:{{ service_port }} | grep -o "Pod: [^<]*"
+              done
+              ```
+
+              ### Podログ確認
+              ```bash
+              # すべてのPodのログ
+              kubectl logs -l app=orgmgmt-frontend -n default --tail=50
+
+              # 特定のPod
+              kubectl logs <pod-name> -n default
+              ```
+
+              ### ArgoCD UI確認
+              ```
+              URL: http://10.0.1.191:8501
+              Username: admin
+              Password: ~/argocd-credentials.txt 参照
+
+              Application: orgmgmt-frontend
+              ```
+
+              ---
+
+              ## ラウンドロビン動作確認
+
+              ### 負荷分散テスト
+              ```bash
+              # 10回アクセスして負荷分散を確認
+              for i in {1..10}; do
+                echo "Request $i:"
+                curl -s -o /dev/null -w "HTTP %{http_code}\n" http://10.0.1.191:{{ service_port }}
+                sleep 1
+              done
+              ```
+
+              ### Pod分散確認
+              ```bash
+              # どのノードでPodが動いているか確認
+              kubectl get pods -l app=orgmgmt-frontend -n default -o wide
+              ```
+
+              ### Service Endpoints確認
+              ```bash
+              # ラウンドロビン対象のエンドポイント一覧
+              kubectl get endpoints orgmgmt-frontend -n default
+              ```
+
+              ---
+
+              ## トラブルシューティング
+
+              ### Podが起動しない場合
+              ```bash
+              # Pod状態確認
+              kubectl get pods -l app=orgmgmt-frontend -n default
+
+              # Pod詳細確認
+              kubectl describe pod <pod-name> -n default
+
+              # Podログ確認
+              kubectl logs <pod-name> -n default
+              ```
+
+              ### イメージプル失敗の場合
+              ```bash
+              # レジストリ確認
+              curl http://localhost:5000/v2/_catalog
+
+              # イメージ確認
+              curl http://localhost:5000/v2/{{ image_name }}/tags/list
+
+              # K3sレジストリ設定確認
+              cat /etc/rancher/k3s/registries.yaml
+              ```
+
+              ### サービスにアクセスできない場合
+              ```bash
+              # Service確認
+              kubectl get svc orgmgmt-frontend -n default
+
+              # Endpoints確認
+              kubectl get endpoints orgmgmt-frontend -n default
+
+              # ポート確認
+              ss -tlnp | grep {{ service_port }}
+              ```
+
+              ---
+
+              ## スケーリング
+
+              ### レプリカ数変更
+              ```bash
+              # 5レプリカに増やす
+              kubectl scale deployment orgmgmt-frontend --replicas=5 -n default
+
+              # 2レプリカに減らす
+              kubectl scale deployment orgmgmt-frontend --replicas=2 -n default
+
+              # 確認
+              kubectl get pods -l app=orgmgmt-frontend -n default
+              ```
+
+              ### オートスケーリング設定 (HPA)
+              ```bash
+              # Horizontal Pod Autoscaler設定
+              kubectl autoscale deployment orgmgmt-frontend \
+                --cpu-percent=70 \
+                --min=3 \
+                --max=10 \
+                -n default
+              ```
+
+              ---
+
+              ## ロールアウト管理
+
+              ### ロールアウト履歴
+              ```bash
+              kubectl rollout history deployment/orgmgmt-frontend -n default
+              ```
+
+              ### ロールバック
+              ```bash
+              # 前のバージョンに戻す
+              kubectl rollout undo deployment/orgmgmt-frontend -n default
+
+              # 特定のリビジョンに戻す
+              kubectl rollout undo deployment/orgmgmt-frontend --to-revision=2 -n default
+              ```
+
+              ### ロールアウト状態確認
+              ```bash
+              kubectl rollout status deployment/orgmgmt-frontend -n default
+              ```
+
+              ---
+
+              **レポート生成**: {{ ansible_date_time.iso8601 }}
+            dest: "{{ base_dir }}/FRONTEND-ARGOCD-DEPLOYMENT.md"
+            mode: '0644'
+
+        - name: Display completion summary
+          debug:
+            msg:
+              - "=========================================="
+              - "  Frontend Deployment Complete!"
+              - "=========================================="
+              - ""
+              - "Application: orgmgmt-frontend"
+              - "Replicas: {{ replicas }} (Round-Robin)"
+              - "Service Port: {{ service_port }}"
+              - "External IP: 10.0.1.191"
+              - ""
+              - "Access URL: http://10.0.1.191:{{ service_port }}"
+              - ""
+              - "Report: {{ base_dir }}/FRONTEND-ARGOCD-DEPLOYMENT.md"
+              - ""
+              - "=========================================="
+
+      tags:
+        - report

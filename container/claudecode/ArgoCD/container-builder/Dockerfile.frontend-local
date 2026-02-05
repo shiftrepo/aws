@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1
+
+# =============================================================================
+# Stage 1: Builder - Build frontend application
+# =============================================================================
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY app/frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY app/frontend/ ./
+
+# Build application
+RUN npm run build
+
+# =============================================================================
+# Stage 2: Runtime - Nginx web server for serving static files
+# =============================================================================
+FROM nginx:1.25-alpine
+
+# Metadata labels
+LABEL org.opencontainers.image.title="OrgMgmt Frontend" \
+      org.opencontainers.image.description="Employee organization management frontend application" \
+      org.opencontainers.image.vendor="Example Corp" \
+      org.opencontainers.image.authors="devops@example.com" \
+      org.opencontainers.image.version="1.0.0"
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget && \
+    rm -rf /var/cache/apk/*
+
+# Remove default nginx configuration and static files
+RUN rm -rf /usr/share/nginx/html/* && \
+    rm -f /etc/nginx/conf.d/default.conf
+
+# Copy custom nginx configuration
+COPY container-builder/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy frontend dist files from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Ensure proper permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html
+
+# Expose HTTP port
+EXPOSE 80
+
+# Healthcheck to ensure nginx is serving content
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+
+# Run nginx in foreground
+CMD ["nginx", "-g", "daemon off;"]

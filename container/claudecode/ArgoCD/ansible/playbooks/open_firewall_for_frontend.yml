@@ -1,0 +1,340 @@
+---
+# ========================================
+# フロントエンドサービス用ファイアウォール開放
+# ========================================
+# 外部からのアクセスを許可するために、
+# ポート5006をNodePortとして公開し、
+# すべてのファイアウォール制限を撤去
+# ========================================
+
+- name: Open firewall for frontend service (external access)
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+
+  vars:
+    base_dir: "/root/aws.git/container/claudecode/ArgoCD"
+    k8s_manifests_dir: "{{ base_dir }}/k8s-manifests"
+    service_name: "orgmgmt-frontend"
+    service_port: 5006
+    namespace: "default"
+
+  tasks:
+    # ========================================
+    # Phase 1: サービスをNodePortに変更
+    # ========================================
+
+    - name: Phase 1 - Change service to NodePort
+      block:
+        - name: Get current service configuration
+          command: /usr/local/bin/k3s kubectl get svc {{ service_name }} -n {{ namespace }} -o yaml
+          register: current_service
+          changed_when: false
+
+        - name: Delete existing LoadBalancer service
+          command: /usr/local/bin/k3s kubectl delete svc {{ service_name }} -n {{ namespace }}
+          register: service_deleted
+
+        - name: Create NodePort service manifest
+          copy:
+            content: |
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: orgmgmt-frontend
+                namespace: default
+                labels:
+                  app: orgmgmt-frontend
+              spec:
+                type: NodePort
+                sessionAffinity: None
+                selector:
+                  app: orgmgmt-frontend
+                ports:
+                  - name: http
+                    protocol: TCP
+                    port: 5006
+                    targetPort: 80
+                    nodePort: 30006
+            dest: "{{ k8s_manifests_dir }}/frontend-service-nodeport.yaml"
+            mode: '0644'
+
+        - name: Apply NodePort service
+          command: /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/frontend-service-nodeport.yaml
+          register: service_created
+
+        - name: Wait for service to be ready
+          pause:
+            seconds: 5
+
+        - name: Verify NodePort service
+          command: /usr/local/bin/k3s kubectl get svc {{ service_name }} -n {{ namespace }}
+          register: service_status
+          changed_when: false
+
+        - name: Display service information
+          debug:
+            msg:
+              - "Service Type: NodePort"
+              - "Service Port: 5006"
+              - "NodePort: 30006"
+              - "Access URL: http://<HOST_IP>:30006"
+
+      tags:
+        - service
+
+    # ========================================
+    # Phase 2: iptables設定の確認と調整
+    # ========================================
+
+    - name: Phase 2 - Configure iptables
+      block:
+        - name: Check if iptables is installed
+          command: which iptables
+          register: iptables_check
+          failed_when: false
+          changed_when: false
+
+        - name: Display iptables rules
+          command: iptables -L -n -v
+          register: iptables_rules
+          changed_when: false
+          when: iptables_check.rc == 0
+
+        - name: Check if firewalld is running
+          systemd:
+            name: firewalld
+          register: firewalld_status
+          failed_when: false
+
+        - name: Open port 30006 in firewalld if running
+          firewalld:
+            port: 30006/tcp
+            permanent: yes
+            state: enabled
+            immediate: yes
+          when: firewalld_status.status.ActiveState == "active"
+          failed_when: false
+
+      tags:
+        - firewall
+
+    # ========================================
+    # Phase 3: K3sポートフォワーディング設定
+    # ========================================
+
+    - name: Phase 3 - Setup port forwarding for direct access
+      block:
+        - name: Create systemd service for port forwarding
+          copy:
+            content: |
+              [Unit]
+              Description=K3s Frontend Port Forward (5006 -> 30006)
+              After=k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              ExecStart=/usr/bin/socat TCP-LISTEN:5006,fork,reuseaddr TCP:127.0.0.1:30006
+              Restart=always
+              RestartSec=10
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/k3s-frontend-forward.service
+            mode: '0644'
+          register: portforward_service
+
+        - name: Install socat if not present
+          package:
+            name: socat
+            state: present
+
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+          when: portforward_service.changed
+
+        - name: Enable and start port forwarding service
+          systemd:
+            name: k3s-frontend-forward
+            state: started
+            enabled: yes
+          register: portforward_started
+
+      tags:
+        - portforward
+
+    # ========================================
+    # Phase 4: アクセス検証
+    # ========================================
+
+    - name: Phase 4 - Verify external access
+      block:
+        - name: Get public IP
+          uri:
+            url: http://169.254.169.254/latest/meta-data/public-ipv4
+            return_content: yes
+          register: public_ip
+          failed_when: false
+
+        - name: Get private IP
+          uri:
+            url: http://169.254.169.254/latest/meta-data/local-ipv4
+            return_content: yes
+          register: private_ip
+          failed_when: false
+
+        - name: Wait for service to be accessible
+          pause:
+            seconds: 5
+
+        - name: Test local access (NodePort)
+          uri:
+            url: "http://127.0.0.1:30006/health"
+            method: GET
+            return_content: yes
+          register: local_nodeport_test
+          failed_when: false
+
+        - name: Test local access (Port Forward)
+          uri:
+            url: "http://127.0.0.1:5006/health"
+            method: GET
+            return_content: yes
+          register: local_portforward_test
+          failed_when: false
+
+        - name: Test private IP access
+          uri:
+            url: "http://{{ private_ip.content }}:5006/health"
+            method: GET
+            return_content: yes
+          register: private_ip_test
+          failed_when: false
+          when: private_ip.content is defined
+
+        - name: Display access information
+          debug:
+            msg:
+              - "========================================="
+              - "Frontend Service Access Information"
+              - "========================================="
+              - "Public IP: {{ public_ip.content | default('N/A') }}"
+              - "Private IP: {{ private_ip.content | default('N/A') }}"
+              - ""
+              - "Access URLs:"
+              - "  External: http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:5006"
+              - "  External (NodePort): http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:30006"
+              - "  Internal: http://{{ private_ip.content | default('YOUR_PRIVATE_IP') }}:5006"
+              - ""
+              - "NodePort Test: {{ 'SUCCESS' if local_nodeport_test.status == 200 else 'FAILED' }}"
+              - "Port Forward Test: {{ 'SUCCESS' if local_portforward_test.status == 200 else 'FAILED' }}"
+              - "Private IP Test: {{ 'SUCCESS' if private_ip_test.status == 200 else 'N/A' }}"
+              - ""
+              - "NOTE: AWS Security Group must allow:"
+              - "  - TCP port 5006 (Port Forward)"
+              - "  - TCP port 30006 (NodePort)"
+              - "========================================="
+
+      tags:
+        - verify
+
+    # ========================================
+    # Phase 5: レポート生成
+    # ========================================
+
+    - name: Phase 5 - Generate access report
+      block:
+        - name: Create access report
+          copy:
+            content: |
+              # Frontend Service External Access Report
+
+              **Date**: {{ ansible_date_time.iso8601 }}
+              **Service**: Organization Management Frontend
+
+              ## Access Information
+
+              ### Public Access
+              - **Public IP**: {{ public_ip.content | default('N/A') }}
+              - **Primary URL**: http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:5006
+              - **NodePort URL**: http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:30006
+
+              ### Internal Access
+              - **Private IP**: {{ private_ip.content | default('N/A') }}
+              - **Internal URL**: http://{{ private_ip.content | default('YOUR_PRIVATE_IP') }}:5006
+              - **Cluster IP**: http://10.0.1.191:5006
+
+              ## Service Configuration
+
+              - **Service Type**: NodePort
+              - **Service Port**: 5006
+              - **NodePort**: 30006
+              - **Target Port**: 80 (container)
+              - **Replicas**: 3
+              - **Load Balancing**: Round-robin
+
+              ## Firewall Status
+
+              - **Port Forwarding**: 5006 -> 30006 (via socat)
+              - **NodePort Direct**: 30006 (via K3s)
+              - **Systemd Service**: k3s-frontend-forward.service
+
+              ## Access Tests
+
+              - **NodePort (30006)**: {{ 'PASSED' if local_nodeport_test.status == 200 else 'FAILED' }}
+              - **Port Forward (5006)**: {{ 'PASSED' if local_portforward_test.status == 200 else 'FAILED' }}
+              - **Private IP (5006)**: {{ 'PASSED' if private_ip_test.status == 200 else 'N/A' }}
+
+              ## AWS Security Group Requirements
+
+              **Inbound Rules to Add:**
+
+              ```
+              Type: Custom TCP
+              Port: 5006
+              Source: 0.0.0.0/0 (anywhere) or your IP
+
+              Type: Custom TCP
+              Port: 30006
+              Source: 0.0.0.0/0 (anywhere) or your IP
+              ```
+
+              ## Verification Commands
+
+              ```bash
+              # Test from local machine
+              curl http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:5006/health
+              curl http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:30006/health
+
+              # Check service status
+              kubectl get svc orgmgmt-frontend -n default
+
+              # Check port forwarding service
+              systemctl status k3s-frontend-forward
+
+              # Check pods
+              kubectl get pods -l app=orgmgmt-frontend -n default
+              ```
+
+              ## Troubleshooting
+
+              If you cannot access the service:
+
+              1. Check AWS Security Group allows ports 5006 and 30006
+              2. Verify service is running: `systemctl status k3s-frontend-forward`
+              3. Check K3s service: `kubectl get svc orgmgmt-frontend`
+              4. Test locally first: `curl http://127.0.0.1:5006/health`
+
+              ## Next Steps
+
+              1. Add AWS Security Group rules for ports 5006 and 30006
+              2. Test access from browser: http://{{ public_ip.content | default('YOUR_PUBLIC_IP') }}:5006
+              3. Verify round-robin load balancing is working
+            dest: "{{ base_dir }}/EXTERNAL-ACCESS-REPORT.md"
+            mode: '0644'
+
+      tags:
+        - report

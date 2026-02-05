@@ -1,0 +1,17 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orgmgmt-frontend-allow-all
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: orgmgmt-frontend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - {}  # Allow all ingress traffic
+  egress:
+    - {}  # Allow all egress traffic

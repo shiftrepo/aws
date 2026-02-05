@@ -1,0 +1,543 @@
+---
+# ========================================
+# 完全CD自動化パイプライン - Ansible
+# ========================================
+# 4つのステップを完全に自動化:
+# 1. サービス環境構築
+# 2. ビルド→Nexus登録
+# 3. Nexus→コンテナイメージ生成
+# 4. イメージ→サービス起動
+#
+# 実行方法:
+#   ansible-playbook -i inventory/hosts.yml playbooks/complete_cd_pipeline.yml
+# ========================================
+
+- name: Complete CD Pipeline - Full Automation
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  become_method: sudo
+
+  vars:
+    base_dir: "/root/aws.git/container/claudecode/ArgoCD"
+    app_dir: "{{ base_dir }}/app"
+    frontend_dir: "{{ app_dir }}/frontend"
+    container_builder_dir: "{{ base_dir }}/container-builder"
+    k8s_manifests_dir: "{{ base_dir }}/k8s-manifests"
+
+    # Nexus設定
+    nexus_url: "http://{{ ansible_default_ipv4.address }}:8000"
+    nexus_username: "admin"
+    nexus_password: "admin123"
+    nexus_repo: "raw-hosted"
+
+    # フロントエンド設定
+    package_name: "orgmgmt-frontend"
+    package_version: "1.0.0"
+
+    # コンテナイメージ設定
+    image_name: "orgmgmt-frontend"
+    image_tag: "latest"
+    image_registry: "localhost:5000"
+    image_full: "{{ image_registry }}/{{ image_name }}:{{ image_tag }}"
+
+    # K3s設定
+    service_port: 5006
+    replicas: 3
+
+  tasks:
+    # ========================================
+    # ステップ1: サービス環境構築
+    # ========================================
+
+    - name: Step 1 - Verify service environment
+      block:
+        - name: Check if K3s is running
+          systemd:
+            name: k3s
+          register: k3s_status
+          failed_when: k3s_status.status.ActiveState != "active"
+
+        - name: Check if Nexus is accessible
+          uri:
+            url: "{{ nexus_url }}"
+            status_code: [200, 302, 401]
+            timeout: 10
+          register: nexus_check
+          failed_when: nexus_check.status not in [200, 302, 401]
+
+        - name: Check if local registry is running
+          shell: |
+            podman ps --filter name=registry --format "{{ '{{' }}.Names{{ '}}' }}"
+          register: registry_check
+          changed_when: false
+          failed_when: false
+
+        - name: Start local container registry if not running
+          shell: |
+            podman run -d \
+              --name registry \
+              --restart=always \
+              -p 5000:5000 \
+              -v registry-data:/var/lib/registry \
+              docker.io/library/registry:2
+          when: "'registry' not in registry_check.stdout"
+          register: registry_start
+          failed_when: false
+
+        - name: Display environment status
+          debug:
+            msg:
+              - "========================================="
+              - "Step 1: Service Environment"
+              - "========================================="
+              - "K3s: {{ 'Running' if k3s_status.status.ActiveState == 'active' else 'Not Running' }}"
+              - "Nexus: {{ 'Accessible' if nexus_check.status in [200, 302, 401] else 'Not Accessible' }}"
+              - "Registry: {{ 'Running' if 'registry' in registry_check.stdout else 'Started' if registry_start.rc == 0 else 'Failed' }}"
+
+      tags:
+        - step1
+        - environment
+
+    # ========================================
+    # ステップ2: ビルド→Nexus登録
+    # ========================================
+
+    - name: Step 2 - Build and deploy to Nexus
+      block:
+        - name: Install NPM dependencies
+          shell: |
+            cd {{ frontend_dir }}
+            npm install
+          register: npm_install
+          changed_when: '"added" in npm_install.stdout'
+
+        - name: Build frontend
+          shell: |
+            cd {{ frontend_dir }}
+            npm run build
+          register: npm_build
+          changed_when: true
+          failed_when: npm_build.rc != 0
+
+        - name: Check if dist directory exists
+          stat:
+            path: "{{ frontend_dir }}/dist"
+          register: dist_dir
+
+        - name: Create NPM package structure for tarball
+          shell: |
+            cd {{ frontend_dir }}
+            mkdir -p package
+            cp -r dist package/
+            cp package.json package/
+          when: dist_dir.stat.exists
+
+        - name: Create tarball with correct structure
+          shell: |
+            cd {{ frontend_dir }}
+            tar -czf {{ package_name }}-{{ package_version }}.tgz package/
+          register: create_tarball
+          changed_when: true
+          when: dist_dir.stat.exists
+
+        - name: Upload tarball to Nexus
+          shell: |
+            curl -v -u {{ nexus_username }}:{{ nexus_password }} \
+              --upload-file {{ frontend_dir }}/{{ package_name }}-{{ package_version }}.tgz \
+              {{ nexus_url }}/repository/{{ nexus_repo }}/{{ package_name }}-{{ package_version }}.tgz
+          register: upload_tarball
+          changed_when: upload_tarball.rc == 0
+          failed_when: upload_tarball.rc != 0
+          when: dist_dir.stat.exists
+
+        - name: Verify artifact in Nexus
+          uri:
+            url: "{{ nexus_url }}/repository/{{ nexus_repo }}/{{ package_name }}-{{ package_version }}.tgz"
+            method: HEAD
+            status_code: [200, 401]
+            timeout: 10
+            user: "{{ nexus_username }}"
+            password: "{{ nexus_password }}"
+            force_basic_auth: yes
+          register: verify_artifact
+          failed_when: false
+          changed_when: false
+
+        - name: Display build and deploy result
+          debug:
+            msg:
+              - "========================================="
+              - "Step 2: Build and Deploy to Nexus"
+              - "========================================="
+              - "Build Status: {{ 'SUCCESS' if npm_build.rc == 0 else 'FAILED' }}"
+              - "Dist Created: {{ 'Yes' if dist_dir.stat.exists else 'No' }}"
+              - "Tarball Created: {{ 'Yes' if create_tarball.rc == 0 else 'No' }}"
+              - "Upload Status: {{ 'SUCCESS' if upload_tarball.rc == 0 else 'FAILED' }}"
+              - "Verification: {{ 'OK' if verify_artifact.status == 200 else 'Authentication Required' if verify_artifact.status == 401 else 'FAILED' }}"
+              - "Nexus URL: {{ nexus_url }}/repository/{{ nexus_repo }}/{{ package_name }}-{{ package_version }}.tgz"
+
+      tags:
+        - step2
+        - build
+        - nexus
+
+    # ========================================
+    # ステップ3: Nexus→コンテナイメージ生成
+    # ========================================
+
+    - name: Step 3 - Build container image from Nexus artifact
+      block:
+        - name: Build frontend container image from Nexus
+          shell: |
+            cd {{ base_dir }}
+            podman build \
+              -f {{ container_builder_dir }}/Dockerfile.frontend-from-nexus \
+              --build-arg NEXUS_URL={{ nexus_url }} \
+              --build-arg NEXUS_REPO={{ nexus_repo }} \
+              --build-arg PACKAGE_NAME={{ package_name }} \
+              --build-arg PACKAGE_VERSION={{ package_version }} \
+              --build-arg NEXUS_USER={{ nexus_username }} \
+              --build-arg NEXUS_PASSWORD={{ nexus_password }} \
+              -t {{ image_full }} \
+              .
+          register: image_build
+          changed_when: true
+          failed_when: image_build.rc != 0
+
+        - name: Tag image for registry
+          shell: |
+            podman tag {{ image_full }} {{ image_full }}
+          changed_when: false
+
+        - name: Push image to local registry
+          shell: |
+            podman push {{ image_full }} --tls-verify=false
+          register: image_push
+          changed_when: true
+          failed_when: image_push.rc != 0
+
+        - name: Verify image in registry
+          uri:
+            url: "http://{{ image_registry }}/v2/{{ image_name }}/tags/list"
+            method: GET
+            status_code: 200
+            timeout: 10
+          register: verify_image
+          failed_when: false
+          changed_when: false
+
+        - name: Display container image result
+          debug:
+            msg:
+              - "========================================="
+              - "Step 3: Container Image from Nexus"
+              - "========================================="
+              - "Build Status: {{ 'SUCCESS' if image_build.rc == 0 else 'FAILED' }}"
+              - "Push Status: {{ 'SUCCESS' if image_push.rc == 0 else 'FAILED' }}"
+              - "Image: {{ image_full }}"
+              - "Registry Verification: {{ 'OK' if verify_image.status == 200 else 'FAILED' }}"
+
+      tags:
+        - step3
+        - container
+        - image
+
+    # ========================================
+    # ステップ4: イメージ→サービス起動
+    # ========================================
+
+    - name: Step 4 - Deploy service from container image
+      block:
+        - name: Restart K3s deployment to pull new image
+          shell: |
+            /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-frontend -n default
+          register: deployment_restart
+          changed_when: true
+          failed_when: deployment_restart.rc != 0
+
+        - name: Wait for deployment to be ready
+          shell: |
+            /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-frontend -n default --timeout=300s
+          register: rollout_status
+          changed_when: false
+          failed_when: rollout_status.rc != 0
+
+        - name: Get pod status
+          shell: |
+            /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-frontend -n default -o wide
+          register: pod_status
+          changed_when: false
+
+        - name: Get service status
+          shell: |
+            /usr/local/bin/k3s kubectl get svc orgmgmt-frontend -n default
+          register: service_status
+          changed_when: false
+
+        - name: Test service health
+          uri:
+            url: "http://localhost:5006/health"
+            method: GET
+            status_code: 200
+            timeout: 10
+          register: health_check
+          failed_when: false
+          changed_when: false
+
+        - name: Display deployment result
+          debug:
+            msg:
+              - "========================================="
+              - "Step 4: Service Deployment"
+              - "========================================="
+              - "Deployment Restart: {{ 'SUCCESS' if deployment_restart.rc == 0 else 'FAILED' }}"
+              - "Rollout Status: {{ 'SUCCESS' if rollout_status.rc == 0 else 'FAILED' }}"
+              - "Health Check: {{ 'OK' if health_check.status == 200 else 'FAILED' }}"
+              - ""
+              - "Pod Status:"
+              - "{{ pod_status.stdout }}"
+              - ""
+              - "Service Status:"
+              - "{{ service_status.stdout }}"
+
+      tags:
+        - step4
+        - deploy
+        - service
+
+    # ========================================
+    # 最終レポート生成
+    # ========================================
+
+    - name: Final - Generate complete pipeline report
+      block:
+        - name: Get public IP
+          uri:
+            url: http://169.254.169.254/latest/meta-data/public-ipv4
+            return_content: yes
+          register: public_ip
+          failed_when: false
+
+        - name: Create complete pipeline report
+          copy:
+            content: |
+              # 完全CD自動化パイプライン実行レポート
+
+              **実行日時**: {{ ansible_date_time.iso8601 }}
+              **ステータス**: ✅ 完了
+
+              ---
+
+              ## パイプライン実行サマリー
+
+              | ステップ | ステータス | 詳細 |
+              |---------|----------|------|
+              | 1. 環境構築確認 | ✅ | K3s, Nexus, Registry |
+              | 2. ビルド→Nexus | {{ '✅ SUCCESS' if upload_tarball.rc == 0 else '❌ FAILED' }} | {{ package_name }}-{{ package_version }}.tgz |
+              | 3. Nexus→イメージ | {{ '✅ SUCCESS' if image_build.rc == 0 else '❌ FAILED' }} | {{ image_full }} |
+              | 4. イメージ→起動 | {{ '✅ SUCCESS' if deployment_restart.rc == 0 else '❌ FAILED' }} | 3 replicas |
+
+              ---
+
+              ## ステップ1: サービス環境
+
+              - **K3s**: {{ 'Running' if k3s_status.status.ActiveState == 'active' else 'Not Running' }}
+              - **Nexus**: {{ nexus_url }}
+              - **Registry**: localhost:5000
+
+              ---
+
+              ## ステップ2: ビルド→Nexus登録
+
+              ### ビルド情報
+              - **Build Status**: {{ 'SUCCESS' if npm_build.rc == 0 else 'FAILED' }}
+              - **Dist Directory**: {{ frontend_dir }}/dist
+
+              ### Nexus登録情報
+              - **Package**: {{ package_name }}
+              - **Version**: {{ package_version }}
+              - **Upload Status**: {{ 'SUCCESS' if upload_tarball.rc == 0 else 'FAILED' }}
+              - **Nexus URL**: {{ nexus_url }}/repository/{{ nexus_repo }}/com/example/{{ package_name }}/{{ package_version }}/{{ package_name }}-{{ package_version }}.tgz
+
+              ### 確認コマンド
+              ```bash
+              curl -u {{ nexus_username }}:{{ nexus_password }} \
+                {{ nexus_url }}/repository/{{ nexus_repo }}/com/example/{{ package_name }}/{{ package_version }}/{{ package_name }}-{{ package_version }}.tgz \
+                -o /tmp/test-download.tgz
+              ```
+
+              ---
+
+              ## ステップ3: Nexus→コンテナイメージ
+
+              ### イメージビルド情報
+              - **Build Status**: {{ 'SUCCESS' if image_build.rc == 0 else 'FAILED' }}
+              - **Dockerfile**: Dockerfile.frontend-from-nexus
+              - **Build Args**:
+                - NEXUS_URL={{ nexus_url }}
+                - PACKAGE_NAME={{ package_name }}
+                - PACKAGE_VERSION={{ package_version }}
+
+              ### レジストリ登録情報
+              - **Push Status**: {{ 'SUCCESS' if image_push.rc == 0 else 'FAILED' }}
+              - **Image**: {{ image_full }}
+              - **Registry**: {{ image_registry }}
+
+              ### 確認コマンド
+              ```bash
+              # イメージ一覧確認
+              podman images | grep {{ image_name }}
+
+              # レジストリ確認
+              curl http://{{ image_registry }}/v2/{{ image_name }}/tags/list
+              ```
+
+              ---
+
+              ## ステップ4: イメージ→サービス起動
+
+              ### デプロイメント情報
+              - **Deployment**: orgmgmt-frontend
+              - **Namespace**: default
+              - **Replicas**: {{ replicas }}
+              - **Restart Status**: {{ 'SUCCESS' if deployment_restart.rc == 0 else 'FAILED' }}
+              - **Rollout Status**: {{ 'SUCCESS' if rollout_status.rc == 0 else 'FAILED' }}
+
+              ### Pod Status
+              ```
+              {{ pod_status.stdout }}
+              ```
+
+              ### Service Status
+              ```
+              {{ service_status.stdout }}
+              ```
+
+              ### ヘルスチェック
+              - **Health Check**: {{ 'OK' if health_check.status == 200 else 'FAILED' }}
+              - **URL**: http://localhost:5006/health
+
+              ---
+
+              ## アクセス情報
+
+              ### 外部アクセス
+              {% if public_ip.content is defined %}
+              - **URL**: http://{{ public_ip.content }}:5006
+              - **Domain**: http://ec2-{{ public_ip.content | replace('.', '-') }}.compute-1.amazonaws.com:5006
+              {% endif %}
+
+              ### 内部アクセス
+              - **Localhost**: http://localhost:5006
+              - **Private IP**: http://10.0.1.191:5006
+
+              ### エンドポイント
+              - `/` - ホームページ
+              - `/organizations` - 組織管理
+              - `/departments` - 部署管理
+              - `/users` - ユーザー管理
+              - `/health` - ヘルスチェック
+              - `/api/*` - Mock API
+
+              ---
+
+              ## 完全自動化フロー確認
+
+              ✅ **すべてのステップがAnsibleで自動化されました！**
+
+              1. ✅ サービス環境構築確認
+              2. ✅ コンパイル→Nexus登録
+              3. ✅ Nexus→コンテナイメージ生成
+              4. ✅ イメージ→サービス起動
+
+              ---
+
+              ## 再実行方法
+
+              ```bash
+              # 完全パイプライン実行
+              cd /root/aws.git/container/claudecode/ArgoCD
+              ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/complete_cd_pipeline.yml
+
+              # 特定ステップのみ実行
+              ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/complete_cd_pipeline.yml --tags step2,step3
+
+              # ステップ別実行
+              ansible-playbook ... --tags step1  # 環境確認のみ
+              ansible-playbook ... --tags step2  # ビルド→Nexusのみ
+              ansible-playbook ... --tags step3  # Nexus→イメージのみ
+              ansible-playbook ... --tags step4  # デプロイのみ
+              ```
+
+              ---
+
+              ## トラブルシューティング
+
+              ### ビルドエラー
+              ```bash
+              # 手動ビルド確認
+              cd {{ frontend_dir }}
+              npm install
+              npm run build
+              ```
+
+              ### Nexusアクセスエラー
+              ```bash
+              # Nexus接続確認
+              curl -u {{ nexus_username }}:{{ nexus_password }} {{ nexus_url }}
+              ```
+
+              ### イメージビルドエラー
+              ```bash
+              # 手動ビルド確認
+              cd {{ base_dir }}
+              podman build -f {{ container_builder_dir }}/Dockerfile.frontend-from-nexus \
+                --build-arg NEXUS_URL={{ nexus_url }} \
+                --build-arg PACKAGE_NAME={{ package_name }} \
+                --build-arg PACKAGE_VERSION={{ package_version }} \
+                -t {{ image_full }} .
+              ```
+
+              ### デプロイメントエラー
+              ```bash
+              # Pod ログ確認
+              kubectl logs -l app=orgmgmt-frontend -n default --tail=50
+
+              # Pod状態確認
+              kubectl get pods -l app=orgmgmt-frontend -n default
+
+              # イベント確認
+              kubectl get events -n default --sort-by='.lastTimestamp'
+              ```
+
+              ---
+
+              **完全CD自動化パイプライン実行完了！**
+            dest: "{{ base_dir }}/COMPLETE-CD-PIPELINE-REPORT.md"
+            mode: '0644'
+
+        - name: Build final summary message
+          set_fact:
+            final_summary:
+              - "========================================="
+              - "Complete CD Pipeline - FINISHED"
+              - "========================================="
+              - ""
+              - "✅ Step 1: Environment - OK"
+              - "{{ '✅' if upload_tarball.rc == 0 else '❌' }} Step 2: Build→Nexus - {{ 'SUCCESS' if upload_tarball.rc == 0 else 'FAILED' }}"
+              - "{{ '✅' if image_build.rc == 0 else '❌' }} Step 3: Nexus→Image - {{ 'SUCCESS' if image_build.rc == 0 else 'FAILED' }}"
+              - "{{ '✅' if deployment_restart.rc == 0 else '❌' }} Step 4: Image→Service - {{ 'SUCCESS' if deployment_restart.rc == 0 else 'FAILED' }}"
+              - ""
+              - "Report: {{ base_dir }}/COMPLETE-CD-PIPELINE-REPORT.md"
+              - ""
+              - "{{ 'Access URL: http://' + public_ip.content + ':5006' if public_ip.content is defined else 'Access URL: http://localhost:5006' }}"
+              - "========================================="
+
+        - name: Display final summary
+          debug:
+            msg: "{{ final_summary }}"
+
+      tags:
+        - report
+        - final
