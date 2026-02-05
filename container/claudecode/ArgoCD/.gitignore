@@ -1,0 +1,161 @@
+# ========================================
+# Environment-Specific Configuration
+# ========================================
+# Do not commit environment-specific files
+
+# Environment configuration
+config/environment.yml
+config/environment-*.yml
+
+# Credentials and secrets
+credentials.txt
+secrets.yml
+*.secret
+*.key
+*.pem
+
+# Ansible vault files
+*.vault
+
+# Generated documentation
+docs/generated/
+
+# ========================================
+# Build Artifacts
+# ========================================
+
+# Maven
+app/backend/target/
+app/backend/.m2/
+
+# NPM
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.vite/
+
+# Playwright
+playwright-tests/node_modules/
+playwright-tests/test-results/
+playwright-tests/playwright-report/
+playwright-tests/screenshots/
+playwright-tests/coverage/
+
+# ========================================
+# Infrastructure Data
+# ========================================
+
+# Podman volumes (data persisted locally)
+infrastructure/volumes/
+
+# Logs
+*.log
+logs/
+
+# ========================================
+# IDE and Editor
+# ========================================
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+
+# ========================================
+# Operating System
+# ========================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.directory
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ========================================
+# Backup and Temporary Files
+# ========================================
+
+# Backups
+*.bak
+*.backup
+*.old
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# ========================================
+# Container and Kubernetes
+# ========================================
+
+# Kubernetes configs (if containing secrets)
+kubeconfig*
+*.kubeconfig
+
+# Container images (large files)
+*.tar
+*.tar.gz
+*.tgz
+
+# ========================================
+# Other
+# ========================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ansible
+*.retry
+
+# Test coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# ========================================
+# Keep Example Files
+# ========================================
+
+# These files should be committed as templates
+!config/environment.yml.example
+!infrastructure/.env.example

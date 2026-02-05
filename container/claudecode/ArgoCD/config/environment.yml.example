@@ -1,0 +1,345 @@
+# ========================================
+# Environment Configuration Template
+# ========================================
+# Copy this file to config/environment.yml and customize for your environment
+# cp config/environment.yml.example config/environment.yml
+
+# ========================================
+# Network Configuration
+# ========================================
+network:
+  # Public IP address (auto-detected if not set)
+  public_ip: ""
+
+  # Private IP address (auto-detected if not set)
+  private_ip: ""
+
+  # Domain name (optional, uses IP if not set)
+  domain: ""
+
+  # Network interface (auto-detected if not set)
+  interface: ""
+
+# ========================================
+# Port Configuration
+# ========================================
+ports:
+  # Infrastructure Services
+  postgres_external: 5001
+  pgadmin: 5002
+  nexus_http: 8000
+  nexus_docker: 8082
+  registry: 5000
+  redis: 6379
+
+  # K3s Management Services
+  kubernetes_dashboard: 5004
+  argocd: 5010
+
+  # Application Services
+  frontend: 5006
+  backend: 8080
+
+  # K3s NodePorts (30000-32767 range)
+  dashboard_nodeport: 30443
+  argocd_nodeport: 30799
+  frontend_nodeport: 30006
+
+# ========================================
+# Directory Configuration
+# ========================================
+directories:
+  # Base directory (default: current directory)
+  base_dir: "{{ playbook_dir | dirname }}"
+
+  # Infrastructure data directory
+  data_dir: "{{ playbook_dir | dirname }}/infrastructure/volumes"
+
+  # GitOps manifests directory
+  gitops_dir: "{{ playbook_dir | dirname }}/gitops"
+
+  # Kubectl binary path
+  kubectl_path: "/usr/local/bin/kubectl"
+
+# ========================================
+# Container Configuration
+# ========================================
+containers:
+  # Container runtime (podman or docker)
+  runtime: "podman"
+
+  # Network name
+  network_name: "argocd-network"
+
+  # Registry configuration
+  registry:
+    url: "localhost:5000"
+    insecure: true
+
+# ========================================
+# Application Configuration
+# ========================================
+application:
+  name: "orgmgmt"
+  version: "1.0-SNAPSHOT"
+
+  # Frontend configuration
+  frontend:
+    image_name: "orgmgmt-frontend"
+    replicas: 3
+
+  # Backend configuration
+  backend:
+    image_name: "orgmgmt-backend"
+    replicas: 1
+
+# ========================================
+# Database Configuration
+# ========================================
+database:
+  name: "orgmgmt"
+  user: "orgmgmt_user"
+  # Password will be generated or set via environment variable
+  password: "{{ lookup('env', 'DB_PASSWORD') | default('password', true) }}"
+
+  postgres:
+    version: "16-alpine"
+    internal_port: 5432
+
+# ========================================
+# Authentication Configuration
+# ========================================
+# Note: Passwords will be auto-generated on first setup
+# You can override them by setting environment variables
+authentication:
+  # pgAdmin
+  pgadmin:
+    email: "admin@orgmgmt.local"
+    password: "{{ lookup('env', 'PGADMIN_PASSWORD') | default('password', true) }}"
+
+  # Nexus
+  nexus:
+    username: "admin"
+    # Initial password from /nexus-data/admin.password
+    password: "{{ lookup('env', 'NEXUS_PASSWORD') | default('admin123', true) }}"
+
+  # ArgoCD (auto-generated)
+  argocd:
+    username: "admin"
+    # Retrieved from k8s secret: argocd-initial-admin-secret
+
+  # Kubernetes Dashboard (token-based)
+  k8s_dashboard:
+    # Retrieved from k8s secret: admin-user-token
+
+# ========================================
+# Git Configuration
+# ========================================
+git:
+  # Git repository URL for ArgoCD
+  repository_url: "https://github.com/yourusername/yourrepo.git"
+
+  # Branch to track
+  branch: "main"
+
+  # Path within repository
+  manifests_path: "container/claudecode/ArgoCD/gitops/orgmgmt-frontend"
+
+  # User configuration
+  user_name: "CI/CD Bot"
+  user_email: "cicd@example.com"
+
+# ========================================
+# ArgoCD Configuration
+# ========================================
+argocd:
+  version: "v2.10.0"
+  namespace: "argocd"
+
+  # Application configuration
+  application:
+    name: "orgmgmt-frontend"
+    project: "default"
+
+    # Sync policy
+    auto_sync: true
+    prune: true
+    self_heal: true
+
+    # Sync options
+    sync_options:
+      - CreateNamespace=true
+
+# ========================================
+# Kubernetes Dashboard Configuration
+# ========================================
+kubernetes_dashboard:
+  version: "v2.7.0"
+  namespace: "kubernetes-dashboard"
+
+  # Admin user configuration
+  admin_user: "admin-user"
+  cluster_role: "cluster-admin"
+
+# ========================================
+# Nexus Configuration
+# ========================================
+nexus:
+  version: "3.63.0"
+
+  # Repositories to create
+  repositories:
+    - name: "raw-hosted"
+      type: "raw"
+      format: "raw"
+    - name: "maven-snapshots"
+      type: "hosted"
+      format: "maven2"
+    - name: "maven-releases"
+      type: "hosted"
+      format: "maven2"
+    - name: "npm-hosted"
+      type: "hosted"
+      format: "npm"
+
+# ========================================
+# Build Configuration
+# ========================================
+build:
+  # Java version
+  java_version: "17"
+
+  # Maven version
+  maven_version: "3.9.5"
+
+  # Node.js version
+  node_version: "20"
+
+  # Build parallel
+  parallel: true
+
+  # Cache enabled
+  cache_enabled: true
+
+# ========================================
+# Monitoring Configuration (Optional)
+# ========================================
+monitoring:
+  enabled: false
+
+  # Prometheus
+  prometheus:
+    enabled: false
+    port: 9090
+
+  # Grafana
+  grafana:
+    enabled: false
+    port: 3000
+
+# ========================================
+# Backup Configuration (Optional)
+# ========================================
+backup:
+  enabled: false
+
+  # Backup directory
+  backup_dir: "/var/backups/orgmgmt"
+
+  # Backup retention (days)
+  retention_days: 7
+
+  # Backup schedule (cron format)
+  schedule: "0 2 * * *"
+
+# ========================================
+# Firewall Configuration
+# ========================================
+firewall:
+  # Enable firewall configuration
+  enabled: true
+
+  # Firewall service (firewalld, ufw, iptables)
+  service: "firewalld"
+
+  # Public ports (exposed to external access)
+  public_ports:
+    - "{{ ports.kubernetes_dashboard }}/tcp"
+    - "{{ ports.argocd }}/tcp"
+    - "{{ ports.frontend }}/tcp"
+    - "{{ ports.nexus_http }}/tcp"
+
+  # Private ports (internal only)
+  private_ports:
+    - "{{ ports.postgres_external }}/tcp"
+    - "{{ ports.pgadmin }}/tcp"
+    - "{{ ports.registry }}/tcp"
+
+# ========================================
+# Feature Flags
+# ========================================
+features:
+  # Enable ArgoCD GitOps
+  argocd_enabled: true
+
+  # Enable Kubernetes Dashboard
+  dashboard_enabled: true
+
+  # Enable Nexus Repository
+  nexus_enabled: true
+
+  # Enable monitoring
+  monitoring_enabled: false
+
+  # Enable backup
+  backup_enabled: false
+
+  # Enable HTTPS (requires SSL certificates)
+  https_enabled: false
+
+# ========================================
+# Advanced Configuration
+# ========================================
+advanced:
+  # SELinux enforcement
+  selinux:
+    enabled: true
+    mode: "enforcing"
+
+  # Container resource limits
+  resources:
+    # PostgreSQL
+    postgres:
+      memory: "512Mi"
+      cpu: "500m"
+
+    # Nexus
+    nexus:
+      memory: "2Gi"
+      cpu: "1000m"
+
+    # ArgoCD
+    argocd:
+      memory: "1Gi"
+      cpu: "500m"
+
+    # Frontend
+    frontend:
+      memory: "256Mi"
+      cpu: "250m"
+
+    # Backend
+    backend:
+      memory: "1Gi"
+      cpu: "500m"
+
+  # Logging
+  logging:
+    level: "INFO"
+    format: "json"
+
+  # Timeout settings
+  timeouts:
+    deployment: 300
+    healthcheck: 60
+    sync: 180

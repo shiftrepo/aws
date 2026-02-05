@@ -1,0 +1,216 @@
+---
+# ========================================
+# Port Forwarding Setup - Ansible Playbook
+# ========================================
+# Creates systemd services for port forwarding
+# All IPs and ports are parameterized
+# ========================================
+
+- name: Setup Port Forwarding Services
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  become_method: sudo
+
+  tasks:
+    # ========================================
+    # Prerequisites
+    # ========================================
+
+    - name: Check if socat is installed
+      command: which socat
+      register: socat_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install socat if not present
+      package:
+        name: socat
+        state: present
+      when: socat_check.rc != 0
+
+    # ========================================
+    # Kubernetes Dashboard Port Forwarding
+    # ========================================
+
+    - name: Stop existing dashboard port forward service
+      systemd:
+        name: k3s-dashboard-forward
+        state: stopped
+      failed_when: false
+      when: dashboard_enabled | default(true)
+
+    - name: Create systemd service for Dashboard port forwarding
+      template:
+        src: ../templates/port-forward.service.j2
+        dest: /etc/systemd/system/k3s-dashboard-forward.service
+        mode: '0644'
+      vars:
+        service_name: "K3s Dashboard Port Forward"
+        external_port: "{{ ports.kubernetes_dashboard }}"
+        internal_host: "{{ private_ip }}"
+        internal_port: "{{ ports.dashboard_nodeport }}"
+      when: dashboard_enabled | default(true)
+
+    - name: Enable and start Dashboard port forward service
+      systemd:
+        name: k3s-dashboard-forward
+        daemon_reload: yes
+        enabled: yes
+        state: started
+      when: dashboard_enabled | default(true)
+
+    # ========================================
+    # ArgoCD Port Forwarding
+    # ========================================
+
+    - name: Get ArgoCD NodePort
+      shell: |
+        {{ kubectl_path }} get svc argocd-server -n {{ argocd_namespace }} \
+          -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}'
+      register: argocd_nodeport_result
+      changed_when: false
+      failed_when: false
+      when: argocd_enabled | default(true)
+
+    - name: Set ArgoCD NodePort variable
+      set_fact:
+        argocd_nodeport: "{{ argocd_nodeport_result.stdout }}"
+      when:
+        - argocd_enabled | default(true)
+        - argocd_nodeport_result.rc == 0
+        - argocd_nodeport_result.stdout != ""
+
+    - name: Stop existing ArgoCD port forward service
+      systemd:
+        name: k3s-argocd-forward
+        state: stopped
+      failed_when: false
+      when:
+        - argocd_enabled | default(true)
+        - argocd_nodeport is defined
+
+    - name: Create systemd service for ArgoCD port forwarding
+      template:
+        src: ../templates/port-forward.service.j2
+        dest: /etc/systemd/system/k3s-argocd-forward.service
+        mode: '0644'
+      vars:
+        service_name: "K3s ArgoCD Port Forward"
+        external_port: "{{ ports.argocd }}"
+        internal_host: "{{ private_ip }}"
+        internal_port: "{{ argocd_nodeport }}"
+      when:
+        - argocd_enabled | default(true)
+        - argocd_nodeport is defined
+
+    - name: Enable and start ArgoCD port forward service
+      systemd:
+        name: k3s-argocd-forward
+        daemon_reload: yes
+        enabled: yes
+        state: started
+      when:
+        - argocd_enabled | default(true)
+        - argocd_nodeport is defined
+
+    # ========================================
+    # Frontend Application Port Forwarding
+    # ========================================
+
+    - name: Get Frontend NodePort
+      shell: |
+        {{ kubectl_path }} get svc {{ app_name }}-frontend -n default \
+          -o jsonpath='{.spec.ports[0].nodePort}'
+      register: frontend_nodeport_result
+      changed_when: false
+      failed_when: false
+
+    - name: Set Frontend NodePort variable
+      set_fact:
+        frontend_nodeport: "{{ frontend_nodeport_result.stdout }}"
+      when:
+        - frontend_nodeport_result.rc == 0
+        - frontend_nodeport_result.stdout != ""
+
+    - name: Stop existing frontend port forward service
+      systemd:
+        name: k3s-frontend-forward
+        state: stopped
+      failed_when: false
+      when: frontend_nodeport is defined
+
+    - name: Create systemd service for Frontend port forwarding
+      template:
+        src: ../templates/port-forward.service.j2
+        dest: /etc/systemd/system/k3s-frontend-forward.service
+        mode: '0644'
+      vars:
+        service_name: "K3s Frontend Port Forward"
+        external_port: "{{ ports.frontend }}"
+        internal_host: "{{ private_ip }}"
+        internal_port: "{{ frontend_nodeport }}"
+      when: frontend_nodeport is defined
+
+    - name: Enable and start Frontend port forward service
+      systemd:
+        name: k3s-frontend-forward
+        daemon_reload: yes
+        enabled: yes
+        state: started
+      when: frontend_nodeport is defined
+
+    # ========================================
+    # Firewall Configuration
+    # ========================================
+
+    - name: Check if firewalld is running
+      systemd:
+        name: firewalld
+      register: firewalld_status
+      failed_when: false
+      when: firewall_enabled | default(true)
+
+    - name: Open port forwarding ports in firewall
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop: "{{ firewall_public_ports }}"
+      when:
+        - firewall_enabled | default(true)
+        - firewalld_status.status.ActiveState == "active"
+      failed_when: false
+
+    # ========================================
+    # Service Status Report
+    # ========================================
+
+    - name: Get port forwarding service status
+      shell: systemctl status {{ item }} | grep -E "(Active:|Main PID:)" || true
+      loop:
+        - k3s-dashboard-forward
+        - k3s-argocd-forward
+        - k3s-frontend-forward
+      register: service_status
+      changed_when: false
+
+    - name: Display port forwarding status
+      debug:
+        msg:
+          - "========================================="
+          - "Port Forwarding Setup Complete"
+          - "========================================="
+          - ""
+          - "Dashboard: {{ ports.kubernetes_dashboard }} -> {{ private_ip }}:{{ ports.dashboard_nodeport }}"
+          - "ArgoCD: {{ ports.argocd }} -> {{ private_ip }}:{{ argocd_nodeport | default('N/A') }}"
+          - "Frontend: {{ ports.frontend }} -> {{ private_ip }}:{{ frontend_nodeport | default('N/A') }}"
+          - ""
+          - "Services Status:"
+          - "{{ service_status.results | map(attribute='stdout_lines') | list }}"
+          - "========================================="
+
+  tags:
+    - port-forwarding
+    - network

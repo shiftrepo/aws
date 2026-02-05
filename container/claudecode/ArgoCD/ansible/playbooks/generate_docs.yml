@@ -1,0 +1,276 @@
+---
+# ========================================
+# Documentation Generation - Ansible Playbook
+# ========================================
+# Generates environment-specific documentation
+# ========================================
+
+- name: Generate Documentation
+  hosts: localhost
+  gather_facts: yes
+  become: no
+
+  vars:
+    docs_dir: "{{ base_dir }}/docs/generated"
+
+  tasks:
+    # ========================================
+    # Create Documentation Directory
+    # ========================================
+
+    - name: Create documentation directory
+      file:
+        path: "{{ docs_dir }}"
+        state: directory
+        mode: '0755'
+
+    # ========================================
+    # Get Service Information
+    # ========================================
+
+    - name: Get Kubernetes Dashboard token
+      shell: |
+        sudo {{ kubectl_path }} get secret {{ dashboard_admin_user }}-token \
+          -n {{ dashboard_namespace }} \
+          -o jsonpath='{.data.token}' | base64 -d
+      register: k8s_token
+      changed_when: false
+      failed_when: false
+      when: dashboard_enabled | default(true)
+
+    - name: Get ArgoCD admin password
+      shell: |
+        sudo {{ kubectl_path }} get secret argocd-initial-admin-secret \
+          -n {{ argocd_namespace }} \
+          -o jsonpath='{.data.password}' | base64 -d
+      register: argocd_password
+      changed_when: false
+      failed_when: false
+      when: argocd_enabled | default(true)
+
+    - name: Get running containers
+      shell: podman ps --format "{{{{ .Names }}\t{{{{ .Status }}\t{{{{ .Ports }}"
+      register: container_list
+      changed_when: false
+      failed_when: false
+
+    - name: Get K3s pods
+      shell: |
+        sudo {{ kubectl_path }} get pods -A -o wide
+      register: k3s_pods
+      changed_when: false
+      failed_when: false
+
+    - name: Get K3s services
+      shell: |
+        sudo {{ kubectl_path }} get svc -A
+      register: k3s_services
+      changed_when: false
+      failed_when: false
+
+    # ========================================
+    # Generate Service Access Guide
+    # ========================================
+
+    - name: Generate Service Access Guide
+      template:
+        src: ../templates/SERVICE-ACCESS-GUIDE.md.j2
+        dest: "{{ base_dir }}/SERVICE-ACCESS-GUIDE.md"
+        mode: '0644'
+      vars:
+        kubernetes_dashboard_token: "{{ k8s_token.stdout | default('Run setup to generate token') }}"
+        argocd_admin_password: "{{ argocd_password.stdout | default('Run setup to generate password') }}"
+
+    # ========================================
+    # Generate Quick Start Guide
+    # ========================================
+
+    - name: Generate Quick Start Guide
+      template:
+        src: ../templates/QUICKSTART.md.j2
+        dest: "{{ base_dir }}/QUICKSTART.md"
+        mode: '0644'
+
+    # ========================================
+    # Generate Environment Report
+    # ========================================
+
+    - name: Generate Environment Report
+      copy:
+        content: |
+          # Environment Report
+
+          **Generated:** {{ ansible_date_time.iso8601 }}
+          **Hostname:** {{ ansible_hostname }}
+
+          ---
+
+          ## Network Configuration
+
+          - **Public IP:** {{ public_ip }}
+          - **Private IP:** {{ private_ip }}
+          {% if domain %}
+          - **Domain:** {{ domain }}
+          {% endif %}
+
+          ---
+
+          ## Service Endpoints
+
+          | Service | URL | Port |
+          |---------|-----|------|
+          | Kubernetes Dashboard | https://{{ public_ip }}:{{ ports.kubernetes_dashboard }} | {{ ports.kubernetes_dashboard }} |
+          | ArgoCD | http://{{ public_ip }}:{{ ports.argocd }} | {{ ports.argocd }} |
+          | Frontend Application | http://{{ public_ip }}:{{ ports.frontend }} | {{ ports.frontend }} |
+          | Nexus Repository | http://{{ public_ip }}:{{ ports.nexus_http }} | {{ ports.nexus_http }} |
+          | pgAdmin | http://{{ public_ip }}:{{ ports.pgadmin }} | {{ ports.pgadmin }} |
+          | PostgreSQL | {{ public_ip }}:{{ ports.postgres_external }} | {{ ports.postgres_external }} |
+
+          ---
+
+          ## Running Containers
+
+          ```
+          {{ container_list.stdout }}
+          ```
+
+          ---
+
+          ## Kubernetes Pods
+
+          ```
+          {{ k3s_pods.stdout }}
+          ```
+
+          ---
+
+          ## Kubernetes Services
+
+          ```
+          {{ k3s_services.stdout }}
+          ```
+
+          ---
+
+          ## Authentication Credentials
+
+          ### Kubernetes Dashboard
+          ```
+          Token: {{ kubernetes_dashboard_token }}
+          ```
+
+          ### ArgoCD
+          ```
+          Username: admin
+          Password: {{ argocd_admin_password }}
+          ```
+
+          ### Nexus
+          ```
+          Username: {{ nexus_username }}
+          Password: {{ nexus_password }}
+          ```
+
+          ### pgAdmin
+          ```
+          Email: {{ pgadmin_email }}
+          Password: {{ pgadmin_password }}
+          ```
+
+          ### PostgreSQL
+          ```
+          Database: {{ db_name }}
+          Username: {{ db_user }}
+          Password: {{ db_password }}
+          ```
+
+          ---
+
+          **Documentation auto-generated from environment configuration**
+        dest: "{{ docs_dir }}/ENVIRONMENT-REPORT.md"
+        mode: '0644'
+
+    # ========================================
+    # Generate Connection Commands
+    # ========================================
+
+    - name: Generate connection commands script
+      copy:
+        content: |
+          #!/bin/bash
+          # Auto-generated connection commands for {{ ansible_hostname }}
+          # Generated: {{ ansible_date_time.iso8601 }}
+
+          # Kubernetes Dashboard
+          echo "Kubernetes Dashboard:"
+          echo "  URL: https://{{ public_ip }}:{{ ports.kubernetes_dashboard }}"
+          echo "  Token: Run 'kubectl get secret {{ dashboard_admin_user }}-token -n {{ dashboard_namespace }} -o jsonpath={.data.token} | base64 -d'"
+          echo ""
+
+          # ArgoCD
+          echo "ArgoCD:"
+          echo "  URL: http://{{ public_ip }}:{{ ports.argocd }}"
+          echo "  Username: admin"
+          echo "  Password: Run 'kubectl get secret argocd-initial-admin-secret -n {{ argocd_namespace }} -o jsonpath={.data.password} | base64 -d'"
+          echo "  CLI Login:"
+          echo "    argocd login {{ public_ip }}:{{ ports.argocd }} --username admin --insecure"
+          echo ""
+
+          # Frontend
+          echo "Frontend Application:"
+          echo "  URL: http://{{ public_ip }}:{{ ports.frontend }}"
+          echo "  API Test:"
+          echo "    curl http://{{ public_ip }}:{{ ports.frontend }}/api/organizations"
+          echo ""
+
+          # Nexus
+          echo "Nexus Repository:"
+          echo "  URL: http://{{ public_ip }}:{{ ports.nexus_http }}"
+          echo "  Username: {{ nexus_username }}"
+          echo "  Password: {{ nexus_password }}"
+          echo ""
+
+          # pgAdmin
+          echo "pgAdmin:"
+          echo "  URL: http://{{ public_ip }}:{{ ports.pgadmin }}"
+          echo "  Email: {{ pgadmin_email }}"
+          echo "  Password: {{ pgadmin_password }}"
+          echo ""
+
+          # PostgreSQL
+          echo "PostgreSQL:"
+          echo "  Host: {{ public_ip }}"
+          echo "  Port: {{ ports.postgres_external }}"
+          echo "  Database: {{ db_name }}"
+          echo "  Username: {{ db_user }}"
+          echo "  Password: {{ db_password }}"
+          echo "  Connect:"
+          echo "    psql -h {{ public_ip }} -p {{ ports.postgres_external }} -U {{ db_user }} -d {{ db_name }}"
+          echo ""
+        dest: "{{ docs_dir }}/show-credentials.sh"
+        mode: '0755'
+
+    # ========================================
+    # Display Summary
+    # ========================================
+
+    - name: Display documentation generation summary
+      debug:
+        msg:
+          - "========================================="
+          - "Documentation Generated"
+          - "========================================="
+          - ""
+          - "Files created:"
+          - "  - {{ base_dir }}/SERVICE-ACCESS-GUIDE.md"
+          - "  - {{ base_dir }}/QUICKSTART.md"
+          - "  - {{ docs_dir }}/ENVIRONMENT-REPORT.md"
+          - "  - {{ docs_dir }}/show-credentials.sh"
+          - ""
+          - "View credentials:"
+          - "  {{ docs_dir }}/show-credentials.sh"
+          - "========================================="
+
+  tags:
+    - docs
+    - documentation

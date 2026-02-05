@@ -1,0 +1,18 @@
+[Unit]
+Description={{ service_name }} ({{ external_port }} -> {{ internal_port }})
+After=network.target
+{% if service_requires is defined %}
+Requires={{ service_requires }}
+{% endif %}
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/socat TCP-LISTEN:{{ external_port }},bind=0.0.0.0,fork,reuseaddr TCP:{{ internal_host }}:{{ internal_port }}
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
