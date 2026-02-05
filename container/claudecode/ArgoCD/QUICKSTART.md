@@ -1,588 +1,527 @@
 # Quick Start Guide
 
-Get the Organization Management System up and running in 5 minutes!
+Get your environment running in **5 minutes**!
 
-## Table of Contents
+---
 
-- [Prerequisites](#prerequisites)
-- [5-Minute Setup](#5-minute-setup)
-- [Access Services](#access-services)
-- [Quick Verification](#quick-verification)
-- [Common Tasks](#common-tasks)
-- [Quick Troubleshooting](#quick-troubleshooting)
-- [Next Steps](#next-steps)
+## 🎯 Goal
 
-## Prerequisites
+Deploy a complete CD pipeline with:
+- ✅ Auto-detected network configuration
+- ✅ Running frontend application
+- ✅ K3s cluster with 3 replicas
+- ✅ Complete infrastructure stack
+- ✅ GitOps deployment ready
 
-### Minimum Requirements
+---
 
-- **OS**: RHEL 9 or compatible Linux
-- **CPU**: 4 cores
-- **RAM**: 8GB
-- **Disk**: 50GB free space
-- **Software**: podman, podman-compose, git, jq
+## 📋 Prerequisites Check
 
-### Install Required Software
+Run this command to check if you have everything:
 
 ```bash
-# Install all prerequisites in one command
-sudo dnf install -y podman podman-compose git jq curl
-
-# Verify installations
-podman --version
-podman-compose --version
-git --version
-jq --version
+# Check required commands
+for cmd in podman ansible-playbook git curl; do
+    if command -v $cmd &> /dev/null; then
+        echo "✓ $cmd installed"
+    else
+        echo "✗ $cmd NOT installed"
+    fi
+done
 ```
 
-## 5-Minute Setup
-
-### Step 1: Clone Repository (30 seconds)
+**Missing something?** Install prerequisites:
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd ArgoCD
+sudo dnf install -y \
+    podman \
+    podman-compose \
+    python3 \
+    ansible-core \
+    git \
+    curl \
+    jq \
+    socat
 ```
 
-### Step 2: Run Setup Script (4-5 minutes)
+---
+
+## 🚀 Step-by-Step Installation
+
+### Step 1: Get the Code (30 seconds)
 
 ```bash
-# Run the master setup script
+# Clone repository
+git clone https://github.com/yourusername/yourrepo.git
+cd yourrepo/container/claudecode/ArgoCD
+```
+
+### Step 2: Auto-Detect Environment (1 minute)
+
+```bash
+# Run environment detection
+./scripts/setup-environment.sh
+
+# This automatically detects:
+# - Your public IP address
+# - Your private IP address
+# - Available ports
+# - Network interface
+# - Git repository
+```
+
+**Output:**
+```
+[INFO] Detected configuration:
+  Public IP: 13.219.96.72
+  Private IP: 10.0.1.191
+  Network Interface: eth0
+  Git Repository: https://github.com/yourusername/yourrepo.git
+  Git Branch: main
+[SUCCESS] Created config/environment.yml with detected values
+```
+
+### Step 3: Review Configuration (30 seconds - Optional)
+
+```bash
+# View generated configuration
+cat config/environment.yml
+
+# Edit if needed
+vim config/environment.yml
+```
+
+**Most users can skip this step** - the auto-detected configuration works for 95% of cases.
+
+### Step 4: Deploy Everything (3-4 minutes)
+
+```bash
+# Deploy complete stack
 ./scripts/setup.sh
 
 # This will:
-# ✓ Check prerequisites
-# ✓ Create environment configuration
-# ✓ Start all infrastructure services
-# ✓ Wait for services to be healthy
-# ✓ Generate secure passwords
-# ✓ Save credentials to credentials.txt
+# 1. Start infrastructure (Podman containers)
+# 2. Start K3s cluster
+# 3. Build frontend application
+# 4. Create container images
+# 5. Deploy to K3s
+# 6. Setup port forwarding
+# 7. Verify everything is working
 ```
 
-### Step 3: View Credentials (5 seconds)
+**You'll see:**
+```
+[INFO] Starting infrastructure...
+[INFO] Building frontend...
+[INFO] Creating K3s deployment...
+[SUCCESS] Deployment complete!
 
-```bash
-# View all access credentials
-cat credentials.txt
+Frontend URL: http://13.219.96.72:5006
 ```
 
-That's it! Your system is ready to use.
+---
 
-## Access Services
+## ✅ Verification
 
-### Quick Access URLs
-
-| Service | URL | Purpose |
-|---------|-----|---------|
-| **Application** | http://localhost:5006 | Main application UI |
-| **API** | http://localhost:8080 | Backend REST API |
-| **ArgoCD** | http://localhost:5010 | GitOps dashboard |
-| **GitLab** | http://localhost:5003 | Source control |
-| **Nexus** | http://localhost:8081 | Artifact repository |
-| **pgAdmin** | http://localhost:5050 | Database management |
-
-### Default Login Credentials
-
-All passwords are in `credentials.txt` file.
-
-**Quick Access:**
-```bash
-# Extract specific credentials
-grep "ArgoCD" -A 3 credentials.txt
-grep "GitLab" -A 3 credentials.txt
-grep "Nexus" -A 3 credentials.txt
-```
-
-## Quick Verification
-
-### Check All Services
-
-```bash
-# Check service status
-./scripts/status.sh
-
-# Expected output: All services should show "healthy"
-```
-
-### Test Backend API
-
-```bash
-# Health check
-curl http://localhost:8080/actuator/health
-
-# Expected output:
-# {"status":"UP"}
-
-# List organizations (should be empty initially)
-curl http://localhost:8080/api/organizations
-```
-
-### Test Frontend
+### Test Your Deployment
 
 ```bash
 # Check if frontend is accessible
-curl -I http://localhost:5006
+curl -s -o /dev/null -w "Status: %{http_code}\n" http://localhost:5006/
 
-# Expected output:
-# HTTP/1.1 200 OK
+# Expected output: Status: 200
 ```
 
-### Create Test Data
+### View Running Services
 
 ```bash
-# Create a test organization
-curl -X POST http://localhost:8080/api/organizations \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Organization",
-    "code": "TEST001",
-    "description": "Test organization for verification",
-    "active": true
-  }'
+# Check Podman containers
+podman ps
 
-# Verify it was created
-curl http://localhost:8080/api/organizations
+# Expected: 7 containers running
+# - orgmgmt-postgres
+# - orgmgmt-nexus
+# - argocd-redis
+# - argocd-server
+# - argocd-repo-server
+# - orgmgmt-pgadmin
+# - registry
 ```
 
-## Common Tasks
-
-### Start Services
-
 ```bash
-# Start all services
-cd infrastructure
-podman-compose up -d
+# Check K3s pods
+sudo kubectl get pods -n default
 
-# Or use the script
-./scripts/setup.sh
+# Expected: 3 frontend pods running
 ```
 
-### Stop Services
+---
+
+## 🌐 Access Your Services
+
+### Frontend Application
 
 ```bash
-# Stop all services (preserves data)
-cd infrastructure
-podman-compose down
+# Get your public IP
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
-# Or use the script
-./infrastructure/stop.sh
+# Access frontend
+echo "Frontend: http://${PUBLIC_IP}:5006"
+```
+
+Open in browser: `http://YOUR_IP:5006`
+
+### Management Interfaces
+
+Get all credentials:
+
+```bash
+./docs/generated/show-credentials.sh
+```
+
+Or manually:
+
+```bash
+# Kubernetes Dashboard Token
+sudo kubectl get secret admin-user-token \
+  -n kubernetes-dashboard \
+  -o jsonpath='{.data.token}' | base64 -d
+
+# ArgoCD Password
+sudo kubectl get secret argocd-initial-admin-secret \
+  -n argocd \
+  -o jsonpath='{.data.password}' | base64 -d
+```
+
+**Access URLs:**
+- Kubernetes Dashboard: `https://YOUR_IP:5004`
+- ArgoCD: `http://YOUR_IP:5010`
+- Nexus: `http://YOUR_IP:8000`
+- pgAdmin: `http://YOUR_IP:5002`
+
+---
+
+## 🎓 What Just Happened?
+
+Your deployment includes:
+
+### Infrastructure (Podman Containers)
+
+| Service | Purpose | Port |
+|---------|---------|------|
+| PostgreSQL | Database | 5001 |
+| Nexus | Artifact repository | 8000 |
+| ArgoCD | GitOps deployment | 5010 |
+| pgAdmin | Database management | 5002 |
+| Registry | Container images | 5000 |
+| Redis | ArgoCD cache | 6379 |
+
+### Application (K3s Pods)
+
+| Component | Count | Purpose |
+|-----------|-------|---------|
+| Frontend | 3 replicas | React + Nginx |
+| Service | NodePort | Load balancer |
+| Deployment | 1 | Manages replicas |
+
+### Automation
+
+| Component | Purpose |
+|-----------|---------|
+| Ansible | Infrastructure automation |
+| systemd | Port forwarding services |
+| ArgoCD | Continuous deployment |
+| GitOps | Configuration management |
+
+---
+
+## 🔧 Common Operations
+
+### Check Status
+
+```bash
+# Overall status
+./scripts/status.sh
+
+# Quick status check
+podman ps
+sudo kubectl get pods -n default
+systemctl status k3s
 ```
 
 ### View Logs
 
 ```bash
-# View all logs
+# All logs
 ./scripts/logs.sh
 
-# View specific service
-./scripts/logs.sh backend
-./scripts/logs.sh frontend
-./scripts/logs.sh postgres
-
-# Follow logs in real-time
-podman logs -f orgmgmt-backend-dev
+# Specific service
+./scripts/logs.sh orgmgmt-postgres
+./scripts/logs.sh argocd-server
 ```
 
-### Check Service Status
+### Restart Services
 
 ```bash
-# Quick status check
-./scripts/status.sh
+# Restart K3s deployment
+sudo kubectl rollout restart deployment/orgmgmt-frontend -n default
 
-# Detailed container info
-podman ps
-
-# Check specific container health
-podman healthcheck run orgmgmt-backend-dev
+# Restart infrastructure
+cd infrastructure
+podman-compose restart
 ```
 
-### Build and Deploy Application
+### Update Application
 
 ```bash
-# Build and deploy
-./scripts/build-and-deploy.sh
-
-# This will:
-# 1. Build backend with Maven
-# 2. Build frontend with npm
-# 3. Create container images
-# 4. Deploy to dev environment
-```
-
-### Run Tests
-
-```bash
-# Run all tests
-./scripts/test.sh
-
-# Run backend tests only
-cd app/backend
-mvn test
-
-# Run frontend tests only
+# Build and deploy new version
 cd app/frontend
-npm test
+npm run build
 
-# Run E2E tests
-./scripts/run-e2e-tests.sh
+# Deploy
+./scripts/build-and-deploy.sh
 ```
 
-### Database Operations
+---
+
+## 🐛 Troubleshooting
+
+### Frontend Returns 404
 
 ```bash
-# Connect to database
-podman exec -it orgmgmt-postgres psql -U orgmgmt_user -d orgmgmt
+# Check pod status
+sudo kubectl get pods -n default
 
-# View tables
-\dt
-
-# View organizations
-SELECT * FROM organizations;
-
-# Exit
-\q
-```
-
-### Backup Data
-
-```bash
-# Create backup
-./scripts/backup.sh
-
-# Backups are stored in: backups/<timestamp>/
-```
-
-### Restore Data
-
-```bash
-# Restore from backup
-./scripts/restore.sh backups/<timestamp>/
-```
-
-### Clean Up
-
-```bash
-# Stop and remove all containers and volumes
-./scripts/cleanup.sh
-
-# Warning: This will DELETE ALL DATA!
-```
-
-## Quick Troubleshooting
-
-### Services Won't Start
-
-```bash
-# Check if ports are in use
-sudo ss -tulpn | grep -E '5432|8080|5006|5010'
-
-# Kill processes using required ports
-sudo kill <PID>
-
-# Restart services
-./scripts/setup.sh
-```
-
-### Database Connection Failed
-
-```bash
-# Check PostgreSQL is running
-podman ps | grep postgres
-
-# Check PostgreSQL logs
-podman logs orgmgmt-postgres
-
-# Verify credentials
-cat infrastructure/.env | grep POSTGRES
-
-# Restart PostgreSQL
-podman restart orgmgmt-postgres
-```
-
-### Frontend Not Loading
-
-```bash
-# Check frontend container
-podman ps | grep frontend
-
-# Check frontend logs
-podman logs orgmgmt-frontend-dev
-
-# Verify nginx is running
-podman exec orgmgmt-frontend-dev ps aux | grep nginx
-
-# Restart frontend
-podman restart orgmgmt-frontend-dev
-```
-
-### Backend API Errors
-
-```bash
-# Check backend logs
-./scripts/logs.sh backend
-
-# Check database connection
-curl http://localhost:8080/actuator/health
-
-# Restart backend
-podman restart orgmgmt-backend-dev
-```
-
-### ArgoCD Not Syncing
-
-```bash
-# Check ArgoCD status
-argocd app get orgmgmt-dev
-
-# Manual sync
-argocd app sync orgmgmt-dev
-
-# Check ArgoCD logs
-podman logs argocd-server
-```
-
-### Out of Disk Space
-
-```bash
-# Check disk usage
-df -h
-
-# Clean up old images
-podman image prune -a
-
-# Clean up old containers
-podman container prune
-
-# Clean up volumes (WARNING: deletes data)
-podman volume prune
+# If pods are running, check port forwarding
+systemctl status k3s-frontend-forward
+sudo systemctl restart k3s-frontend-forward
 ```
 
 ### Port Already in Use
 
 ```bash
-# Find what's using the port
-sudo lsof -i :8080
+# Re-run environment setup (finds alternative ports)
+./scripts/setup-environment.sh --force
 
-# Kill the process
-sudo kill -9 <PID>
-
-# Or change the port in .env file
-vim infrastructure/.env
-# Change: APP_BACKEND_PORT=8080 to APP_BACKEND_PORT=8081
+# Or manually change port
+vim config/environment.yml
+# Change: ports.frontend: 8080
 ```
 
-### Performance Issues
+### Container Won't Start
 
 ```bash
-# Check system resources
-free -h
-df -h
-top
+# Check logs
+./scripts/logs.sh container-name
 
-# Check container resources
-podman stats
+# Restart
+podman restart container-name
 
-# Restart heavy services
-podman restart orgmgmt-gitlab
-podman restart orgmgmt-nexus
+# Or rebuild
+cd infrastructure
+podman-compose down
+podman-compose up -d
 ```
 
-## Next Steps
-
-### For Developers
-
-1. **Explore the API**
-   ```bash
-   # View API documentation
-   curl http://localhost:8080/actuator
-
-   # Try different endpoints
-   curl http://localhost:8080/api/organizations
-   curl http://localhost:8080/api/departments
-   curl http://localhost:8080/api/users
-   ```
-
-2. **Start Local Development**
-   ```bash
-   # Backend development
-   cd app/backend
-   mvn spring-boot:run
-
-   # Frontend development (in another terminal)
-   cd app/frontend
-   npm run dev
-   ```
-
-3. **Make Changes and Test**
-   ```bash
-   # Edit code in your IDE
-
-   # Run tests
-   ./scripts/test.sh
-
-   # Build and deploy
-   ./scripts/build-and-deploy.sh
-   ```
-
-### For DevOps Engineers
-
-1. **Set Up CI/CD Pipeline**
-   - Create GitLab project
-   - Configure GitLab Runner
-   - Push code to trigger pipeline
-
-2. **Configure Multi-Environment**
-   ```bash
-   # Edit staging environment
-   vim gitops/staging/podman-compose.yml
-
-   # Create ArgoCD application for staging
-   argocd app create orgmgmt-staging \
-     --repo file:///gitops \
-     --path staging \
-     --dest-server https://kubernetes.default.svc \
-     --dest-namespace default
-   ```
-
-3. **Set Up Monitoring**
-   - Configure Prometheus for metrics
-   - Set up Grafana dashboards
-   - Configure alerting
-
-### For System Administrators
-
-1. **Secure the System**
-   ```bash
-   # Change default passwords
-   vim infrastructure/.env
-
-   # Configure firewall
-   sudo firewall-cmd --add-port=5006/tcp --permanent
-   sudo firewall-cmd --add-port=8080/tcp --permanent
-   sudo firewall-cmd --reload
-   ```
-
-2. **Set Up Backups**
-   ```bash
-   # Schedule daily backups
-   crontab -e
-   # Add: 0 2 * * * /path/to/ArgoCD/scripts/backup.sh
-   ```
-
-3. **Configure Monitoring**
-   ```bash
-   # Set up log rotation
-   # Set up health check monitoring
-   # Configure alerting
-   ```
-
-### Learn More
-
-- **Full Documentation**: See [README.md](README.md)
-- **Architecture Details**: See [ARCHITECTURE.md](ARCHITECTURE.md)
-- **API Reference**: See [API.md](API.md)
-- **Troubleshooting**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## Quick Reference Commands
-
-### Essential Commands
+### K3s Not Starting
 
 ```bash
-# Start everything
+# Check K3s logs
+sudo journalctl -u k3s -f
+
+# Restart K3s
+sudo systemctl restart k3s
+```
+
+### Complete Reset
+
+```bash
+# Clean everything
+./scripts/cleanup.sh --all
+
+# Fresh start
+./scripts/setup-environment.sh
 ./scripts/setup.sh
-
-# Check status
-./scripts/status.sh
-
-# View logs
-./scripts/logs.sh
-
-# Build and deploy
-./scripts/build-and-deploy.sh
-
-# Run tests
-./scripts/test.sh
-
-# Backup
-./scripts/backup.sh
-
-# Restore
-./scripts/restore.sh <backup-dir>
-
-# Clean up
-./scripts/cleanup.sh
 ```
-
-### Container Commands
-
-```bash
-# List containers
-podman ps
-
-# View logs
-podman logs -f <container-name>
-
-# Execute command in container
-podman exec -it <container-name> /bin/bash
-
-# Restart container
-podman restart <container-name>
-
-# Stop container
-podman stop <container-name>
-
-# Remove container
-podman rm <container-name>
-
-# View stats
-podman stats
-```
-
-### Database Commands
-
-```bash
-# Connect to database
-podman exec -it orgmgmt-postgres psql -U orgmgmt_user -d orgmgmt
-
-# Backup database
-podman exec orgmgmt-postgres pg_dump -U orgmgmt_user orgmgmt > backup.sql
-
-# Restore database
-cat backup.sql | podman exec -i orgmgmt-postgres psql -U orgmgmt_user -d orgmgmt
-```
-
-### ArgoCD Commands
-
-```bash
-# Login to ArgoCD
-argocd login localhost:5010
-
-# List applications
-argocd app list
-
-# Get application details
-argocd app get orgmgmt-dev
-
-# Sync application
-argocd app sync orgmgmt-dev
-
-# Rollback application
-argocd app rollback orgmgmt-dev
-```
-
-## Support
-
-Need help? Check these resources:
-
-1. **Documentation**: Read the full [README.md](README.md)
-2. **Troubleshooting**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-3. **Logs**: Run `./scripts/logs.sh`
-4. **Status**: Run `./scripts/status.sh`
-5. **Issues**: Check GitHub issues
-6. **Community**: Ask on community forums
 
 ---
 
-Happy coding! 🚀
+## 🚀 Next Steps
+
+### 1. Explore Management Interfaces
+
+```bash
+# View all credentials
+./docs/generated/show-credentials.sh
+
+# Access Kubernetes Dashboard
+# - Get token from above command
+# - Navigate to https://YOUR_IP:5004
+```
+
+### 2. Set Up ArgoCD GitOps
+
+```bash
+# Configure ArgoCD to watch your Git repo
+argocd login YOUR_IP:5010 --username admin --insecure
+
+# Create application
+argocd app create orgmgmt-frontend \
+  --repo https://github.com/yourusername/yourrepo.git \
+  --path gitops/orgmgmt-frontend \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default
+```
+
+### 3. Deploy to Production
+
+```bash
+# Create production configuration
+cp config/environment.yml config/environment-prod.yml
+vim config/environment-prod.yml
+
+# Use environment variables for secrets
+export DB_PASSWORD="$(openssl rand -base64 32)"
+export NEXUS_PASSWORD="$(openssl rand -base64 32)"
+
+# Deploy
+./scripts/setup-environment.sh
+./scripts/setup.sh
+```
+
+### 4. Set Up Monitoring
+
+```bash
+# Enable monitoring in configuration
+vim config/environment.yml
+# Set: features.monitoring_enabled: true
+
+# Re-deploy
+ansible-playbook -i ansible/inventory/hosts.yml \
+  ansible/playbooks/deploy_infrastructure.yml
+```
+
+---
+
+## 📚 Learn More
+
+### Documentation
+
+- **[README.md](README.md)** - Complete overview
+- **[DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)** - Detailed deployment guide
+- **[SERVICE-ACCESS-GUIDE.md](SERVICE-ACCESS-GUIDE.md)** - Service access info
+- **[HOST-OS-COMMANDS.md](HOST-OS-COMMANDS.md)** - Command reference
+
+### Tutorials
+
+1. **Customize Configuration** - Edit `config/environment.yml`
+2. **Add Backend Service** - Deploy Spring Boot backend
+3. **Enable HTTPS** - Set up SSL certificates
+4. **Multi-Environment** - Deploy dev/staging/prod
+
+---
+
+## 💡 Pro Tips
+
+### Faster Development Workflow
+
+```bash
+# Skip infrastructure if already running
+./scripts/setup.sh --skip-infrastructure
+
+# Build and deploy only
+./scripts/build-and-deploy.sh
+
+# Quick logs
+alias logs='./scripts/logs.sh'
+alias status='./scripts/status.sh'
+```
+
+### Environment Variables
+
+```bash
+# Set environment variables for secrets
+cat >> ~/.bashrc << 'EOF'
+export DB_PASSWORD="your_secure_password"
+export NEXUS_PASSWORD="another_secure_password"
+EOF
+
+source ~/.bashrc
+```
+
+### SSH Aliases
+
+```bash
+# Add to ~/.ssh/config
+Host myserver
+    HostName YOUR_IP
+    User ec2-user
+    ForwardAgent yes
+
+# Then just:
+ssh myserver "cd ~/ArgoCD && ./scripts/status.sh"
+```
+
+---
+
+## 🎯 Quick Reference Card
+
+**Most Common Commands:**
+
+```bash
+# Setup
+./scripts/setup-environment.sh && ./scripts/setup.sh
+
+# Status
+./scripts/status.sh
+podman ps
+sudo kubectl get pods -A
+
+# Logs
+./scripts/logs.sh [service-name]
+
+# Restart
+sudo systemctl restart k3s
+systemctl restart k3s-frontend-forward
+
+# Build & Deploy
+./scripts/build-and-deploy.sh
+
+# Credentials
+./docs/generated/show-credentials.sh
+
+# Cleanup
+./scripts/cleanup.sh
+```
+
+**Service URLs:**
+- Frontend: http://YOUR_IP:5006
+- Dashboard: https://YOUR_IP:5004
+- ArgoCD: http://YOUR_IP:5010
+- Nexus: http://YOUR_IP:8000
+
+---
+
+## ✨ Success!
+
+You now have a complete, production-grade CD pipeline running!
+
+**What's working:**
+- ✅ Auto-configured for your environment
+- ✅ Frontend application with 3 replicas
+- ✅ Complete infrastructure stack
+- ✅ GitOps deployment ready
+- ✅ Kubernetes management interface
+- ✅ Monitoring and logging
+
+**Time spent:** ~5 minutes ⏱️
+
+---
+
+**Need help?** Check [README.md](README.md) or [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)
+
+**Ready for production?** See [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md#production-deployment)
+
+---
+
+*Built to be simple, designed to scale* 🚀

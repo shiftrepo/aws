@@ -159,3 +159,4 @@ coverage.xml
 # These files should be committed as templates
 !config/environment.yml.example
 !infrastructure/.env.example
+*.backup.*
