@@ -106,7 +106,7 @@ services:
       ARGOCD_REPO_SERVER_LOGLEVEL: "info"
     volumes:
       - argocd-repo-data:/app/config
-      - ./gitops:/gitops:ro
+      - /root/aws.git/container/claudecode/ArgoCD/gitops:/gitops:ro,Z
     networks:
       - argocd-network
     healthcheck:
@@ -127,7 +127,7 @@ services:
       REDIS_SERVER: "argocd-redis:6379"
     volumes:
       - argocd-controller-data:/app/config
-      - ./gitops:/gitops:ro
+      - /root/aws.git/container/claudecode/ArgoCD/gitops:/gitops:ro,Z
     networks:
       - argocd-network
     depends_on:
@@ -148,7 +148,7 @@ services:
       - "${ARGOCD_SERVER_PORT:-5010}:8080"
     volumes:
       - argocd-server-data:/app/config
-      - ./gitops:/gitops:ro
+      - /root/aws.git/container/claudecode/ArgoCD/gitops:/gitops:ro,Z
     networks:
       - argocd-network
     depends_on:

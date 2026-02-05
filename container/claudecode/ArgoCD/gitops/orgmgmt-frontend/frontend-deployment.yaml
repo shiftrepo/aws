@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orgmgmt-frontend
+  namespace: default
+  labels:
+    app: orgmgmt-frontend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: orgmgmt-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: orgmgmt-frontend
+        version: v1
+    spec:
+      containers:
+      - name: frontend
+        image: localhost:5000/orgmgmt-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        - name: API_BASE_URL
+          value: "http://localhost:8083/api"
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orgmgmt-frontend
+  namespace: default
+  labels:
+    app: orgmgmt-frontend
+spec:
+  type: LoadBalancer
+  externalIPs:
+  - 10.0.1.191
+  sessionAffinity: None  # ラウンドロビンのためセッションアフィニティなし
+  ports:
+  - name: http
+    port: 5006
+    targetPort: 80
+    protocol: TCP
+  selector:
+    app: orgmgmt-frontend
