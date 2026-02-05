@@ -1,251 +1,86 @@
 ---
-# ==========================================
-# ArgoCD Environment Configuration
-# ==========================================
-# This file contains all variables used across Ansible playbooks
+# ========================================
+# Ansible Global Variables
+# ========================================
+# Auto-generated from environment.yml
+# ========================================
 
-# Project Configuration
-# ==========================================
-project_name: orgmgmt
-base_directory: /root/aws.git/container/claudecode/ArgoCD
-infrastructure_directory: "{{ base_directory }}/infrastructure"
-app_directory: "{{ base_directory }}/app"
-gitops_directory: "{{ base_directory }}/gitops"
-argocd_manifests_directory: "{{ base_directory }}/argocd"
+# Load environment configuration
+environment_config: "{{ lookup('file', playbook_dir + '/../config/environment.yml') | from_yaml }}"
 
 # Network Configuration
-# ==========================================
-network_name: argocd-network
+public_ip: "{{ environment_config.network.public_ip | default(ansible_default_ipv4.address) }}"
+private_ip: "{{ environment_config.network.private_ip | default(ansible_default_ipv4.address) }}"
+domain: "{{ environment_config.network.domain | default('') }}"
 
-# PostgreSQL Configuration
-# ==========================================
-postgres_version: "16-alpine"
-postgres_host: localhost
-postgres_port: 5432
-postgres_db: orgmgmt
-postgres_user: orgmgmt_user
-postgres_password: "SecurePassword123!"  # Override via environment or .env file
-postgres_container_name: orgmgmt-postgres
-postgres_volume_name: orgmgmt-postgres-data
+# Port Configuration
+ports: "{{ environment_config.ports }}"
 
-# pgAdmin Configuration
-# ==========================================
-pgadmin_port: 5050
-pgadmin_email: admin@orgmgmt.local
-pgadmin_password: "AdminPassword123!"  # Override via environment or .env file
-pgadmin_container_name: orgmgmt-pgadmin
-pgadmin_volume_name: orgmgmt-pgadmin-data
+# Directory Configuration
+base_dir: "{{ environment_config.directories.base_dir | default(playbook_dir + '/..') }}"
+data_dir: "{{ environment_config.directories.data_dir }}"
+gitops_dir: "{{ environment_config.directories.gitops_dir }}"
+kubectl_path: "{{ environment_config.directories.kubectl_path }}"
 
-# Nexus Repository Configuration
-# ==========================================
-nexus_version: "3.63.0"
-nexus_http_port: 8081
-nexus_docker_port: 8082
-nexus_container_name: orgmgmt-nexus
-nexus_volume_name: orgmgmt-nexus-data
-nexus_url: "http://localhost:{{ nexus_http_port }}"
-
-# Nexus Repository Names
-nexus_maven_hosted_repo: maven-releases
-nexus_maven_snapshot_repo: maven-snapshots
-nexus_maven_proxy_repo: maven-central
-nexus_maven_group_repo: maven-public
-nexus_npm_hosted_repo: npm-hosted
-nexus_npm_proxy_repo: npm-proxy
-nexus_npm_group_repo: npm-group
-nexus_docker_hosted_repo: docker-hosted
-
-# GitLab Configuration
-# ==========================================
-gitlab_version: latest
-gitlab_runner_version: latest
-gitlab_http_port: 5003
-gitlab_registry_port: 5005
-gitlab_ssh_port: 2222
-gitlab_root_password: "GitLabRoot123!"  # Override via environment or .env file
-gitlab_external_url: "http://localhost:{{ gitlab_http_port }}"
-gitlab_registry_external_url: "http://localhost:{{ gitlab_registry_port }}"
-gitlab_container_name: orgmgmt-gitlab
-gitlab_runner_container_name: orgmgmt-gitlab-runner
-gitlab_config_volume: orgmgmt-gitlab-config
-gitlab_logs_volume: orgmgmt-gitlab-logs
-gitlab_data_volume: orgmgmt-gitlab-data
-gitlab_runner_config_volume: orgmgmt-gitlab-runner-config
-
-# GitLab Project Configuration
-gitlab_project_name: orgmgmt
-gitlab_project_description: "Organization Management Application"
-gitlab_project_visibility: private
-
-# ArgoCD Configuration
-# ==========================================
-argocd_version: v2.10.0
-argocd_server_port: 5010
-argocd_server_insecure: "true"
-argocd_cli_version: "{{ argocd_version }}"
-argocd_cli_url: "https://github.com/argoproj/argocd/releases/download/{{ argocd_version }}/argocd-linux-amd64"
-argocd_cli_install_path: /usr/local/bin/argocd
-
-# ArgoCD Container Names
-argocd_server_container: argocd-server
-argocd_repo_server_container: argocd-repo-server
-argocd_controller_container: argocd-application-controller
-argocd_redis_container: argocd-redis
-
-# ArgoCD Volume Names
-argocd_server_volume: argocd-server-data
-argocd_repo_volume: argocd-repo-data
-argocd_controller_volume: argocd-controller-data
-argocd_redis_volume: argocd-redis-data
-
-# ArgoCD Project Configuration
-argocd_project_name: orgmgmt
-argocd_project_namespace: argocd
-
-# ArgoCD Application Configuration
-argocd_app_dev_name: orgmgmt-dev
-argocd_app_staging_name: orgmgmt-staging
-argocd_app_prod_name: orgmgmt-prod
+# Container Configuration
+container_runtime: "{{ environment_config.containers.runtime }}"
+container_network: "{{ environment_config.containers.network_name }}"
+registry_url: "{{ environment_config.containers.registry.url }}"
+registry_insecure: "{{ environment_config.containers.registry.insecure }}"
 
 # Application Configuration
-# ==========================================
-app_version: 1.0.0-SNAPSHOT
-app_backend_port: 8080
-app_frontend_port: 5006
-app_backend_image: "{{ gitlab_registry_external_url }}/root/{{ gitlab_project_name }}/backend"
-app_frontend_image: "{{ gitlab_registry_external_url }}/root/{{ gitlab_project_name }}/frontend"
+app_name: "{{ environment_config.application.name }}"
+app_version: "{{ environment_config.application.version }}"
+frontend_image: "{{ environment_config.application.frontend.image_name }}"
+frontend_replicas: "{{ environment_config.application.frontend.replicas }}"
+backend_image: "{{ environment_config.application.backend.image_name }}"
+backend_replicas: "{{ environment_config.application.backend.replicas }}"
 
-# Build Configuration
-# ==========================================
-build_tag_strategy: commit_sha  # Options: commit_sha, timestamp, semantic_version
-maven_version: "3.9.9"
-maven_home: /opt/maven/latest
-nodejs_version: "20.x"
-java_version: "17"
+# Database Configuration
+db_name: "{{ environment_config.database.name }}"
+db_user: "{{ environment_config.database.user }}"
+db_password: "{{ environment_config.database.password }}"
+postgres_version: "{{ environment_config.database.postgres.version }}"
 
-# System Configuration
-# ==========================================
-system_packages:
-  - git
-  - curl
-  - jq
-  - wget
-  - tar
-  - unzip
-  - openssl
-  - python3
-  - python3-pip
-  - podman
-  - podman-docker
-  - buildah
-  - skopeo
+# Authentication Configuration
+pgadmin_email: "{{ environment_config.authentication.pgadmin.email }}"
+pgadmin_password: "{{ environment_config.authentication.pgadmin.password }}"
+nexus_username: "{{ environment_config.authentication.nexus.username }}"
+nexus_password: "{{ environment_config.authentication.nexus.password }}"
 
-python_packages:
-  - podman-compose
-  - psycopg2-binary
-  - requests
-  - pyyaml
+# Git Configuration
+git_repo_url: "{{ environment_config.git.repository_url }}"
+git_branch: "{{ environment_config.git.branch }}"
+git_manifests_path: "{{ environment_config.git.manifests_path }}"
+git_user_name: "{{ environment_config.git.user_name }}"
+git_user_email: "{{ environment_config.git.user_email }}"
 
-# Resource Requirements
-# ==========================================
-min_memory_mb: 8192
-min_disk_gb: 50
-min_cpu_cores: 4
+# ArgoCD Configuration
+argocd_version: "{{ environment_config.argocd.version }}"
+argocd_namespace: "{{ environment_config.argocd.namespace }}"
+argocd_app_name: "{{ environment_config.argocd.application.name }}"
+argocd_auto_sync: "{{ environment_config.argocd.application.auto_sync }}"
+argocd_prune: "{{ environment_config.argocd.application.prune }}"
+argocd_self_heal: "{{ environment_config.argocd.application.self_heal }}"
 
-# Timeout and Retry Configuration
-# ==========================================
-service_startup_timeout: 600
-health_check_retries: 40
-health_check_delay: 15
-postgres_health_check_retries: 30
-postgres_health_check_delay: 10
-nexus_health_check_retries: 40
-nexus_health_check_delay: 15
-gitlab_health_check_retries: 60
-gitlab_health_check_delay: 15
-argocd_health_check_retries: 40
-argocd_health_check_delay: 10
+# Kubernetes Dashboard Configuration
+dashboard_version: "{{ environment_config.kubernetes_dashboard.version }}"
+dashboard_namespace: "{{ environment_config.kubernetes_dashboard.namespace }}"
+dashboard_admin_user: "{{ environment_config.kubernetes_dashboard.admin_user }}"
 
-# Podman Registry Configuration
-# ==========================================
-insecure_registries:
-  - localhost:5005
-  - "{{ ansible_default_ipv4.address | default('localhost') }}:5005"
-
-registries_conf_dir: /etc/containers/registries.conf.d
-gitlab_registry_conf: "{{ registries_conf_dir }}/gitlab.conf"
-
-# File Paths
-# ==========================================
-compose_file: "{{ infrastructure_directory }}/podman-compose.yml"
-env_file: "{{ infrastructure_directory }}/.env"
-env_example_file: "{{ infrastructure_directory }}/.env.example"
-credentials_file: "{{ base_directory }}/CREDENTIALS.txt"
-postgres_init_sql: "{{ infrastructure_directory }}/config/postgres/init.sql"
-
-# Backup Configuration
-# ==========================================
-backup_directory: "{{ base_directory }}/backups"
-backup_retention_days: 30
-
-# Logging Configuration
-# ==========================================
-log_directory: "{{ base_directory }}/logs"
-log_level: info
+# Nexus Configuration
+nexus_version: "{{ environment_config.nexus.version }}"
+nexus_repositories: "{{ environment_config.nexus.repositories }}"
 
 # Feature Flags
-# ==========================================
-enable_ssl: false
-enable_monitoring: false
-enable_backup_schedule: false
-auto_deploy_applications: false
-skip_application_build: false
-clean_volumes_on_restart: false
+argocd_enabled: "{{ environment_config.features.argocd_enabled }}"
+dashboard_enabled: "{{ environment_config.features.dashboard_enabled }}"
+nexus_enabled: "{{ environment_config.features.nexus_enabled }}"
+monitoring_enabled: "{{ environment_config.features.monitoring_enabled }}"
+backup_enabled: "{{ environment_config.features.backup_enabled }}"
 
-# Environment-Specific Configuration
-# ==========================================
-environments:
-  dev:
-    namespace: dev
-    replicas: 1
-    resources:
-      cpu: "500m"
-      memory: "512Mi"
-  staging:
-    namespace: staging
-    replicas: 2
-    resources:
-      cpu: "1000m"
-      memory: "1Gi"
-  prod:
-    namespace: prod
-    replicas: 3
-    resources:
-      cpu: "2000m"
-      memory: "2Gi"
-
-# URLs for verification
-# ==========================================
-service_urls:
-  postgres: "postgresql://{{ postgres_user }}:{{ postgres_password }}@{{ postgres_host }}:{{ postgres_port }}/{{ postgres_db }}"
-  pgadmin: "http://localhost:{{ pgadmin_port }}"
-  nexus: "{{ nexus_url }}"
-  gitlab: "{{ gitlab_external_url }}"
-  gitlab_registry: "{{ gitlab_registry_external_url }}"
-  argocd: "http://localhost:{{ argocd_server_port }}"
-  backend_dev: "http://localhost:{{ app_backend_port }}"
-  frontend_dev: "http://localhost:{{ app_frontend_port }}"
-
-# Expected Container Count
-# ==========================================
-expected_container_count: 9
-container_names:
-  - "{{ postgres_container_name }}"
-  - "{{ pgadmin_container_name }}"
-  - "{{ nexus_container_name }}"
-  - "{{ gitlab_container_name }}"
-  - "{{ gitlab_runner_container_name }}"
-  - "{{ argocd_redis_container }}"
-  - "{{ argocd_repo_server_container }}"
-  - "{{ argocd_controller_container }}"
-  - "{{ argocd_server_container }}"
+# Firewall Configuration
+firewall_enabled: "{{ environment_config.firewall.enabled }}"
+firewall_service: "{{ environment_config.firewall.service }}"
+firewall_public_ports: "{{ environment_config.firewall.public_ports }}"
+firewall_private_ports: "{{ environment_config.firewall.private_ports }}"
