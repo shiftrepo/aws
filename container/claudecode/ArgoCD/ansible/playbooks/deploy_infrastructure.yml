@@ -1,0 +1,181 @@
+---
+- name: Deploy Infrastructure with Podman Compose
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    compose_file_path: "{{ playbook_dir }}/../../infrastructure/podman-compose.yml"
+    compose_dir: "{{ playbook_dir }}/../../infrastructure"
+
+  tasks:
+    - name: Check if podman is installed
+      command: which podman
+      register: podman_check
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if podman is not installed
+      fail:
+        msg: "Podman is not installed. Please install podman first."
+      when: podman_check.rc != 0
+
+    - name: Check podman version
+      command: podman --version
+      register: podman_version
+      changed_when: false
+
+    - name: Display podman version
+      debug:
+        msg: "{{ podman_version.stdout }}"
+
+    - name: Check if podman-compose is installed
+      command: which podman-compose
+      register: podman_compose_check
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if podman-compose is not installed
+      fail:
+        msg: "podman-compose is not installed. Please install podman-compose first."
+      when: podman_compose_check.rc != 0
+
+    - name: Check podman-compose version
+      command: podman-compose --version
+      register: podman_compose_version
+      changed_when: false
+
+    - name: Display podman-compose version
+      debug:
+        msg: "{{ podman_compose_version.stdout }}"
+
+    - name: Check if compose file exists
+      stat:
+        path: "{{ compose_file_path }}"
+      register: compose_file_stat
+
+    - name: Fail if compose file does not exist
+      fail:
+        msg: "Compose file not found at {{ compose_file_path }}"
+      when: not compose_file_stat.stat.exists
+
+    - name: Stop existing containers if running
+      command: podman-compose -f {{ compose_file_path }} down
+      args:
+        chdir: "{{ compose_dir }}"
+      register: compose_down
+      failed_when: false
+      changed_when: compose_down.rc == 0
+
+    - name: Display compose down output
+      debug:
+        msg: "{{ compose_down.stdout_lines }}"
+      when: compose_down.stdout_lines is defined
+
+    - name: Start infrastructure with podman-compose
+      command: podman-compose -f {{ compose_file_path }} up -d
+      args:
+        chdir: "{{ compose_dir }}"
+      register: compose_up
+      changed_when: true
+
+    - name: Display compose up output
+      debug:
+        msg: "{{ compose_up.stdout_lines }}"
+
+    - name: Wait for PostgreSQL to be healthy
+      command: podman exec orgmgmt-postgres pg_isready -U orgmgmt_user -d orgmgmt
+      register: postgres_health
+      until: postgres_health.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display PostgreSQL health status
+      debug:
+        msg: "PostgreSQL is healthy and ready"
+      when: postgres_health.rc == 0
+
+    - name: Wait for Nexus to be healthy
+      uri:
+        url: http://localhost:8081/service/rest/v1/status
+        status_code: 200
+      register: nexus_health
+      until: nexus_health.status == 200
+      retries: 20
+      delay: 15
+      ignore_errors: yes
+
+    - name: Display Nexus health status
+      debug:
+        msg: "Nexus is healthy and ready"
+      when: nexus_health.status == 200
+
+    - name: Wait for GitLab to be healthy
+      uri:
+        url: http://localhost:5003/-/health
+        status_code: 200
+      register: gitlab_health
+      until: gitlab_health.status == 200
+      retries: 40
+      delay: 15
+      ignore_errors: yes
+
+    - name: Display GitLab health status
+      debug:
+        msg: "GitLab is healthy and ready"
+      when: gitlab_health.status == 200
+
+    - name: Wait for ArgoCD Server to be healthy
+      uri:
+        url: http://localhost:5010/healthz
+        status_code: 200
+      register: argocd_health
+      until: argocd_health.status == 200
+      retries: 30
+      delay: 10
+      ignore_errors: yes
+
+    - name: Display ArgoCD health status
+      debug:
+        msg: "ArgoCD is healthy and ready"
+      when: argocd_health.status == 200
+
+    - name: List running containers
+      command: podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: container_list
+      changed_when: false
+
+    - name: Display running containers
+      debug:
+        msg: "{{ container_list.stdout_lines }}"
+
+    - name: Display access information
+      debug:
+        msg:
+          - "=========================================="
+          - "Infrastructure Deployment Complete!"
+          - "=========================================="
+          - ""
+          - "Service Access URLs:"
+          - "  - PostgreSQL: localhost:5432"
+          - "    User: orgmgmt_user"
+          - "    Database: orgmgmt"
+          - ""
+          - "  - pgAdmin: http://localhost:5050"
+          - "    Email: admin@orgmgmt.local"
+          - "    Password: AdminPassword123!"
+          - ""
+          - "  - Nexus: http://localhost:8081"
+          - "    (Check /nexus-data/admin.password for initial password)"
+          - ""
+          - "  - GitLab: http://localhost:5003"
+          - "    Username: root"
+          - "    Password: GitLabRoot123!"
+          - ""
+          - "  - GitLab Registry: http://localhost:5005"
+          - ""
+          - "  - ArgoCD: http://localhost:5010"
+          - "    Username: admin"
+          - "    (Password: Get with 'podman exec argocd-server argocd admin initial-password')"
+          - ""
+          - "=========================================="

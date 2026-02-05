@@ -1,0 +1,257 @@
+---
+# ========================================
+# ビルドツールインストール - Ansible自動化
+# ========================================
+# Java, Maven, Node.js, NPM をインストール
+#
+# 実行方法:
+#   ansible-playbook -i inventory/hosts.yml playbooks/install_build_tools.yml
+# ========================================
+
+- name: Install build tools (Java, Maven, Node.js, NPM)
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    java_version: "17"
+    maven_version: "3.9.6"
+    node_version: "20"
+
+  tasks:
+    # ========================================
+    # Phase 1: Java (OpenJDK) インストール
+    # ========================================
+
+    - name: Phase 1 - Install Java
+      block:
+        - name: Install OpenJDK 17
+          dnf:
+            name: java-17-openjdk-devel
+            state: present
+
+        - name: Verify Java installation
+          command: java -version
+          register: java_check
+          changed_when: false
+
+        - name: Display Java version
+          debug:
+            msg: "Java installed: {{ java_check.stderr.split('\n')[0] }}"
+
+      tags:
+        - java
+
+    # ========================================
+    # Phase 2: Maven インストール
+    # ========================================
+
+    - name: Phase 2 - Install Maven
+      block:
+        - name: Download Maven
+          get_url:
+            url: "https://archive.apache.org/dist/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"
+            dest: "/tmp/apache-maven-{{ maven_version }}-bin.tar.gz"
+            mode: '0644'
+
+        - name: Extract Maven
+          unarchive:
+            src: "/tmp/apache-maven-{{ maven_version }}-bin.tar.gz"
+            dest: /opt
+            remote_src: yes
+            creates: "/opt/apache-maven-{{ maven_version }}"
+
+        - name: Create Maven symlink
+          file:
+            src: "/opt/apache-maven-{{ maven_version }}"
+            dest: /opt/maven
+            state: link
+
+        - name: Create Maven environment script
+          copy:
+            content: |
+              export MAVEN_HOME=/opt/maven
+              export PATH=$MAVEN_HOME/bin:$PATH
+            dest: /etc/profile.d/maven.sh
+            mode: '0644'
+
+        - name: Verify Maven installation
+          shell: |
+            source /etc/profile.d/maven.sh
+            mvn --version
+          register: maven_check
+          changed_when: false
+
+        - name: Display Maven version
+          debug:
+            msg: "Maven installed: {{ maven_check.stdout.split('\n')[0] }}"
+
+      tags:
+        - maven
+
+    # ========================================
+    # Phase 3: Node.js & NPM インストール
+    # ========================================
+
+    - name: Phase 3 - Install Node.js and NPM
+      block:
+        - name: Add NodeSource repository
+          shell: |
+            curl -fsSL https://rpm.nodesource.com/setup_{{ node_version }}.x | bash -
+          args:
+            creates: /etc/yum.repos.d/nodesource-el9.repo
+
+        - name: Install Node.js
+          dnf:
+            name: nodejs
+            state: present
+
+        - name: Verify Node.js installation
+          command: node --version
+          register: node_check
+          changed_when: false
+
+        - name: Verify NPM installation
+          command: npm --version
+          register: npm_check
+          changed_when: false
+
+        - name: Display Node.js and NPM versions
+          debug:
+            msg:
+              - "Node.js installed: {{ node_check.stdout }}"
+              - "NPM installed: {{ npm_check.stdout }}"
+
+      tags:
+        - nodejs
+
+    # ========================================
+    # Phase 4: インストール確認
+    # ========================================
+
+    - name: Phase 4 - Verify all installations
+      block:
+        - name: Create verification script
+          copy:
+            content: |
+              #!/bin/bash
+              echo "=========================================="
+              echo "  Build Tools Installation Summary"
+              echo "=========================================="
+              echo ""
+              echo "Java:"
+              java -version 2>&1 | head -1
+              echo ""
+              echo "Maven:"
+              source /etc/profile.d/maven.sh
+              mvn --version | head -1
+              echo ""
+              echo "Node.js:"
+              node --version
+              echo ""
+              echo "NPM:"
+              npm --version
+              echo ""
+              echo "=========================================="
+            dest: /tmp/check_build_tools.sh
+            mode: '0755'
+
+        - name: Run verification script
+          shell: /tmp/check_build_tools.sh
+          register: verification
+          changed_when: false
+
+        - name: Display verification result
+          debug:
+            msg: "{{ verification.stdout_lines }}"
+
+        - name: Create installation report
+          copy:
+            content: |
+              # ビルドツールインストールレポート
+
+              **インストール日時**: {{ ansible_date_time.iso8601 }}
+              **ステータス**: ✅ 完了
+
+              ---
+
+              ## インストールされたツール
+
+              ### Java
+              - **Version**: OpenJDK 17
+              - **Path**: /usr/bin/java
+              - **Status**: {{ 'Installed' if java_check.rc == 0 else 'Failed' }}
+
+              ### Maven
+              - **Version**: {{ maven_version }}
+              - **Path**: /opt/maven
+              - **Environment**: /etc/profile.d/maven.sh
+              - **Status**: {{ 'Installed' if maven_check.rc == 0 else 'Failed' }}
+
+              ### Node.js
+              - **Version**: {{ node_check.stdout }}
+              - **Path**: /usr/bin/node
+              - **Status**: {{ 'Installed' if node_check.rc == 0 else 'Failed' }}
+
+              ### NPM
+              - **Version**: {{ npm_check.stdout }}
+              - **Path**: /usr/bin/npm
+              - **Status**: {{ 'Installed' if npm_check.rc == 0 else 'Failed' }}
+
+              ---
+
+              ## 環境変数
+
+              Maven環境変数は `/etc/profile.d/maven.sh` で設定されています:
+
+              ```bash
+              export MAVEN_HOME=/opt/maven
+              export PATH=$MAVEN_HOME/bin:$PATH
+              ```
+
+              新しいシェルセッションで自動的に読み込まれます。
+              現在のセッションで使用する場合:
+
+              ```bash
+              source /etc/profile.d/maven.sh
+              ```
+
+              ---
+
+              ## 次のステップ
+
+              ビルドツールのインストールが完了しました。
+              次のコマンドでアプリケーションをビルド・デプロイできます:
+
+              ```bash
+              ansible-playbook -i inventory/hosts.yml playbooks/build_and_deploy_artifacts.yml
+              ```
+
+              ---
+
+              **レポート生成**: {{ ansible_date_time.iso8601 }}
+            dest: "/root/aws.git/container/claudecode/ArgoCD/BUILD-TOOLS-INSTALLATION-REPORT.md"
+            mode: '0644'
+
+        - name: Display completion message
+          debug:
+            msg:
+              - "=========================================="
+              - "  Build Tools Installation Complete!"
+              - "=========================================="
+              - ""
+              - "Java: ✅ OpenJDK 17"
+              - "Maven: ✅ {{ maven_version }}"
+              - "Node.js: ✅ {{ node_check.stdout }}"
+              - "NPM: ✅ {{ npm_check.stdout }}"
+              - ""
+              - "Report: /root/aws.git/container/claudecode/ArgoCD/BUILD-TOOLS-INSTALLATION-REPORT.md"
+              - ""
+              - "Next steps:"
+              - "  1. Source Maven environment: source /etc/profile.d/maven.sh"
+              - "  2. Build and deploy: ansible-playbook -i inventory/hosts.yml playbooks/build_and_deploy_artifacts.yml"
+              - ""
+              - "=========================================="
+
+      tags:
+        - verify

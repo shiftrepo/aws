@@ -1,0 +1,157 @@
+---
+- name: Install Prerequisites for ArgoCD Environment
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: Display prerequisite installation information
+      debug:
+        msg:
+          - "=========================================="
+          - "Installing Prerequisites"
+          - "=========================================="
+          - "This will install system packages, build tools, and container runtime"
+
+    - name: Check OS compatibility
+      assert:
+        that:
+          - ansible_os_family == "RedHat"
+          - ansible_distribution_major_version == "9"
+        fail_msg: "This playbook requires RHEL/Rocky/CentOS 9"
+        success_msg: "OS check passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Install EPEL repository
+      become: yes
+      dnf:
+        name: epel-release
+        state: present
+      retries: 3
+      delay: 5
+
+    - name: Install system packages
+      become: yes
+      dnf:
+        name: "{{ system_packages }}"
+        state: present
+      retries: 3
+      delay: 10
+
+    - name: Install Python packages
+      become: yes
+      pip:
+        name: "{{ python_packages }}"
+        state: present
+        executable: pip3
+
+    - name: Verify podman-compose installation
+      command: podman-compose --version
+      register: podman_compose_version
+      changed_when: false
+
+    - name: Display podman-compose version
+      debug:
+        msg: "{{ podman_compose_version.stdout }}"
+
+    - name: Check Node.js version
+      command: node --version
+      register: node_version_check
+      failed_when: false
+      changed_when: false
+
+    - name: Add NodeSource repository
+      become: yes
+      shell: curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+      args:
+        creates: /etc/yum.repos.d/nodesource-el9.repo
+      when: node_version_check.rc != 0 or not node_version_check.stdout is search("v20")
+
+    - name: Install Node.js
+      become: yes
+      dnf:
+        name: nodejs
+        state: present
+      when: node_version_check.rc != 0 or not node_version_check.stdout is search("v20")
+
+    - name: Verify Node.js installation
+      command: node --version
+      register: node_version
+      changed_when: false
+
+    - name: Display Node.js version
+      debug:
+        msg: "Node.js {{ node_version.stdout }} installed"
+
+    - name: Check Maven installation
+      command: mvn --version
+      register: maven_check
+      failed_when: false
+      changed_when: false
+      environment:
+        PATH: "/opt/maven/latest/bin:{{ ansible_env.PATH }}"
+
+    - name: Install Maven
+      become: yes
+      block:
+        - name: Download Maven binary
+          get_url:
+            url: "https://dlcdn.apache.org/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"
+            dest: "/tmp/apache-maven-{{ maven_version }}-bin.tar.gz"
+            timeout: 300
+
+        - name: Create Maven directory
+          file:
+            path: /opt/maven
+            state: directory
+            mode: '0755'
+
+        - name: Extract Maven
+          unarchive:
+            src: "/tmp/apache-maven-{{ maven_version }}-bin.tar.gz"
+            dest: /opt/maven
+            remote_src: yes
+            creates: "/opt/maven/apache-maven-{{ maven_version }}"
+
+        - name: Create Maven symbolic link
+          file:
+            src: "/opt/maven/apache-maven-{{ maven_version }}"
+            dest: /opt/maven/latest
+            state: link
+
+        - name: Create Maven environment script
+          copy:
+            dest: /etc/profile.d/maven.sh
+            mode: '0644'
+            content: |
+              export MAVEN_HOME=/opt/maven/latest
+              export PATH=$MAVEN_HOME/bin:$PATH
+      when: maven_check.rc != 0
+
+    - name: Verify Maven installation
+      shell: source /etc/profile.d/maven.sh && mvn --version
+      args:
+        executable: /bin/bash
+      register: maven_version_output
+      changed_when: false
+      environment:
+        MAVEN_HOME: /opt/maven/latest
+        PATH: "/opt/maven/latest/bin:{{ ansible_env.PATH }}"
+
+    - name: Display Maven version
+      debug:
+        msg: "{{ maven_version_output.stdout_lines[0] }}"
+
+    - name: Display summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Prerequisites Installation Complete"
+          - "=========================================="
+          - "Podman: {{ podman_compose_version.stdout }}"
+          - "Node.js: {{ node_version.stdout }}"
+          - "Maven: {{ maven_version_output.stdout_lines[0] }}"
+          - "=========================================="

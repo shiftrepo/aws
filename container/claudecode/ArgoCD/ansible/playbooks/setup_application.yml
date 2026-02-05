@@ -1,0 +1,274 @@
+---
+- name: Setup Application Components
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    gitlab_url: "http://localhost:5003"
+    gitlab_root_password: "GitLabRoot123!"
+    gitlab_project_name: "orgmgmt"
+    argocd_url: "http://localhost:5010"
+    argocd_username: "admin"
+    nexus_url: "http://localhost:8081"
+    postgres_host: "localhost"
+    postgres_port: "5432"
+    postgres_db: "orgmgmt"
+    postgres_user: "orgmgmt_user"
+    postgres_password: "SecurePassword123!"
+
+  tasks:
+    # ==========================================
+    # GitLab Initialization
+    # ==========================================
+    - name: Wait for GitLab to be fully ready
+      uri:
+        url: "{{ gitlab_url }}/-/health"
+        status_code: 200
+      register: gitlab_ready
+      until: gitlab_ready.status == 200
+      retries: 40
+      delay: 15
+      ignore_errors: yes
+
+    - name: Check if GitLab API is accessible
+      uri:
+        url: "{{ gitlab_url }}/api/v4/version"
+        method: GET
+        status_code: [200, 401]
+      register: gitlab_api_check
+      ignore_errors: yes
+
+    - name: Display GitLab API status
+      debug:
+        msg: "GitLab API is accessible"
+      when: gitlab_api_check.status in [200, 401]
+
+    - name: Get GitLab root access token (if needed)
+      uri:
+        url: "{{ gitlab_url }}/api/v4/user"
+        method: GET
+        headers:
+          PRIVATE-TOKEN: "{{ lookup('env', 'GITLAB_TOKEN') | default('', true) }}"
+        status_code: [200, 401]
+      register: gitlab_token_check
+      ignore_errors: yes
+      when: lookup('env', 'GITLAB_TOKEN') | default('', true) != ''
+
+    - name: Display GitLab authentication status
+      debug:
+        msg:
+          - "GitLab is ready for manual configuration"
+          - "Please create a personal access token with 'api' scope"
+          - "Set GITLAB_TOKEN environment variable for automation"
+      when: gitlab_token_check is skipped or gitlab_token_check.status == 401
+
+    # ==========================================
+    # Nexus Repository Configuration
+    # ==========================================
+    - name: Wait for Nexus to be ready
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/status"
+        status_code: 200
+      register: nexus_ready
+      until: nexus_ready.status == 200
+      retries: 20
+      delay: 15
+      ignore_errors: yes
+
+    - name: Check if Nexus admin password file exists
+      become: yes
+      command: podman exec orgmgmt-nexus test -f /nexus-data/admin.password
+      register: nexus_admin_pass_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get Nexus initial admin password
+      become: yes
+      command: podman exec orgmgmt-nexus cat /nexus-data/admin.password
+      register: nexus_initial_password
+      when: nexus_admin_pass_check.rc == 0
+      changed_when: false
+      failed_when: false
+
+    - name: Display Nexus initial password
+      debug:
+        msg:
+          - "Nexus initial admin password: {{ nexus_initial_password.stdout }}"
+          - "Please change this password through the Nexus UI"
+      when:
+        - nexus_admin_pass_check.rc == 0
+        - nexus_initial_password.stdout is defined
+
+    - name: Check Nexus repository list
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories"
+        method: GET
+        user: admin
+        password: "{{ nexus_initial_password.stdout | default('admin123') }}"
+        force_basic_auth: yes
+        status_code: [200, 401]
+      register: nexus_repos
+      ignore_errors: yes
+
+    - name: Display Nexus repository status
+      debug:
+        msg:
+          - "Nexus repositories: {{ nexus_repos.json | length if nexus_repos.json is defined else 'N/A' }}"
+          - "Manual configuration may be required"
+      when: nexus_repos.status == 200
+
+    # ==========================================
+    # ArgoCD Configuration
+    # ==========================================
+    - name: Wait for ArgoCD to be ready
+      uri:
+        url: "{{ argocd_url }}/healthz"
+        status_code: 200
+      register: argocd_ready
+      until: argocd_ready.status == 200
+      retries: 30
+      delay: 10
+      ignore_errors: yes
+
+    - name: Check if ArgoCD CLI is installed
+      command: which argocd
+      register: argocd_cli_check
+      failed_when: false
+      changed_when: false
+
+    - name: Get ArgoCD initial admin password
+      command: podman exec argocd-server argocd admin initial-password -n argocd
+      register: argocd_initial_password
+      when: argocd_cli_check.rc == 0
+      changed_when: false
+      failed_when: false
+      ignore_errors: yes
+
+    - name: Extract ArgoCD password
+      set_fact:
+        argocd_password: "{{ argocd_initial_password.stdout_lines[0] if argocd_initial_password.stdout_lines is defined else '' }}"
+      when:
+        - argocd_initial_password is defined
+        - argocd_initial_password.stdout_lines is defined
+        - argocd_initial_password.stdout_lines | length > 0
+
+    - name: Display ArgoCD credentials
+      debug:
+        msg:
+          - "ArgoCD URL: {{ argocd_url }}"
+          - "Username: {{ argocd_username }}"
+          - "Password: {{ argocd_password | default('Check with: podman exec argocd-server argocd admin initial-password') }}"
+      when: argocd_password is defined
+
+    - name: Login to ArgoCD
+      command: >
+        argocd login localhost:5010
+        --insecure
+        --username {{ argocd_username }}
+        --password {{ argocd_password }}
+      register: argocd_login
+      when:
+        - argocd_cli_check.rc == 0
+        - argocd_password is defined
+        - argocd_password != ''
+      changed_when: argocd_login.rc == 0
+      failed_when: false
+      ignore_errors: yes
+
+    - name: Display ArgoCD login status
+      debug:
+        msg: "Successfully logged into ArgoCD"
+      when:
+        - argocd_login is defined
+        - argocd_login.rc == 0
+
+    - name: List ArgoCD applications
+      command: argocd app list
+      register: argocd_apps
+      when:
+        - argocd_login is defined
+        - argocd_login.rc == 0
+      changed_when: false
+      failed_when: false
+      ignore_errors: yes
+
+    - name: Display ArgoCD applications
+      debug:
+        msg: "{{ argocd_apps.stdout_lines }}"
+      when:
+        - argocd_apps is defined
+        - argocd_apps.stdout_lines is defined
+
+    # ==========================================
+    # Database Migrations
+    # ==========================================
+    - name: Check PostgreSQL connectivity
+      postgresql_ping:
+        db: "{{ postgres_db }}"
+        login_host: "{{ postgres_host }}"
+        login_port: "{{ postgres_port }}"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+      register: postgres_ping
+      ignore_errors: yes
+
+    - name: Display PostgreSQL connectivity status
+      debug:
+        msg: "PostgreSQL is accessible and ready"
+      when:
+        - postgres_ping is defined
+        - postgres_ping.is_available is defined
+        - postgres_ping.is_available
+
+    - name: Check if database schema is initialized
+      command: >
+        podman exec orgmgmt-postgres
+        psql -U {{ postgres_user }} -d {{ postgres_db }}
+        -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';"
+      register: db_tables_count
+      changed_when: false
+      failed_when: false
+      ignore_errors: yes
+
+    - name: Display database schema status
+      debug:
+        msg: "Database contains {{ db_tables_count.stdout_lines[-1] if db_tables_count.stdout_lines is defined else 'unknown' }} tables"
+      when: db_tables_count.rc == 0
+
+    # ==========================================
+    # Summary
+    # ==========================================
+    - name: Display setup summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Application Setup Summary"
+          - "=========================================="
+          - ""
+          - "GitLab:"
+          - "  URL: {{ gitlab_url }}"
+          - "  Status: {{ 'Ready' if gitlab_ready.status == 200 else 'Not Ready' }}"
+          - "  Action: Configure projects and pipelines manually"
+          - ""
+          - "Nexus:"
+          - "  URL: {{ nexus_url }}"
+          - "  Status: {{ 'Ready' if nexus_ready.status == 200 else 'Not Ready' }}"
+          - "  Action: Configure repositories through UI"
+          - ""
+          - "ArgoCD:"
+          - "  URL: {{ argocd_url }}"
+          - "  Status: {{ 'Ready' if argocd_ready.status == 200 else 'Not Ready' }}"
+          - "  Username: {{ argocd_username }}"
+          - "  Password: {{ argocd_password | default('See logs above') }}"
+          - ""
+          - "PostgreSQL:"
+          - "  Host: {{ postgres_host }}:{{ postgres_port }}"
+          - "  Database: {{ postgres_db }}"
+          - "  Status: {{ 'Connected' if postgres_ping.is_available | default(false) else 'Check Connection' }}"
+          - ""
+          - "=========================================="
+          - "Next Steps:"
+          - "  1. Configure GitLab projects and runners"
+          - "  2. Set up Nexus repositories (Maven, npm)"
+          - "  3. Create ArgoCD applications"
+          - "  4. Run database migrations"
+          - "=========================================="

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+          http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <!-- ================================================================== -->
+    <!-- Maven Settings Template for Nexus Repository                       -->
+    <!-- ================================================================== -->
+    <!-- This template is used by GitLab CI to configure Maven access to    -->
+    <!-- Nexus Repository Manager. Variables are replaced at runtime.       -->
+    <!-- ================================================================== -->
+
+    <servers>
+        <!-- Nexus Snapshot Repository -->
+        <server>
+            <id>nexus-snapshots</id>
+            <username>NEXUS_USERNAME</username>
+            <password>NEXUS_PASSWORD</password>
+        </server>
+
+        <!-- Nexus Release Repository -->
+        <server>
+            <id>nexus-releases</id>
+            <username>NEXUS_USERNAME</username>
+            <password>NEXUS_PASSWORD</password>
+        </server>
+
+        <!-- Nexus Central Proxy -->
+        <server>
+            <id>nexus</id>
+            <username>NEXUS_USERNAME</username>
+            <password>NEXUS_PASSWORD</password>
+        </server>
+    </servers>
+
+    <mirrors>
+        <!-- Mirror Maven Central through Nexus -->
+        <mirror>
+            <id>nexus-central</id>
+            <name>Nexus Central Mirror</name>
+            <url>NEXUS_URL/repository/maven-public/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+    </mirrors>
+
+    <profiles>
+        <profile>
+            <id>nexus</id>
+            <repositories>
+                <!-- Nexus Public Repository Group -->
+                <repository>
+                    <id>nexus</id>
+                    <name>Nexus Public Repository</name>
+                    <url>NEXUS_URL/repository/maven-public/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </snapshots>
+                </repository>
+
+                <!-- Nexus Snapshots Repository -->
+                <repository>
+                    <id>nexus-snapshots</id>
+                    <name>Nexus Snapshots Repository</name>
+                    <url>NEXUS_URL/repository/maven-snapshots/</url>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </snapshots>
+                </repository>
+
+                <!-- Nexus Releases Repository -->
+                <repository>
+                    <id>nexus-releases</id>
+                    <name>Nexus Releases Repository</name>
+                    <url>NEXUS_URL/repository/maven-releases/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+
+            <pluginRepositories>
+                <!-- Nexus Plugin Repository -->
+                <pluginRepository>
+                    <id>nexus</id>
+                    <name>Nexus Plugin Repository</name>
+                    <url>NEXUS_URL/repository/maven-public/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>nexus</activeProfile>
+    </activeProfiles>
+
+</settings>

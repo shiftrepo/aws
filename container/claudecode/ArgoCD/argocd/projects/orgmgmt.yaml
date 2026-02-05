@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: orgmgmt
+  namespace: argocd
+spec:
+  description: Organization Management System
+  sourceRepos:
+    - 'file:///gitops'
+    - 'http://localhost:5003/root/orgmgmt.git'
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: read-only
+      description: Read-only access
+      policies:
+        - p, proj:orgmgmt:read-only, applications, get, orgmgmt/*, allow
+    - name: developer
+      description: Developer access
+      policies:
+        - p, proj:orgmgmt:developer, applications, *, orgmgmt/orgmgmt-dev, allow
+        - p, proj:orgmgmt:developer, applications, get, orgmgmt/*, allow
+    - name: operator
+      description: Operator access
+      policies:
+        - p, proj:orgmgmt:operator, applications, *, orgmgmt/*, allow

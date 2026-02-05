@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Test output
+playwright-report/
+test-results/
+test-results.json
+junit-results.xml
+
+# Screenshots and videos
+screenshots/
+videos/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+dist/
+*.tsbuildinfo
+
+# Temporary files
+tmp/
+temp/

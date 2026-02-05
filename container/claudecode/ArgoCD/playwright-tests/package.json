@@ -1,0 +1,36 @@
+{
+  "name": "orgmgmt-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Organization Management System using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:organizations": "playwright test tests/organizations",
+    "test:departments": "playwright test tests/departments",
+    "test:users": "playwright test tests/users",
+    "test:errors": "playwright test tests/error-scenarios",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:5006",
+    "install:browsers": "playwright install",
+    "install:deps": "playwright install-deps"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  }
+}

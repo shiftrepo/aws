@@ -1,0 +1,87 @@
+ansible/
+├── ansible.cfg                              # Ansible configuration file
+│   ├── Sets inventory location
+│   ├── Disables host key checking
+│   └── Configures fact caching
+│
+├── inventory/
+│   └── hosts.yml                            # Inventory file (localhost only)
+│       └── Configures local connection with python3
+│
+├── playbooks/
+│   ├── site.yml                             # Master playbook (runs all in order)
+│   │   ├── Includes: configure_podman_registry.yml
+│   │   ├── Includes: install_argocd.yml
+│   │   ├── Includes: deploy_infrastructure.yml
+│   │   └── Includes: setup_application.yml
+│   │
+│   ├── configure_podman_registry.yml        # Configure insecure registry
+│   │   ├── Creates /etc/containers/registries.conf.d/gitlab.conf
+│   │   ├── Configures localhost:5005 as insecure
+│   │   ├── Creates helper script at /usr/local/bin/gitlab-registry-login
+│   │   └── Restarts podman socket if needed
+│   │
+│   ├── install_argocd.yml                   # Install ArgoCD CLI
+│   │   ├── Downloads ArgoCD v2.10.0
+│   │   ├── Installs to /usr/local/bin/argocd
+│   │   ├── Makes executable
+│   │   ├── Verifies installation
+│   │   └── Idempotent (skips if already installed)
+│   │
+│   ├── deploy_infrastructure.yml            # Deploy with podman-compose
+│   │   ├── Checks podman and podman-compose
+│   │   ├── Runs: podman-compose up -d
+│   │   ├── Waits for PostgreSQL health
+│   │   ├── Waits for Nexus health
+│   │   ├── Waits for GitLab health
+│   │   ├── Waits for ArgoCD health
+│   │   └── Displays access information
+│   │
+│   └── setup_application.yml                # Initialize application components
+│       ├── Verifies GitLab API
+│       ├── Checks Nexus status
+│       ├── Retrieves ArgoCD password
+│       ├── Logs into ArgoCD
+│       ├── Tests database connectivity
+│       └── Provides configuration guidance
+│
+├── README.md                                # Comprehensive documentation
+│   ├── Directory structure
+│   ├── Prerequisites
+│   ├── Playbook descriptions
+│   ├── Usage examples
+│   ├── Service access info
+│   ├── Troubleshooting
+│   └── Best practices
+│
+├── QUICKSTART.md                            # Quick start guide
+│   ├── Prerequisites check
+│   ├── One-command setup
+│   ├── Step-by-step guide
+│   ├── Post-installation steps
+│   └── Common issues
+│
+└── ansible-commands.sh                      # Quick reference script (generated)
+    └── Lists common Ansible commands
+
+Services Deployed:
+├── PostgreSQL (port 5432)
+├── pgAdmin (port 5050)
+├── Nexus Repository Manager (port 8081)
+├── GitLab CE (port 5003)
+├── GitLab Registry (port 5005)
+└── ArgoCD
+    ├── Redis (port 6379)
+    ├── Repo Server
+    ├── Application Controller
+    └── API Server (port 5010)
+
+Key Features:
+✓ Idempotent playbooks (safe to run multiple times)
+✓ Proper error handling (failed_when, ignore_errors)
+✓ Health checks for all services
+✓ Debug output for visibility
+✓ Tags for selective execution
+✓ Comprehensive documentation
+✓ Helper scripts generation
+✓ Backup of existing configurations

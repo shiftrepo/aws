@@ -1,0 +1,867 @@
+---
+- name: Setup Complete ArgoCD Environment from Scratch
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+
+  vars_files:
+    - ../group_vars/all.yml
+
+  vars:
+    base_dir: "/root/aws.git/container/claudecode/ArgoCD"
+    infrastructure_dir: "{{ base_dir }}/infrastructure"
+    compose_file: "{{ infrastructure_dir }}/podman-compose.yml"
+    env_file: "{{ infrastructure_dir }}/.env"
+    credentials_file: "{{ base_dir }}/CREDENTIALS.txt"
+
+  tasks:
+    # ==========================================
+    # PHASE 1: Prerequisites Installation
+    # ==========================================
+    - name: "PHASE 1: Prerequisites Installation"
+      debug:
+        msg:
+          - "=========================================="
+          - "PHASE 1: Installing Prerequisites"
+          - "=========================================="
+
+    - name: Check if running on RHEL/Rocky/CentOS 9
+      assert:
+        that:
+          - ansible_os_family == "RedHat"
+          - ansible_distribution_major_version == "9"
+        fail_msg: "This playbook requires RHEL, Rocky Linux, or CentOS 9"
+        success_msg: "Running on {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Check system resources - Memory
+      assert:
+        that:
+          - ansible_memtotal_mb >= 7168
+        fail_msg: "Insufficient memory. Required: 8GB, Available: {{ ansible_memtotal_mb }}MB"
+        success_msg: "Memory check passed: {{ ansible_memtotal_mb }}MB available"
+
+    - name: Check system resources - Disk space
+      shell: df -BG {{ base_dir }} | tail -1 | awk '{print $4}' | sed 's/G//'
+      register: disk_space
+      changed_when: false
+
+    - name: Verify disk space requirement
+      assert:
+        that:
+          - disk_space.stdout | int >= 50
+        fail_msg: "Insufficient disk space. Required: 50GB, Available: {{ disk_space.stdout }}GB"
+        success_msg: "Disk space check passed: {{ disk_space.stdout }}GB available"
+
+    - name: Install EPEL repository
+      become: yes
+      dnf:
+        name: epel-release
+        state: present
+      register: epel_install
+      retries: 3
+      delay: 5
+
+    - name: Install system packages
+      become: yes
+      dnf:
+        name:
+          - git
+          - curl
+          - jq
+          - wget
+          - tar
+          - unzip
+          - openssl
+          - python3
+          - python3-pip
+          - podman
+          - podman-docker
+          - buildah
+          - skopeo
+        state: present
+      register: system_packages
+      retries: 3
+      delay: 10
+
+    - name: Install podman-compose via pip
+      become: yes
+      pip:
+        name: podman-compose
+        state: present
+        executable: pip3
+      register: podman_compose_install
+
+    - name: Verify podman-compose installation
+      command: podman-compose --version
+      register: podman_compose_version
+      changed_when: false
+
+    - name: Display podman-compose version
+      debug:
+        msg: "Installed {{ podman_compose_version.stdout }}"
+
+    - name: Install Python packages for Ansible
+      become: yes
+      pip:
+        name:
+          - psycopg2-binary
+          - requests
+        state: present
+        executable: pip3
+
+    - name: Check if Node.js 20.x is installed
+      command: node --version
+      register: node_check
+      failed_when: false
+      changed_when: false
+
+    - name: Add NodeSource repository for Node.js 20.x
+      become: yes
+      shell: |
+        curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+      args:
+        creates: /etc/yum.repos.d/nodesource-el9.repo
+      when: node_check.rc != 0 or not node_check.stdout is search("v20")
+      register: nodesource_repo
+
+    - name: Install Node.js 20.x
+      become: yes
+      dnf:
+        name: nodejs
+        state: present
+      when: node_check.rc != 0 or not node_check.stdout is search("v20")
+
+    - name: Verify Node.js installation
+      command: node --version
+      register: node_version
+      changed_when: false
+
+    - name: Display Node.js version
+      debug:
+        msg: "Node.js {{ node_version.stdout }} installed"
+
+    - name: Check if Maven is installed
+      command: mvn --version
+      register: maven_check
+      failed_when: false
+      changed_when: false
+
+    - name: Download and install Maven 3.9.x
+      become: yes
+      block:
+        - name: Download Maven binary
+          get_url:
+            url: "https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz"
+            dest: /tmp/apache-maven-3.9.9-bin.tar.gz
+            timeout: 300
+          register: maven_download
+
+        - name: Create Maven directory
+          file:
+            path: /opt/maven
+            state: directory
+            mode: '0755'
+
+        - name: Extract Maven
+          unarchive:
+            src: /tmp/apache-maven-3.9.9-bin.tar.gz
+            dest: /opt/maven
+            remote_src: yes
+            creates: /opt/maven/apache-maven-3.9.9
+
+        - name: Create symbolic link for Maven
+          file:
+            src: /opt/maven/apache-maven-3.9.9
+            dest: /opt/maven/latest
+            state: link
+
+        - name: Add Maven to PATH
+          copy:
+            dest: /etc/profile.d/maven.sh
+            content: |
+              export MAVEN_HOME=/opt/maven/latest
+              export PATH=$MAVEN_HOME/bin:$PATH
+            mode: '0644'
+
+        - name: Source Maven environment
+          shell: source /etc/profile.d/maven.sh && mvn --version
+          args:
+            executable: /bin/bash
+          register: maven_version_check
+          changed_when: false
+      when: maven_check.rc != 0
+
+    - name: Verify Maven installation
+      shell: source /etc/profile.d/maven.sh && mvn --version
+      args:
+        executable: /bin/bash
+      register: maven_version
+      changed_when: false
+      environment:
+        PATH: "/opt/maven/latest/bin:{{ ansible_env.PATH }}"
+
+    - name: Display Maven version
+      debug:
+        msg: "{{ maven_version.stdout_lines[0] }}"
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user_id }}"
+      loop:
+        - "{{ infrastructure_dir }}"
+        - "{{ infrastructure_dir }}/config"
+        - "{{ infrastructure_dir }}/config/postgres"
+        - "{{ infrastructure_dir }}/config/nexus"
+        - "{{ infrastructure_dir }}/config/gitlab"
+        - "{{ infrastructure_dir }}/config/gitlab-runner"
+        - "{{ base_dir }}/logs"
+        - "{{ base_dir }}/backups"
+
+    # ==========================================
+    # PHASE 2: Infrastructure Setup
+    # ==========================================
+    - name: "PHASE 2: Infrastructure Setup"
+      debug:
+        msg:
+          - "=========================================="
+          - "PHASE 2: Setting Up Infrastructure"
+          - "=========================================="
+
+    - name: Check if .env file exists
+      stat:
+        path: "{{ env_file }}"
+      register: env_file_stat
+
+    - name: Generate secure random passwords
+      set_fact:
+        postgres_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+        pgadmin_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+        gitlab_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+        nexus_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+      when: not env_file_stat.stat.exists
+
+    - name: Use existing passwords from .env if file exists
+      block:
+        - name: Read existing .env file
+          slurp:
+            src: "{{ env_file }}"
+          register: existing_env
+
+        - name: Parse existing passwords
+          set_fact:
+            postgres_password: "{{ (existing_env.content | b64decode | regex_search('POSTGRES_PASSWORD=(.+)', '\\1'))[0] | default(lookup('password', '/dev/null length=20 chars=ascii_letters,digits')) }}"
+            pgadmin_password: "{{ (existing_env.content | b64decode | regex_search('PGADMIN_DEFAULT_PASSWORD=(.+)', '\\1'))[0] | default(lookup('password', '/dev/null length=20 chars=ascii_letters,digits')) }}"
+            gitlab_password: "{{ (existing_env.content | b64decode | regex_search('GITLAB_ROOT_PASSWORD=(.+)', '\\1'))[0] | default(lookup('password', '/dev/null length=20 chars=ascii_letters,digits')) }}"
+      when: env_file_stat.stat.exists
+
+    - name: Create .env file with all variables
+      copy:
+        dest: "{{ env_file }}"
+        mode: '0600'
+        content: |
+          # PostgreSQL Configuration
+          POSTGRES_VERSION=16-alpine
+          POSTGRES_HOST=postgres
+          POSTGRES_PORT=5432
+          POSTGRES_DB=orgmgmt
+          POSTGRES_USER=orgmgmt_user
+          POSTGRES_PASSWORD={{ postgres_password }}
+
+          # pgAdmin Configuration
+          PGADMIN_PORT=5050
+          PGADMIN_DEFAULT_EMAIL=admin@orgmgmt.local
+          PGADMIN_DEFAULT_PASSWORD={{ pgadmin_password }}
+
+          # Nexus Repository Configuration
+          NEXUS_VERSION=3.63.0
+          NEXUS_HTTP_PORT=8081
+          NEXUS_DOCKER_PORT=8082
+
+          # GitLab Configuration
+          GITLAB_VERSION=latest
+          GITLAB_RUNNER_VERSION=latest
+          GITLAB_HTTP_PORT=5003
+          GITLAB_REGISTRY_PORT=5005
+          GITLAB_SSH_PORT=2222
+          GITLAB_ROOT_PASSWORD={{ gitlab_password }}
+          GITLAB_EXTERNAL_URL=http://localhost:5003
+          GITLAB_REGISTRY_EXTERNAL_URL=http://localhost:5005
+
+          # ArgoCD Configuration
+          ARGOCD_VERSION=v2.10.0
+          ARGOCD_SERVER_PORT=5010
+          ARGOCD_SERVER_INSECURE=true
+
+          # Application Configuration
+          APP_BACKEND_PORT=8080
+          APP_FRONTEND_PORT=5006
+          APP_VERSION=1.0.0-SNAPSHOT
+          BUILD_TAG_STRATEGY=commit_sha
+
+    - name: Verify podman-compose file exists
+      stat:
+        path: "{{ compose_file }}"
+      register: compose_file_stat
+
+    - name: Fail if compose file doesn't exist
+      fail:
+        msg: "Compose file not found at {{ compose_file }}"
+      when: not compose_file_stat.stat.exists
+
+    - name: Stop existing containers if running
+      command: podman-compose -f {{ compose_file }} down
+      args:
+        chdir: "{{ infrastructure_dir }}"
+      register: compose_down
+      failed_when: false
+      changed_when: compose_down.rc == 0
+
+    - name: Clean up existing volumes (optional - commented out for safety)
+      debug:
+        msg: "Skipping volume cleanup to preserve data. To clean volumes, run: podman volume prune -f"
+
+    - name: Start infrastructure services with podman-compose
+      command: podman-compose -f {{ compose_file }} up -d
+      args:
+        chdir: "{{ infrastructure_dir }}"
+      environment:
+        COMPOSE_FILE: "{{ compose_file }}"
+      register: compose_up
+
+    - name: Display compose up output
+      debug:
+        msg: "{{ compose_up.stdout_lines }}"
+
+    - name: Wait for PostgreSQL to be healthy
+      command: podman exec orgmgmt-postgres pg_isready -U orgmgmt_user -d orgmgmt
+      register: postgres_health
+      until: postgres_health.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Display PostgreSQL status
+      debug:
+        msg: "PostgreSQL is healthy and ready"
+
+    - name: Wait for Redis to be healthy
+      command: podman exec argocd-redis redis-cli ping
+      register: redis_health
+      until: redis_health.stdout == "PONG"
+      retries: 20
+      delay: 5
+      changed_when: false
+
+    - name: Display Redis status
+      debug:
+        msg: "Redis is healthy and ready"
+
+    - name: Wait for Nexus to be healthy (this may take 3-5 minutes)
+      uri:
+        url: http://localhost:8081/service/rest/v1/status
+        status_code: 200
+      register: nexus_health
+      until: nexus_health.status == 200
+      retries: 40
+      delay: 15
+
+    - name: Display Nexus status
+      debug:
+        msg: "Nexus is healthy and ready"
+
+    - name: Wait for GitLab to be healthy (this may take 5-10 minutes)
+      uri:
+        url: http://localhost:5003/-/health
+        status_code: 200
+      register: gitlab_health
+      until: gitlab_health.status == 200
+      retries: 60
+      delay: 15
+
+    - name: Display GitLab status
+      debug:
+        msg: "GitLab is healthy and ready"
+
+    - name: Wait for ArgoCD Server to be healthy
+      uri:
+        url: http://localhost:5010/healthz
+        status_code: 200
+      register: argocd_health
+      until: argocd_health.status == 200
+      retries: 40
+      delay: 10
+
+    - name: Display ArgoCD status
+      debug:
+        msg: "ArgoCD is healthy and ready"
+
+    # ==========================================
+    # PHASE 3: Service Configuration
+    # ==========================================
+    - name: "PHASE 3: Service Configuration"
+      debug:
+        msg:
+          - "=========================================="
+          - "PHASE 3: Configuring Services"
+          - "=========================================="
+
+    - name: Configure Podman to trust insecure registry
+      become: yes
+      block:
+        - name: Ensure registries.conf.d directory exists
+          file:
+            path: /etc/containers/registries.conf.d
+            state: directory
+            mode: '0755'
+
+        - name: Create GitLab insecure registry configuration
+          copy:
+            dest: /etc/containers/registries.conf.d/gitlab.conf
+            mode: '0644'
+            content: |
+              # GitLab Container Registry Configuration
+              [[registry]]
+              location = "localhost:5005"
+              insecure = true
+
+              [[registry.mirror]]
+              location = "localhost:5005"
+              insecure = true
+
+    - name: Download and install ArgoCD CLI v2.10.0
+      become: yes
+      block:
+        - name: Check if ArgoCD CLI is already installed
+          stat:
+            path: /usr/local/bin/argocd
+          register: argocd_cli_stat
+
+        - name: Download ArgoCD CLI
+          get_url:
+            url: "https://github.com/argoproj/argocd/releases/download/v2.10.0/argocd-linux-amd64"
+            dest: /tmp/argocd-cli
+            mode: '0755'
+            timeout: 300
+          when: not argocd_cli_stat.stat.exists
+
+        - name: Install ArgoCD CLI
+          copy:
+            src: /tmp/argocd-cli
+            dest: /usr/local/bin/argocd
+            mode: '0755'
+            remote_src: yes
+          when: not argocd_cli_stat.stat.exists
+
+        - name: Verify ArgoCD CLI installation
+          command: /usr/local/bin/argocd version --client --short
+          register: argocd_cli_version
+          changed_when: false
+
+        - name: Display ArgoCD CLI version
+          debug:
+            msg: "ArgoCD CLI installed: {{ argocd_cli_version.stdout }}"
+
+    - name: Retrieve ArgoCD admin password
+      shell: podman exec argocd-server argocd admin initial-password 2>/dev/null | head -1
+      register: argocd_password_result
+      changed_when: false
+      failed_when: false
+
+    - name: Set ArgoCD password fact
+      set_fact:
+        argocd_admin_password: "{{ argocd_password_result.stdout | trim }}"
+      when: argocd_password_result.rc == 0
+
+    - name: Display ArgoCD credentials
+      debug:
+        msg: "ArgoCD admin password: {{ argocd_admin_password | default('Unable to retrieve - check logs') }}"
+
+    - name: Wait additional time for GitLab to fully initialize
+      pause:
+        seconds: 30
+        prompt: "Waiting for GitLab to fully initialize..."
+
+    - name: Get Nexus initial admin password
+      shell: podman exec orgmgmt-nexus cat /nexus-data/admin.password 2>/dev/null || echo "not-found"
+      register: nexus_initial_password
+      changed_when: false
+      failed_when: false
+
+    - name: Display Nexus credentials
+      debug:
+        msg: "Nexus initial admin password: {{ nexus_initial_password.stdout }}"
+      when: nexus_initial_password.stdout != "not-found"
+
+    - name: Create GitLab access token script
+      copy:
+        dest: /tmp/create_gitlab_token.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Create GitLab personal access token
+          TOKEN_NAME="ansible-automation"
+          SCOPES="api,read_repository,write_repository"
+
+          # This requires manual intervention or API key
+          echo "GitLab token creation requires manual setup"
+          echo "Please create a personal access token with scopes: api"
+          echo "URL: http://localhost:5003/-/profile/personal_access_tokens"
+
+    - name: Display GitLab configuration message
+      debug:
+        msg:
+          - "GitLab is ready but requires manual configuration:"
+          - "1. Login to GitLab: http://localhost:5003"
+          - "2. Username: root"
+          - "3. Password: {{ gitlab_password }}"
+          - "4. Create a project named 'orgmgmt'"
+          - "5. Create a personal access token with 'api' scope"
+
+    # ==========================================
+    # PHASE 4: Application Build (Optional)
+    # ==========================================
+    - name: "PHASE 4: Application Build"
+      debug:
+        msg:
+          - "=========================================="
+          - "PHASE 4: Building Applications"
+          - "=========================================="
+
+    - name: Check if backend application exists
+      stat:
+        path: "{{ base_dir }}/app/backend/pom.xml"
+      register: backend_exists
+
+    - name: Build backend application with Maven
+      shell: |
+        source /etc/profile.d/maven.sh
+        mvn clean package -DskipTests
+      args:
+        chdir: "{{ base_dir }}/app/backend"
+        executable: /bin/bash
+      environment:
+        MAVEN_HOME: /opt/maven/latest
+        PATH: "/opt/maven/latest/bin:{{ ansible_env.PATH }}"
+      when: backend_exists.stat.exists
+      register: backend_build
+      failed_when: false
+
+    - name: Display backend build status
+      debug:
+        msg: "Backend build {{ 'succeeded' if backend_build.rc == 0 else 'failed' }}"
+      when: backend_exists.stat.exists
+
+    - name: Check if frontend application exists
+      stat:
+        path: "{{ base_dir }}/app/frontend/package.json"
+      register: frontend_exists
+
+    - name: Install frontend dependencies
+      command: npm install
+      args:
+        chdir: "{{ base_dir }}/app/frontend"
+      when: frontend_exists.stat.exists
+      register: npm_install
+      failed_when: false
+
+    - name: Build frontend application
+      command: npm run build
+      args:
+        chdir: "{{ base_dir }}/app/frontend"
+      when: frontend_exists.stat.exists
+      register: frontend_build
+      failed_when: false
+
+    - name: Display frontend build status
+      debug:
+        msg: "Frontend build {{ 'succeeded' if frontend_build.rc == 0 else 'failed' }}"
+      when: frontend_exists.stat.exists
+
+    # ==========================================
+    # PHASE 5: ArgoCD Setup
+    # ==========================================
+    - name: "PHASE 5: ArgoCD Setup"
+      debug:
+        msg:
+          - "=========================================="
+          - "PHASE 5: Configuring ArgoCD"
+          - "=========================================="
+
+    - name: Login to ArgoCD
+      command: >
+        argocd login localhost:5010
+        --insecure
+        --username admin
+        --password {{ argocd_admin_password }}
+      register: argocd_login
+      when: argocd_admin_password is defined
+      changed_when: argocd_login.rc == 0
+      failed_when: false
+
+    - name: Display ArgoCD login status
+      debug:
+        msg: "{{ 'Successfully logged into ArgoCD' if argocd_login.rc == 0 else 'Failed to login to ArgoCD' }}"
+      when: argocd_login is defined
+
+    - name: Check if ArgoCD project manifest exists
+      stat:
+        path: "{{ base_dir }}/argocd/projects/orgmgmt.yaml"
+      register: argocd_project_manifest
+
+    - name: Create ArgoCD project from manifest
+      command: kubectl apply -f {{ base_dir }}/argocd/projects/orgmgmt.yaml
+      when:
+        - argocd_login.rc == 0
+        - argocd_project_manifest.stat.exists
+      register: argocd_project_create
+      failed_when: false
+
+    - name: Check if ArgoCD application manifests exist
+      find:
+        paths: "{{ base_dir }}/argocd/applications"
+        patterns: "*.yaml"
+      register: argocd_app_manifests
+
+    - name: Create ArgoCD applications from manifests
+      command: kubectl apply -f {{ item.path }}
+      loop: "{{ argocd_app_manifests.files }}"
+      when:
+        - argocd_login.rc == 0
+        - argocd_app_manifests.matched > 0
+      register: argocd_apps_create
+      failed_when: false
+
+    - name: List ArgoCD applications
+      command: argocd app list
+      register: argocd_apps_list
+      when: argocd_login.rc == 0
+      changed_when: false
+      failed_when: false
+
+    - name: Display ArgoCD applications
+      debug:
+        msg: "{{ argocd_apps_list.stdout_lines }}"
+      when:
+        - argocd_login.rc == 0
+        - argocd_apps_list.stdout_lines is defined
+
+    # ==========================================
+    # PHASE 6: Verification
+    # ==========================================
+    - name: "PHASE 6: Verification"
+      debug:
+        msg:
+          - "=========================================="
+          - "PHASE 6: Verifying Installation"
+          - "=========================================="
+
+    - name: List all running containers
+      command: podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: container_list
+      changed_when: false
+
+    - name: Display running containers
+      debug:
+        msg: "{{ container_list.stdout_lines }}"
+
+    - name: Count running containers
+      shell: podman ps --format "{{.Names}}" | wc -l
+      register: container_count
+      changed_when: false
+
+    - name: Verify expected number of containers
+      debug:
+        msg: "Running containers: {{ container_count.stdout }}/9 expected"
+
+    - name: Verify PostgreSQL accessibility
+      command: podman exec orgmgmt-postgres psql -U orgmgmt_user -d orgmgmt -c "SELECT version();"
+      register: postgres_verify
+      changed_when: false
+      failed_when: false
+
+    - name: Verify Nexus accessibility
+      uri:
+        url: http://localhost:8081
+        status_code: 200
+      register: nexus_verify
+      failed_when: false
+
+    - name: Verify GitLab accessibility
+      uri:
+        url: http://localhost:5003
+        status_code: 200
+      register: gitlab_verify
+      failed_when: false
+
+    - name: Verify ArgoCD accessibility
+      uri:
+        url: http://localhost:5010
+        status_code: 200
+      register: argocd_verify
+      failed_when: false
+
+    - name: Verify pgAdmin accessibility
+      uri:
+        url: http://localhost:5050
+        status_code: 200
+      register: pgadmin_verify
+      failed_when: false
+
+    - name: Save credentials to file
+      copy:
+        dest: "{{ credentials_file }}"
+        mode: '0600'
+        content: |
+          ==========================================
+          ArgoCD Environment Credentials
+          ==========================================
+          Generated: {{ ansible_date_time.iso8601 }}
+
+          PostgreSQL
+          ----------
+          Host: localhost:5432
+          Database: orgmgmt
+          Username: orgmgmt_user
+          Password: {{ postgres_password }}
+          Connection: psql -h localhost -U orgmgmt_user -d orgmgmt
+
+          pgAdmin
+          -------
+          URL: http://localhost:5050
+          Email: admin@orgmgmt.local
+          Password: {{ pgadmin_password }}
+
+          Nexus Repository
+          ----------------
+          URL: http://localhost:8081
+          Username: admin
+          Initial Password: {{ nexus_initial_password.stdout | default('Check: podman exec orgmgmt-nexus cat /nexus-data/admin.password') }}
+          Note: Change password on first login
+
+          GitLab
+          ------
+          URL: http://localhost:5003
+          Username: root
+          Password: {{ gitlab_password }}
+          Registry: http://localhost:5005
+          SSH Port: 2222
+
+          GitLab Registry Login:
+          podman login localhost:5005 --username root --password {{ gitlab_password }} --tls-verify=false
+
+          ArgoCD
+          ------
+          URL: http://localhost:5010
+          Username: admin
+          Password: {{ argocd_admin_password | default('Run: podman exec argocd-server argocd admin initial-password') }}
+
+          CLI Login:
+          argocd login localhost:5010 --insecure --username admin --password {{ argocd_admin_password | default('PASSWORD') }}
+
+          ==========================================
+          Service Status
+          ==========================================
+          PostgreSQL: {{ 'OK' if postgres_verify.rc == 0 else 'FAILED' }}
+          pgAdmin: {{ 'OK' if pgadmin_verify.status == 200 else 'FAILED' }}
+          Nexus: {{ 'OK' if nexus_verify.status == 200 else 'FAILED' }}
+          GitLab: {{ 'OK' if gitlab_verify.status == 200 else 'FAILED' }}
+          ArgoCD: {{ 'OK' if argocd_verify.status == 200 else 'FAILED' }}
+
+          Total Containers Running: {{ container_count.stdout }}/9
+
+          ==========================================
+          IMPORTANT: Keep this file secure and do not commit to git!
+          ==========================================
+
+    - name: Display final summary
+      debug:
+        msg:
+          - "=========================================="
+          - "ArgoCD Environment Setup Complete!"
+          - "=========================================="
+          - ""
+          - "Service Access URLs:"
+          - "  PostgreSQL:  localhost:5432"
+          - "  pgAdmin:     http://localhost:5050"
+          - "  Nexus:       http://localhost:8081"
+          - "  GitLab:      http://localhost:5003"
+          - "  GitLab Reg:  http://localhost:5005"
+          - "  ArgoCD:      http://localhost:5010"
+          - ""
+          - "Credentials saved to: {{ credentials_file }}"
+          - ""
+          - "Service Health:"
+          - "  PostgreSQL: {{ 'OK' if postgres_verify.rc == 0 else 'FAILED' }}"
+          - "  pgAdmin:    {{ 'OK' if pgadmin_verify.status == 200 else 'FAILED' }}"
+          - "  Nexus:      {{ 'OK' if nexus_verify.status == 200 else 'FAILED' }}"
+          - "  GitLab:     {{ 'OK' if gitlab_verify.status == 200 else 'FAILED' }}"
+          - "  ArgoCD:     {{ 'OK' if argocd_verify.status == 200 else 'FAILED' }}"
+          - ""
+          - "Containers:  {{ container_count.stdout }}/9 running"
+          - ""
+          - "Next Steps:"
+          - "  1. Review credentials in {{ credentials_file }}"
+          - "  2. Login to GitLab and create 'orgmgmt' project"
+          - "  3. Configure GitLab Runner"
+          - "  4. Setup Nexus repositories"
+          - "  5. Deploy applications via ArgoCD"
+          - ""
+          - "=========================================="
+
+    - name: Create verification script
+      copy:
+        dest: "{{ base_dir }}/verify-environment.sh"
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Environment Verification Script
+
+          echo "=========================================="
+          echo "ArgoCD Environment Verification"
+          echo "=========================================="
+          echo ""
+
+          # Check containers
+          echo "Running Containers:"
+          podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          echo ""
+
+          # Check services
+          echo "Service Health Checks:"
+          echo -n "PostgreSQL: "
+          podman exec orgmgmt-postgres pg_isready -U orgmgmt_user && echo "OK" || echo "FAILED"
+
+          echo -n "Redis: "
+          podman exec argocd-redis redis-cli ping && echo "OK" || echo "FAILED"
+
+          echo -n "Nexus: "
+          curl -s http://localhost:8081/service/rest/v1/status >/dev/null && echo "OK" || echo "FAILED"
+
+          echo -n "GitLab: "
+          curl -s http://localhost:5003/-/health >/dev/null && echo "OK" || echo "FAILED"
+
+          echo -n "ArgoCD: "
+          curl -s http://localhost:5010/healthz >/dev/null && echo "OK" || echo "FAILED"
+
+          echo -n "pgAdmin: "
+          curl -s http://localhost:5050 >/dev/null && echo "OK" || echo "FAILED"
+
+          echo ""
+          echo "=========================================="
+          echo "For credentials, see: {{ credentials_file }}"
+          echo "=========================================="
+
+    - name: Final reminder
+      debug:
+        msg:
+          - ""
+          - "IMPORTANT REMINDERS:"
+          - "- Credentials saved to: {{ credentials_file }}"
+          - "- Verification script: {{ base_dir }}/verify-environment.sh"
+          - "- To view logs: podman logs <container-name>"
+          - "- To restart all: cd {{ infrastructure_dir }} && podman-compose restart"
+          - ""

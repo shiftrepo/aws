@@ -1,0 +1,95 @@
+# syntax=docker/dockerfile:1
+
+# =============================================================================
+# Stage 1: Downloader - Fetch JAR artifact from Nexus repository
+# =============================================================================
+FROM curlimages/curl:latest AS downloader
+
+# Build arguments for Nexus repository configuration
+ARG NEXUS_URL=http://localhost:8081
+ARG GROUP_ID=com.example
+ARG ARTIFACT_ID=orgmgmt-backend
+ARG VERSION=1.0.0-SNAPSHOT
+ARG REPOSITORY=maven-snapshots
+
+# Convert Maven coordinates to repository path
+# Example: com.example -> com/example
+USER root
+WORKDIR /download
+
+# Download JAR artifact from Nexus Maven repository
+# For SNAPSHOT versions, we need to resolve the actual filename from maven-metadata.xml
+RUN set -ex && \
+    GROUP_PATH=$(echo ${GROUP_ID} | tr '.' '/') && \
+    BASE_URL="${NEXUS_URL}/repository/${REPOSITORY}/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}" && \
+    echo "Downloading from: ${BASE_URL}" && \
+    if echo "${VERSION}" | grep -q "SNAPSHOT"; then \
+        # For SNAPSHOT versions, fetch maven-metadata.xml to get the actual filename
+        curl -fsSL "${BASE_URL}/maven-metadata.xml" -o maven-metadata.xml && \
+        TIMESTAMP=$(grep -oP '<timestamp>\K[^<]+' maven-metadata.xml | head -1) && \
+        BUILD_NUMBER=$(grep -oP '<buildNumber>\K[^<]+' maven-metadata.xml | head -1) && \
+        SNAPSHOT_VERSION=$(echo ${VERSION} | sed 's/-SNAPSHOT//') && \
+        ACTUAL_VERSION="${SNAPSHOT_VERSION}-${TIMESTAMP}-${BUILD_NUMBER}" && \
+        JAR_FILE="${ARTIFACT_ID}-${ACTUAL_VERSION}.jar" && \
+        echo "Resolved SNAPSHOT artifact: ${JAR_FILE}" && \
+        curl -fsSL "${BASE_URL}/${JAR_FILE}" -o app.jar; \
+    else \
+        # For release versions, filename is predictable
+        JAR_FILE="${ARTIFACT_ID}-${VERSION}.jar" && \
+        echo "Downloading release artifact: ${JAR_FILE}" && \
+        curl -fsSL "${BASE_URL}/${JAR_FILE}" -o app.jar; \
+    fi && \
+    # Verify the JAR file was downloaded and is valid
+    ls -lh app.jar && \
+    file app.jar
+
+# =============================================================================
+# Stage 2: Runtime - Minimal JRE image for running the application
+# =============================================================================
+FROM eclipse-temurin:17-jre-alpine
+
+# Metadata labels following OCI image specification
+LABEL org.opencontainers.image.title="OrgMgmt Backend Service" \
+      org.opencontainers.image.description="Employee organization management backend API" \
+      org.opencontainers.image.vendor="Example Corp" \
+      org.opencontainers.image.authors="devops@example.com" \
+      org.opencontainers.image.url="https://github.com/example/orgmgmt" \
+      org.opencontainers.image.documentation="https://github.com/example/orgmgmt/docs" \
+      org.opencontainers.image.source="https://github.com/example/orgmgmt" \
+      org.opencontainers.image.version="${VERSION:-1.0.0-SNAPSHOT}" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+# Install curl for healthcheck and cleanup cache
+RUN apk add --no-cache curl && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user for security
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser
+
+# Application directory
+WORKDIR /app
+
+# Copy JAR from downloader stage
+COPY --from=downloader --chown=appuser:appuser /download/app.jar /app/app.jar
+
+# Switch to non-root user
+USER appuser
+
+# Environment variables for JVM tuning
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+               -XX:MaxRAMPercentage=75.0 \
+               -XX:InitialRAMPercentage=50.0 \
+               -XX:+UseG1GC \
+               -XX:+ExitOnOutOfMemoryError \
+               -Djava.security.egd=file:/dev/./urandom"
+
+# Expose application port
+EXPOSE 8080
+
+# Healthcheck using Spring Boot Actuator
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# Run the application
+CMD ["sh", "-c", "java ${JAVA_OPTS} -jar /app/app.jar"]

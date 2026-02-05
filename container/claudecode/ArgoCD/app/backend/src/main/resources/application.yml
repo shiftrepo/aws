@@ -1,0 +1,117 @@
+spring:
+  application:
+    name: orgmgmt-backend
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/orgmgmt
+    username: orgmgmt_user
+    password: ${POSTGRES_PASSWORD:SecurePassword123!}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-disabled: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    db:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.example.orgmgmt: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.example.orgmgmt: DEBUG
+    org.springframework.web: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.example.orgmgmt: INFO
+    org.springframework.web: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: WARN
+    com.example.orgmgmt: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN

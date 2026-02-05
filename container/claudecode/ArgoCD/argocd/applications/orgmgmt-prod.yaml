@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: orgmgmt-prod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: RequireApproval=true
+    notifications.argoproj.io/subscribe.on-sync-succeeded: enabled
+spec:
+  project: orgmgmt
+  source:
+    repoURL: file:///gitops
+    targetRevision: HEAD
+    path: prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  ignoreDifferences: []

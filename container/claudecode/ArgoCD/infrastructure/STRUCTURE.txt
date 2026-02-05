@@ -1,0 +1,77 @@
+Infrastructure Directory Structure
+====================================
+
+infrastructure/
+├── podman-compose.yml           # Main compose file with all 10 services
+├── .env                         # Environment variables (DO NOT COMMIT)
+├── .env.example                 # Template for environment variables
+├── README.md                    # Comprehensive documentation
+├── SETUP_CHECKLIST.md          # Step-by-step setup guide
+├── STRUCTURE.txt               # This file - directory structure overview
+├── start.sh                     # Start all services
+├── stop.sh                      # Stop all services
+├── status.sh                    # Check service health
+├── gitops/                      # ArgoCD GitOps manifests directory
+│   └── .gitkeep
+└── config/                      # Service-specific configurations
+    ├── postgres/
+    │   └── init.sql             # PostgreSQL initialization script
+    ├── nexus/
+    │   └── nexus.properties     # Nexus configuration
+    ├── gitlab/
+    │   └── gitlab.rb            # GitLab Omnibus configuration
+    └── gitlab-runner/
+        └── config.toml          # GitLab Runner configuration
+
+Services Defined in podman-compose.yml:
+========================================
+
+1. postgres               - PostgreSQL 16 database
+2. pgadmin                - pgAdmin 4 database management UI
+3. nexus                  - Nexus Repository Manager 3
+4. gitlab                 - GitLab CE source control & CI/CD
+5. gitlab-runner          - GitLab CI/CD job executor
+6. argocd-redis           - Redis cache for ArgoCD
+7. argocd-repo-server     - ArgoCD repository server
+8. argocd-application-controller - ArgoCD application controller
+9. argocd-server          - ArgoCD API server & web UI
+
+Network:
+========================================
+- argocd-network (bridge)  - All services connected
+
+Volumes:
+========================================
+- orgmgmt-postgres-data    - PostgreSQL data
+- orgmgmt-pgadmin-data     - pgAdmin configuration
+- orgmgmt-nexus-data       - Nexus artifacts & config
+- orgmgmt-gitlab-config    - GitLab configuration
+- orgmgmt-gitlab-logs      - GitLab logs
+- orgmgmt-gitlab-data      - GitLab repositories
+- orgmgmt-gitlab-runner-config - Runner configuration
+- argocd-redis-data        - Redis data
+- argocd-repo-data         - ArgoCD repo cache
+- argocd-controller-data   - ArgoCD controller state
+- argocd-server-data       - ArgoCD server config
+
+Port Mappings:
+========================================
+5432  -> PostgreSQL
+5050  -> pgAdmin
+8081  -> Nexus HTTP
+8082  -> Nexus Docker Registry
+5003  -> GitLab HTTP
+5005  -> GitLab Container Registry
+2222  -> GitLab SSH
+5010  -> ArgoCD Server
+6379  -> Redis (internal)
+
+Quick Start:
+========================================
+1. Review and customize .env file
+2. Run: ./start.sh
+3. Wait 5-10 minutes for all services to start
+4. Run: ./status.sh to verify
+5. Follow SETUP_CHECKLIST.md for post-deployment config
+
+For detailed information, see README.md

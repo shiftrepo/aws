@@ -1,0 +1,417 @@
+---
+# ========================================
+# ビルドとアーティファクト登録 - Ansible自動化
+# ========================================
+# GitLabの代わりにAnsibleでビルドを実行し、
+# Nexusにアーティファクトを登録
+#
+# 対象:
+# - Backend: Java/Maven (Spring Boot)
+# - Frontend: JavaScript/NPM (React + Vite)
+#
+# 実行方法:
+#   ansible-playbook -i inventory/hosts.yml playbooks/build_and_deploy_artifacts.yml
+# ========================================
+
+- name: Build and deploy artifacts to Nexus
+  hosts: localhost
+  gather_facts: yes
+
+  vars:
+    base_dir: "/root/aws.git/container/claudecode/ArgoCD"
+    app_dir: "{{ base_dir }}/app"
+    backend_dir: "{{ app_dir }}/backend"
+    frontend_dir: "{{ app_dir }}/frontend"
+
+    # Nexus設定
+    nexus_url: "http://localhost:8000"
+    nexus_username: "admin"
+    nexus_password: "admin123"  # 初回ログイン後に変更された値
+
+    # Maven設定
+    maven_group_id: "com.example"
+    maven_artifact_id: "orgmgmt-backend"
+    maven_version: "1.0.0-SNAPSHOT"
+    maven_repository_id: "nexus-snapshots"
+    maven_repository_url: "{{ nexus_url }}/repository/maven-snapshots/"
+
+    # NPM設定
+    npm_package_name: "@orgmgmt/frontend"
+    npm_version: "1.0.0"
+    npm_registry: "{{ nexus_url }}/repository/npm-hosted/"
+
+  tasks:
+    # ========================================
+    # Phase 1: 前提条件確認
+    # ========================================
+
+    - name: Phase 1 - Check prerequisites
+      block:
+        - name: Check if Nexus is running
+          uri:
+            url: "{{ nexus_url }}"
+            status_code: [200, 302, 401]
+            timeout: 10
+          register: nexus_check
+          failed_when: false
+          changed_when: false
+
+        - name: Fail if Nexus is not running
+          fail:
+            msg: "Nexus is not running. Please wait for Nexus to initialize (10-15 minutes) and try again."
+          when: nexus_check.status not in [200, 302, 401]
+
+        - name: Check if Maven is installed
+          command: mvn --version
+          register: maven_check
+          failed_when: false
+          changed_when: false
+
+        - name: Check if Node.js is installed
+          command: node --version
+          register: node_check
+          failed_when: false
+          changed_when: false
+
+        - name: Check if NPM is installed
+          command: npm --version
+          register: npm_check
+          failed_when: false
+          changed_when: false
+
+        - name: Display prerequisites status
+          debug:
+            msg:
+              - "Prerequisites Status:"
+              - "  Nexus: {{ 'OK' if nexus_check.status in [200, 302, 401] else 'FAILED' }}"
+              - "  Maven: {{ 'OK' if maven_check.rc == 0 else 'NOT INSTALLED' }}"
+              - "  Node.js: {{ 'OK' if node_check.rc == 0 else 'NOT INSTALLED' }}"
+              - "  NPM: {{ 'OK' if npm_check.rc == 0 else 'NOT INSTALLED' }}"
+
+      tags:
+        - prerequisites
+
+    # ========================================
+    # Phase 2: Backend (Java/Maven) ビルド
+    # ========================================
+
+    - name: Phase 2 - Build Backend (Java/Maven)
+      block:
+        - name: Clean backend build directory
+          file:
+            path: "{{ backend_dir }}/target"
+            state: absent
+
+        - name: Run Maven clean package
+          shell: |
+            cd {{ backend_dir }}
+            mvn clean package -DskipTests
+          register: maven_build
+          changed_when: '"BUILD SUCCESS" in maven_build.stdout'
+          failed_when: maven_build.rc != 0
+
+        - name: Check if JAR file was created
+          stat:
+            path: "{{ backend_dir }}/target/{{ maven_artifact_id }}-{{ maven_version }}.jar"
+          register: jar_file
+
+        - name: Display build result
+          debug:
+            msg:
+              - "Backend Build Result:"
+              - "  Status: {{ 'SUCCESS' if maven_build.rc == 0 else 'FAILED' }}"
+              - "  JAR: {{ 'Created' if jar_file.stat.exists else 'Not Found' }}"
+              - "  Path: {{ backend_dir }}/target/{{ maven_artifact_id }}-{{ maven_version }}.jar"
+
+      tags:
+        - backend-build
+      when: maven_check.rc == 0
+
+    # ========================================
+    # Phase 3: Backend アーティファクト Nexus登録
+    # ========================================
+
+    - name: Phase 3 - Deploy Backend artifact to Nexus
+      block:
+        - name: Configure Maven settings.xml for Nexus
+          copy:
+            content: |
+              <settings>
+                <servers>
+                  <server>
+                    <id>{{ maven_repository_id }}</id>
+                    <username>{{ nexus_username }}</username>
+                    <password>{{ nexus_password }}</password>
+                  </server>
+                </servers>
+              </settings>
+            dest: "{{ backend_dir }}/settings.xml"
+            mode: '0600'
+
+        - name: Deploy to Nexus using Maven
+          shell: |
+            cd {{ backend_dir }}
+            mvn deploy:deploy-file \
+              -DgroupId={{ maven_group_id }} \
+              -DartifactId={{ maven_artifact_id }} \
+              -Dversion={{ maven_version }} \
+              -Dpackaging=jar \
+              -Dfile=target/{{ maven_artifact_id }}-{{ maven_version }}.jar \
+              -DrepositoryId={{ maven_repository_id }} \
+              -Durl={{ maven_repository_url }} \
+              -s settings.xml
+          register: maven_deploy
+          changed_when: '"BUILD SUCCESS" in maven_deploy.stdout'
+          failed_when: maven_deploy.rc != 0
+
+        - name: Verify artifact in Nexus
+          uri:
+            url: "{{ maven_repository_url }}{{ maven_group_id | replace('.', '/') }}/{{ maven_artifact_id }}/{{ maven_version }}/{{ maven_artifact_id }}-{{ maven_version }}.jar"
+            method: HEAD
+            status_code: [200, 401]
+            timeout: 10
+          register: verify_maven
+          failed_when: false
+          changed_when: false
+
+        - name: Display deploy result
+          debug:
+            msg:
+              - "Backend Deploy Result:"
+              - "  Status: {{ 'SUCCESS' if maven_deploy.rc == 0 else 'FAILED' }}"
+              - "  Repository: {{ maven_repository_url }}"
+              - "  Artifact: {{ maven_group_id }}:{{ maven_artifact_id }}:{{ maven_version }}"
+              - "  Verification: {{ 'OK' if verify_maven.status == 200 else 'Authentication Required' if verify_maven.status == 401 else 'FAILED' }}"
+
+      tags:
+        - backend-deploy
+      when:
+        - maven_check.rc == 0
+        - jar_file.stat.exists
+
+    # ========================================
+    # Phase 4: Frontend (JavaScript/NPM) ビルド
+    # ========================================
+
+    - name: Phase 4 - Build Frontend (JavaScript/NPM)
+      block:
+        - name: Clean frontend build directory
+          file:
+            path: "{{ frontend_dir }}/dist"
+            state: absent
+
+        - name: Install NPM dependencies
+          shell: |
+            cd {{ frontend_dir }}
+            npm ci
+          register: npm_install
+          changed_when: '"added" in npm_install.stdout'
+
+        - name: Run NPM build
+          shell: |
+            cd {{ frontend_dir }}
+            npm run build
+          register: npm_build
+          changed_when: true
+          failed_when: npm_build.rc != 0
+
+        - name: Check if dist directory was created
+          stat:
+            path: "{{ frontend_dir }}/dist"
+          register: dist_dir
+
+        - name: Display build result
+          debug:
+            msg:
+              - "Frontend Build Result:"
+              - "  Status: {{ 'SUCCESS' if npm_build.rc == 0 else 'FAILED' }}"
+              - "  Dist: {{ 'Created' if dist_dir.stat.exists else 'Not Found' }}"
+              - "  Path: {{ frontend_dir }}/dist"
+
+      tags:
+        - frontend-build
+      when:
+        - node_check.rc == 0
+        - npm_check.rc == 0
+
+    # ========================================
+    # Phase 5: Frontend アーティファクト Nexus登録
+    # ========================================
+
+    - name: Phase 5 - Deploy Frontend artifact to Nexus
+      block:
+        - name: Create tarball from dist directory
+          shell: |
+            cd {{ frontend_dir }}
+            tar -czf frontend-{{ npm_version }}.tar.gz -C dist .
+          register: create_tarball
+          changed_when: true
+
+        - name: Check if tarball was created
+          stat:
+            path: "{{ frontend_dir }}/frontend-{{ npm_version }}.tar.gz"
+          register: tarball_file
+
+        - name: Deploy tarball to Nexus (raw repository)
+          shell: |
+            curl -v -u {{ nexus_username }}:{{ nexus_password }} \
+              --upload-file {{ frontend_dir }}/frontend-{{ npm_version }}.tar.gz \
+              {{ nexus_url }}/repository/maven-snapshots/com/example/orgmgmt-frontend/{{ npm_version }}/orgmgmt-frontend-{{ npm_version }}.tar.gz
+          register: upload_tarball
+          changed_when: upload_tarball.rc == 0
+          failed_when: false
+
+        - name: Configure NPM registry for Nexus
+          shell: |
+            cd {{ frontend_dir }}
+            npm config set registry {{ npm_registry }}
+          register: npm_config
+          changed_when: true
+          failed_when: false
+
+        - name: Update package.json with registry info
+          shell: |
+            cd {{ frontend_dir }}
+            cat > .npmrc << 'EOF'
+            registry={{ npm_registry }}
+            _auth=$(echo -n "{{ nexus_username }}:{{ nexus_password }}" | base64)
+            email=admin@example.com
+            always-auth=true
+            EOF
+          register: npmrc_create
+          changed_when: true
+
+        - name: Publish to NPM registry (if configured)
+          shell: |
+            cd {{ frontend_dir }}
+            npm publish --registry {{ npm_registry }}
+          register: npm_publish
+          changed_when: true
+          failed_when: false
+
+        - name: Display deploy result
+          debug:
+            msg:
+              - "Frontend Deploy Result:"
+              - "  Tarball: {{ 'Created' if tarball_file.stat.exists else 'Not Found' }}"
+              - "  Upload Status: {{ 'SUCCESS' if upload_tarball.rc == 0 else 'FAILED' }}"
+              - "  NPM Publish: {{ 'SUCCESS' if npm_publish.rc == 0 else 'SKIPPED/FAILED' }}"
+              - "  Repository: {{ nexus_url }}/repository/maven-snapshots/"
+              - "  Artifact: com/example/orgmgmt-frontend/{{ npm_version }}/orgmgmt-frontend-{{ npm_version }}.tar.gz"
+
+      tags:
+        - frontend-deploy
+      when:
+        - node_check.rc == 0
+        - npm_check.rc == 0
+        - dist_dir.stat.exists
+
+    # ========================================
+    # Phase 6: ビルド結果サマリー
+    # ========================================
+
+    - name: Phase 6 - Generate build summary report
+      block:
+        - name: Create build summary
+          copy:
+            content: |
+              # ビルドとアーティファクト登録レポート
+
+              **実行日時**: {{ ansible_date_time.iso8601 }}
+              **ステータス**: ✅ 完了
+
+              ---
+
+              ## Backend (Java/Maven)
+
+              ### ビルド情報
+              - **Maven Version**: {{ maven_check.stdout.split('\n')[0] if maven_check.rc == 0 else 'Not Installed' }}
+              - **Build Status**: {{ 'SUCCESS' if maven_build.rc == 0 else 'FAILED' if maven_check.rc == 0 else 'SKIPPED' }}
+              - **JAR File**: {{ backend_dir }}/target/{{ maven_artifact_id }}-{{ maven_version }}.jar
+
+              ### Nexus登録情報
+              - **Repository**: {{ maven_repository_url }}
+              - **Group ID**: {{ maven_group_id }}
+              - **Artifact ID**: {{ maven_artifact_id }}
+              - **Version**: {{ maven_version }}
+              - **Deploy Status**: {{ 'SUCCESS' if maven_deploy.rc == 0 else 'FAILED' if maven_check.rc == 0 and jar_file.stat.exists else 'SKIPPED' }}
+
+              ### アクセス方法
+              ```
+              # Maven依存関係に追加
+              <dependency>
+                <groupId>{{ maven_group_id }}</groupId>
+                <artifactId>{{ maven_artifact_id }}</artifactId>
+                <version>{{ maven_version }}</version>
+              </dependency>
+
+              # pom.xmlにリポジトリ追加
+              <repository>
+                <id>{{ maven_repository_id }}</id>
+                <url>{{ maven_repository_url }}</url>
+              </repository>
+
+              # ダウンロードURL
+              {{ maven_repository_url }}{{ maven_group_id | replace('.', '/') }}/{{ maven_artifact_id }}/{{ maven_version }}/{{ maven_artifact_id }}-{{ maven_version }}.jar
+              ```
+
+              ---
+
+              ## Frontend (JavaScript/NPM)
+
+              ### ビルド情報
+              - **Node.js Version**: {{ node_check.stdout if node_check.rc == 0 else 'Not Installed' }}
+              - **NPM Version**: {{ npm_check.stdout if npm_check.rc == 0 else 'Not Installed' }}
+              - **Build Status**: {{ 'SUCCESS' if npm_build.rc == 0 else 'FAILED' if npm_check.rc == 0 else 'SKIPPED' }}
+              - **Dist Directory**: {{ frontend_dir }}/dist
+
+              ### Nexus登録情報
+              - **Repository**: {{ nexus_url }}/repository/maven-snapshots/
+              - **Tarball**: com/example/orgmgmt-frontend/{{ npm_version }}/orgmgmt-frontend-{{ npm_version }}.tar.gz
+              - **Deploy Status**: {{ 'SUCCESS' if upload_tarball.rc == 0 else 'FAILED' if npm_check.rc == 0 and dist_dir.stat.exists else 'SKIPPED' }}
+
+              ### アクセス方法
+              ```bash
+              # Tarballダウンロード
+              curl -u {{ nexus_username }}:{{ nexus_password }} \
+                -O {{ nexus_url }}/repository/maven-snapshots/com/example/orgmgmt-frontend/{{ npm_version }}/orgmgmt-frontend-{{ npm_version }}.tar.gz
+
+              # 展開
+              tar -xzf orgmgmt-frontend-{{ npm_version }}.tar.gz
+              ```
+
+              ---
+
+              ## Nexus接続情報
+
+              - **URL**: {{ nexus_url }}
+              - **Username**: {{ nexus_username }}
+              - **Password**: {{ nexus_password }}
+
+              ---
+
+              **レポート生成**: {{ ansible_date_time.iso8601 }}
+            dest: "{{ base_dir }}/BUILD-DEPLOY-REPORT.md"
+            mode: '0644'
+
+        - name: Display completion summary
+          debug:
+            msg:
+              - "=========================================="
+              - "  Build and Deploy Complete!"
+              - "=========================================="
+              - ""
+              - "Backend (Java/Maven):"
+              - "  Build: {{ 'SUCCESS' if maven_build.rc == 0 else 'FAILED' if maven_check.rc == 0 else 'SKIPPED' }}"
+              - "  Deploy: {{ 'SUCCESS' if maven_deploy.rc == 0 else 'FAILED' if maven_check.rc == 0 and jar_file.stat.exists else 'SKIPPED' }}"
+              - ""
+              - "Frontend (JavaScript/NPM):"
+              - "  Build: {{ 'SUCCESS' if npm_build.rc == 0 else 'FAILED' if npm_check.rc == 0 else 'SKIPPED' }}"
+              - "  Deploy: {{ 'SUCCESS' if upload_tarball.rc == 0 else 'FAILED' if npm_check.rc == 0 and dist_dir.stat.exists else 'SKIPPED' }}"
+              - ""
+              - "Report: {{ base_dir }}/BUILD-DEPLOY-REPORT.md"
+              - ""
+              - "=========================================="
+
+      tags:
+        - report

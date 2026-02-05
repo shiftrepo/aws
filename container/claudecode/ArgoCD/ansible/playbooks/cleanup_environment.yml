@@ -1,0 +1,228 @@
+---
+- name: Cleanup ArgoCD Environment
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+
+  vars_files:
+    - ../group_vars/all.yml
+
+  vars:
+    cleanup_volumes: false
+    cleanup_images: false
+    cleanup_network: false
+
+  tasks:
+    - name: Display cleanup warning
+      debug:
+        msg:
+          - "=========================================="
+          - "ArgoCD Environment Cleanup"
+          - "=========================================="
+          - "WARNING: This will stop and remove containers"
+          - ""
+          - "Options:"
+          - "  cleanup_volumes: {{ cleanup_volumes }} (will delete all data)"
+          - "  cleanup_images: {{ cleanup_images }} (will remove container images)"
+          - "  cleanup_network: {{ cleanup_network }} (will remove network)"
+          - ""
+          - "To enable options, use: -e cleanup_volumes=true"
+          - "=========================================="
+
+    - name: Pause for confirmation
+      pause:
+        prompt: "Press Enter to continue with cleanup, or Ctrl+C to abort"
+      when: cleanup_volumes or cleanup_images
+
+    # Stop and remove containers
+    - name: Stop infrastructure with podman-compose
+      command: podman-compose -f {{ compose_file }} down
+      args:
+        chdir: "{{ infrastructure_directory }}"
+      register: compose_down
+      failed_when: false
+      changed_when: compose_down.rc == 0
+
+    - name: Display compose down output
+      debug:
+        msg: "{{ compose_down.stdout_lines }}"
+      when: compose_down.stdout_lines is defined
+
+    - name: List remaining containers
+      command: podman ps -a --format "{{.Names}}"
+      register: remaining_containers
+      changed_when: false
+
+    - name: Stop any remaining containers
+      command: podman stop {{ item }}
+      loop: "{{ container_names }}"
+      when: item in remaining_containers.stdout_lines
+      failed_when: false
+
+    - name: Remove any remaining containers
+      command: podman rm {{ item }}
+      loop: "{{ container_names }}"
+      when: item in remaining_containers.stdout_lines
+      failed_when: false
+
+    # Clean volumes if requested
+    - name: Remove volumes
+      block:
+        - name: List volumes to remove
+          debug:
+            msg: "Removing volumes: {{ container_names | map('regex_replace', '^(.*)$', '\\1-data') | list }}"
+
+        - name: Remove PostgreSQL volume
+          command: podman volume rm {{ postgres_volume_name }}
+          failed_when: false
+
+        - name: Remove pgAdmin volume
+          command: podman volume rm {{ pgadmin_volume_name }}
+          failed_when: false
+
+        - name: Remove Nexus volume
+          command: podman volume rm {{ nexus_volume_name }}
+          failed_when: false
+
+        - name: Remove GitLab volumes
+          command: podman volume rm {{ item }}
+          loop:
+            - "{{ gitlab_config_volume }}"
+            - "{{ gitlab_logs_volume }}"
+            - "{{ gitlab_data_volume }}"
+            - "{{ gitlab_runner_config_volume }}"
+          failed_when: false
+
+        - name: Remove ArgoCD volumes
+          command: podman volume rm {{ item }}
+          loop:
+            - "{{ argocd_server_volume }}"
+            - "{{ argocd_repo_volume }}"
+            - "{{ argocd_controller_volume }}"
+            - "{{ argocd_redis_volume }}"
+          failed_when: false
+
+        - name: Prune unused volumes
+          command: podman volume prune -f
+          register: volume_prune
+          changed_when: true
+      when: cleanup_volumes
+
+    # Clean images if requested
+    - name: Remove container images
+      block:
+        - name: List images to remove
+          command: podman images --format "{{.Repository}}:{{.Tag}}"
+          register: images_list
+          changed_when: false
+
+        - name: Display images
+          debug:
+            msg: "{{ images_list.stdout_lines }}"
+
+        - name: Remove images
+          command: podman rmi {{ item }}
+          loop: "{{ images_list.stdout_lines }}"
+          when: >
+            'postgres' in item or
+            'nexus' in item or
+            'gitlab' in item or
+            'argocd' in item or
+            'redis' in item or
+            'pgadmin' in item
+          failed_when: false
+
+        - name: Prune unused images
+          command: podman image prune -af
+          register: image_prune
+          changed_when: true
+      when: cleanup_images
+
+    # Clean network if requested
+    - name: Remove network
+      block:
+        - name: Remove ArgoCD network
+          command: podman network rm {{ network_name }}
+          register: network_remove
+          failed_when: false
+          changed_when: network_remove.rc == 0
+
+        - name: Display network removal status
+          debug:
+            msg: "Network removed: {{ network_remove.rc == 0 }}"
+      when: cleanup_network
+
+    # Verify cleanup
+    - name: List remaining containers after cleanup
+      command: podman ps -a --format "{{.Names}}"
+      register: final_containers
+      changed_when: false
+
+    - name: Count remaining containers
+      set_fact:
+        remaining_count: "{{ final_containers.stdout_lines | length }}"
+
+    - name: List remaining volumes after cleanup
+      command: podman volume ls --format "{{.Name}}"
+      register: final_volumes
+      changed_when: false
+      when: cleanup_volumes
+
+    - name: Count remaining volumes
+      set_fact:
+        remaining_volumes_count: "{{ final_volumes.stdout_lines | length }}"
+      when: cleanup_volumes
+
+    # Clean up files
+    - name: Remove credentials file
+      file:
+        path: "{{ credentials_file }}"
+        state: absent
+      when: cleanup_volumes
+
+    - name: Remove .env file
+      file:
+        path: "{{ env_file }}"
+        state: absent
+      when: cleanup_volumes
+
+    - name: Remove verification script
+      file:
+        path: "{{ base_directory }}/verify-environment.sh"
+        state: absent
+      when: cleanup_volumes
+
+    # Display summary
+    - name: Display cleanup summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Cleanup Summary"
+          - "=========================================="
+          - ""
+          - "Containers removed: {{ container_names | length }}"
+          - "Remaining containers: {{ remaining_count }}"
+          - "Volumes removed: {{ 'Yes' if cleanup_volumes else 'No (preserved)' }}"
+          - "Images removed: {{ 'Yes' if cleanup_images else 'No (preserved)' }}"
+          - "Network removed: {{ 'Yes' if cleanup_network else 'No (preserved)' }}"
+          - ""
+          - "Status: {{ 'Complete' if remaining_count | int == 0 else 'Partial - some containers remain' }}"
+          - ""
+          - "To verify: podman ps -a"
+          - "To restart: cd {{ base_directory }}/ansible && ./bootstrap.sh"
+          - "=========================================="
+
+    - name: Final instructions
+      debug:
+        msg:
+          - ""
+          - "Cleanup completed successfully!"
+          - ""
+          - "To completely remove all data, run:"
+          - "  ansible-playbook playbooks/cleanup_environment.yml -e cleanup_volumes=true -e cleanup_images=true"
+          - ""
+          - "To rebuild environment:"
+          - "  cd {{ base_directory }}/ansible"
+          - "  ./bootstrap.sh"
+          - ""

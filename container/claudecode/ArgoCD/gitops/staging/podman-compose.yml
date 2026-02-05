@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  orgmgmt-backend:
+    image: localhost:5005/orgmgmt/backend:staging
+    container_name: orgmgmt-backend-staging
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-staging}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=orgmgmt
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - argocd-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - postgres
+
+  orgmgmt-frontend:
+    image: localhost:5005/orgmgmt/frontend:staging
+    container_name: orgmgmt-frontend-staging
+    ports:
+      - "5007:80"
+    environment:
+      - API_URL=http://orgmgmt-backend-staging:8080
+    networks:
+      - argocd-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - orgmgmt-backend
+
+networks:
+  argocd-network:
+    external: true

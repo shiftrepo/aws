@@ -1,0 +1,81 @@
+# GitLab Runner Configuration
+# This file configures the GitLab Runner for CI/CD pipelines
+
+# Global Configuration
+concurrent = 4
+check_interval = 0
+log_level = "info"
+log_format = "text"
+
+# Session Server Configuration
+[session_server]
+  session_timeout = 1800
+
+# Runner Configuration
+# Note: You need to register the runner with GitLab first
+# Run: podman exec -it orgmgmt-gitlab-runner gitlab-runner register
+
+# Example Runner Configuration (after registration)
+[[runners]]
+  name = "podman-runner"
+  url = "http://gitlab:5003"
+  token = "__REPLACE_WITH_REGISTRATION_TOKEN__"
+  executor = "shell"
+
+  # Shell Executor Configuration
+  [runners.custom_build_dir]
+    enabled = false
+
+  # Cache Configuration
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]
+
+# Docker Executor Configuration (Alternative)
+# Uncomment and configure if using Docker executor
+# [[runners]]
+#   name = "docker-runner"
+#   url = "http://gitlab:5003"
+#   token = "__REPLACE_WITH_REGISTRATION_TOKEN__"
+#   executor = "docker"
+#
+#   [runners.docker]
+#     tls_verify = false
+#     image = "docker:20.10.16"
+#     privileged = true
+#     disable_entrypoint_overwrite = false
+#     oom_kill_disable = false
+#     disable_cache = false
+#     volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock"]
+#     shm_size = 0
+#
+#   [runners.cache]
+#     MaxUploadedArchiveSize = 0
+
+# Kubernetes Executor Configuration (Alternative)
+# Uncomment and configure if using Kubernetes executor
+# [[runners]]
+#   name = "kubernetes-runner"
+#   url = "http://gitlab:5003"
+#   token = "__REPLACE_WITH_REGISTRATION_TOKEN__"
+#   executor = "kubernetes"
+#
+#   [runners.kubernetes]
+#     host = ""
+#     namespace = "gitlab-runner"
+#     image = "ubuntu:20.04"
+#     privileged = false
+#
+#   [runners.cache]
+#     Type = "s3"
+#     Path = "runner"
+#     Shared = false
+#
+#     [runners.cache.s3]
+#       ServerAddress = "minio:9000"
+#       BucketName = "runner-cache"
+#       BucketLocation = "us-east-1"
+#       Insecure = true

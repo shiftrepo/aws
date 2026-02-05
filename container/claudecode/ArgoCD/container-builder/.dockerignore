@@ -1,0 +1,122 @@
+# =============================================================================
+# Docker Ignore File
+# =============================================================================
+# Specifies files and directories that should be excluded from the Docker
+# build context to reduce build time and image size.
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+.jenkins/
+Jenkinsfile
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+docs/
+*.md
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
+
+# Build artifacts
+target/
+build/
+dist/
+*.jar
+*.war
+*.ear
+*.class
+
+# Node modules (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.cache
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Test files
+test/
+tests/
+*_test.go
+*.test
+coverage.*
+
+# Scripts (unless needed)
+scripts/*.sh
+*.sh
+
+# Container files
+Dockerfile*
+docker-compose*.yml
+podman-compose*.yml
+.dockerignore
+
+# Kubernetes and GitOps
+k8s/
+kubernetes/
+gitops/
+*.yaml
+*.yml
+!nginx.conf
+
+# Security
+.env
+.env.*
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# Backup files
+*.backup
+*.old
+
+# Archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar

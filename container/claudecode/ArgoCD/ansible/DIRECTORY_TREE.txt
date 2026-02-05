@@ -1,0 +1,141 @@
+/root/aws.git/container/claudecode/ArgoCD/ansible/
+│
+├── ansible.cfg                                   # Main Ansible configuration
+│   └── [8 lines] Inventory path, caching, settings
+│
+├── inventory/                                     # Inventory directory
+│   └── hosts.yml                                  # Localhost inventory
+│       └── [5 lines] Local connection configuration
+│
+├── playbooks/                                     # Playbooks directory
+│   │
+│   ├── site.yml                                   # Master orchestration playbook
+│   │   └── [159 lines] Runs all playbooks with tags
+│   │
+│   ├── configure_podman_registry.yml              # Registry configuration
+│   │   └── [222 lines] Sets up insecure registry at localhost:5005
+│   │
+│   ├── install_argocd.yml                         # ArgoCD CLI installation
+│   │   └── [137 lines] Downloads and installs ArgoCD v2.10.0
+│   │
+│   ├── deploy_infrastructure.yml                  # Infrastructure deployment
+│   │   └── [181 lines] Deploys all services with health checks
+│   │
+│   └── setup_application.yml                      # Application initialization
+│       └── [274 lines] Configures GitLab, Nexus, ArgoCD, DB
+│
+├── README.md                                      # Main documentation
+│   └── [434 lines] Complete reference guide
+│
+├── QUICKSTART.md                                  # Quick start guide
+│   └── [171 lines] Fast setup instructions
+│
+├── EXAMPLES.md                                    # Usage examples
+│   └── [530 lines] Practical scenarios and workflows
+│
+├── STRUCTURE.txt                                  # Architecture overview
+│   └── [87 lines] Visual component layout
+│
+├── SUMMARY.md                                     # Creation summary
+│   └── [288 lines] Complete project summary
+│
+└── DIRECTORY_TREE.txt                            # This file
+    └── Visual directory structure
+
+TOTAL: 12 files, 2,496 lines
+
+PLAYBOOKS EXECUTION FLOW:
+==========================
+
+site.yml
+  │
+  ├─[1]─> configure_podman_registry.yml
+  │       └── Creates: /etc/containers/registries.conf.d/gitlab.conf
+  │       └── Creates: /usr/local/bin/gitlab-registry-login
+  │
+  ├─[2]─> install_argocd.yml
+  │       └── Downloads: ArgoCD CLI v2.10.0
+  │       └── Installs: /usr/local/bin/argocd
+  │
+  ├─[3]─> deploy_infrastructure.yml
+  │       └── Deploys: PostgreSQL, pgAdmin, Nexus
+  │       └── Deploys: GitLab, GitLab Registry, GitLab Runner
+  │       └── Deploys: ArgoCD (Redis, Repo, Controller, Server)
+  │       └── Health checks all services
+  │
+  └─[4]─> setup_application.yml
+          └── Retrieves: Nexus admin password
+          └── Retrieves: ArgoCD admin password
+          └── Configures: ArgoCD CLI login
+          └── Tests: Database connectivity
+
+SERVICES DEPLOYED:
+==================
+
+┌─────────────────────────────────────────────────────┐
+│                  Infrastructure Stack                │
+├─────────────────────────────────────────────────────┤
+│  PostgreSQL        │ localhost:5432                 │
+│  pgAdmin           │ http://localhost:5050          │
+│  Nexus             │ http://localhost:8081          │
+│  GitLab            │ http://localhost:5003          │
+│  GitLab Registry   │ http://localhost:5005          │
+│  GitLab Runner     │ (internal)                     │
+├─────────────────────────────────────────────────────┤
+│  ArgoCD Redis      │ localhost:6379                 │
+│  ArgoCD Repo       │ (internal)                     │
+│  ArgoCD Controller │ (internal)                     │
+│  ArgoCD Server     │ http://localhost:5010          │
+└─────────────────────────────────────────────────────┘
+
+USAGE:
+======
+
+Complete Setup:
+  cd /root/aws.git/container/claudecode/ArgoCD/ansible
+  ansible-playbook playbooks/site.yml
+
+Individual Playbooks:
+  ansible-playbook playbooks/configure_podman_registry.yml
+  ansible-playbook playbooks/install_argocd.yml
+  ansible-playbook playbooks/deploy_infrastructure.yml
+  ansible-playbook playbooks/setup_application.yml
+
+Tagged Execution:
+  ansible-playbook playbooks/site.yml --tags registry
+  ansible-playbook playbooks/site.yml --tags cli
+  ansible-playbook playbooks/site.yml --tags infrastructure
+  ansible-playbook playbooks/site.yml --tags application
+
+FEATURES:
+=========
+
+✓ Idempotent playbooks (safe to run multiple times)
+✓ Comprehensive error handling
+✓ Service health monitoring with retries
+✓ Automatic password retrieval
+✓ Helper script generation
+✓ Configuration backups
+✓ Detailed logging and debug output
+✓ Production-ready workflows
+✓ Extensive documentation
+✓ Tag-based selective execution
+
+DOCUMENTATION:
+==============
+
+README.md       - Complete reference (434 lines)
+QUICKSTART.md   - Quick start guide (171 lines)
+EXAMPLES.md     - Usage examples (530 lines)
+STRUCTURE.txt   - Architecture (87 lines)
+SUMMARY.md      - Project summary (288 lines)
+
+TIME ESTIMATES:
+===============
+
+configure_podman_registry.yml  ~30 seconds
+install_argocd.yml            ~1-2 minutes
+deploy_infrastructure.yml     ~10-15 minutes
+setup_application.yml         ~2-3 minutes
+-------------------------------------------
+Total (site.yml)              ~15-20 minutes

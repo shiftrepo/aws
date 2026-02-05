@@ -1,0 +1,137 @@
+---
+- name: Install ArgoCD CLI
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  vars:
+    argocd_version: "v2.10.0"
+    argocd_binary_url: "https://github.com/argoproj/argocd/releases/download/{{ argocd_version }}/argocd-linux-amd64"
+    argocd_install_path: "/usr/local/bin/argocd"
+
+  tasks:
+    - name: Check if ArgoCD CLI is already installed
+      stat:
+        path: "{{ argocd_install_path }}"
+      register: argocd_binary
+
+    - name: Get installed ArgoCD version
+      command: "{{ argocd_install_path }} version --client --short"
+      register: installed_argocd_version
+      when: argocd_binary.stat.exists
+      changed_when: false
+      failed_when: false
+
+    - name: Display installed ArgoCD version
+      debug:
+        msg: "ArgoCD CLI version {{ installed_argocd_version.stdout }} is already installed"
+      when:
+        - argocd_binary.stat.exists
+        - installed_argocd_version.rc == 0
+
+    - name: Check if version matches
+      set_fact:
+        version_matches: "{{ argocd_version in installed_argocd_version.stdout }}"
+      when:
+        - argocd_binary.stat.exists
+        - installed_argocd_version.rc == 0
+
+    - name: Skip installation if correct version is installed
+      debug:
+        msg: "Correct version of ArgoCD CLI is already installed. Skipping download."
+      when:
+        - argocd_binary.stat.exists
+        - version_matches is defined
+        - version_matches
+
+    - name: Create temporary download directory
+      file:
+        path: /tmp/argocd-install
+        state: directory
+        mode: '0755'
+      when: >
+        not argocd_binary.stat.exists or
+        (version_matches is defined and not version_matches)
+
+    - name: Download ArgoCD CLI binary
+      get_url:
+        url: "{{ argocd_binary_url }}"
+        dest: /tmp/argocd-install/argocd
+        mode: '0755'
+        timeout: 300
+      register: argocd_download
+      when: >
+        not argocd_binary.stat.exists or
+        (version_matches is defined and not version_matches)
+
+    - name: Display download status
+      debug:
+        msg: "ArgoCD CLI downloaded successfully to {{ argocd_download.dest }}"
+      when: argocd_download is changed
+
+    - name: Verify downloaded binary
+      command: /tmp/argocd-install/argocd version --client --short
+      register: downloaded_version
+      when: argocd_download is changed
+      changed_when: false
+      failed_when: downloaded_version.rc != 0
+
+    - name: Display downloaded version
+      debug:
+        msg: "Downloaded ArgoCD CLI version: {{ downloaded_version.stdout }}"
+      when: downloaded_version is changed
+
+    - name: Remove old ArgoCD binary if exists
+      file:
+        path: "{{ argocd_install_path }}"
+        state: absent
+      when: >
+        argocd_binary.stat.exists and
+        version_matches is defined and
+        not version_matches
+
+    - name: Install ArgoCD CLI to /usr/local/bin
+      copy:
+        src: /tmp/argocd-install/argocd
+        dest: "{{ argocd_install_path }}"
+        mode: '0755'
+        remote_src: yes
+      when: argocd_download is changed
+
+    - name: Verify ArgoCD CLI installation
+      command: "{{ argocd_install_path }} version --client --short"
+      register: verify_argocd
+      changed_when: false
+
+    - name: Display verification result
+      debug:
+        msg: "ArgoCD CLI successfully installed: {{ verify_argocd.stdout }}"
+
+    - name: Check ArgoCD CLI help
+      command: "{{ argocd_install_path }} --help"
+      register: argocd_help
+      changed_when: false
+      failed_when: false
+
+    - name: Display ArgoCD CLI capabilities
+      debug:
+        msg: "ArgoCD CLI is functional and ready to use"
+      when: argocd_help.rc == 0
+
+    - name: Clean up temporary download directory
+      file:
+        path: /tmp/argocd-install
+        state: absent
+      when: argocd_download is changed
+
+    - name: Display installation summary
+      debug:
+        msg:
+          - "=========================================="
+          - "ArgoCD CLI Installation Complete!"
+          - "=========================================="
+          - ""
+          - "Binary location: {{ argocd_install_path }}"
+          - "Version: {{ verify_argocd.stdout }}"
+          - ""
+          - "Usage: argocd [command] --help"
+          - "=========================================="

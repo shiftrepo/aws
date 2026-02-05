@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    # Readonly access for all authenticated users
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, projects, get, *, allow
+
+    # Developer role
+    p, role:developer, applications, *, */orgmgmt-dev, allow
+    p, role:developer, applications, get, */*, allow
+
+    # Operator role
+    p, role:operator, applications, *, */*, allow
+    p, role:operator, projects, *, *, allow
+
+    # Admin role (full access)
+    p, role:admin, *, *, */*, allow
+
+    # Role bindings (map users to roles)
+    g, admin, role:admin

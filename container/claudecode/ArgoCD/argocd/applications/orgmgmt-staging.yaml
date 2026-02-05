@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: orgmgmt-staging
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: RequireApproval=true
+spec:
+  project: orgmgmt
+  source:
+    repoURL: file:///gitops
+    targetRevision: HEAD
+    path: staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences: []
