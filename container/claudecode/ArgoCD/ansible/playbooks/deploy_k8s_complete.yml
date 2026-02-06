@@ -500,6 +500,25 @@
             - socat-argocd-http
             - socat-argocd-https
 
+        - name: Add iptables rules for external access ports
+          iptables:
+            chain: INPUT
+            protocol: tcp
+            destination_port: "{{ item }}"
+            jump: ACCEPT
+            comment: "Allow external access to {{ item }}"
+          become: yes
+          loop:
+            - 5006
+            - 8083
+            - 8000
+            - 8082
+
+        - name: Save iptables rules
+          shell: iptables-save > /etc/sysconfig/iptables
+          become: yes
+          failed_when: false
+
         - name: Verify socat services
           shell: ss -tlnp | grep -E "5006|8083|8082|8000" || true
           register: listening_ports
