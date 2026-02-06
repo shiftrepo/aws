@@ -35,6 +35,23 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:argocd-redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
+  session:
+    store-type: redis
+    redis:
+      namespace: spring:session:orgmgmt
+    timeout: 1800s
+
 server:
   port: 8080
   servlet:

@@ -528,3 +528,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* System Info Styles */
+.system-info {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.system-info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.system-info-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .system-info {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.5rem;
+    margin-left: 0;
+  }
+
+  .system-info-badge {
+    font-size: 0.6875rem;
+    padding: 0.1875rem 0.5rem;
+  }
+}

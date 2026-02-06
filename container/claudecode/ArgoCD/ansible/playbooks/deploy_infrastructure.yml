@@ -110,38 +110,11 @@
         msg: "Nexus is healthy and ready"
       when: nexus_health.status == 200
 
-    - name: Wait for GitLab to be healthy
-      uri:
-        url: http://localhost:5003/-/health
-        status_code: 200
-      register: gitlab_health
-      until: gitlab_health.status == 200
-      retries: 40
-      delay: 15
-      ignore_errors: yes
-
-    - name: Display GitLab health status
-      debug:
-        msg: "GitLab is healthy and ready"
-      when: gitlab_health.status == 200
-
-    - name: Wait for ArgoCD Server to be healthy
-      uri:
-        url: http://localhost:5010/healthz
-        status_code: 200
-      register: argocd_health
-      until: argocd_health.status == 200
-      retries: 30
-      delay: 10
-      ignore_errors: yes
-
-    - name: Display ArgoCD health status
-      debug:
-        msg: "ArgoCD is healthy and ready"
-      when: argocd_health.status == 200
+    # GitLab and ArgoCD Server health checks skipped (services not required for this deployment)
 
     - name: List running containers
-      command: podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      shell: |
+        podman ps --format "table {{'{{'}}.Names{{'}}'}}\t{{'{{'}}.Status{{'}}'}}\t{{'{{'}}.Ports{{'}}'}}"
       register: container_list
       changed_when: false
 
@@ -168,14 +141,10 @@
           - "  - Nexus: http://localhost:8081"
           - "    (Check /nexus-data/admin.password for initial password)"
           - ""
-          - "  - GitLab: http://localhost:5003"
-          - "    Username: root"
-          - "    Password: GitLabRoot123!"
+          - "  - Redis: localhost:6379"
+          - "    (Used for session management)"
           - ""
-          - "  - GitLab Registry: http://localhost:5005"
+          - "=========================================="
           - ""
-          - "  - ArgoCD: http://localhost:5010"
-          - "    Username: admin"
-          - "    (Password: Get with 'podman exec argocd-server argocd admin initial-password')"
-          - ""
+          - "Note: GitLab and ArgoCD services are not deployed in this configuration."
           - "=========================================="

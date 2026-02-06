@@ -20,7 +20,9 @@
     argocd_namespace: argocd
     kubeconfig_path: /etc/rancher/k3s/k3s.yaml
     local_kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
-    argocd_server_port: 30010
+    argocd_server_port_http: 8000
+    argocd_server_port_https: 8082
+    private_ip: "{{ ansible_default_ipv4.address }}"
 
   tasks:
     # ========================================
@@ -147,10 +149,10 @@
         - argocd
 
     # ========================================
-    # Phase 4: ArgoCD アクセス設定 (NodePort)
+    # Phase 4: ArgoCD アクセス設定 (LoadBalancer)
     # ========================================
 
-    - name: Phase 4 - Configure ArgoCD server access via NodePort
+    - name: Phase 4 - Configure ArgoCD server access via LoadBalancer
       block:
         - name: Get current ArgoCD server service type
           shell: |
@@ -158,12 +160,12 @@
           register: current_svc_type
           changed_when: false
 
-        - name: Patch ArgoCD server service to NodePort
+        - name: Patch ArgoCD server service to LoadBalancer
           shell: |
             /usr/local/bin/k3s kubectl patch svc argocd-server \
               -n {{ argocd_namespace }} \
-              -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "nodePort": {{ argocd_server_port }}, "name": "https"}]}}'
-          when: current_svc_type.stdout != "NodePort"
+              -p '{"spec": {"type": "LoadBalancer", "externalIPs": ["{{ private_ip }}"], "ports": [{"port": {{ argocd_server_port_http }}, "targetPort": 8080, "name": "http"}, {"port": {{ argocd_server_port_https }}, "targetPort": 8080, "name": "https"}]}}'
+          when: current_svc_type.stdout != "LoadBalancer"
           register: argocd_svc_patch
           changed_when: '"patched" in argocd_svc_patch.stdout'
 
@@ -190,22 +192,18 @@
             content: |
               # ArgoCD Credentials
               # ===================
-              # Access via NodePort (HTTPS)
-              URL: https://localhost:{{ argocd_server_port }}
-
-              # Or use port-forward (HTTP)
-              # kubectl port-forward svc/argocd-server -n argocd 8080:443
-              # URL: http://localhost:8080
+              # Access via LoadBalancer
+              HTTPS URL: https://{{ private_ip }}:{{ argocd_server_port_https }}
+              HTTP URL: http://{{ private_ip }}:{{ argocd_server_port_http }}
 
               Username: admin
               Password: {{ argocd_password.stdout }}
 
               # CLI Login (HTTPS - skip TLS verification):
-              argocd login localhost:{{ argocd_server_port }} --username admin --password '{{ argocd_password.stdout }}' --insecure
+              argocd login {{ private_ip }}:{{ argocd_server_port_https }} --username admin --password '{{ argocd_password.stdout }}' --insecure
 
-              # CLI Login (via port-forward):
-              # kubectl port-forward svc/argocd-server -n argocd 8080:443 &
-              # argocd login localhost:8080 --username admin --password '{{ argocd_password.stdout }}' --insecure
+              # CLI Login (HTTP):
+              argocd login {{ private_ip }}:{{ argocd_server_port_http }} --username admin --password '{{ argocd_password.stdout }}' --insecure --plaintext
             dest: "{{ ansible_env.HOME }}/argocd-credentials.txt"
             mode: '0600'
           become: no
@@ -254,13 +252,9 @@
               - "ArgoCD Version: {{ argocd_version }}"
               - ""
               - "ArgoCD Access:"
-              - "  Method 1 - HTTPS NodePort:"
-              - "    URL: https://{{ node_ip.stdout }}:{{ argocd_server_port }}"
-              - "    (Accept self-signed certificate in browser)"
-              - ""
-              - "  Method 2 - Port Forward (Recommended):"
-              - "    Run: kubectl port-forward svc/argocd-server -n argocd 8080:443"
-              - "    URL: http://localhost:8080"
+              - "  HTTPS URL: https://{{ node_ip.stdout }}:{{ argocd_server_port_https }}"
+              - "  HTTP URL: http://{{ node_ip.stdout }}:{{ argocd_server_port_http }}"
+              - "  (HTTPS: Accept self-signed certificate in browser)"
               - ""
               - "  Username: admin"
               - "  Password: {{ argocd_password.stdout }}"
@@ -321,23 +315,21 @@
 
               ## 🔗 Access Information
 
-              ### Method 1: HTTPS NodePort (Port {{ argocd_server_port }})
+              ### HTTPS Access (Port {{ argocd_server_port_https }})
 
               ```
-              https://{{ node_ip.stdout }}:{{ argocd_server_port }}
+              https://{{ node_ip.stdout }}:{{ argocd_server_port_https }}
               ```
 
               **Note**: You need to accept the self-signed certificate in your browser.
 
-              ### Method 2: Port Forward (Recommended)
+              ### HTTP Access (Port {{ argocd_server_port_http }})
 
-              ```bash
-              # Run this command in a terminal:
-              kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-              # Then access:
-              http://localhost:8080
               ```
+              http://{{ node_ip.stdout }}:{{ argocd_server_port_http }}
+              ```
+
+              **Note**: HTTP will redirect to HTTPS.
 
               ### Credentials
 
@@ -362,11 +354,11 @@
               ### 1. Access ArgoCD UI
 
               ```bash
-              # Start port forward (in background or separate terminal)
-              kubectl port-forward svc/argocd-server -n argocd 8080:443 &
+              # Access via HTTPS
+              open https://{{ node_ip.stdout }}:{{ argocd_server_port_https }}
 
-              # Open browser
-              open http://localhost:8080
+              # Or via HTTP (redirects to HTTPS)
+              open http://{{ node_ip.stdout }}:{{ argocd_server_port_http }}
 
               # Login with admin credentials from ~/argocd-credentials.txt
               ```
@@ -377,7 +369,11 @@
 
               Login to ArgoCD:
               ```bash
-              argocd login localhost:8080 --username admin --password '{{ argocd_password.stdout }}' --insecure
+              # Via HTTPS
+              argocd login {{ node_ip.stdout }}:{{ argocd_server_port_https }} --username admin --password '{{ argocd_password.stdout }}' --insecure
+
+              # Or via HTTP
+              argocd login {{ node_ip.stdout }}:{{ argocd_server_port_http }} --username admin --password '{{ argocd_password.stdout }}' --insecure --plaintext
               ```
 
               ### 3. Create ArgoCD Application
@@ -446,7 +442,7 @@
               |-----------|--------|---------|
               | K3s Kubernetes | ✅ Running | Version {{ k3s_version }} |
               | ArgoCD | ✅ Running | Version {{ argocd_version }} |
-              | ArgoCD UI | ✅ Accessible | Port {{ argocd_server_port }} (HTTPS) or 8080 (port-forward) |
+              | ArgoCD UI | ✅ Accessible | HTTPS: {{ argocd_server_port_https }}, HTTP: {{ argocd_server_port_http }} |
               | Issue #123 Requirement | ✅ Achieved | ArgoCD ready for container deployment |
 
               **All requirements for Issue #123 have been successfully implemented using Ansible automation.**

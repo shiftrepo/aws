@@ -1,0 +1,486 @@
+---
+- name: Full Deployment from Scratch
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    project_root: "{{ playbook_dir }}/../.."
+    backend_dir: "{{ project_root }}/app/backend"
+    frontend_dir: "{{ project_root }}/app/frontend"
+    private_ip: "{{ ansible_default_ipv4.address }}"
+    public_ip: "54.172.30.175"
+    backend_external_port: 8083
+    frontend_external_port: 5006
+
+  tasks:
+    - name: Display deployment information
+      debug:
+        msg:
+          - "=========================================="
+          - "FULL DEPLOYMENT FROM SCRATCH"
+          - "=========================================="
+          - "Project Root: {{ project_root }}"
+          - "Private IP: {{ private_ip }}"
+          - "Public IP: {{ public_ip }}"
+          - "=========================================="
+
+    # ==========================================
+    # PHASE 1: Infrastructure Deployment
+    # ==========================================
+    - name: "PHASE 1: Deploy Infrastructure"
+      debug:
+        msg: "Starting infrastructure deployment..."
+
+    - name: Check if podman-compose file exists
+      stat:
+        path: "{{ project_root }}/infrastructure/podman-compose.yml"
+      register: compose_file
+
+    - name: Fail if compose file not found
+      fail:
+        msg: "Compose file not found at {{ project_root }}/infrastructure/podman-compose.yml"
+      when: not compose_file.stat.exists
+
+    - name: Start infrastructure with podman-compose
+      command: podman-compose -f {{ project_root }}/infrastructure/podman-compose.yml up -d
+      args:
+        chdir: "{{ project_root }}/infrastructure"
+      register: compose_up
+      changed_when: true
+
+    - name: Display compose up output
+      debug:
+        msg: "{{ compose_up.stdout_lines }}"
+
+    - name: Wait for PostgreSQL to be healthy
+      command: podman exec orgmgmt-postgres pg_isready -U orgmgmt_user -d orgmgmt
+      register: postgres_health
+      until: postgres_health.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Wait for Redis to be healthy
+      command: podman exec argocd-redis redis-cli PING
+      register: redis_health
+      until: redis_health.rc == 0 and redis_health.stdout == "PONG"
+      retries: 20
+      delay: 5
+      changed_when: false
+
+    - name: Display infrastructure status
+      debug:
+        msg:
+          - "✅ PostgreSQL is healthy"
+          - "✅ Redis is healthy"
+
+    # ==========================================
+    # PHASE 2: Backend Build
+    # ==========================================
+    - name: "PHASE 2: Build Backend"
+      debug:
+        msg: "Starting backend build..."
+
+    - name: Check if backend pom.xml exists
+      stat:
+        path: "{{ backend_dir }}/pom.xml"
+      register: backend_pom
+
+    - name: Fail if backend pom.xml not found
+      fail:
+        msg: "Backend pom.xml not found at {{ backend_dir }}/pom.xml"
+      when: not backend_pom.stat.exists
+
+    - name: Build backend with Maven in container
+      shell: |
+        podman run --rm \
+          -v {{ backend_dir }}:/app:Z \
+          -w /app \
+          docker.io/library/maven:3.9-eclipse-temurin-21 \
+          mvn clean package -Dmaven.test.skip=true
+      register: backend_build
+      changed_when: true
+
+    - name: Verify backend JAR was created
+      stat:
+        path: "{{ backend_dir }}/target/orgmgmt-backend.jar"
+      register: backend_jar
+
+    - name: Fail if backend JAR not found
+      fail:
+        msg: "Backend JAR not found after build"
+      when: not backend_jar.stat.exists
+
+    - name: Display backend build result
+      debug:
+        msg: "✅ Backend build successful - JAR size: {{ backend_jar.stat.size }} bytes"
+
+    # ==========================================
+    # PHASE 3: Backend Deployment
+    # ==========================================
+    - name: "PHASE 3: Deploy Backend"
+      debug:
+        msg: "Starting backend deployment..."
+
+    - name: Start backend container
+      shell: |
+        podman run -d \
+          --name orgmgmt-backend \
+          --network argocd-network \
+          -p 0.0.0.0:{{ backend_external_port }}:8080 \
+          -e SPRING_DATASOURCE_URL=jdbc:postgresql://orgmgmt-postgres:5432/orgmgmt \
+          -e SPRING_DATASOURCE_USERNAME=orgmgmt_user \
+          -e SPRING_DATASOURCE_PASSWORD=SecurePassword123! \
+          -e REDIS_HOST=argocd-redis \
+          -e REDIS_PORT=6379 \
+          -e POD_NAME=orgmgmt-backend-external \
+          -v {{ backend_dir }}/target/orgmgmt-backend.jar:/app.jar:Z \
+          docker.io/library/eclipse-temurin:21-jre \
+          java -jar /app.jar
+      register: backend_container
+      changed_when: true
+
+    - name: Wait for backend to be ready
+      uri:
+        url: "http://localhost:{{ backend_external_port }}/api/system/info"
+        status_code: 200
+      register: backend_health
+      until: backend_health.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Display backend status
+      debug:
+        msg: "✅ Backend is ready and responding"
+
+    # ==========================================
+    # PHASE 4: Frontend Build
+    # ==========================================
+    - name: "PHASE 4: Build Frontend"
+      debug:
+        msg: "Starting frontend build..."
+
+    - name: Check if frontend package.json exists
+      stat:
+        path: "{{ frontend_dir }}/package.json"
+      register: frontend_package
+
+    - name: Fail if frontend package.json not found
+      fail:
+        msg: "Frontend package.json not found at {{ frontend_dir }}/package.json"
+      when: not frontend_package.stat.exists
+
+    - name: Build frontend with Node in container
+      shell: |
+        podman run --rm \
+          -v {{ frontend_dir }}:/app:Z \
+          -w /app \
+          -e VITE_API_URL=http://{{ private_ip }}:{{ backend_external_port }} \
+          docker.io/library/node:20-alpine \
+          sh -c "npm install && npm run build"
+      register: frontend_build
+      changed_when: true
+
+    - name: Verify frontend dist was created
+      stat:
+        path: "{{ frontend_dir }}/dist/index.html"
+      register: frontend_dist
+
+    - name: Fail if frontend dist not found
+      fail:
+        msg: "Frontend dist not found after build"
+      when: not frontend_dist.stat.exists
+
+    - name: Display frontend build result
+      debug:
+        msg: "✅ Frontend build successful"
+
+    # ==========================================
+    # PHASE 5: Frontend Deployment
+    # ==========================================
+    - name: "PHASE 5: Deploy Frontend"
+      debug:
+        msg: "Starting frontend deployment..."
+
+    - name: Create nginx config for frontend
+      copy:
+        content: |
+          server {
+              listen 80;
+              server_name _;
+              root /usr/share/nginx/html;
+              index index.html;
+
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+
+              location /api {
+                  proxy_pass http://{{ private_ip }}:{{ backend_external_port }};
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+          }
+        dest: "{{ frontend_dir }}/nginx.conf"
+
+    - name: Start frontend container
+      shell: |
+        podman run -d \
+          --name orgmgmt-frontend \
+          --network argocd-network \
+          -p 0.0.0.0:{{ frontend_external_port }}:80 \
+          -v {{ frontend_dir }}/dist:/usr/share/nginx/html:Z \
+          -v {{ frontend_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf:Z \
+          docker.io/library/nginx:alpine
+      register: frontend_container
+      changed_when: true
+
+    - name: Wait for frontend to be ready
+      uri:
+        url: "http://localhost:{{ frontend_external_port }}"
+        status_code: 200
+      register: frontend_health
+      until: frontend_health.status == 200
+      retries: 20
+      delay: 5
+
+    - name: Display frontend status
+      debug:
+        msg: "✅ Frontend is ready and serving"
+
+    # ==========================================
+    # PHASE 6: Verification Tests
+    # ==========================================
+    - name: "PHASE 6: Run Verification Tests"
+      debug:
+        msg: "Starting comprehensive verification..."
+
+    - name: Test - Container internal communication (Backend)
+      shell: podman exec orgmgmt-backend sh -c 'timeout 5 bash -c "cat < /dev/null > /dev/tcp/localhost/8080"'
+      register: test_backend_internal
+      failed_when: false
+      changed_when: false
+
+    - name: Test - Container internal communication (PostgreSQL)
+      command: podman exec orgmgmt-postgres pg_isready -h localhost -p 5432 -U orgmgmt_user
+      register: test_postgres_internal
+      failed_when: false
+      changed_when: false
+
+    - name: Test - Container internal communication (Redis)
+      command: podman exec argocd-redis redis-cli -h localhost -p 6379 PING
+      register: test_redis_internal
+      failed_when: false
+      changed_when: false
+
+    - name: Test - Container-to-container (Backend -> PostgreSQL)
+      command: podman exec orgmgmt-backend nc -zv orgmgmt-postgres 5432
+      register: test_backend_to_postgres
+      failed_when: false
+      changed_when: false
+
+    - name: Test - Container-to-container (Backend -> Redis)
+      command: podman exec orgmgmt-backend nc -zv argocd-redis 6379
+      register: test_backend_to_redis
+      failed_when: false
+      changed_when: false
+
+    - name: Test - External access (Backend API - Private IP)
+      uri:
+        url: "http://{{ private_ip }}:{{ backend_external_port }}/api/system/info"
+        return_content: yes
+        status_code: 200
+      register: test_private_backend
+      failed_when: false
+
+    - name: Test - External access (Frontend - Private IP)
+      uri:
+        url: "http://{{ private_ip }}:{{ frontend_external_port }}"
+        status_code: 200
+      register: test_private_frontend
+      failed_when: false
+
+    - name: Test - External access (Backend API - Public IP)
+      uri:
+        url: "http://{{ public_ip }}:{{ backend_external_port }}/api/system/info"
+        return_content: yes
+        status_code: 200
+      register: test_public_backend
+      failed_when: false
+
+    - name: Test - External access (Frontend - Public IP)
+      uri:
+        url: "http://{{ public_ip }}:{{ frontend_external_port }}"
+        status_code: 200
+      register: test_public_frontend
+      failed_when: false
+
+    - name: Test - Session persistence
+      shell: |
+        cookies="/tmp/ansible-deploy-test-cookies.txt"
+        session1=$(curl -s -c $cookies http://{{ private_ip }}:{{ backend_external_port }}/api/system/info 2>/dev/null | jq -r '.sessionId')
+        session2=$(curl -s -b $cookies http://{{ private_ip }}:{{ backend_external_port }}/api/system/info 2>/dev/null | jq -r '.sessionId')
+        if [ "$session1" = "$session2" ]; then
+          echo "PASS: $session1"
+          exit 0
+        else
+          echo "FAIL"
+          exit 1
+        fi
+      register: test_session
+      failed_when: false
+      changed_when: false
+
+    - name: Test - Redis session storage
+      shell: |
+        sleep 2
+        count=$(podman exec argocd-redis redis-cli --scan --pattern "*session*" 2>/dev/null | wc -l)
+        if [ $count -gt 0 ]; then
+          echo "PASS: $count sessions"
+          exit 0
+        else
+          echo "FAIL: No sessions"
+          exit 1
+        fi
+      register: test_redis_sessions
+      failed_when: false
+      changed_when: false
+
+    # ==========================================
+    # PHASE 7: Final Report
+    # ==========================================
+    - name: List all running containers
+      shell: podman ps --format "table {{'{{'}} .Names {{'}}'}} {{'{{'}} .Status {{'}}'}} {{'{{'}} .Ports {{'}}'}}"
+      register: final_containers
+      changed_when: false
+
+    - name: Display final deployment report
+      debug:
+        msg:
+          - "=========================================="
+          - "DEPLOYMENT COMPLETE - VERIFICATION RESULTS"
+          - "=========================================="
+          - ""
+          - "Container Internal Communication:"
+          - "  Backend (localhost:8080): {{ 'PASS ✅' if test_backend_internal.rc == 0 else 'FAIL ❌' }}"
+          - "  PostgreSQL (localhost:5432): {{ 'PASS ✅' if test_postgres_internal.rc == 0 else 'FAIL ❌' }}"
+          - "  Redis (localhost:6379): {{ 'PASS ✅' if test_redis_internal.rc == 0 else 'FAIL ❌' }}"
+          - ""
+          - "Container-to-Container Communication:"
+          - "  Backend -> PostgreSQL: {{ 'PASS ✅' if test_backend_to_postgres.rc == 0 else 'FAIL ❌' }}"
+          - "  Backend -> Redis: {{ 'PASS ✅' if test_backend_to_redis.rc == 0 else 'FAIL ❌' }}"
+          - ""
+          - "External Access (Private IP {{ private_ip }}):"
+          - "  Backend API: {{ 'PASS ✅ (HTTP ' + (test_private_backend.status | string) + ')' if test_private_backend.status == 200 else 'FAIL ❌' }}"
+          - "  Frontend: {{ 'PASS ✅ (HTTP ' + (test_private_frontend.status | string) + ')' if test_private_frontend.status == 200 else 'FAIL ❌' }}"
+          - ""
+          - "External Access (Public IP {{ public_ip }}):"
+          - "  Backend API: {{ 'PASS ✅ (HTTP ' + (test_public_backend.status | string) + ')' if test_public_backend.status == 200 else 'FAIL ❌' }}"
+          - "  Frontend: {{ 'PASS ✅ (HTTP ' + (test_public_frontend.status | string) + ')' if test_public_frontend.status == 200 else 'FAIL ❌' }}"
+          - ""
+          - "Data Validation:"
+          - "  Session Persistence: {{ 'PASS ✅ - ' + test_session.stdout if test_session.rc == 0 else 'FAIL ❌' }}"
+          - "  Redis Session Storage: {{ 'PASS ✅ - ' + test_redis_sessions.stdout if test_redis_sessions.rc == 0 else 'FAIL ❌' }}"
+          - ""
+          - "=========================================="
+          - "PUBLIC ACCESS URLs:"
+          - "  Frontend: http://{{ public_ip }}:{{ frontend_external_port }}"
+          - "  Backend API: http://{{ public_ip }}:{{ backend_external_port }}/api"
+          - "  System Info: http://{{ public_ip }}:{{ backend_external_port }}/api/system/info"
+          - ""
+          - "INFRASTRUCTURE URLs:"
+          - "  PostgreSQL: {{ private_ip }}:5001"
+          - "  Redis: {{ private_ip }}:6379"
+          - "  pgAdmin: http://{{ private_ip }}:5002"
+          - "  Nexus: http://{{ private_ip }}:8000"
+          - "=========================================="
+          - ""
+          - "Running Containers:"
+
+    - name: Display container list
+      debug:
+        msg: "{{ final_containers.stdout_lines }}"
+
+    - name: Create deployment summary file
+      copy:
+        content: |
+          # Full Deployment Summary
+
+          Deployment Date: {{ ansible_date_time.iso8601 }}
+
+          ## System Information
+          - Hostname: {{ ansible_hostname }}
+          - Private IP: {{ private_ip }}
+          - Public IP: {{ public_ip }}
+
+          ## Deployment Phases Completed
+          1. ✅ Infrastructure Deployment (PostgreSQL, Redis, Nexus, pgAdmin)
+          2. ✅ Backend Build (Maven)
+          3. ✅ Backend Deployment (Spring Boot on port {{ backend_external_port }})
+          4. ✅ Frontend Build (Vite)
+          5. ✅ Frontend Deployment (Nginx on port {{ frontend_external_port }})
+          6. ✅ Verification Tests
+
+          ## Verification Results
+
+          ### Container Internal Communication
+          - Backend (localhost:8080): {{ 'PASS ✅' if test_backend_internal.rc == 0 else 'FAIL ❌' }}
+          - PostgreSQL (localhost:5432): {{ 'PASS ✅' if test_postgres_internal.rc == 0 else 'FAIL ❌' }}
+          - Redis (localhost:6379): {{ 'PASS ✅' if test_redis_internal.rc == 0 else 'FAIL ❌' }}
+
+          ### Container-to-Container Communication
+          - Backend -> PostgreSQL: {{ 'PASS ✅' if test_backend_to_postgres.rc == 0 else 'FAIL ❌' }}
+          - Backend -> Redis: {{ 'PASS ✅' if test_backend_to_redis.rc == 0 else 'FAIL ❌' }}
+
+          ### External Access (Private IP)
+          - Backend API: {{ 'PASS ✅' if test_private_backend.status == 200 else 'FAIL ❌' }}
+          - Frontend: {{ 'PASS ✅' if test_private_frontend.status == 200 else 'FAIL ❌' }}
+
+          ### External Access (Public IP)
+          - Backend API: {{ 'PASS ✅' if test_public_backend.status == 200 else 'FAIL ❌' }}
+          - Frontend: {{ 'PASS ✅' if test_public_frontend.status == 200 else 'FAIL ❌' }}
+
+          ### Data Validation
+          - Session Persistence: {{ 'PASS ✅' if test_session.rc == 0 else 'FAIL ❌' }}
+          - Redis Session Storage: {{ 'PASS ✅' if test_redis_sessions.rc == 0 else 'FAIL ❌' }}
+
+          ## Access URLs
+
+          ### Public Access (Internet)
+          - Frontend: http://{{ public_ip }}:{{ frontend_external_port }}
+          - Backend API: http://{{ public_ip }}:{{ backend_external_port }}/api
+          - System Info: http://{{ public_ip }}:{{ backend_external_port }}/api/system/info
+
+          ### Infrastructure Services
+          - PostgreSQL: {{ private_ip }}:5001 (orgmgmt_user / SecurePassword123!)
+          - Redis: {{ private_ip }}:6379
+          - pgAdmin: http://{{ private_ip }}:5002 (admin@orgmgmt.local / AdminPassword123!)
+          - Nexus: http://{{ private_ip }}:8000
+
+          ## Backend API Sample Response
+          ```json
+          {{ test_private_backend.content | default('{}') }}
+          ```
+
+          ## Running Containers
+          {% for line in final_containers.stdout_lines %}
+          {{ line }}
+          {% endfor %}
+        dest: /tmp/deployment-summary-{{ ansible_date_time.epoch }}.md
+
+    - name: Display summary file location
+      debug:
+        msg: "📄 Deployment summary saved to: /tmp/deployment-summary-{{ ansible_date_time.epoch }}.md"
+
+    - name: Final success message
+      debug:
+        msg:
+          - ""
+          - "=========================================="
+          - "🎉 DEPLOYMENT SUCCESSFUL!"
+          - "=========================================="
+          - ""
+          - "Access your application at:"
+          - "http://{{ public_ip }}:{{ frontend_external_port }}"
+          - ""
+          - "=========================================="

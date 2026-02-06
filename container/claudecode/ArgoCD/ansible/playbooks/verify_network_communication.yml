@@ -1,0 +1,328 @@
+---
+- name: Comprehensive Network Communication Verification
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    private_ip: "{{ ansible_default_ipv4.address }}"
+    public_ip: "54.172.30.175"
+    container_network: "argocd-network"
+
+  tasks:
+    - name: Get container list and status
+      shell: podman ps --format "{{'{{'}} .Names {{'}}'}} {{'{{'}} .Status {{'}}'}}"
+      register: container_list
+      changed_when: false
+
+    - name: Display running containers
+      debug:
+        msg: "{{ container_list.stdout_lines }}"
+
+    - name: Get container IP addresses
+      shell: |
+        for container in $(podman ps --format "{{'{{'}} .Names {{'}}'}}"); do
+          ip=$(podman inspect $container | jq -r '.[0].NetworkSettings.Networks["{{ container_network }}"].IPAddress')
+          echo "$container: $ip"
+        done
+      register: container_ips
+      changed_when: false
+
+    - name: Display container IPs
+      debug:
+        msg: "{{ container_ips.stdout_lines }}"
+
+    - name: Test 1 - Container internal communication (Backend)
+      shell: podman exec orgmgmt-backend nc -zv localhost 8080
+      register: backend_internal
+      failed_when: false
+      changed_when: false
+
+    - name: Test 2 - Container internal communication (PostgreSQL)
+      shell: podman exec orgmgmt-postgres pg_isready -h localhost -p 5432 -U orgmgmt_user
+      register: postgres_internal
+      failed_when: false
+      changed_when: false
+
+    - name: Test 3 - Container internal communication (Redis)
+      shell: podman exec argocd-redis redis-cli -h localhost -p 6379 PING
+      register: redis_internal
+      failed_when: false
+      changed_when: false
+
+    - name: Display internal communication results
+      debug:
+        msg:
+          - "Backend internal: {{ 'PASS' if backend_internal.rc == 0 else 'FAIL' }}"
+          - "PostgreSQL internal: {{ 'PASS' if postgres_internal.rc == 0 else 'FAIL' }}"
+          - "Redis internal: {{ 'PASS' if redis_internal.rc == 0 else 'FAIL' }} - {{ redis_internal.stdout }}"
+
+    - name: Test 4 - Container-to-container (Backend -> PostgreSQL)
+      shell: podman exec orgmgmt-backend nc -zv orgmgmt-postgres 5432
+      register: backend_to_postgres
+      failed_when: false
+      changed_when: false
+
+    - name: Test 5 - Container-to-container (Backend -> Redis)
+      shell: podman exec orgmgmt-backend nc -zv argocd-redis 6379
+      register: backend_to_redis
+      failed_when: false
+      changed_when: false
+
+    - name: Test 6 - Container-to-container (Frontend -> Backend)
+      shell: podman exec orgmgmt-frontend curl -s -o /dev/null -w "%{http_code}" http://orgmgmt-backend:8080/api/system/info
+      register: frontend_to_backend
+      failed_when: false
+      changed_when: false
+
+    - name: Display container-to-container results
+      debug:
+        msg:
+          - "Backend -> PostgreSQL: {{ 'PASS' if backend_to_postgres.rc == 0 else 'FAIL' }}"
+          - "Backend -> Redis: {{ 'PASS' if backend_to_redis.rc == 0 else 'FAIL' }}"
+          - "Frontend -> Backend: {{ 'PASS (HTTP ' + frontend_to_backend.stdout + ')' if frontend_to_backend.rc == 0 and frontend_to_backend.stdout == '200' else 'FAIL' }}"
+
+    - name: Test 7 - External access via private IP (Backend API)
+      uri:
+        url: "http://{{ private_ip }}:8083/api/system/info"
+        return_content: yes
+        status_code: 200
+      register: private_backend_api
+      failed_when: false
+
+    - name: Test 8 - External access via private IP (Frontend)
+      uri:
+        url: "http://{{ private_ip }}:5006"
+        status_code: 200
+      register: private_frontend
+      failed_when: false
+
+    - name: Test 9 - External access via private IP (pgAdmin)
+      uri:
+        url: "http://{{ private_ip }}:5002"
+        status_code: [200, 302]
+      register: private_pgadmin
+      failed_when: false
+
+    - name: Test 10 - External access via private IP (Nexus)
+      uri:
+        url: "http://{{ private_ip }}:8000"
+        status_code: 200
+      register: private_nexus
+      failed_when: false
+
+    - name: Display external access results (Private IP)
+      debug:
+        msg:
+          - "Private IP: {{ private_ip }}"
+          - "Backend API: {{ 'PASS (HTTP ' + (private_backend_api.status | string) + ')' if private_backend_api.status == 200 else 'FAIL' }}"
+          - "Frontend: {{ 'PASS (HTTP ' + (private_frontend.status | string) + ')' if private_frontend.status == 200 else 'FAIL' }}"
+          - "pgAdmin: {{ 'PASS (HTTP ' + (private_pgadmin.status | string) + ')' if private_pgadmin.status in [200, 302] else 'FAIL' }}"
+          - "Nexus: {{ 'PASS (HTTP ' + (private_nexus.status | string) + ')' if private_nexus.status == 200 else 'FAIL' }}"
+
+    - name: Test 11 - External access via public IP (Backend API)
+      uri:
+        url: "http://{{ public_ip }}:8083/api/system/info"
+        return_content: yes
+        status_code: 200
+      register: public_backend_api
+      failed_when: false
+
+    - name: Test 12 - External access via public IP (Frontend)
+      uri:
+        url: "http://{{ public_ip }}:5006"
+        status_code: 200
+      register: public_frontend
+      failed_when: false
+
+    - name: Test 13 - External access via public IP (pgAdmin)
+      uri:
+        url: "http://{{ public_ip }}:5002"
+        status_code: [200, 302]
+      register: public_pgadmin
+      failed_when: false
+
+    - name: Test 14 - External access via public IP (Nexus)
+      uri:
+        url: "http://{{ public_ip }}:8000"
+        status_code: 200
+      register: public_nexus
+      failed_when: false
+
+    - name: Display external access results (Public IP)
+      debug:
+        msg:
+          - "Public IP: {{ public_ip }}"
+          - "Backend API: {{ 'PASS (HTTP ' + (public_backend_api.status | string) + ')' if public_backend_api.status == 200 else 'FAIL' }}"
+          - "Frontend: {{ 'PASS (HTTP ' + (public_frontend.status | string) + ')' if public_frontend.status == 200 else 'FAIL' }}"
+          - "pgAdmin: {{ 'PASS (HTTP ' + (public_pgadmin.status | string) + ')' if public_pgadmin.status in [200, 302] else 'FAIL' }}"
+          - "Nexus: {{ 'PASS (HTTP ' + (public_nexus.status | string) + ')' if public_nexus.status == 200 else 'FAIL' }}"
+
+    - name: Test 15 - Session persistence validation
+      shell: |
+        cookies_file="/tmp/ansible-session-test.txt"
+        session1=$(curl -s -c $cookies_file http://{{ private_ip }}:8083/api/system/info 2>/dev/null | jq -r '.sessionId')
+        session2=$(curl -s -b $cookies_file http://{{ private_ip }}:8083/api/system/info 2>/dev/null | jq -r '.sessionId')
+        if [ "$session1" = "$session2" ]; then
+          echo "PASS: Sessions match ($session1)"
+          exit 0
+        else
+          echo "FAIL: Sessions don't match ($session1 vs $session2)"
+          exit 1
+        fi
+      register: session_test
+      failed_when: false
+      changed_when: false
+
+    - name: Display session persistence result
+      debug:
+        msg: "{{ session_test.stdout }}"
+
+    - name: Test 16 - Redis session storage validation
+      shell: |
+        # Trigger session creation
+        curl -s http://{{ private_ip }}:8083/api/system/info >/dev/null 2>&1
+        sleep 2
+        # Count session keys in Redis
+        count=$(podman exec argocd-redis redis-cli --scan --pattern "*session*" 2>/dev/null | wc -l)
+        echo "Redis session keys found: $count"
+        if [ $count -gt 0 ]; then
+          exit 0
+        else
+          exit 1
+        fi
+      register: redis_session_test
+      failed_when: false
+      changed_when: false
+
+    - name: Display Redis session storage result
+      debug:
+        msg: "{{ redis_session_test.stdout }} - {{ 'PASS' if redis_session_test.rc == 0 else 'FAIL' }}"
+
+    - name: Test 17 - Backend API data validation
+      shell: |
+        response=$(curl -s http://{{ private_ip }}:8083/api/system/info 2>/dev/null)
+        echo "$response" | jq -e '.podName and .sessionId and .flywayVersion and .databaseStatus' >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+          echo "PASS: All required fields present"
+          echo "$response" | jq .
+          exit 0
+        else
+          echo "FAIL: Missing required fields"
+          exit 1
+        fi
+      register: api_validation
+      failed_when: false
+      changed_when: false
+
+    - name: Display API data validation result
+      debug:
+        msg: "{{ api_validation.stdout_lines }}"
+
+    - name: Generate verification summary
+      debug:
+        msg:
+          - "=========================================="
+          - "NETWORK VERIFICATION SUMMARY"
+          - "=========================================="
+          - ""
+          - "Container Internal Communication:"
+          - "  Backend: {{ 'PASS' if backend_internal.rc == 0 else 'FAIL' }}"
+          - "  PostgreSQL: {{ 'PASS' if postgres_internal.rc == 0 else 'FAIL' }}"
+          - "  Redis: {{ 'PASS' if redis_internal.rc == 0 else 'FAIL' }}"
+          - ""
+          - "Container-to-Container Communication:"
+          - "  Backend -> PostgreSQL: {{ 'PASS' if backend_to_postgres.rc == 0 else 'FAIL' }}"
+          - "  Backend -> Redis: {{ 'PASS' if backend_to_redis.rc == 0 else 'FAIL' }}"
+          - "  Frontend -> Backend: {{ 'PASS' if frontend_to_backend.rc == 0 and frontend_to_backend.stdout == '200' else 'FAIL' }}"
+          - ""
+          - "External Access (Private IP {{ private_ip }}):"
+          - "  Backend API: {{ 'PASS' if private_backend_api.status == 200 else 'FAIL' }}"
+          - "  Frontend: {{ 'PASS' if private_frontend.status == 200 else 'FAIL' }}"
+          - "  pgAdmin: {{ 'PASS' if private_pgadmin.status in [200, 302] else 'FAIL' }}"
+          - "  Nexus: {{ 'PASS' if private_nexus.status == 200 else 'FAIL' }}"
+          - ""
+          - "External Access (Public IP {{ public_ip }}):"
+          - "  Backend API: {{ 'PASS' if public_backend_api.status == 200 else 'FAIL' }}"
+          - "  Frontend: {{ 'PASS' if public_frontend.status == 200 else 'FAIL' }}"
+          - "  pgAdmin: {{ 'PASS' if public_pgadmin.status in [200, 302] else 'FAIL' }}"
+          - "  Nexus: {{ 'PASS' if public_nexus.status == 200 else 'FAIL' }}"
+          - ""
+          - "Data Validation:"
+          - "  Session Persistence: {{ 'PASS' if session_test.rc == 0 else 'FAIL' }}"
+          - "  Redis Session Storage: {{ 'PASS' if redis_session_test.rc == 0 else 'FAIL' }}"
+          - "  API Response: {{ 'PASS' if api_validation.rc == 0 else 'FAIL' }}"
+          - ""
+          - "=========================================="
+          - "Access URLs:"
+          - "  Frontend: http://{{ public_ip }}:5006"
+          - "  Backend API: http://{{ public_ip }}:8083/api"
+          - "  pgAdmin: http://{{ public_ip }}:5002"
+          - "  Nexus: http://{{ public_ip }}:8000"
+          - "=========================================="
+
+    - name: Create verification report
+      copy:
+        content: |
+          # Network Verification Report
+
+          Date: {{ ansible_date_time.iso8601 }}
+
+          ## System Information
+          - Private IP: {{ private_ip }}
+          - Public IP: {{ public_ip }}
+          - Hostname: {{ ansible_hostname }}
+
+          ## Container Status
+          {% for line in container_list.stdout_lines %}
+          - {{ line }}
+          {% endfor %}
+
+          ## Container IP Addresses
+          {% for line in container_ips.stdout_lines %}
+          - {{ line }}
+          {% endfor %}
+
+          ## Test Results
+
+          ### Container Internal Communication
+          - Backend (localhost:8080): {{ 'PASS' if backend_internal.rc == 0 else 'FAIL' }}
+          - PostgreSQL (localhost:5432): {{ 'PASS' if postgres_internal.rc == 0 else 'FAIL' }}
+          - Redis (localhost:6379): {{ 'PASS' if redis_internal.rc == 0 else 'FAIL' }}
+
+          ### Container-to-Container Communication
+          - Backend -> PostgreSQL: {{ 'PASS' if backend_to_postgres.rc == 0 else 'FAIL' }}
+          - Backend -> Redis: {{ 'PASS' if backend_to_redis.rc == 0 else 'FAIL' }}
+          - Frontend -> Backend: {{ 'PASS (HTTP ' + frontend_to_backend.stdout + ')' if frontend_to_backend.rc == 0 else 'FAIL' }}
+
+          ### External Access (Private IP)
+          - Backend API: {{ 'PASS (HTTP ' + (private_backend_api.status | string) + ')' if private_backend_api.status == 200 else 'FAIL' }}
+          - Frontend: {{ 'PASS (HTTP ' + (private_frontend.status | string) + ')' if private_frontend.status == 200 else 'FAIL' }}
+          - pgAdmin: {{ 'PASS (HTTP ' + (private_pgadmin.status | string) + ')' if private_pgadmin.status in [200, 302] else 'FAIL' }}
+          - Nexus: {{ 'PASS (HTTP ' + (private_nexus.status | string) + ')' if private_nexus.status == 200 else 'FAIL' }}
+
+          ### External Access (Public IP)
+          - Backend API: {{ 'PASS (HTTP ' + (public_backend_api.status | string) + ')' if public_backend_api.status == 200 else 'FAIL' }}
+          - Frontend: {{ 'PASS (HTTP ' + (public_frontend.status | string) + ')' if public_frontend.status == 200 else 'FAIL' }}
+          - pgAdmin: {{ 'PASS (HTTP ' + (public_pgadmin.status | string) + ')' if public_pgadmin.status in [200, 302] else 'FAIL' }}
+          - Nexus: {{ 'PASS (HTTP ' + (public_nexus.status | string) + ')' if public_nexus.status == 200 else 'FAIL' }}
+
+          ### Data Validation
+          - Session Persistence: {{ 'PASS' if session_test.rc == 0 else 'FAIL' }}
+          - Redis Session Storage: {{ 'PASS' if redis_session_test.rc == 0 else 'FAIL' }}
+          - API Response Validation: {{ 'PASS' if api_validation.rc == 0 else 'FAIL' }}
+
+          ## Backend API Sample Response
+          ```json
+          {{ private_backend_api.content | default('{}') }}
+          ```
+
+          ## Public Access URLs
+          - Frontend: http://{{ public_ip }}:5006
+          - Backend API: http://{{ public_ip }}:8083/api
+          - pgAdmin: http://{{ public_ip }}:5002
+          - Nexus: http://{{ public_ip }}:8000
+        dest: /tmp/network-verification-report-{{ ansible_date_time.epoch }}.md
+      changed_when: false
+
+    - name: Display report location
+      debug:
+        msg: "Verification report saved to: /tmp/network-verification-report-{{ ansible_date_time.epoch }}.md"
