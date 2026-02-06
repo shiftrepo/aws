@@ -8,6 +8,8 @@
 | **Backend API** | http://10.0.1.200:8083 | 不要 | REST API |
 | **ArgoCD (HTTPS)** | https://10.0.1.200:8082 | 必要 | GitOps管理UI (推奨) |
 | **ArgoCD (HTTP)** | http://10.0.1.200:8000 | 必要 | HTTPSへリダイレクト |
+| **Traefik** | http://10.0.1.200:80 / https://10.0.1.200:443 | 不要 | Ingress Controller |
+| **Traefik Dashboard** | kubectl port-forward | 不要 | ポート転送でアクセス |
 
 ## ArgoCD認証情報
 
@@ -53,6 +55,241 @@ argocd login 10.0.1.200:8000 \
 2. 証明書警告を承認（自己署名証明書使用のため）
 3. Username: `admin`
 4. Password: `IQ1qooxuf1pyleRy`
+
+## Kubernetes管理サービス
+
+K3sには以下の管理サービスが含まれています：
+
+### K3s システムサービス
+
+#### サービス管理
+
+```bash
+# K3s サービスステータス確認
+sudo systemctl status k3s
+
+# K3s サービス起動
+sudo systemctl start k3s
+
+# K3s サービス停止
+sudo systemctl stop k3s
+
+# K3s サービス再起動
+sudo systemctl restart k3s
+
+# K3s ログ確認
+sudo journalctl -u k3s -f
+
+# K3s バージョン確認
+sudo /usr/local/bin/k3s --version
+```
+
+**現在のバージョン**: K3s v1.34.3+k3s1 (Kubernetes v1.34.3)
+
+#### K3s 設定ファイル
+
+```bash
+# K3s サービス設定
+/etc/systemd/system/k3s.service
+
+# kubeconfig
+/etc/rancher/k3s/k3s.yaml
+
+# データディレクトリ
+/var/lib/rancher/k3s/
+
+# コンテナイメージ
+/var/lib/rancher/k3s/agent/containerd/
+```
+
+### CoreDNS - DNS解決サービス
+
+Kubernetes内部のDNS解決を提供します。
+
+```bash
+# CoreDNS Pod確認
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+# CoreDNS ログ確認
+sudo /usr/local/bin/k3s kubectl logs -n kube-system -l k8s-app=kube-dns
+
+# DNS解決テスト
+sudo /usr/local/bin/k3s kubectl run -it --rm debug \
+  --image=busybox --restart=Never -- nslookup kubernetes.default
+```
+
+**Service**: `kube-dns` (ClusterIP: 10.43.0.10)
+**Ports**: 53/UDP, 53/TCP, 9153/TCP
+
+### Traefik - Ingress Controller
+
+K3sに組み込まれたIngress Controllerです。
+
+#### Traefik サービス
+
+```bash
+# Traefik Pod確認
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik
+
+# Traefik ログ確認
+sudo /usr/local/bin/k3s kubectl logs -n kube-system -l app.kubernetes.io/name=traefik -f
+
+# Traefik Service確認
+sudo /usr/local/bin/k3s kubectl get svc traefik -n kube-system
+```
+
+**Service**: `traefik` (LoadBalancer)
+**External IP**: 10.0.1.200
+**Ports**:
+- HTTP: 80 (NodePort: 31652)
+- HTTPS: 443 (NodePort: 30914)
+
+#### Traefik Dashboard アクセス
+
+Traefik Dashboardは有効ですが、デフォルトでは外部公開されていません。
+
+**ポート転送でアクセス**:
+
+```bash
+# ポート転送開始
+sudo /usr/local/bin/k3s kubectl port-forward \
+  -n kube-system \
+  $(sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik -o name) \
+  9000:9000
+
+# ブラウザで開く
+# http://localhost:9000/dashboard/
+```
+
+**IngressRouteで公開する場合**（オプション）:
+
+```bash
+sudo /usr/local/bin/k3s kubectl apply -f - <<EOF
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(\`traefik.local\`)
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+EOF
+
+# /etc/hostsに追加
+# 10.0.1.200 traefik.local
+
+# アクセス: http://traefik.local/dashboard/
+```
+
+### Metrics Server - リソースモニタリング
+
+CPU/メモリ使用状況を収集します。
+
+```bash
+# Metrics Server Pod確認
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=metrics-server
+
+# ノードのリソース使用状況
+sudo /usr/local/bin/k3s kubectl top nodes
+
+# Podのリソース使用状況
+sudo /usr/local/bin/k3s kubectl top pods -A
+
+# 特定namespaceのPod
+sudo /usr/local/bin/k3s kubectl top pods -n default
+
+# リソース使用量でソート
+sudo /usr/local/bin/k3s kubectl top pods -A --sort-by=memory
+sudo /usr/local/bin/k3s kubectl top pods -A --sort-by=cpu
+```
+
+**Service**: `metrics-server` (ClusterIP: 10.43.243.176)
+**Port**: 443/TCP
+
+### Local Path Provisioner - ストレージ管理
+
+動的なPersistentVolume作成を提供します。
+
+```bash
+# Provisioner Pod確認
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app=local-path-provisioner
+
+# StorageClass確認
+sudo /usr/local/bin/k3s kubectl get storageclass
+
+# PersistentVolume一覧
+sudo /usr/local/bin/k3s kubectl get pv
+
+# PersistentVolumeClaim一覧
+sudo /usr/local/bin/k3s kubectl get pvc -A
+```
+
+**StorageClass**: `local-path` (デフォルト)
+**ボリュームパス**: `/var/lib/rancher/k3s/storage/`
+
+### Kubernetes Dashboard（オプション）
+
+Kubernetes Dashboardをインストールする場合：
+
+#### インストール
+
+```bash
+# Kubernetes Dashboard インストール
+sudo /usr/local/bin/k3s kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+# ServiceAccount作成
+sudo /usr/local/bin/k3s kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kubernetes-dashboard
+EOF
+
+# トークン取得
+sudo /usr/local/bin/k3s kubectl create token admin-user -n kubernetes-dashboard
+```
+
+#### アクセス
+
+```bash
+# ポート転送
+sudo /usr/local/bin/k3s kubectl port-forward -n kubernetes-dashboard \
+  svc/kubernetes-dashboard 8443:443
+
+# ブラウザで開く
+# https://localhost:8443/
+
+# トークンでログイン
+```
+
+**または、NodePortで公開**:
+
+```bash
+sudo /usr/local/bin/k3s kubectl patch svc kubernetes-dashboard -n kubernetes-dashboard \
+  -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "targetPort": 8443, "nodePort": 30443}]}}'
+
+# アクセス: https://10.0.1.200:30443/
+```
 
 ## Kubernetes認証情報
 
@@ -389,8 +626,38 @@ sudo /usr/local/bin/k3s kubectl logs -f deployment/redis
 sudo /usr/local/bin/k3s kubectl logs -f deployment/argocd-server -n argocd
 ```
 
+### Kubernetes管理サービス確認
+
+```bash
+# K3s サービス状態
+sudo systemctl status k3s
+
+# K3s ログ
+sudo journalctl -u k3s -f
+
+# CoreDNS 状態
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+# Traefik 状態
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik
+
+# Metrics Server 状態
+sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=metrics-server
+
+# リソース使用状況
+sudo /usr/local/bin/k3s kubectl top nodes
+sudo /usr/local/bin/k3s kubectl top pods -A
+
+# StorageClass確認
+sudo /usr/local/bin/k3s kubectl get storageclass
+
+# PersistentVolume確認
+sudo /usr/local/bin/k3s kubectl get pv
+sudo /usr/local/bin/k3s kubectl get pvc -A
+```
+
 ---
 
 **作成日**: 2026-02-06
 **バージョン**: v1.0.0
-**最終更新**: 完全自動デプロイ後
+**最終更新**: 2026-02-06 (Kubernetes管理サービス情報追加)
