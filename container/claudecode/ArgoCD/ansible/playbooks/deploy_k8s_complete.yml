@@ -664,6 +664,20 @@
             state: started
             daemon_reload: yes
 
+        - name: Add iptables rule for port 3000
+          iptables:
+            chain: INPUT
+            protocol: tcp
+            destination_port: 3000
+            jump: ACCEPT
+            comment: Allow external access to Kubernetes Dashboard
+          become: yes
+
+        - name: Save iptables rules
+          shell: iptables-save > /etc/sysconfig/iptables
+          become: yes
+          failed_when: false
+
         - name: Display Kubernetes Dashboard status
           debug:
             msg:
