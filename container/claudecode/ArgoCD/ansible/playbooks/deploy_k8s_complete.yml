@@ -500,13 +500,10 @@
             - socat-argocd-http
             - socat-argocd-https
 
-        - name: Add iptables rules for external access ports
-          iptables:
-            chain: INPUT
-            protocol: tcp
-            destination_port: "{{ item }}"
-            jump: ACCEPT
-            comment: "Allow external access to {{ item }}"
+        - name: Add iptables rules for external access ports (insert at beginning)
+          shell: |
+            iptables -D INPUT -p tcp --dport {{ item }} -j ACCEPT 2>/dev/null || true
+            iptables -I INPUT 1 -p tcp --dport {{ item }} -j ACCEPT
           become: yes
           loop:
             - 5006
@@ -683,13 +680,10 @@
             state: started
             daemon_reload: yes
 
-        - name: Add iptables rule for port 3000
-          iptables:
-            chain: INPUT
-            protocol: tcp
-            destination_port: 3000
-            jump: ACCEPT
-            comment: Allow external access to Kubernetes Dashboard
+        - name: Add iptables rule for port 3000 (insert at beginning)
+          shell: |
+            iptables -D INPUT -p tcp --dport 3000 -j ACCEPT 2>/dev/null || true
+            iptables -I INPUT 1 -p tcp --dport 3000 -j ACCEPT
           become: yes
 
         - name: Save iptables rules
