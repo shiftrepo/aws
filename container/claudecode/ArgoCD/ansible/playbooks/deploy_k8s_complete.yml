@@ -521,3 +521,74 @@
       tags:
         - port-forwarding
         - socat
+
+    # ========================================
+    # Phase 8: ArgoCD GitOps設定
+    # ========================================
+    - name: "PHASE 8: Configure ArgoCD GitOps Application"
+      block:
+        - name: Check if ArgoCD Application already exists
+          shell: /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd
+          register: argocd_app_check
+          changed_when: false
+          failed_when: false
+
+        - name: Apply ArgoCD Application manifest
+          shell: /usr/local/bin/k3s kubectl apply -f {{ project_root }}/argocd-application.yaml
+          when: argocd_app_check.rc != 0
+          register: argocd_app_apply
+
+        - name: Wait for ArgoCD Application to sync
+          shell: |
+            /usr/local/bin/k3s kubectl wait --for=condition=Synced application/orgmgmt-app -n argocd --timeout=300s || true
+          register: argocd_sync_wait
+          changed_when: false
+
+        - name: Get ArgoCD Application status
+          shell: /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o jsonpath='{.status.sync.status}:{.status.health.status}'
+          register: argocd_app_status
+          changed_when: false
+
+        - name: Display ArgoCD GitOps status
+          debug:
+            msg:
+              - "✅ ArgoCD GitOps configured"
+              - "Application: orgmgmt-app"
+              - "Repository: https://github.com/shiftrepo/aws.git"
+              - "Path: container/claudecode/ArgoCD/k8s-manifests"
+              - "Branch: main"
+              - "Status: {{ argocd_app_status.stdout }}"
+              - ""
+              - "GitOps Features:"
+              - "  - Automated Sync: Enabled (every 3 minutes)"
+              - "  - Self Heal: Enabled"
+              - "  - Prune: Enabled"
+
+      tags:
+        - argocd-gitops
+
+    # ========================================
+    # Final Status Summary
+    # ========================================
+    - name: Display deployment completion summary
+      debug:
+        msg:
+          - "=========================================="
+          - "🎉 DEPLOYMENT COMPLETE!"
+          - "=========================================="
+          - ""
+          - "✅ K3s Cluster: Running"
+          - "✅ ArgoCD: Running"
+          - "✅ Applications: Deployed"
+          - "✅ GitOps: Configured"
+          - "✅ External Access: Configured"
+          - ""
+          - "Access URLs:"
+          - "  Frontend:     http://{{ private_ip }}:5006"
+          - "  Backend API:  http://{{ private_ip }}:8083"
+          - "  ArgoCD HTTPS: https://{{ private_ip }}:8082"
+          - "  ArgoCD HTTP:  http://{{ private_ip }}:8000"
+          - ""
+          - "ArgoCD Credentials: /root/argocd-credentials.txt"
+          - ""
+          - "=========================================="
