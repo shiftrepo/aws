@@ -165,11 +165,13 @@
                   - "Previous branch: {{ current_branch.stdout }}"
 
             - name: Build backend with Maven
-              command: mvn clean package -DskipTests
+              command: /opt/maven/bin/mvn clean package -DskipTests
               args:
                 chdir: "{{ backend_dir }}"
               environment:
                 MAVEN_OPTS: "-Xmx512m"
+                JAVA_HOME: "/usr/lib/jvm/java-21-amazon-corretto"
+                PATH: "/opt/maven/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
               register: backend_build
               changed_when: true
 
