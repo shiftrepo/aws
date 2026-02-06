@@ -730,3 +730,36 @@
           - "  K8s Dashboard Token: /root/k8s-dashboard-token.txt"
           - ""
           - "=========================================="
+
+    # ========================================
+    # Display Authentication Credentials
+    # ========================================
+    - name: Get ArgoCD admin password
+      shell: |
+        /usr/local/bin/k3s kubectl get secret argocd-initial-admin-secret \
+          -n argocd \
+          -o jsonpath="{.data.password}" | base64 -d
+      register: argocd_admin_password
+      changed_when: false
+      no_log: false
+
+    - name: Display authentication credentials
+      debug:
+        msg:
+          - ""
+          - "=========================================="
+          - "🔑 AUTHENTICATION CREDENTIALS"
+          - "=========================================="
+          - ""
+          - "ArgoCD Admin Credentials:"
+          - "  Username: admin"
+          - "  Password: {{ argocd_admin_password.stdout }}"
+          - ""
+          - "Kubernetes Dashboard Token:"
+          - "  {{ dashboard_token.stdout }}"
+          - ""
+          - "Credentials Files:"
+          - "  ArgoCD: /root/argocd-credentials.txt"
+          - "  K8s Dashboard: /root/k8s-dashboard-token.txt"
+          - ""
+          - "=========================================="
