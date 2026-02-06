@@ -624,4 +624,4 @@ sudo /usr/local/bin/k3s kubectl get pvc -A
 
 **作成日**: 2026-02-06
 **バージョン**: v1.0.0
-**最終更新**: 2026-02-06 (Kubernetes Dashboard外部アクセス追加、localhost参照削除)
+**最終更新**: 2026-02-06 (Kubernetes Dashboard外部アクセス追加、外部IP専用アクセスに統一)
