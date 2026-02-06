@@ -249,14 +249,20 @@
               changed_when: true
               when: current_branch.stdout != "HEAD"
 
-            - name: Restart backend deployment
-              command: /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-backend
-              register: backend_restart
+            - name: Update backend deployment image
+              command: >
+                /usr/local/bin/k3s kubectl set image
+                deployment/orgmgmt-backend
+                backend=localhost/orgmgmt-backend:{{ target_version }}
+              register: backend_image_update
               changed_when: true
 
-            - name: Restart frontend deployment
-              command: /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-frontend
-              register: frontend_restart
+            - name: Update frontend deployment image
+              command: >
+                /usr/local/bin/k3s kubectl set image
+                deployment/orgmgmt-frontend
+                frontend=localhost/orgmgmt-frontend:{{ target_version }}
+              register: frontend_image_update
               changed_when: true
 
             - name: Display version-based rollback status
