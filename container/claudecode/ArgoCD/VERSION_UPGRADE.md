@@ -152,13 +152,31 @@ git push origin v1.2.0
 
 ### 手順5: アプリケーションをビルドしてデプロイ
 
+**推奨**: 専用のバージョンアップplaybookを使用
+
 ```bash
-# Ansibleプレイブックを実行（完全再デプロイ）
+# アプリケーションバージョンアップ専用playbook
+cd ansible
+ansible-playbook playbooks/deploy_app_version.yml
+```
+
+このplaybookは以下を自動実行します：
+- アプリケーションビルド
+- Dockerイメージ作成（バージョンタグ付き）
+- K3sへのインポート
+- Deploymentのローリングアップデート
+- ヘルスチェック
+- ArgoCD同期
+
+**または**: 完全再デプロイする場合（K3s/ArgoCD含む全体を再構築）
+
+```bash
+# 完全再デプロイ
 cd ansible
 ansible-playbook playbooks/deploy_k8s_complete.yml
 ```
 
-または、既存環境に対してバージョンアップのみ実行する場合：
+**または**: 手動でステップごとに実行する場合：
 
 ```bash
 # 1. アプリケーションをビルド

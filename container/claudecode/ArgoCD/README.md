@@ -103,7 +103,12 @@ curl -s http://169.254.169.254/latest/meta-data/public-hostname
 
 **重要**: この値は環境削除・再構築後も変わりません（EC2インスタンスを停止/起動すると変わります）。
 
-### 3. 完全自動デプロイ
+### 3. 完全自動デプロイ（初回構築）
+
+**このplaybookを使用する場合**:
+- 初回セットアップ
+- 完全削除後の再構築
+- K3s/ArgoCD/全サービスを一から構築する場合
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
@@ -123,7 +128,38 @@ ansible-playbook playbooks/deploy_k8s_complete.yml
 8. ArgoCD GitOpsアプリケーション設定
 9. Kubernetes Dashboard インストール・設定
 
-### 4. デプロイ完了確認
+### 4. アプリケーションバージョンアップ
+
+**このplaybookを使用する場合**:
+- アプリケーションの新しいバージョンをデプロイする場合
+- K3sとArgoCDは既にインストール済み
+- アプリケーションコードの変更をデプロイしたい場合
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/deploy_app_version.yml
+```
+
+または、特定のバージョンを指定してデプロイ:
+
+```bash
+ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.2.0"
+```
+
+**所要時間**: 約3-5分
+
+**処理内容**:
+1. アプリケーションビルド（Backend/Frontend）
+2. Dockerイメージビルド（バージョンタグ付き）
+3. K3sへのイメージインポート
+4. Deploymentのローリングアップデート
+5. ヘルスチェック確認
+6. ArgoCD同期
+
+**詳細なバージョンアップ手順**:
+- [VERSION_UPGRADE.md](./VERSION_UPGRADE.md) を参照
+
+### 5. デプロイ完了確認
 
 ```bash
 # 全Pod状態確認
@@ -142,9 +178,16 @@ ss -tlnp | grep -E "(3000|5006|8000|8082|8083)"
 
 ### デプロイ
 
+**初回構築・完全再構築の場合**:
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ansible-playbook playbooks/deploy_k8s_complete.yml
+```
+
+**アプリケーションバージョンアップの場合**:
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/deploy_app_version.yml
 ```
 
 ### アクセス
