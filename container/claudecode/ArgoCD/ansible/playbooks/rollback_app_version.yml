@@ -170,7 +170,7 @@
                 chdir: "{{ backend_dir }}"
               environment:
                 MAVEN_OPTS: "-Xmx512m"
-                JAVA_HOME: "/usr/lib/jvm/java-21-amazon-corretto"
+                JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-17.0.18.0.8-1.el9.x86_64"
                 PATH: "/opt/maven/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
               register: backend_build
               changed_when: true
