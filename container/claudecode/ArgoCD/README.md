@@ -183,18 +183,15 @@ ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
 ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
 ```
 
-**重要**: `target_version`を指定する場合、該当するGitタグ（`argocd-regression-v{version}`）またはブランチ（`argocd-regression/v{version}`）が存在する必要があります。
+**重要**: `target_version`を指定する場合、該当するGitタグ（`argocd-regression-v{version}`）が存在する必要があります。
 
 ```bash
 # 利用可能なバージョンを確認
 git tag -l argocd-regression-v*
-git branch -a --list "*argocd-regression/v*"
 
 # 出力例:
 # argocd-regression-v1.0.0
 # argocd-regression-v1.1.0
-# argocd-regression/v1.0.0
-# argocd-regression/v1.1.0
 ```
 
 **所要時間**:
@@ -214,18 +211,15 @@ git branch -a --list "*argocd-regression/v*"
 
 **バージョンアップとロールバックの繰り返し**:
 
-各バージョンはGitタグ（`argocd-regression-v{version}`）として保存され、ロールバック時に該当タグからビルドされます。
+各バージョンはGitタグ（`argocd-regression-v{version}`）として**mainブランチ**に保存され、ロールバック時に該当タグからビルドされます。
 
 ```bash
 # 利用可能なバージョンを確認
 git tag -l argocd-regression-v*
-git branch -a --list "*argocd-regression/v*"
 
 # 出力例:
-# argocd-regression-v1.0.0  <- ベースバージョンタグ
-# argocd-regression-v1.1.0  <- System Information機能追加タグ
-# argocd-regression/v1.0.0  <- ベースバージョンブランチ
-# argocd-regression/v1.1.0  <- System Information機能追加ブランチ
+# argocd-regression-v1.0.0  <- ベースバージョン
+# argocd-regression-v1.1.0  <- System Information機能追加
 
 # 環境作成（初回のみ）
 ansible-playbook playbooks/deploy_k8s_complete.yml

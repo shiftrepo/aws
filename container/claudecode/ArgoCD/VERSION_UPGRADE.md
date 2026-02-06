@@ -43,43 +43,34 @@ MINOR: 後方互換性のある機能追加
 PATCH: 後方互換性のあるバグ修正
 ```
 
-### Gitタグとブランチによるバージョン管理
+### Gitタグによるバージョン管理
 
-**重要**: 各バージョンは必ずGitタグ**と**永続ブランチとして保存してください。
+**重要**: 各バージョンは必ずGitタグとして保存してください。**mainブランチのみ**を使用し、バージョンごとのブランチは作成しません。
 
 ```bash
 # タグ命名規則
 argocd-regression-v{version}
 
-# ブランチ命名規則
-argocd-regression/v{version}
-
 # 例
-argocd-regression-v1.0.0  # ベースバージョンタグ
-argocd-regression/v1.0.0  # ベースバージョンブランチ
-
-argocd-regression-v1.1.0  # システム情報表示機能追加タグ
-argocd-regression/v1.1.0  # システム情報表示機能追加ブランチ
-
-argocd-regression-v1.2.0  # 次のバージョンタグ
-argocd-regression/v1.2.0  # 次のバージョンブランチ
+argocd-regression-v1.0.0  # ベースバージョン
+argocd-regression-v1.1.0  # システム情報表示機能追加
+argocd-regression-v1.2.0  # 次のバージョン
 ```
 
-**なぜタグとブランチの両方が必要か**:
+**なぜmainブランチのみを使用するのか**:
 
-1. **タグ**:
-   - 不変のスナップショット
-   - 特定の時点のコードを確実に参照
-   - リリースの正式なマーカー
+1. **シンプル性**:
+   - ブランチを増やさず、修正マージが混乱しない
+   - mainブランチが常に最新の開発状態を表す
 
-2. **ブランチ**:
-   - 永続的な参照ポイント
-   - バージョン固有のホットフィックスが必要な場合に使用
-   - `git branch -a`で一覧表示が容易
+2. **タグの役割**:
+   - 各バージョンの不変のスナップショット
+   - ロールバック時にタグからビルドを再現
 
-3. **ロールバック時**:
-   - ブランチが存在すればブランチを優先（`argocd-regression/v1.0.0`）
-   - ブランチがなければタグを使用（`argocd-regression-v1.0.0`）
+3. **ワークフロー**:
+   - mainブランチで開発・修正を行う
+   - リリース時にタグを作成
+   - ロールバック時はタグをチェックアウトしてビルド
 
 **利用可能なバージョンを確認**:
 ```bash
@@ -89,15 +80,6 @@ git tag -l argocd-regression-v*
 # 出力例:
 # argocd-regression-v1.0.0
 # argocd-regression-v1.1.0
-
-# ブランチを確認
-git branch -a --list "*argocd-regression/v*"
-
-# 出力例:
-#   argocd-regression/v1.0.0
-#   argocd-regression/v1.1.0
-#   remotes/origin/argocd-regression/v1.0.0
-#   remotes/origin/argocd-regression/v1.1.0
 ```
 
 ### ファイル更新箇所
@@ -176,15 +158,12 @@ git commit -m "feat: Bump version to 1.2.0
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ```
 
-### 手順3: Gitタグとブランチを作成
+### 手順3: Gitタグを作成
 
-**重要**: タグとブランチの両方を作成してください。
+**重要**: mainブランチでタグを作成してください。バージョンごとのブランチは作成しません。
 
 ```bash
-# 永続ブランチを作成
-git branch argocd-regression/v1.2.0
-
-# 説明付きタグを作成
+# 説明付きタグを作成（現在のmainブランチにタグを付与）
 git tag -a argocd-regression-v1.2.0 -m "ArgoCD Regression Test - Version 1.2.0
 
 New Features:
@@ -206,13 +185,11 @@ Rollback to this version:
   ansible-playbook playbooks/rollback_app_version.yml -e \"target_version=1.2.0\"
 "
 
-# タグとブランチを確認
+# タグを確認
 git tag -l -n9 argocd-regression-v1.2.0
-git branch --list "*argocd-regression/v1.2.0"
 
 # すべてのアプリケーションバージョンを確認
 git tag -l argocd-regression-v*
-git branch -a --list "*argocd-regression/v*"
 ```
 
 ### 手順4: GitHubにプッシュ
@@ -221,8 +198,7 @@ git branch -a --list "*argocd-regression/v*"
 # コミットをプッシュ
 git push origin main
 
-# ブランチとタグをプッシュ
-git push origin argocd-regression/v1.2.0
+# タグをプッシュ
 git push origin argocd-regression-v1.2.0
 ```
 

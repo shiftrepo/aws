@@ -127,24 +127,20 @@
               changed_when: false
               failed_when: false
 
-            - name: Check if Git branch exists
-              command: git branch -a --list "*argocd-regression/v{{ target_version }}"
-              args:
-                chdir: "{{ project_root }}"
-              register: git_branch_check
-              changed_when: false
-              failed_when: false
-
-            - name: Fail if neither Git tag nor branch exists
+            - name: Fail if Git tag does not exist
               fail:
                 msg: |
-                  Git tag 'argocd-regression-v{{ target_version }}' and branch 'argocd-regression/v{{ target_version }}' do not exist.
+                  Git tag 'argocd-regression-v{{ target_version }}' does not exist.
                   Available tags: {{ available_tags.stdout_lines }}
-                  Available branches: {{ available_branches.stdout_lines }}
-              when: git_tag_check.stdout == "" and git_branch_check.stdout == ""
+
+                  To create a new version tag:
+                  1. Make your changes on main branch
+                  2. Commit changes
+                  3. Create tag: git tag -a argocd-regression-v{{ target_version }} -m "Version {{ target_version }}"
+                  4. Push: git push origin main argocd-regression-v{{ target_version }}
+              when: git_tag_check.stdout == ""
               vars:
                 available_tags: "{{ lookup('pipe', 'git -C ' + project_root + ' tag -l argocd-regression-v*') }}"
-                available_branches: "{{ lookup('pipe', 'git -C ' + project_root + ' branch -a --list \"*argocd-regression/v*\"') }}"
 
             - name: Save current Git branch/commit
               command: git rev-parse --abbrev-ref HEAD
@@ -153,12 +149,8 @@
               register: current_branch
               changed_when: false
 
-            - name: Determine checkout target (prefer branch over tag)
-              set_fact:
-                checkout_target: "{{ 'argocd-regression/v' + target_version if git_branch_check.stdout != '' else 'argocd-regression-v' + target_version }}"
-
-            - name: Checkout Git branch or tag for target version
-              command: git checkout {{ checkout_target }}
+            - name: Checkout Git tag for target version
+              command: git checkout argocd-regression-v{{ target_version }}
               args:
                 chdir: "{{ project_root }}"
               register: git_checkout
@@ -167,8 +159,8 @@
             - name: Display checkout information
               debug:
                 msg:
-                  - "Checked out: {{ checkout_target }}"
-                  - "Type: {{ 'branch' if git_branch_check.stdout != '' else 'tag' }}"
+                  - "Checked out Git tag: argocd-regression-v{{ target_version }}"
+                  - "Previous branch: {{ current_branch.stdout }}"
 
             - name: Build backend with Maven
               command: mvn clean package -DskipTests
