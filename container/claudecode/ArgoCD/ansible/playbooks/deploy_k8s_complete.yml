@@ -184,6 +184,15 @@
           register: frontend_image
           changed_when: true
 
+        - name: Remove old export files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/backend.tar
+            - /tmp/frontend.tar
+          become: yes
+
         - name: Export backend image
           command: podman save localhost/orgmgmt-backend:latest -o /tmp/backend.tar
           register: export_backend
@@ -372,10 +381,10 @@
 
         - name: Get NodePorts
           shell: |
-            FRONTEND=$(kubectl get svc orgmgmt-frontend -o jsonpath='{.spec.ports[0].nodePort}')
-            BACKEND=$(kubectl get svc orgmgmt-backend -o jsonpath='{.spec.ports[0].nodePort}')
-            ARGOCD_HTTP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}')
-            ARGOCD_HTTPS=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+            FRONTEND=$(/usr/local/bin/k3s kubectl get svc orgmgmt-frontend -n default -o jsonpath='{.spec.ports[0].nodePort}')
+            BACKEND=$(/usr/local/bin/k3s kubectl get svc orgmgmt-backend -n default -o jsonpath='{.spec.ports[0].nodePort}')
+            ARGOCD_HTTP=$(/usr/local/bin/k3s kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}')
+            ARGOCD_HTTPS=$(/usr/local/bin/k3s kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
             echo "FRONTEND=$FRONTEND BACKEND=$BACKEND ARGOCD_HTTP=$ARGOCD_HTTP ARGOCD_HTTPS=$ARGOCD_HTTPS"
           register: nodeports_output
           changed_when: false

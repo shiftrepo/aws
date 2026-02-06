@@ -160,14 +160,38 @@
           register: current_svc_type
           changed_when: false
 
-        - name: Patch ArgoCD server service to LoadBalancer
-          shell: |
-            /usr/local/bin/k3s kubectl patch svc argocd-server \
-              -n {{ argocd_namespace }} \
-              -p '{"spec": {"type": "LoadBalancer", "externalIPs": ["{{ private_ip }}"], "ports": [{"port": {{ argocd_server_port_http }}, "targetPort": 8080, "name": "http"}, {"port": {{ argocd_server_port_https }}, "targetPort": 8080, "name": "https"}]}}'
+        - name: Create ArgoCD LoadBalancer service manifest
+          copy:
+            content: |
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: argocd-server
+                namespace: {{ argocd_namespace }}
+              spec:
+                type: LoadBalancer
+                externalIPs:
+                - {{ private_ip }}
+                ports:
+                - name: http
+                  port: {{ argocd_server_port_http }}
+                  targetPort: 8080
+                  protocol: TCP
+                - name: https
+                  port: {{ argocd_server_port_https }}
+                  targetPort: 8080
+                  protocol: TCP
+                selector:
+                  app.kubernetes.io/name: argocd-server
+            dest: /tmp/argocd-server-svc.yaml
           when: current_svc_type.stdout != "LoadBalancer"
-          register: argocd_svc_patch
-          changed_when: '"patched" in argocd_svc_patch.stdout'
+
+        - name: Apply ArgoCD LoadBalancer service
+          shell: |
+            /usr/local/bin/k3s kubectl apply -f /tmp/argocd-server-svc.yaml
+          when: current_svc_type.stdout != "LoadBalancer"
+          register: argocd_svc_apply
+          changed_when: '"configured" in argocd_svc_apply.stdout or "created" in argocd_svc_apply.stdout'
 
       tags:
         - argocd-access
