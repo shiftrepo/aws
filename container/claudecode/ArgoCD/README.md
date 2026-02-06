@@ -40,7 +40,12 @@ ansible-playbook playbooks/deploy_k8s_complete.yml
 | Backend API | http://\<外部IP\>:8083 | 不要 |
 | ArgoCD UI | https://\<外部IP\>:8082 | 必要 |
 
-認証情報は `/root/argocd-credentials.txt` を参照してください。
+**認証情報**: 詳細は [CREDENTIALS.md](CREDENTIALS.md) を参照してください。
+
+- ArgoCD認証情報とパスワード取得方法
+- Kubernetes APIトークン取得方法
+- PostgreSQL / Redis接続情報
+- 各種トラブルシューティング
 
 ## アーキテクチャ
 
@@ -233,11 +238,15 @@ sudo /usr/local/bin/k3s-uninstall.sh
 
 ## ドキュメント
 
-- **ARGOCD-DEPLOYMENT-GUIDE.md**: ArgoCDの詳細な運用ガイド
-- **EXTERNAL-ACCESS-SOLUTION.md**: 外部アクセスのためのsocat設定
-- **EXTERNAL-PORTS.md**: ポート設定ガイド
-- **PORT-ALLOCATION-STATUS.md**: 現在のポート使用状況
-- **DEPLOYMENT-SUMMARY.md**: デプロイメント詳細サマリー
+- **[CREDENTIALS.md](CREDENTIALS.md)**: 🔑 認証情報・アクセスガイド（必読）
+  - ArgoCD / Kubernetes / PostgreSQL / Redis 認証情報
+  - パスワード・トークン取得方法
+  - セキュリティ設定とトラブルシューティング
+- **[ARGOCD-DEPLOYMENT-GUIDE.md](ARGOCD-DEPLOYMENT-GUIDE.md)**: ArgoCDの詳細な運用ガイド
+- **[DEPLOYMENT-SUMMARY.md](DEPLOYMENT-SUMMARY.md)**: デプロイメント詳細サマリー
+- **[EXTERNAL-ACCESS-SOLUTION.md](EXTERNAL-ACCESS-SOLUTION.md)**: 外部アクセスのためのsocat設定
+- **[EXTERNAL-PORTS.md](EXTERNAL-PORTS.md)**: ポート設定ガイド
+- **[PORT-ALLOCATION-STATUS.md](PORT-ALLOCATION-STATUS.md)**: 現在のポート使用状況
 
 ## 技術スタック
 
