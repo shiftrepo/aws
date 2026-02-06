@@ -568,6 +568,114 @@
         - argocd-gitops
 
     # ========================================
+    # Phase 9: Kubernetes Dashboard Setup
+    # ========================================
+    - name: "PHASE 9: Install and Configure Kubernetes Dashboard"
+      block:
+        - name: Check if Dashboard is already installed
+          shell: /usr/local/bin/k3s kubectl get namespace kubernetes-dashboard
+          register: dashboard_ns_check
+          changed_when: false
+          failed_when: false
+
+        - name: Install Kubernetes Dashboard
+          shell: |
+            /usr/local/bin/k3s kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+          when: dashboard_ns_check.rc != 0
+
+        - name: Wait for Dashboard pods to be ready
+          shell: |
+            /usr/local/bin/k3s kubectl wait --for=condition=ready pod \
+              -l k8s-app=kubernetes-dashboard \
+              -n kubernetes-dashboard \
+              --timeout=300s
+          when: dashboard_ns_check.rc != 0
+
+        - name: Create Dashboard admin ServiceAccount
+          shell: |
+            /usr/local/bin/k3s kubectl apply -f - <<EOF
+            apiVersion: v1
+            kind: ServiceAccount
+            metadata:
+              name: admin-user
+              namespace: kubernetes-dashboard
+            ---
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRoleBinding
+            metadata:
+              name: admin-user
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: ClusterRole
+              name: cluster-admin
+            subjects:
+            - kind: ServiceAccount
+              name: admin-user
+              namespace: kubernetes-dashboard
+            EOF
+          when: dashboard_ns_check.rc != 0
+
+        - name: Patch Dashboard Service to NodePort
+          shell: |
+            /usr/local/bin/k3s kubectl patch svc kubernetes-dashboard -n kubernetes-dashboard \
+              -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "targetPort": 8443, "nodePort": 30000}]}}'
+          when: dashboard_ns_check.rc != 0
+
+        - name: Generate Dashboard access token
+          shell: |
+            /usr/local/bin/k3s kubectl create token admin-user \
+              -n kubernetes-dashboard \
+              --duration=87600h
+          register: dashboard_token
+          changed_when: false
+
+        - name: Save Dashboard token to file
+          copy:
+            content: "{{ dashboard_token.stdout }}"
+            dest: /root/k8s-dashboard-token.txt
+            mode: '0600'
+
+        - name: Create socat service for Dashboard
+          copy:
+            content: |
+              [Unit]
+              Description=Socat Port Forward - Kubernetes Dashboard (3000 -> 30000)
+              After=network.target k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              User=root
+              ExecStart=/usr/bin/socat TCP-LISTEN:3000,bind=0.0.0.0,fork,reuseaddr TCP:127.0.0.1:30000
+              Restart=always
+              RestartSec=5
+              StandardOutput=journal
+              StandardError=journal
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/socat-k8s-dashboard.service
+            mode: '0644'
+
+        - name: Enable and start Dashboard socat service
+          systemd:
+            name: socat-k8s-dashboard
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
+        - name: Display Kubernetes Dashboard status
+          debug:
+            msg:
+              - "✅ Kubernetes Dashboard installed"
+              - "Access URL: https://{{ private_ip }}:3000"
+              - "Token saved to: /root/k8s-dashboard-token.txt"
+              - "Token (first 50 chars): {{ dashboard_token.stdout[:50] }}..."
+
+      tags:
+        - k8s-dashboard
+
+    # ========================================
     # Final Status Summary
     # ========================================
     - name: Display deployment completion summary
@@ -588,7 +696,10 @@
           - "  Backend API:  http://{{ private_ip }}:8083"
           - "  ArgoCD HTTPS: https://{{ private_ip }}:8082"
           - "  ArgoCD HTTP:  http://{{ private_ip }}:8000"
+          - "  K8s Dashboard: https://{{ private_ip }}:3000"
           - ""
-          - "ArgoCD Credentials: /root/argocd-credentials.txt"
+          - "Credentials:"
+          - "  ArgoCD: /root/argocd-credentials.txt"
+          - "  K8s Dashboard Token: /root/k8s-dashboard-token.txt"
           - ""
           - "=========================================="

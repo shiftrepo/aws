@@ -8,6 +8,7 @@
 | **Backend API** | http://10.0.1.200:8083 | 不要 | REST API |
 | **ArgoCD (HTTPS)** | https://10.0.1.200:8082 | 必要 | GitOps管理UI (推奨) |
 | **ArgoCD (HTTP)** | http://10.0.1.200:8000 | 必要 | HTTPSへリダイレクト |
+| **Kubernetes Dashboard** | https://10.0.1.200:3000 | トークン | Kubernetes管理UI |
 
 ## ArgoCD認証情報
 
@@ -165,62 +166,92 @@ sudo /usr/local/bin/k3s kubectl get pvc -A
 **StorageClass**: `local-path` (デフォルト)
 **ボリュームパス**: `/var/lib/rancher/k3s/storage/`
 
-### Kubernetes Dashboard（オプション）
+### Kubernetes Dashboard - Web UI
 
-Kubernetes Dashboardをインストールする場合：
+Kubernetesクラスター管理用のWeb UIです。
 
-#### インストール
+**アクセスURL**: https://10.0.1.200:3000
+**認証方式**: トークン認証
 
-```bash
-# Kubernetes Dashboard インストール
-sudo /usr/local/bin/k3s kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+#### 現在の認証トークン
 
-# ServiceAccount作成
-sudo /usr/local/bin/k3s kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: admin-user
-  namespace: kubernetes-dashboard
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: admin-user
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-- kind: ServiceAccount
-  name: admin-user
-  namespace: kubernetes-dashboard
-EOF
-
-# トークン取得
-sudo /usr/local/bin/k3s kubectl create token admin-user -n kubernetes-dashboard
+```
+eyJhbGciOiJSUzI1NiIsImtpZCI6ImUySHd6NTNYMXRMS09HQmpEMEVRTkIyRE1UcVY3UmgxbG9vZGwyMFhMWDAifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiLCJrM3MiXSwiZXhwIjoyMDg1NzE2MjAyLCJpYXQiOjE3NzAzNTYyMDIsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiYTEyYmMzMGYtZWUyMi00MTQ3LWE0NGQtOGNjZDMzMTEzZmZlIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJhZG1pbi11c2VyIiwidWlkIjoiYTBmY2I0YjgtNzc3MS00YmFiLThhNTctYTliOTE5YjU5MDgzIn19LCJuYmYiOjE3NzAzNTYyMDIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlcm5ldGVzLWRhc2hib2FyZDphZG1pbi11c2VyIn0.PSNl3i4P_9M6PK3XJyO3GyBSGfYdBTEtTmpBgvtdMnOdvcpHOVZSwQ8f0MT1wqCGdJIw8ZOh1F3XJqkBSN5Nnt0NmjLMcgkwGkaW2dfEyQ5Xucxfawmcn4AmkNb-dM-B2Wh4k27A3z06PThc96htoomNqQs1ATXnry-ggUV12kb4t4MYi2-bl7qRHO-TRjPB-onq6hn_4XYiLFVEM8SUlhBnpJcGdXhkaJINtku_7uOsqjyjgEr6mle0LL4HR2OlE_ExWKb0gMX9P0Jt1np9AefN6RDZ7J0frG77gnFLpZrkkPk8P5w2NTlEG2ZCV-p-K5sti-bkPWOC62Og-7XpWw
 ```
 
-#### アクセス
+**トークンファイル**: `/root/k8s-dashboard-token.txt`
+
+**有効期限**: 10年間（2036年まで）
+
+#### アクセス手順
+
+1. **ブラウザで開く**
+   ```
+   https://10.0.1.200:3000
+   ```
+
+2. **証明書警告を承認**
+   - 自己署名証明書を使用しているため警告が表示されます
+   - 「詳細設定」→「安全でないサイトへ進む」
+
+3. **トークン認証**
+   - 「トークン」を選択
+   - 上記のトークンを貼り付け
+   - 「サインイン」
+
+#### トークン取得方法（再生成時）
 
 ```bash
-# ポート転送
-sudo /usr/local/bin/k3s kubectl port-forward -n kubernetes-dashboard \
-  svc/kubernetes-dashboard 8443:443
+# 新しいトークンを生成（10年間有効）
+sudo /usr/local/bin/k3s kubectl create token admin-user \
+  -n kubernetes-dashboard \
+  --duration=87600h
 
-# ブラウザで開く
-# https://localhost:8443/
+# 短期トークン（1時間有効）
+sudo /usr/local/bin/k3s kubectl create token admin-user \
+  -n kubernetes-dashboard \
+  --duration=1h
 
-# トークンでログイン
+# 保存済みトークンを確認
+sudo cat /root/k8s-dashboard-token.txt
 ```
 
-**または、NodePortで公開**:
+#### Dashboard機能
 
+- **クラスター概要**: ノード、Pod、Deployment状態
+- **ワークロード管理**: Pod、Deployment、StatefulSet、DaemonSet
+- **サービス管理**: Service、Ingress、NetworkPolicy
+- **ストレージ管理**: PV、PVC、StorageClass
+- **設定管理**: ConfigMap、Secret
+- **ログ確認**: Pod単位のログ表示
+- **シェル接続**: Podへのターミナルアクセス
+- **リソース監視**: CPU/メモリ使用状況
+
+#### 技術詳細
+
+**Service構成**:
+- Service Type: NodePort
+- NodePort: 30000
+- Target Port: 8443
+
+**外部アクセス（socat）**:
+- External Port: 3000 → NodePort: 30000
+- Service: `socat-k8s-dashboard.service`
+- Bind: 0.0.0.0 (全インターフェース)
+
+**確認コマンド**:
 ```bash
-sudo /usr/local/bin/k3s kubectl patch svc kubernetes-dashboard -n kubernetes-dashboard \
-  -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "targetPort": 8443, "nodePort": 30443}]}}'
+# Dashboard Pod確認
+sudo /usr/local/bin/k3s kubectl get pods -n kubernetes-dashboard
 
-# アクセス: https://10.0.1.200:30443/
+# Service確認
+sudo /usr/local/bin/k3s kubectl get svc -n kubernetes-dashboard
+
+# socat サービス確認
+sudo systemctl status socat-k8s-dashboard
+
+# ポート確認
+sudo ss -tlnp | grep :3000
 ```
 
 ## Kubernetes認証情報
@@ -573,6 +604,10 @@ sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=kube-dns
 # Metrics Server 状態
 sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=metrics-server
 
+# Kubernetes Dashboard 状態
+sudo /usr/local/bin/k3s kubectl get pods -n kubernetes-dashboard
+sudo systemctl status socat-k8s-dashboard
+
 # リソース使用状況
 sudo /usr/local/bin/k3s kubectl top nodes
 sudo /usr/local/bin/k3s kubectl top pods -A
@@ -589,4 +624,4 @@ sudo /usr/local/bin/k3s kubectl get pvc -A
 
 **作成日**: 2026-02-06
 **バージョン**: v1.0.0
-**最終更新**: 2026-02-06 (Kubernetes管理サービス情報追加)
+**最終更新**: 2026-02-06 (Kubernetes Dashboard外部アクセス追加、localhost参照削除)
