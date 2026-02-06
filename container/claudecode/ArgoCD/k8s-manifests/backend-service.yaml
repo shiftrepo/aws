@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orgmgmt-backend
+  namespace: default
+  labels:
+    app: orgmgmt-backend
+spec:
+  type: LoadBalancer
+  externalIPs:
+  - 10.0.1.200
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 1800
+  ports:
+  - name: http
+    port: 8083
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: orgmgmt-backend

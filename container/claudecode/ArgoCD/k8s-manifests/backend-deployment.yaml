@@ -1,0 +1,73 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orgmgmt-backend
+  namespace: default
+  labels:
+    app: orgmgmt-backend
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orgmgmt-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: orgmgmt-backend
+        version: v1
+    spec:
+      containers:
+      - name: backend
+        image: localhost/orgmgmt-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://postgres:5432/orgmgmt"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "orgmgmt_user"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "SecurePassword123!"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
