@@ -1,0 +1,514 @@
+---
+# ========================================
+# 完全Kubernetes環境構築 - 0からの自動化
+# ========================================
+# K3s + ArgoCD + アプリケーション全体を自動構築
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook playbooks/deploy_k8s_complete.yml
+# ========================================
+
+- name: Deploy Complete Kubernetes Environment from Scratch
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    backend_dir: "{{ project_root }}/app/backend"
+    frontend_dir: "{{ project_root }}/app/frontend"
+    k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
+    private_ip: "{{ ansible_default_ipv4.address }}"
+
+  tasks:
+    # ========================================
+    # Phase 0: 環境確認
+    # ========================================
+    - name: Display deployment information
+      debug:
+        msg:
+          - "=========================================="
+          - "Kubernetes Complete Deployment"
+          - "=========================================="
+          - "Project Root: {{ project_root }}"
+          - "Private IP: {{ private_ip }}"
+          - "=========================================="
+
+    # ========================================
+    # Phase 1: K3sとArgoCDのインストール
+    # ========================================
+    - name: "PHASE 1: Install K3s and ArgoCD"
+      block:
+        - name: Check if K3s is already installed
+          stat:
+            path: /usr/local/bin/k3s
+          register: k3s_bin
+
+        - name: Install K3s and ArgoCD
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
+          args:
+            chdir: "{{ project_root }}/ansible"
+          when: not k3s_bin.stat.exists
+          register: k3s_install
+          changed_when: true
+
+        - name: Wait for K3s to be ready
+          command: /usr/local/bin/k3s kubectl get nodes
+          register: k3s_nodes
+          until: "'Ready' in k3s_nodes.stdout"
+          retries: 30
+          delay: 10
+          changed_when: false
+
+        - name: Wait for ArgoCD pods to be ready
+          shell: /usr/local/bin/k3s kubectl get pods -n argocd --no-headers | grep -v Running | wc -l
+          register: argocd_status
+          until: argocd_status.stdout == "0"
+          retries: 60
+          delay: 10
+          changed_when: false
+
+        - name: Display K3s and ArgoCD status
+          debug:
+            msg:
+              - "✅ K3s cluster is ready"
+              - "✅ ArgoCD is running"
+
+      tags:
+        - k3s
+        - argocd
+
+    # ========================================
+    # Phase 2: ビルドツールのインストール
+    # ========================================
+    - name: "PHASE 2: Install Build Tools"
+      block:
+        - name: Check if Maven is installed
+          command: bash -lc "mvn --version"
+          register: maven_check
+          failed_when: false
+          changed_when: false
+
+        - name: Install build tools if not present
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/install_build_tools.yml
+          args:
+            chdir: "{{ project_root }}/ansible"
+          when: maven_check.rc != 0
+          register: build_tools_install
+          changed_when: true
+
+        - name: Verify Maven installation
+          shell: bash -lc "source /etc/profile.d/maven.sh && mvn --version"
+          register: maven_verify
+          changed_when: false
+
+        - name: Display build tools status
+          debug:
+            msg: "✅ Build tools are ready"
+
+      tags:
+        - build-tools
+
+    # ========================================
+    # Phase 3: アプリケーションのビルド
+    # ========================================
+    - name: "PHASE 3: Build Applications"
+      block:
+        - name: Build backend with Maven
+          shell: |
+            source /etc/profile.d/maven.sh
+            cd {{ backend_dir }}
+            mvn clean package -DskipTests -Dmaven.test.skip=true
+          args:
+            executable: /bin/bash
+          register: backend_build
+          changed_when: true
+
+        - name: Verify backend JAR exists
+          stat:
+            path: "{{ backend_dir }}/target/orgmgmt-backend.jar"
+          register: backend_jar
+          failed_when: not backend_jar.stat.exists
+
+        - name: Install frontend dependencies
+          command: npm install
+          args:
+            chdir: "{{ frontend_dir }}"
+          register: npm_install
+          changed_when: true
+
+        - name: Build frontend with Vite
+          command: npm run build
+          args:
+            chdir: "{{ frontend_dir }}"
+          register: frontend_build
+          changed_when: true
+
+        - name: Verify frontend dist exists
+          stat:
+            path: "{{ frontend_dir }}/dist"
+          register: frontend_dist
+          failed_when: not frontend_dist.stat.exists
+
+        - name: Display build status
+          debug:
+            msg:
+              - "✅ Backend JAR built successfully"
+              - "✅ Frontend dist built successfully"
+
+      tags:
+        - build
+
+    # ========================================
+    # Phase 4: コンテナイメージのビルド
+    # ========================================
+    - name: "PHASE 4: Build Container Images"
+      block:
+        - name: Pull base images
+          command: podman pull docker.io/library/eclipse-temurin:21-jre-alpine
+          register: pull_base
+          changed_when: true
+
+        - name: Build backend container image
+          command: podman build -t orgmgmt-backend:latest -f Dockerfile .
+          args:
+            chdir: "{{ backend_dir }}"
+          register: backend_image
+          changed_when: true
+
+        - name: Build frontend container image
+          command: podman build -t orgmgmt-frontend:latest -f Dockerfile .
+          args:
+            chdir: "{{ frontend_dir }}"
+          register: frontend_image
+          changed_when: true
+
+        - name: Export backend image
+          command: podman save localhost/orgmgmt-backend:latest -o /tmp/backend.tar
+          register: export_backend
+          changed_when: true
+
+        - name: Export frontend image
+          command: podman save localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar
+          register: export_frontend
+          changed_when: true
+
+        - name: Import images into K3s
+          shell: |
+            /usr/local/bin/k3s ctr images import /tmp/backend.tar
+            /usr/local/bin/k3s ctr images import /tmp/frontend.tar
+          register: import_images
+          changed_when: true
+
+        - name: Verify images in K3s
+          command: /usr/local/bin/k3s crictl images
+          register: k3s_images
+          changed_when: false
+
+        - name: Display image build status
+          debug:
+            msg:
+              - "✅ Backend image built and imported"
+              - "✅ Frontend image built and imported"
+
+      tags:
+        - images
+
+    # ========================================
+    # Phase 5: Kubernetesへのデプロイ
+    # ========================================
+    - name: "PHASE 5: Deploy to Kubernetes"
+      block:
+        - name: Deploy PostgreSQL
+          command: /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/postgres-deployment.yaml
+          register: deploy_postgres
+          changed_when: true
+
+        - name: Deploy Redis
+          command: /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/redis-deployment.yaml
+          register: deploy_redis
+          changed_when: true
+
+        - name: Wait for PostgreSQL to be ready
+          shell: /usr/local/bin/k3s kubectl get pods -l app=postgres --no-headers | grep Running | wc -l
+          register: postgres_status
+          until: postgres_status.stdout == "1"
+          retries: 30
+          delay: 10
+          changed_when: false
+
+        - name: Wait for Redis to be ready
+          shell: /usr/local/bin/k3s kubectl get pods -l app=redis --no-headers | grep Running | wc -l
+          register: redis_status
+          until: redis_status.stdout == "1"
+          retries: 30
+          delay: 10
+          changed_when: false
+
+        - name: Deploy Backend
+          shell: |
+            /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/backend-deployment.yaml
+            /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/backend-service.yaml
+          register: deploy_backend
+          changed_when: true
+
+        - name: Deploy Frontend
+          shell: |
+            /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/frontend-deployment.yaml
+            /usr/local/bin/k3s kubectl apply -f {{ k8s_manifests_dir }}/frontend-service.yaml
+          register: deploy_frontend
+          changed_when: true
+
+        - name: Wait for Backend pods to be ready
+          shell: /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-backend --no-headers | grep Running | wc -l
+          register: backend_status
+          until: backend_status.stdout == "2"
+          retries: 60
+          delay: 10
+          changed_when: false
+
+        - name: Wait for Frontend pods to be ready
+          shell: /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-frontend --no-headers | grep Running | wc -l
+          register: frontend_status
+          until: frontend_status.stdout == "2"
+          retries: 60
+          delay: 10
+          changed_when: false
+
+        - name: Display deployment status
+          debug:
+            msg:
+              - "✅ PostgreSQL deployed and ready"
+              - "✅ Redis deployed and ready"
+              - "✅ Backend deployed and ready (2 replicas)"
+              - "✅ Frontend deployed and ready (2 replicas)"
+
+      tags:
+        - deploy
+
+    # ========================================
+    # Phase 6: サービス確認
+    # ========================================
+    - name: "PHASE 6: Verify Services"
+      block:
+        - name: Get all pods status
+          command: /usr/local/bin/k3s kubectl get pods -o wide
+          register: all_pods
+          changed_when: false
+
+        - name: Get all services
+          command: /usr/local/bin/k3s kubectl get svc
+          register: all_services
+          changed_when: false
+
+        - name: Get backend service details
+          shell: /usr/local/bin/k3s kubectl get svc orgmgmt-backend -o jsonpath='{.spec.ports[0].port}'
+          register: backend_port
+          changed_when: false
+
+        - name: Get frontend service details
+          shell: /usr/local/bin/k3s kubectl get svc orgmgmt-frontend -o jsonpath='{.spec.ports[0].port}'
+          register: frontend_port
+          changed_when: false
+
+        - name: Wait for backend health check
+          uri:
+            url: "http://{{ private_ip }}:{{ backend_port.stdout }}/actuator/health"
+            status_code: 200
+          register: backend_health
+          until: backend_health.status == 200
+          retries: 30
+          delay: 10
+
+        - name: Wait for frontend to respond
+          uri:
+            url: "http://{{ private_ip }}:{{ frontend_port.stdout }}/"
+            status_code: 200
+          register: frontend_health
+          until: frontend_health.status == 200
+          retries: 30
+          delay: 10
+
+        - name: Display final status
+          debug:
+            msg:
+              - "=========================================="
+              - "DEPLOYMENT COMPLETE!"
+              - "=========================================="
+              - ""
+              - "ArgoCD:"
+              - "  URL: https://{{ private_ip }}:30010"
+              - "  Credentials: /root/argocd-credentials.txt"
+              - ""
+              - "Backend:"
+              - "  API: http://{{ private_ip }}:{{ backend_port.stdout }}"
+              - "  Health: http://{{ private_ip }}:{{ backend_port.stdout }}/actuator/health"
+              - ""
+              - "Frontend:"
+              - "  URL: http://{{ private_ip }}:{{ frontend_port.stdout }}"
+              - ""
+              - "Pods Status:"
+              - "{{ all_pods.stdout_lines }}"
+              - ""
+              - "Services:"
+              - "{{ all_services.stdout_lines }}"
+              - ""
+              - "=========================================="
+
+      tags:
+        - verify
+
+
+    # ========================================
+    # Phase 7: ポート転送設定 (socat)
+    # ========================================
+    - name: "PHASE 7: Setup Port Forwarding with socat"
+      block:
+        - name: Install socat
+          package:
+            name: socat
+            state: present
+
+        - name: Get NodePorts
+          shell: |
+            FRONTEND=$(kubectl get svc orgmgmt-frontend -o jsonpath='{.spec.ports[0].nodePort}')
+            BACKEND=$(kubectl get svc orgmgmt-backend -o jsonpath='{.spec.ports[0].nodePort}')
+            ARGOCD_HTTP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}')
+            ARGOCD_HTTPS=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+            echo "FRONTEND=$FRONTEND BACKEND=$BACKEND ARGOCD_HTTP=$ARGOCD_HTTP ARGOCD_HTTPS=$ARGOCD_HTTPS"
+          register: nodeports_output
+          changed_when: false
+
+        - name: Parse NodePorts
+          set_fact:
+            frontend_nodeport: "{{ nodeports_output.stdout | regex_search('FRONTEND=(\\d+)', '\\1') | first }}"
+            backend_nodeport: "{{ nodeports_output.stdout | regex_search('BACKEND=(\\d+)', '\\1') | first }}"
+            argocd_http_nodeport: "{{ nodeports_output.stdout | regex_search('ARGOCD_HTTP=(\\d+)', '\\1') | first }}"
+            argocd_https_nodeport: "{{ nodeports_output.stdout | regex_search('ARGOCD_HTTPS=(\\d+)', '\\1') | first }}"
+
+        - name: Create socat systemd service for Frontend
+          copy:
+            content: |
+              [Unit]
+              Description=Socat Port Forward - Frontend (5006 -> {{ frontend_nodeport }})
+              After=network.target k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              User=root
+              ExecStart=/usr/bin/socat TCP-LISTEN:5006,bind=0.0.0.0,fork,reuseaddr TCP:127.0.0.1:{{ frontend_nodeport }}
+              Restart=always
+              RestartSec=5
+              StandardOutput=journal
+              StandardError=journal
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/socat-frontend.service
+            mode: '0644'
+
+        - name: Create socat systemd service for Backend
+          copy:
+            content: |
+              [Unit]
+              Description=Socat Port Forward - Backend (8083 -> {{ backend_nodeport }})
+              After=network.target k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              User=root
+              ExecStart=/usr/bin/socat TCP-LISTEN:8083,bind=0.0.0.0,fork,reuseaddr TCP:127.0.0.1:{{ backend_nodeport }}
+              Restart=always
+              RestartSec=5
+              StandardOutput=journal
+              StandardError=journal
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/socat-backend.service
+            mode: '0644'
+
+        - name: Create socat systemd service for ArgoCD HTTP
+          copy:
+            content: |
+              [Unit]
+              Description=Socat Port Forward - ArgoCD HTTP (8000 -> {{ argocd_http_nodeport }})
+              After=network.target k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              User=root
+              ExecStart=/usr/bin/socat TCP-LISTEN:8000,bind=0.0.0.0,fork,reuseaddr TCP:127.0.0.1:{{ argocd_http_nodeport }}
+              Restart=always
+              RestartSec=5
+              StandardOutput=journal
+              StandardError=journal
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/socat-argocd-http.service
+            mode: '0644'
+
+        - name: Create socat systemd service for ArgoCD HTTPS
+          copy:
+            content: |
+              [Unit]
+              Description=Socat Port Forward - ArgoCD HTTPS (8082 -> {{ argocd_https_nodeport }})
+              After=network.target k3s.service
+              Requires=k3s.service
+
+              [Service]
+              Type=simple
+              User=root
+              ExecStart=/usr/bin/socat TCP-LISTEN:8082,bind=0.0.0.0,fork,reuseaddr TCP:127.0.0.1:{{ argocd_https_nodeport }}
+              Restart=always
+              RestartSec=5
+              StandardOutput=journal
+              StandardError=journal
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/socat-argocd-https.service
+            mode: '0644'
+
+        - name: Reload systemd daemon
+          command: systemctl daemon-reload
+          changed_when: true
+
+        - name: Enable and start socat services
+          systemd:
+            name: "{{ item }}"
+            enabled: yes
+            state: started
+            daemon_reload: yes
+          loop:
+            - socat-frontend
+            - socat-backend
+            - socat-argocd-http
+            - socat-argocd-https
+
+        - name: Verify socat services
+          shell: ss -tlnp | grep -E "5006|8083|8082|8000" || true
+          register: listening_ports
+          changed_when: false
+
+        - name: Display port forwarding status
+          debug:
+            msg:
+              - "✅ Socat port forwarding configured"
+              - "Listening ports:"
+              - "{{ listening_ports.stdout_lines }}"
+              - ""
+              - "Port mappings:"
+              - "  5006 (Frontend) -> {{ frontend_nodeport }}"
+              - "  8083 (Backend) -> {{ backend_nodeport }}"
+              - "  8000 (ArgoCD HTTP) -> {{ argocd_http_nodeport }}"
+              - "  8082 (ArgoCD HTTPS) -> {{ argocd_https_nodeport }}"
+
+      tags:
+        - port-forwarding
+        - socat
