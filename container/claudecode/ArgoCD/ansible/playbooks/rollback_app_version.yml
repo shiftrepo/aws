@@ -165,7 +165,7 @@
                   - "Previous branch: {{ current_branch.stdout }}"
 
             - name: Build backend with Maven
-              command: /opt/maven/bin/mvn clean package -DskipTests
+              command: /opt/maven/bin/mvn clean package -Dmaven.test.skip=true
               args:
                 chdir: "{{ backend_dir }}"
               environment:
