@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { getOrganizations } from '../api/organizationApi'
 import { getDepartments } from '../api/departmentApi'
 import { getUsers } from '../api/userApi'
+import { getSystemInfo } from '../api/systemApi'
 
 function HomePage() {
   const [stats, setStats] = useState({
@@ -10,10 +11,16 @@ function HomePage() {
     departments: 0,
     users: 0,
   })
+  const [systemInfo, setSystemInfo] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
+    fetchSystemInfo()
+
+    // Poll system info every 30 seconds
+    const interval = setInterval(fetchSystemInfo, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchStats = async () => {
@@ -39,6 +46,15 @@ function HomePage() {
     }
   }
 
+  const fetchSystemInfo = async () => {
+    try {
+      const response = await getSystemInfo()
+      setSystemInfo(response.data)
+    } catch (err) {
+      console.error('Failed to fetch system info:', err)
+    }
+  }
+
   if (loading) {
     return (
       <div className="loading">
@@ -57,6 +73,39 @@ function HomePage() {
           </p>
         </div>
       </div>
+
+      {systemInfo && (
+        <div className="card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <div className="card-header">
+            <h2 className="card-title" style={{ color: 'white', margin: 0 }}>System Information</h2>
+          </div>
+          <div className="card-body">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>Pod Name</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 'bold', fontFamily: 'monospace' }}>{systemInfo.podName}</div>
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>Session ID</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                  {systemInfo.sessionId ? systemInfo.sessionId.substring(0, 8) + '...' : 'N/A'}
+                </div>
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>Flyway Version</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 'bold', fontFamily: 'monospace' }}>V{systemInfo.flywayVersion}</div>
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.5rem' }}>Database Status</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                  {systemInfo.databaseStatus === 'OK' ? '✅ ' : '❌ '}
+                  {systemInfo.databaseStatus}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card-grid">
         <div className="stat-card">

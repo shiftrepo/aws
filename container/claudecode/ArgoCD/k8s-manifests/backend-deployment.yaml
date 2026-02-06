@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: localhost/orgmgmt-backend:latest
+        image: localhost/orgmgmt-backend:1.1.0
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

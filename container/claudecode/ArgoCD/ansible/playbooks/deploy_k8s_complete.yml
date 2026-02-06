@@ -20,6 +20,7 @@
     frontend_dir: "{{ project_root }}/app/frontend"
     k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
     private_ip: "{{ ansible_default_ipv4.address }}"
+    app_version: "1.1.0"
 
   tasks:
     # ========================================
@@ -171,14 +172,14 @@
           changed_when: true
 
         - name: Build backend container image
-          command: podman build -t orgmgmt-backend:latest -f Dockerfile .
+          command: podman build -t orgmgmt-backend:{{ app_version }} -t orgmgmt-backend:latest -f Dockerfile .
           args:
             chdir: "{{ backend_dir }}"
           register: backend_image
           changed_when: true
 
         - name: Build frontend container image
-          command: podman build -t orgmgmt-frontend:latest -f Dockerfile .
+          command: podman build -t orgmgmt-frontend:{{ app_version }} -t orgmgmt-frontend:latest -f Dockerfile .
           args:
             chdir: "{{ frontend_dir }}"
           register: frontend_image
@@ -194,12 +195,12 @@
           become: yes
 
         - name: Export backend image
-          command: podman save localhost/orgmgmt-backend:latest -o /tmp/backend.tar
+          command: podman save localhost/orgmgmt-backend:{{ app_version }} localhost/orgmgmt-backend:latest -o /tmp/backend.tar
           register: export_backend
           changed_when: true
 
         - name: Export frontend image
-          command: podman save localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar
+          command: podman save localhost/orgmgmt-frontend:{{ app_version }} localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar
           register: export_frontend
           changed_when: true
 
