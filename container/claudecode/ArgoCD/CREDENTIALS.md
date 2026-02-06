@@ -8,7 +8,17 @@
 | **Backend API** | http://10.0.1.200:8083 | 不要 | REST API |
 | **ArgoCD (HTTPS)** | https://10.0.1.200:8082 | 必要 | GitOps管理UI (推奨) |
 | **ArgoCD (HTTP)** | http://10.0.1.200:8000 | 必要 | HTTPSへリダイレクト |
-| **Kubernetes Dashboard** | https://10.0.1.200:3000 | トークン | Kubernetes管理UI |
+| **Kubernetes Dashboard** | **https://\<EC2-PUBLIC-DNS\>:3000** | トークン | Kubernetes管理UI ⚠️ **DNS名のみ** |
+
+**⚠️ 重要**: Kubernetes DashboardはIPアドレスではアクセスできません。EC2インスタンスのパブリックDNS名を使用してください。
+
+```bash
+# EC2パブリックDNS名の取得
+curl -s http://169.254.169.254/latest/meta-data/public-hostname
+
+# 現在のDNS名: ec2-54-172-30-175.compute-1.amazonaws.com
+# アクセスURL: https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/
+```
 
 ## ArgoCD認証情報
 
@@ -170,8 +180,23 @@ sudo /usr/local/bin/k3s kubectl get pvc -A
 
 Kubernetesクラスター管理用のWeb UIです。
 
-**アクセスURL**: https://10.0.1.200:3000
+**⚠️ 重要**: Kubernetes DashboardはIPアドレスではアクセスできません。EC2インスタンスのパブリックDNS名を使用してください。
+
+**アクセスURL**: https://\<EC2-PUBLIC-DNS\>:3000
 **認証方式**: トークン認証
+
+#### EC2パブリックDNS名の取得
+
+```bash
+# サーバー上で実行してDNS名を取得
+curl -s http://169.254.169.254/latest/meta-data/public-hostname
+
+# 出力例: ec2-54-172-30-175.compute-1.amazonaws.com
+```
+
+**現在のアクセスURL**: `https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/`
+
+> **注意**: EC2インスタンスを停止/起動するとパブリックDNS名が変わります。アクセスできない場合は上記コマンドで最新のDNS名を確認してください。
 
 #### 現在の認証トークン
 
@@ -185,16 +210,23 @@ eyJhbGciOiJSUzI1NiIsImtpZCI6ImUySHd6NTNYMXRMS09HQmpEMEVRTkIyRE1UcVY3UmgxbG9vZGwy
 
 #### アクセス手順
 
-1. **ブラウザで開く**
-   ```
-   https://10.0.1.200:3000
+1. **EC2パブリックDNS名を取得**
+   ```bash
+   curl -s http://169.254.169.254/latest/meta-data/public-hostname
    ```
 
-2. **証明書警告を承認**
+2. **ブラウザで開く**
+   ```
+   https://<取得したDNS名>:3000
+
+   例: https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/
+   ```
+
+3. **証明書警告を承認**
    - 自己署名証明書を使用しているため警告が表示されます
    - 「詳細設定」→「安全でないサイトへ進む」
 
-3. **トークン認証**
+4. **トークン認証**
    - 「トークン」を選択
    - 上記のトークンを貼り付け
    - 「サインイン」
@@ -624,4 +656,4 @@ sudo /usr/local/bin/k3s kubectl get pvc -A
 
 **作成日**: 2026-02-06
 **バージョン**: v1.0.0
-**最終更新**: 2026-02-06 (Kubernetes Dashboard外部アクセス追加、外部IP専用アクセスに統一)
+**最終更新**: 2026-02-06 (Kubernetes Dashboard: EC2パブリックDNS名でのアクセス方法追加)

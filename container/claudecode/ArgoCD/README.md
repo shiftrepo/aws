@@ -39,10 +39,28 @@ ansible-playbook playbooks/deploy_k8s_complete.yml
 | Frontend | http://\<外部IP\>:5006 | 不要 |
 | Backend API | http://\<外部IP\>:8083 | 不要 |
 | ArgoCD UI | https://\<外部IP\>:8082 | 必要 |
+| **Kubernetes Dashboard** | **https://\<EC2パブリックDNS\>:3000** | **必要** |
+
+**⚠️ 重要: Kubernetes Dashboardのアクセス方法**
+
+Kubernetes Dashboardは**IPアドレスではアクセスできません**。EC2インスタンスのパブリックDNS名を使用してください。
+
+```bash
+# EC2のパブリックDNS名を取得
+curl -s http://169.254.169.254/latest/meta-data/public-hostname
+
+# 例: ec2-54-172-30-175.compute-1.amazonaws.com
+```
+
+アクセスURL例:
+```
+https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/
+```
 
 **認証情報**: 詳細は [CREDENTIALS.md](CREDENTIALS.md) を参照してください。
 
 - ArgoCD認証情報とパスワード取得方法
+- Kubernetes Dashboard トークン（`/root/k8s-dashboard-token.txt`）
 - Kubernetes APIトークン取得方法
 - PostgreSQL / Redis接続情報
 - 各種トラブルシューティング
