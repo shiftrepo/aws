@@ -269,7 +269,43 @@ kubectl logs -l app=orgmgmt-frontend --tail=50
 
 デプロイ後に問題が発生した場合、以前のバージョンにロールバックできます。
 
-### 方法1: ArgoCDで以前のGitコミットに戻す
+### 方法1: ロールバック専用Playbookを使用（推奨）
+
+**最も簡単で確実な方法**です。
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+
+# 直前のバージョンに戻す
+ansible-playbook playbooks/rollback_app_version.yml
+
+# 特定のバージョンに戻す
+ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
+
+# 特定のリビジョンに戻す（例: 2つ前のリビジョン）
+ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
+```
+
+**処理内容**:
+- 現在のデプロイ状態確認
+- Kubernetesロールバック実行
+- ヘルスチェック
+- バージョン履歴更新
+
+**所要時間**: 約2-3分
+
+**バージョン履歴の確認**:
+```bash
+# デプロイ・ロールバック履歴を確認
+cat /root/app-version-history.txt
+
+# 出力例:
+# 2026-02-06T10:00:00Z | DEPLOY | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
+# 2026-02-06T10:30:00Z | ROLLBACK | 1.0.0 | Backend: localhost/orgmgmt-backend:1.0.0, Frontend: localhost/orgmgmt-frontend:1.0.0
+# 2026-02-06T11:00:00Z | DEPLOY | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
+```
+
+### 方法2: ArgoCDで以前のGitコミットに戻す
 
 ```bash
 # 以前の正常なコミットハッシュを確認
@@ -282,7 +318,7 @@ argocd app sync orgmgmt-app --revision <commit-hash>
 argocd app sync orgmgmt-app --revision fbd1876
 ```
 
-### 方法2: Gitでrevertしてプッシュ
+### 方法3: Gitでrevertしてプッシュ
 
 ```bash
 # 問題のあるコミットをrevert
@@ -296,7 +332,7 @@ git push origin main
 argocd app sync orgmgmt-app
 ```
 
-### 方法3: Kubernetesで以前のイメージに戻す
+### 方法4: Kubernetesで以前のイメージに戻す
 
 ```bash
 # 以前のイメージタグを指定してDeploymentを更新
@@ -308,7 +344,7 @@ kubectl rollout status deployment/orgmgmt-backend
 kubectl rollout status deployment/orgmgmt-frontend
 ```
 
-### 方法4: Kubernetes Deploymentのロールバック機能を使用
+### 方法5: Kubernetes Deploymentのロールバック機能を使用
 
 ```bash
 # ロールアウト履歴を確認
@@ -337,6 +373,100 @@ kubectl describe pod -l app=orgmgmt-backend | grep Image:
 curl http://10.0.1.200:8083/actuator/health
 curl http://10.0.1.200:5006/
 ```
+
+---
+
+## バージョンアップとロールバックの繰り返しテスト
+
+本システムでは、**環境作成 → バージョンアップ → バージョン戻し**のサイクルを繰り返しテストできます。
+
+### 完全なテストサイクル
+
+```bash
+# ========================================
+# 初回: 環境作成（1.0.0がデプロイされる）
+# ========================================
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/deploy_k8s_complete.yml
+
+# 確認: http://10.0.1.200:5006 にアクセスし、System Informationを確認
+
+# ========================================
+# サイクル1: バージョンアップ (1.0.0 → 1.1.0)
+# ========================================
+ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
+
+# 確認: Pod名が変わっていることを確認
+# 確認: 新機能（System Information表示）が追加されていることを確認
+
+# ========================================
+# サイクル2: ロールバック (1.1.0 → 1.0.0)
+# ========================================
+ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
+
+# 確認: Pod名が変わっていることを確認
+# 確認: System Informationカードが消えていることを確認（1.0.0には無い機能）
+
+# ========================================
+# サイクル3: 再度バージョンアップ (1.0.0 → 1.1.0)
+# ========================================
+ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
+
+# 確認: 再びSystem Informationカードが表示されることを確認
+
+# ========================================
+# サイクル4: 再度ロールバック (1.1.0 → 1.0.0)
+# ========================================
+ansible-playbook playbooks/rollback_app_version.yml
+
+# このサイクルを何度でも繰り返し可能
+```
+
+### バージョン履歴の確認
+
+```bash
+# 全履歴を表示
+cat /root/app-version-history.txt
+
+# 最新5件を表示
+tail -5 /root/app-version-history.txt
+
+# 特定バージョンのデプロイ履歴を検索
+grep "1.1.0" /root/app-version-history.txt
+
+# デプロイとロールバックの回数を確認
+echo "Deployments: $(grep -c 'DEPLOY' /root/app-version-history.txt)"
+echo "Rollbacks: $(grep -c 'ROLLBACK' /root/app-version-history.txt)"
+```
+
+### 各サイクルでの確認ポイント
+
+1. **Pod名の変更**:
+   - ロールアウト時に新しいPodが作成される
+   - System Informationカードで新しいPod名を確認
+
+2. **セッションの永続化**:
+   - バージョンアップ前後でSession IDが保持される（Redis使用）
+   - ブラウザを閉じずにバージョンアップすれば同じセッション
+
+3. **ゼロダウンタイム**:
+   - ローリングアップデートによりサービス停止なし
+   - Backend/Frontendが順次入れ替わる
+
+4. **データベースの整合性**:
+   - PostgreSQLデータは保持される
+   - FlywayバージョンはDBマイグレーション履歴を反映
+
+5. **ヘルスチェック**:
+   - `/actuator/health` が常に200を返す
+   - フロントエンドが常にアクセス可能
+
+### 繰り返しテストのユースケース
+
+- **開発環境での動作確認**: 新機能をデプロイ→確認→問題あればロールバック→修正→再デプロイ
+- **CI/CDパイプラインの検証**: 自動デプロイとロールバックの動作確認
+- **障害訓練**: ロールバック手順の習熟と手順書の検証
+- **パフォーマンステスト**: バージョン間のパフォーマンス比較
 
 ---
 

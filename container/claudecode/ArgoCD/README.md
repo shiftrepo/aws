@@ -159,7 +159,57 @@ ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.2.0"
 **詳細なバージョンアップ手順**:
 - [VERSION_UPGRADE.md](./VERSION_UPGRADE.md) を参照
 
-### 5. デプロイ完了確認
+**バージョン履歴の確認**:
+```bash
+cat /root/app-version-history.txt
+```
+
+### 5. アプリケーションバージョンロールバック
+
+**このplaybookを使用する場合**:
+- デプロイしたバージョンに問題があり、以前のバージョンに戻したい場合
+- バージョンアップのテストを繰り返したい場合
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+
+# 直前のバージョンに戻す
+ansible-playbook playbooks/rollback_app_version.yml
+
+# 特定のバージョンに戻す
+ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
+
+# 特定のリビジョンに戻す
+ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
+```
+
+**所要時間**: 約2-3分
+
+**処理内容**:
+1. 現在のデプロイ状態確認
+2. Kubernetesロールバック実行
+3. ロールアウト完了待機
+4. ヘルスチェック
+5. バージョン履歴更新
+
+**バージョンアップとロールバックの繰り返し**:
+```bash
+# 環境作成（初回のみ）
+ansible-playbook playbooks/deploy_k8s_complete.yml
+
+# バージョンアップ
+ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
+
+# バージョン戻し
+ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
+
+# 再度バージョンアップ
+ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
+
+# このサイクルを繰り返し可能
+```
+
+### 6. デプロイ完了確認
 
 ```bash
 # 全Pod状態確認
@@ -188,6 +238,12 @@ ansible-playbook playbooks/deploy_k8s_complete.yml
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ansible-playbook playbooks/deploy_app_version.yml
+```
+
+**アプリケーションバージョンロールバックの場合**:
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/rollback_app_version.yml
 ```
 
 ### アクセス

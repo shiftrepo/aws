@@ -1,0 +1,375 @@
+---
+# ========================================
+# アプリケーションバージョンロールバック
+# ========================================
+# デプロイされたアプリケーションを以前のバージョンに戻します
+#
+# 前提条件:
+#   - K3sとArgoCDがインストール済み
+#   - アプリケーションがデプロイ済み
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#
+#   # 直前のバージョンに戻す
+#   ansible-playbook playbooks/rollback_app_version.yml
+#
+#   # 特定のバージョンに戻す
+#   ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
+#
+#   # 特定のリビジョンに戻す
+#   ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
+# ========================================
+
+- name: Rollback Application Version
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
+    private_ip: "{{ ansible_default_ipv4.address }}"
+    version_history_file: "/root/app-version-history.txt"
+    target_version: ""  # 空の場合は直前のバージョンに戻す
+    target_revision: ""  # 空の場合はkubectl rollout undoを使用
+
+  tasks:
+    # ========================================
+    # Phase 0: 環境確認とバージョン履歴取得
+    # ========================================
+    - name: Display rollback information
+      debug:
+        msg:
+          - "=========================================="
+          - "Application Version Rollback"
+          - "=========================================="
+          - "Private IP: {{ private_ip }}"
+          - "Target Version: {{ target_version if target_version else 'Previous version' }}"
+          - "Target Revision: {{ target_revision if target_revision else 'Auto (rollout undo)' }}"
+          - "=========================================="
+
+    - name: Check if K3s is installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_bin
+
+    - name: Fail if K3s is not installed
+      fail:
+        msg: "K3s is not installed. Cannot perform rollback."
+      when: not k3s_bin.stat.exists
+
+    - name: Get current backend deployment revision
+      shell: |
+        /usr/local/bin/k3s kubectl rollout history deployment/orgmgmt-backend | tail -1
+      register: backend_current_revision
+      changed_when: false
+
+    - name: Get current frontend deployment revision
+      shell: |
+        /usr/local/bin/k3s kubectl rollout history deployment/orgmgmt-frontend | tail -1
+      register: frontend_current_revision
+      changed_when: false
+
+    - name: Get current backend image
+      shell: |
+        /usr/local/bin/k3s kubectl get deployment orgmgmt-backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+      register: current_backend_image
+      changed_when: false
+
+    - name: Get current frontend image
+      shell: |
+        /usr/local/bin/k3s kubectl get deployment orgmgmt-frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+      register: current_frontend_image
+      changed_when: false
+
+    - name: Display current deployment status
+      debug:
+        msg:
+          - "Current Deployment Status:"
+          - "  Backend Image: {{ current_backend_image.stdout }}"
+          - "  Frontend Image: {{ current_frontend_image.stdout }}"
+          - "  Backend Revision: {{ backend_current_revision.stdout }}"
+          - "  Frontend Revision: {{ frontend_current_revision.stdout }}"
+
+    - name: Check version history file exists
+      stat:
+        path: "{{ version_history_file }}"
+      register: version_history_stat
+
+    - name: Display version history if exists
+      block:
+        - name: Read version history
+          command: cat {{ version_history_file }}
+          register: version_history_content
+          changed_when: false
+
+        - name: Show version history
+          debug:
+            msg:
+              - "Version History:"
+              - "{{ version_history_content.stdout_lines }}"
+      when: version_history_stat.stat.exists
+
+    # ========================================
+    # Phase 1: ロールバック実行
+    # ========================================
+    - name: "PHASE 1: Perform Rollback"
+      block:
+        # ケース1: 特定のバージョンが指定された場合
+        - name: Rollback to specific version
+          block:
+            - name: Set backend image to target version
+              command: >
+                /usr/local/bin/k3s kubectl set image
+                deployment/orgmgmt-backend
+                backend=localhost/orgmgmt-backend:{{ target_version }}
+              register: backend_rollback
+              changed_when: true
+
+            - name: Set frontend image to target version
+              command: >
+                /usr/local/bin/k3s kubectl set image
+                deployment/orgmgmt-frontend
+                frontend=localhost/orgmgmt-frontend:{{ target_version }}
+              register: frontend_rollback
+              changed_when: true
+
+            - name: Display version-based rollback status
+              debug:
+                msg:
+                  - "✅ Rolled back to version {{ target_version }}"
+                  - "Backend: {{ backend_rollback.stdout }}"
+                  - "Frontend: {{ frontend_rollback.stdout }}"
+          when: target_version != ""
+
+        # ケース2: 特定のリビジョンが指定された場合
+        - name: Rollback to specific revision
+          block:
+            - name: Rollback backend to specific revision
+              command: >
+                /usr/local/bin/k3s kubectl rollout undo
+                deployment/orgmgmt-backend
+                --to-revision={{ target_revision }}
+              register: backend_rollback_rev
+              changed_when: true
+
+            - name: Rollback frontend to specific revision
+              command: >
+                /usr/local/bin/k3s kubectl rollout undo
+                deployment/orgmgmt-frontend
+                --to-revision={{ target_revision }}
+              register: frontend_rollback_rev
+              changed_when: true
+
+            - name: Display revision-based rollback status
+              debug:
+                msg:
+                  - "✅ Rolled back to revision {{ target_revision }}"
+                  - "Backend: {{ backend_rollback_rev.stdout }}"
+                  - "Frontend: {{ frontend_rollback_rev.stdout }}"
+          when: target_version == "" and target_revision != ""
+
+        # ケース3: 指定なし（直前のバージョンに戻す）
+        - name: Rollback to previous version (default)
+          block:
+            - name: Rollback backend to previous version
+              command: /usr/local/bin/k3s kubectl rollout undo deployment/orgmgmt-backend
+              register: backend_rollback_default
+              changed_when: true
+
+            - name: Rollback frontend to previous version
+              command: /usr/local/bin/k3s kubectl rollout undo deployment/orgmgmt-frontend
+              register: frontend_rollback_default
+              changed_when: true
+
+            - name: Display default rollback status
+              debug:
+                msg:
+                  - "✅ Rolled back to previous version"
+                  - "Backend: {{ backend_rollback_default.stdout }}"
+                  - "Frontend: {{ frontend_rollback_default.stdout }}"
+          when: target_version == "" and target_revision == ""
+
+    # ========================================
+    # Phase 2: ロールアウト完了待機
+    # ========================================
+    - name: "PHASE 2: Wait for Rollout to Complete"
+      block:
+        - name: Wait for backend rollout
+          command: /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-backend --timeout=300s
+          register: backend_rollout_status
+          changed_when: false
+
+        - name: Wait for frontend rollout
+          command: /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-frontend --timeout=300s
+          register: frontend_rollout_status
+          changed_when: false
+
+        - name: Display rollout status
+          debug:
+            msg:
+              - "✅ Backend rollout completed"
+              - "✅ Frontend rollout completed"
+
+    # ========================================
+    # Phase 3: ロールバック後の状態確認
+    # ========================================
+    - name: "PHASE 3: Verify Rollback"
+      block:
+        - name: Get rolled back backend image
+          shell: |
+            /usr/local/bin/k3s kubectl get deployment orgmgmt-backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+          register: rolled_back_backend_image
+          changed_when: false
+
+        - name: Get rolled back frontend image
+          shell: |
+            /usr/local/bin/k3s kubectl get deployment orgmgmt-frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+          register: rolled_back_frontend_image
+          changed_when: false
+
+        - name: Get backend pods status
+          shell: |
+            /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-backend -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].image}{"\t"}{.status.phase}{"\n"}{end}'
+          register: backend_pods_status
+          changed_when: false
+
+        - name: Get frontend pods status
+          shell: |
+            /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-frontend -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].image}{"\t"}{.status.phase}{"\n"}{end}'
+          register: frontend_pods_status
+          changed_when: false
+
+        - name: Display rolled back deployment status
+          debug:
+            msg:
+              - "=========================================="
+              - "Rolled Back Deployment Status"
+              - "=========================================="
+              - ""
+              - "Previous Images:"
+              - "  Backend: {{ current_backend_image.stdout }}"
+              - "  Frontend: {{ current_frontend_image.stdout }}"
+              - ""
+              - "Current Images:"
+              - "  Backend: {{ rolled_back_backend_image.stdout }}"
+              - "  Frontend: {{ rolled_back_frontend_image.stdout }}"
+              - ""
+              - "Backend Pods:"
+              - "{{ backend_pods_status.stdout_lines }}"
+              - ""
+              - "Frontend Pods:"
+              - "{{ frontend_pods_status.stdout_lines }}"
+              - ""
+              - "=========================================="
+
+    # ========================================
+    # Phase 4: ヘルスチェック
+    # ========================================
+    - name: "PHASE 4: Health Checks"
+      block:
+        - name: Wait for backend health check
+          uri:
+            url: "http://{{ private_ip }}:8083/actuator/health"
+            status_code: 200
+            timeout: 5
+          register: backend_health
+          retries: 30
+          delay: 10
+          until: backend_health.status == 200
+
+        - name: Wait for frontend to respond
+          uri:
+            url: "http://{{ private_ip }}:5006/"
+            status_code: 200
+            timeout: 5
+          register: frontend_health
+          retries: 10
+          delay: 5
+          until: frontend_health.status == 200
+
+        - name: Get system info from backend API
+          uri:
+            url: "http://{{ private_ip }}:8083/api/system/info"
+            method: GET
+            return_content: yes
+          register: system_info
+          failed_when: false
+
+        - name: Display health check results
+          debug:
+            msg:
+              - "Health Check Results:"
+              - "  Backend API: ✅ {{ backend_health.status }}"
+              - "  Frontend: ✅ {{ frontend_health.status }}"
+
+        - name: Display system information
+          debug:
+            msg:
+              - "System Information:"
+              - "{{ system_info.json | to_nice_json }}"
+          when: system_info.json is defined
+
+    # ========================================
+    # Phase 5: バージョン履歴更新
+    # ========================================
+    - name: "PHASE 5: Update Version History"
+      block:
+        - name: Extract version from image tag
+          set_fact:
+            rolled_back_version: "{{ rolled_back_backend_image.stdout | regex_search(':(.+)$', '\\1') | first }}"
+
+        - name: Record rollback in version history
+          lineinfile:
+            path: "{{ version_history_file }}"
+            line: "{{ ansible_date_time.iso8601 }} | ROLLBACK | {{ rolled_back_version }} | Backend: {{ rolled_back_backend_image.stdout }}, Frontend: {{ rolled_back_frontend_image.stdout }}"
+            create: yes
+            mode: '0644'
+          become: no
+
+        - name: Display version history update
+          debug:
+            msg:
+              - "✅ Version history updated"
+              - "Rollback to: {{ rolled_back_version }}"
+
+    # ========================================
+    # Phase 6: ロールバック完了サマリー
+    # ========================================
+    - name: Display rollback completion summary
+      debug:
+        msg:
+          - "=========================================="
+          - "🔄 ROLLBACK COMPLETE!"
+          - "=========================================="
+          - ""
+          - "Rolled Back To:"
+          - "  Backend: {{ rolled_back_backend_image.stdout }}"
+          - "  Frontend: {{ rolled_back_frontend_image.stdout }}"
+          - ""
+          - "✅ Deployments Rolled Back"
+          - "✅ Pods Restarted"
+          - "✅ Health Checks Passed"
+          - "✅ Version History Updated"
+          - ""
+          - "Access URLs:"
+          - "  Frontend:     http://{{ private_ip }}:5006"
+          - "  Backend API:  http://{{ private_ip }}:8083"
+          - "  System Info:  http://{{ private_ip }}:8083/api/system/info"
+          - ""
+          - "Verification:"
+          - "  1. Access frontend and check System Information card"
+          - "  2. Verify Pod names have changed"
+          - "  3. Test application functionality"
+          - ""
+          - "Rollback History:"
+          - "  View: cat {{ version_history_file }}"
+          - ""
+          - "To rollback again:"
+          - "  ansible-playbook playbooks/rollback_app_version.yml"
+          - ""
+          - "To upgrade to new version:"
+          - "  ansible-playbook playbooks/deploy_app_version.yml -e 'app_version=X.Y.Z'"
+          - ""
+          - "=========================================="

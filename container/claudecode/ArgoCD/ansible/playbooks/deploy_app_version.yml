@@ -29,6 +29,7 @@
     k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
     app_version: "1.1.0"  # デフォルトバージョン（-e で上書き可能）
     private_ip: "{{ ansible_default_ipv4.address }}"
+    version_history_file: "/root/app-version-history.txt"
 
   tasks:
     # ========================================
@@ -357,7 +358,39 @@
           when: argocd_app_check.rc == 0
 
     # ========================================
-    # Phase 7: デプロイ完了サマリー
+    # Phase 7: バージョン履歴記録
+    # ========================================
+    - name: "PHASE 7: Record Version History"
+      block:
+        - name: Get deployed backend image
+          shell: |
+            /usr/local/bin/k3s kubectl get deployment orgmgmt-backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+          register: deployed_backend_image
+          changed_when: false
+
+        - name: Get deployed frontend image
+          shell: |
+            /usr/local/bin/k3s kubectl get deployment orgmgmt-frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+          register: deployed_frontend_image
+          changed_when: false
+
+        - name: Record deployment in version history
+          lineinfile:
+            path: "{{ version_history_file }}"
+            line: "{{ ansible_date_time.iso8601 }} | DEPLOY | {{ app_version }} | Backend: {{ deployed_backend_image.stdout }}, Frontend: {{ deployed_frontend_image.stdout }}"
+            create: yes
+            mode: '0644'
+          become: no
+
+        - name: Display version history update
+          debug:
+            msg:
+              - "✅ Version history recorded"
+              - "Deployed version: {{ app_version }}"
+              - "History file: {{ version_history_file }}"
+
+    # ========================================
+    # Phase 8: デプロイ完了サマリー
     # ========================================
     - name: Display deployment completion summary
       debug:
