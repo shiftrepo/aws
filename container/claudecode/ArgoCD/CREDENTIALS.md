@@ -8,8 +8,6 @@
 | **Backend API** | http://10.0.1.200:8083 | 不要 | REST API |
 | **ArgoCD (HTTPS)** | https://10.0.1.200:8082 | 必要 | GitOps管理UI (推奨) |
 | **ArgoCD (HTTP)** | http://10.0.1.200:8000 | 必要 | HTTPSへリダイレクト |
-| **Traefik** | http://10.0.1.200:80 / https://10.0.1.200:443 | 不要 | Ingress Controller |
-| **Traefik Dashboard** | kubectl port-forward | 不要 | ポート転送でアクセス |
 
 ## ArgoCD認証情報
 
@@ -120,72 +118,6 @@ sudo /usr/local/bin/k3s kubectl run -it --rm debug \
 
 **Service**: `kube-dns` (ClusterIP: 10.43.0.10)
 **Ports**: 53/UDP, 53/TCP, 9153/TCP
-
-### Traefik - Ingress Controller
-
-K3sに組み込まれたIngress Controllerです。
-
-#### Traefik サービス
-
-```bash
-# Traefik Pod確認
-sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik
-
-# Traefik ログ確認
-sudo /usr/local/bin/k3s kubectl logs -n kube-system -l app.kubernetes.io/name=traefik -f
-
-# Traefik Service確認
-sudo /usr/local/bin/k3s kubectl get svc traefik -n kube-system
-```
-
-**Service**: `traefik` (LoadBalancer)
-**External IP**: 10.0.1.200
-**Ports**:
-- HTTP: 80 (NodePort: 31652)
-- HTTPS: 443 (NodePort: 30914)
-
-#### Traefik Dashboard アクセス
-
-Traefik Dashboardは有効ですが、デフォルトでは外部公開されていません。
-
-**ポート転送でアクセス**:
-
-```bash
-# ポート転送開始
-sudo /usr/local/bin/k3s kubectl port-forward \
-  -n kube-system \
-  $(sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik -o name) \
-  9000:9000
-
-# ブラウザで開く
-# http://localhost:9000/dashboard/
-```
-
-**IngressRouteで公開する場合**（オプション）:
-
-```bash
-sudo /usr/local/bin/k3s kubectl apply -f - <<EOF
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: traefik-dashboard
-  namespace: kube-system
-spec:
-  entryPoints:
-    - web
-  routes:
-    - match: Host(\`traefik.local\`)
-      kind: Rule
-      services:
-        - name: api@internal
-          kind: TraefikService
-EOF
-
-# /etc/hostsに追加
-# 10.0.1.200 traefik.local
-
-# アクセス: http://traefik.local/dashboard/
-```
 
 ### Metrics Server - リソースモニタリング
 
@@ -637,9 +569,6 @@ sudo journalctl -u k3s -f
 
 # CoreDNS 状態
 sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=kube-dns
-
-# Traefik 状態
-sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik
 
 # Metrics Server 状態
 sudo /usr/local/bin/k3s kubectl get pods -n kube-system -l k8s-app=metrics-server
