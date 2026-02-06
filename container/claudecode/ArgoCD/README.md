@@ -161,7 +161,7 @@ ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.2.0"
 
 **バージョン履歴の確認**:
 ```bash
-cat /root/app-version-history.txt
+cat /root/argocd-regression-version-history.txt
 ```
 
 ### 5. アプリケーションバージョンロールバック
@@ -173,41 +173,69 @@ cat /root/app-version-history.txt
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
 
-# 直前のバージョンに戻す
+# 直前のバージョンに戻す（Kubernetes rollout undo）
 ansible-playbook playbooks/rollback_app_version.yml
 
-# 特定のバージョンに戻す
+# 特定のバージョンに戻す（Gitタグ argocd-regression-v1.0.0 からビルド）
 ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
 
 # 特定のリビジョンに戻す
 ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
 ```
 
-**所要時間**: 約2-3分
+**重要**: `target_version`を指定する場合、該当するGitタグ（`argocd-regression-v{version}`）が存在する必要があります。
 
-**処理内容**:
-1. 現在のデプロイ状態確認
-2. Kubernetesロールバック実行
-3. ロールアウト完了待機
-4. ヘルスチェック
-5. バージョン履歴更新
+```bash
+# 利用可能なバージョンタグを確認
+git tag -l argocd-regression-v*
+
+# 出力例:
+# argocd-regression-v1.0.0
+# argocd-regression-v1.1.0
+```
+
+**所要時間**:
+- `target_version`指定: 約3-5分（Gitタグからビルドを含む）
+- その他: 約2-3分
+
+**処理内容（target_version指定時）**:
+1. Gitタグ `argocd-regression-v{target_version}` の存在確認
+2. Gitタグをチェックアウト
+3. アプリケーションをビルド（Backend/Frontend）
+4. Dockerイメージ作成
+5. K3sにインポート
+6. Deploymentローリングアップデート
+7. 元のブランチに戻る
+8. ヘルスチェック
+9. バージョン履歴更新
 
 **バージョンアップとロールバックの繰り返し**:
+
+各バージョンはGitタグ（`argocd-regression-v{version}`）として保存され、ロールバック時に該当タグからビルドされます。
+
 ```bash
+# 利用可能なバージョンタグを確認
+git tag -l argocd-regression-v*
+# argocd-regression-v1.0.0  <- ベースバージョン
+# argocd-regression-v1.1.0  <- System Information機能追加
+
 # 環境作成（初回のみ）
 ansible-playbook playbooks/deploy_k8s_complete.yml
 
-# バージョンアップ
+# バージョンアップ (1.0.0 → 1.1.0)
 ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
 
-# バージョン戻し
+# バージョン戻し (1.1.0 → 1.0.0)
+# Gitタグ argocd-regression-v1.0.0 からビルドして1.0.0にロールバック
 ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
 
-# 再度バージョンアップ
+# 再度バージョンアップ (1.0.0 → 1.1.0)
 ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
 
-# このサイクルを繰り返し可能
+# このサイクルを無限に繰り返し可能
 ```
+
+**ポータビリティ**: このリポジトリをクローンすれば、どの環境でも同じサイクルを実行できます。
 
 ### 6. デプロイ完了確認
 

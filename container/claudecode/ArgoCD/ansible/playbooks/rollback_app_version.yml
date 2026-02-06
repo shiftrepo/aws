@@ -30,7 +30,7 @@
     project_root: "/root/aws.git/container/claudecode/ArgoCD"
     k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
     private_ip: "{{ ansible_default_ipv4.address }}"
-    version_history_file: "/root/app-version-history.txt"
+    version_history_file: "/root/argocd-regression-version-history.txt"
     target_version: ""  # 空の場合は直前のバージョンに戻す
     target_revision: ""  # 空の場合はkubectl rollout undoを使用
 
@@ -116,31 +116,139 @@
     # ========================================
     - name: "PHASE 1: Perform Rollback"
       block:
-        # ケース1: 特定のバージョンが指定された場合
-        - name: Rollback to specific version
+        # ケース1: 特定のバージョンが指定された場合（Gitタグからビルド）
+        - name: Rollback to specific version (build from Git tag)
           block:
-            - name: Set backend image to target version
-              command: >
-                /usr/local/bin/k3s kubectl set image
-                deployment/orgmgmt-backend
-                backend=localhost/orgmgmt-backend:{{ target_version }}
-              register: backend_rollback
+            - name: Check if Git tag exists
+              command: git tag -l argocd-regression-v{{ target_version }}
+              args:
+                chdir: "{{ project_root }}"
+              register: git_tag_check
+              changed_when: false
+              failed_when: false
+
+            - name: Fail if Git tag does not exist
+              fail:
+                msg: |
+                  Git tag 'argocd-regression-v{{ target_version }}' does not exist.
+                  Available tags: {{ available_tags.stdout_lines }}
+              when: git_tag_check.stdout == ""
+              vars:
+                available_tags: "{{ lookup('pipe', 'git -C ' + project_root + ' tag -l argocd-regression-v*') }}"
+
+            - name: Save current Git branch/commit
+              command: git rev-parse --abbrev-ref HEAD
+              args:
+                chdir: "{{ project_root }}"
+              register: current_branch
+              changed_when: false
+
+            - name: Checkout Git tag for target version
+              command: git checkout argocd-regression-v{{ target_version }}
+              args:
+                chdir: "{{ project_root }}"
+              register: git_checkout
               changed_when: true
 
-            - name: Set frontend image to target version
-              command: >
-                /usr/local/bin/k3s kubectl set image
-                deployment/orgmgmt-frontend
-                frontend=localhost/orgmgmt-frontend:{{ target_version }}
-              register: frontend_rollback
+            - name: Build backend with Maven
+              command: mvn clean package -DskipTests
+              args:
+                chdir: "{{ backend_dir }}"
+              environment:
+                MAVEN_OPTS: "-Xmx512m"
+              register: backend_build
+              changed_when: true
+
+            - name: Verify backend JAR exists
+              stat:
+                path: "{{ backend_dir }}/target/orgmgmt-backend.jar"
+              register: backend_jar
+              failed_when: not backend_jar.stat.exists
+
+            - name: Install frontend dependencies
+              command: npm install
+              args:
+                chdir: "{{ frontend_dir }}"
+              register: frontend_deps
+              changed_when: true
+
+            - name: Build frontend with Vite
+              command: npm run build
+              args:
+                chdir: "{{ frontend_dir }}"
+              register: frontend_build
+              changed_when: true
+
+            - name: Verify frontend dist exists
+              stat:
+                path: "{{ frontend_dir }}/dist"
+              register: frontend_dist
+              failed_when: not frontend_dist.stat.exists
+
+            - name: Build backend container image
+              command: podman build -t orgmgmt-backend:{{ target_version }} -t orgmgmt-backend:latest -f Dockerfile .
+              args:
+                chdir: "{{ backend_dir }}"
+              register: backend_image
+              changed_when: true
+
+            - name: Build frontend container image
+              command: podman build -t orgmgmt-frontend:{{ target_version }} -t orgmgmt-frontend:latest -f Dockerfile .
+              args:
+                chdir: "{{ frontend_dir }}"
+              register: frontend_image
+              changed_when: true
+
+            - name: Remove old export files
+              file:
+                path: "{{ item }}"
+                state: absent
+              loop:
+                - /tmp/backend.tar
+                - /tmp/frontend.tar
+              become: yes
+
+            - name: Export backend image
+              command: podman save localhost/orgmgmt-backend:{{ target_version }} localhost/orgmgmt-backend:latest -o /tmp/backend.tar
+              register: export_backend
+              changed_when: true
+
+            - name: Export frontend image
+              command: podman save localhost/orgmgmt-frontend:{{ target_version }} localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar
+              register: export_frontend
+              changed_when: true
+
+            - name: Import images into K3s
+              shell: |
+                /usr/local/bin/k3s ctr images import /tmp/backend.tar
+                /usr/local/bin/k3s ctr images import /tmp/frontend.tar
+              register: import_images
+              changed_when: true
+
+            - name: Restore Git branch
+              command: git checkout {{ current_branch.stdout }}
+              args:
+                chdir: "{{ project_root }}"
+              register: git_restore
+              changed_when: true
+              when: current_branch.stdout != "HEAD"
+
+            - name: Restart backend deployment
+              command: /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-backend
+              register: backend_restart
+              changed_when: true
+
+            - name: Restart frontend deployment
+              command: /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-frontend
+              register: frontend_restart
               changed_when: true
 
             - name: Display version-based rollback status
               debug:
                 msg:
-                  - "✅ Rolled back to version {{ target_version }}"
-                  - "Backend: {{ backend_rollback.stdout }}"
-                  - "Frontend: {{ frontend_rollback.stdout }}"
+                  - "✅ Rolled back to version {{ target_version }} (built from Git tag argocd-regression-v{{ target_version }})"
+                  - "Backend: Built and deployed"
+                  - "Frontend: Built and deployed"
           when: target_version != ""
 
         # ケース2: 特定のリビジョンが指定された場合

@@ -43,6 +43,35 @@ MINOR: 後方互換性のある機能追加
 PATCH: 後方互換性のあるバグ修正
 ```
 
+### Gitタグによるバージョン管理
+
+**重要**: 各バージョンは必ずGitタグとして保存してください。
+
+```bash
+# タグ命名規則
+argocd-regression-v{version}
+
+# 例
+argocd-regression-v1.0.0  # ベースバージョン
+argocd-regression-v1.1.0  # システム情報表示機能追加
+argocd-regression-v1.2.0  # 次のバージョン
+```
+
+**なぜGitタグが必要か**:
+1. **ロールバック時のアーティファクト作成**: ロールバック時に該当バージョンのソースコードをチェックアウトしてビルドする
+2. **ポータビリティ**: どの環境でもGitタグから同じバージョンを再現できる
+3. **履歴管理**: 各バージョンの完全な状態を保存
+
+**利用可能なバージョンタグ**:
+```bash
+# 現在利用可能なバージョンを確認
+git tag -l argocd-regression-v*
+
+# 出力例:
+# argocd-regression-v1.0.0
+# argocd-regression-v1.1.0
+```
+
 ### ファイル更新箇所
 
 新しいバージョンをリリースする際は、以下のファイルを更新します：
@@ -121,9 +150,11 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 ### 手順3: Gitタグを作成
 
+**重要**: タグ名は必ず `argocd-regression-v{version}` 形式にしてください。
+
 ```bash
-# 説明付きタグを作成
-git tag -a v1.2.0 -m "Release version 1.2.0
+# 説明付きタグを作成（argocd-regression-v プレフィックスを使用）
+git tag -a argocd-regression-v1.2.0 -m "Application Version 1.2.0
 
 New Features:
 - Feature X: Description
@@ -137,7 +168,10 @@ Breaking Changes:
 "
 
 # タグを確認
-git tag -l -n9 v1.2.0
+git tag -l -n9 argocd-regression-v1.2.0
+
+# すべてのアプリケーションバージョンタグを確認
+git tag -l argocd-regression-v*
 ```
 
 ### 手順4: GitHubにプッシュ
@@ -147,7 +181,7 @@ git tag -l -n9 v1.2.0
 git push origin main
 
 # タグをプッシュ
-git push origin v1.2.0
+git push origin argocd-regression-v1.2.0
 ```
 
 ### 手順5: アプリケーションをビルドしてデプロイ
@@ -271,33 +305,40 @@ kubectl logs -l app=orgmgmt-frontend --tail=50
 
 ### 方法1: ロールバック専用Playbookを使用（推奨）
 
-**最も簡単で確実な方法**です。
+**最も簡単で確実な方法**です。指定されたバージョンのGitタグから自動的にビルドしてデプロイします。
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
 
-# 直前のバージョンに戻す
+# 直前のバージョンに戻す（Kubernetes rollout undo使用）
 ansible-playbook playbooks/rollback_app_version.yml
 
-# 特定のバージョンに戻す
+# 特定のバージョンに戻す（Gitタグ argocd-regression-v1.0.0 からビルド）
 ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
 
 # 特定のリビジョンに戻す（例: 2つ前のリビジョン）
 ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
 ```
 
-**処理内容**:
-- 現在のデプロイ状態確認
-- Kubernetesロールバック実行
-- ヘルスチェック
-- バージョン履歴更新
+**target_versionを指定した場合の処理内容**:
+1. Gitタグ `argocd-regression-v{target_version}` の存在確認
+2. Gitタグをチェックアウト
+3. Backend/Frontendをビルド
+4. Dockerイメージ作成（バージョンタグ付き）
+5. K3sにインポート
+6. Deploymentをローリングアップデート
+7. 元のブランチに戻る
+8. ヘルスチェック
+9. バージョン履歴更新
 
-**所要時間**: 約2-3分
+**所要時間**:
+- `target_version`指定: 約3-5分（ビルドを含む）
+- `target_revision`指定または指定なし: 約2-3分
 
 **バージョン履歴の確認**:
 ```bash
 # デプロイ・ロールバック履歴を確認
-cat /root/app-version-history.txt
+cat /root/argocd-regression-version-history.txt
 
 # 出力例:
 # 2026-02-06T10:00:00Z | DEPLOY | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
@@ -380,11 +421,27 @@ curl http://10.0.1.200:5006/
 
 本システムでは、**環境作成 → バージョンアップ → バージョン戻し**のサイクルを繰り返しテストできます。
 
+### 前提条件: 利用可能なGitタグ
+
+ロールバックを実行するには、該当バージョンのGitタグが存在する必要があります。
+
+```bash
+# 利用可能なバージョンタグを確認
+cd /root/aws.git/container/claudecode/ArgoCD
+git tag -l argocd-regression-v*
+
+# 出力例:
+# argocd-regression-v1.0.0  <- ベースバージョン（System Information機能なし）
+# argocd-regression-v1.1.0  <- System Information機能追加
+```
+
+**重要**: 新しいバージョンを作成する際は、必ず `argocd-regression-v{version}` 形式でGitタグを作成してください。
+
 ### 完全なテストサイクル
 
 ```bash
 # ========================================
-# 初回: 環境作成（1.0.0がデプロイされる）
+# 初回: 環境作成（mainブランチの最新版がデプロイされる）
 # ========================================
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ansible-playbook playbooks/deploy_k8s_complete.yml
@@ -426,17 +483,17 @@ ansible-playbook playbooks/rollback_app_version.yml
 
 ```bash
 # 全履歴を表示
-cat /root/app-version-history.txt
+cat /root/argocd-regression-version-history.txt
 
 # 最新5件を表示
-tail -5 /root/app-version-history.txt
+tail -5 /root/argocd-regression-version-history.txt
 
 # 特定バージョンのデプロイ履歴を検索
-grep "1.1.0" /root/app-version-history.txt
+grep "1.1.0" /root/argocd-regression-version-history.txt
 
 # デプロイとロールバックの回数を確認
-echo "Deployments: $(grep -c 'DEPLOY' /root/app-version-history.txt)"
-echo "Rollbacks: $(grep -c 'ROLLBACK' /root/app-version-history.txt)"
+echo "Deployments: $(grep -c 'DEPLOY' /root/argocd-regression-version-history.txt)"
+echo "Rollbacks: $(grep -c 'ROLLBACK' /root/argocd-regression-version-history.txt)"
 ```
 
 ### 各サイクルでの確認ポイント
