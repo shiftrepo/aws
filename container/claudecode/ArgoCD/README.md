@@ -89,6 +89,23 @@ cd /root/aws.git/container/claudecode/ArgoCD
 whoami  # root または sudo権限を持つユーザー
 ```
 
+**別環境での利用**:
+
+このプロジェクトは完全にポータブルです。環境依存の値は全てパラメータ化されており、
+別の環境にクローンして異なるパラメータで実行できます。
+
+```bash
+# 例: 別のサーバー（192.168.1.100）でデプロイ
+git clone https://github.com/shiftrepo/aws.git
+cd /your/path/aws.git/container/claudecode/ArgoCD/ansible
+
+ansible-playbook playbooks/deploy_k8s_complete.yml \
+  -e "private_ip=192.168.1.100" \
+  -e "project_root=/your/path/aws.git/container/claudecode/ArgoCD"
+```
+
+詳細は [docs/ENVIRONMENT_PORTABILITY.md](./docs/ENVIRONMENT_PORTABILITY.md) を参照。
+
 ### 2. EC2パブリックDNS名の確認
 
 Kubernetes DashboardはEC2のパブリックDNS名でアクセスします。事前に確認しておきます。
@@ -112,8 +129,21 @@ curl -s http://169.254.169.254/latest/meta-data/public-hostname
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
+
+# デフォルト設定で実行（自動でIPアドレスを検出）
 ansible-playbook playbooks/deploy_k8s_complete.yml
+
+# または、パラメータを明示的に指定
+ansible-playbook playbooks/deploy_k8s_complete.yml \
+  -e "private_ip=10.0.1.200" \
+  -e "project_root=/root/aws.git/container/claudecode/ArgoCD" \
+  -e "app_version=1.1.0"
 ```
+
+**環境パラメータ（全て省略可能）**:
+- `private_ip`: サービスのexternal IP（デフォルト: 自動検出）
+- `project_root`: プロジェクトルートパス（デフォルト: /root/aws.git/container/claudecode/ArgoCD）
+- `app_version`: アプリケーションバージョン（デフォルト: 1.1.0）
 
 **所要時間**: 約8-10分
 
@@ -137,14 +167,25 @@ ansible-playbook playbooks/deploy_k8s_complete.yml
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
+
+# デフォルト設定で実行
 ansible-playbook playbooks/deploy_app_version.yml
+
+# 特定のバージョンを指定してデプロイ
+ansible-playbook playbooks/deploy_app_version.yml \
+  -e "app_version=1.2.0"
+
+# 別環境で実行する場合（全パラメータ指定）
+ansible-playbook playbooks/deploy_app_version.yml \
+  -e "app_version=1.2.0" \
+  -e "private_ip=192.168.1.100" \
+  -e "project_root=/path/to/project"
 ```
 
-または、特定のバージョンを指定してデプロイ:
-
-```bash
-ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.2.0"
-```
+**環境パラメータ（全て省略可能）**:
+- `app_version`: デプロイするバージョン（デフォルト: 1.1.0）
+- `private_ip`: サービスのexternal IP（デフォルト: 自動検出）
+- `project_root`: プロジェクトルートパス（デフォルト: /root/aws.git/container/claudecode/ArgoCD）
 
 **所要時間**: 約3-5分
 
@@ -177,11 +218,25 @@ cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ansible-playbook playbooks/rollback_app_version.yml
 
 # 特定のバージョンに戻す（Gitタグ argocd-regression-v1.0.0 からビルド）
-ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
+ansible-playbook playbooks/rollback_app_version.yml \
+  -e "target_version=1.0.0"
 
 # 特定のリビジョンに戻す
-ansible-playbook playbooks/rollback_app_version.yml -e "target_revision=1"
+ansible-playbook playbooks/rollback_app_version.yml \
+  -e "target_revision=1"
+
+# 別環境でパラメータを明示的に指定
+ansible-playbook playbooks/rollback_app_version.yml \
+  -e "target_version=1.0.0" \
+  -e "private_ip=192.168.1.100" \
+  -e "project_root=/path/to/project"
 ```
+
+**環境パラメータ**:
+- `target_version`: ロールバック先のバージョン（Gitタグ: argocd-regression-v{version}）
+- `target_revision`: Kubernetesリビジョン番号（直前に戻す場合は省略可）
+- `private_ip`: サービスのexternal IP（デフォルト: 自動検出）
+- `project_root`: プロジェクトルートパス（デフォルト: /root/aws.git/container/claudecode/ArgoCD）
 
 **重要**: `target_version`を指定する場合、該当するGitタグ（`argocd-regression-v{version}`）が存在する必要があります。
 

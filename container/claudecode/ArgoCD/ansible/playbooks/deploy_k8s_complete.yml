@@ -298,6 +298,67 @@
         - deploy
 
     # ========================================
+    # Phase 5.5: 環境依存パラメータの動的更新
+    # ========================================
+    - name: "PHASE 5.5: Update Environment-Specific Parameters"
+      block:
+        - name: Update backend service external IP
+          command: >
+            /usr/local/bin/k3s kubectl patch service orgmgmt-backend
+            -n default
+            -p '{"spec":{"externalIPs":["{{ private_ip }}"]}}'
+          register: patch_backend_service
+          changed_when: true
+
+        - name: Update frontend service external IP
+          command: >
+            /usr/local/bin/k3s kubectl patch service orgmgmt-frontend
+            -n default
+            -p '{"spec":{"externalIPs":["{{ private_ip }}"]}}'
+          register: patch_frontend_service
+          changed_when: true
+
+        - name: Update backend deployment image tag
+          command: >
+            /usr/local/bin/k3s kubectl set image
+            deployment/orgmgmt-backend
+            backend=localhost/orgmgmt-backend:{{ app_version }}
+            -n default
+          register: update_backend_image
+          changed_when: true
+
+        - name: Update frontend deployment image tag
+          command: >
+            /usr/local/bin/k3s kubectl set image
+            deployment/orgmgmt-frontend
+            frontend=localhost/orgmgmt-frontend:{{ app_version }}
+            -n default
+          register: update_frontend_image
+          changed_when: true
+
+        - name: Wait for backend rollout to complete
+          command: /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-backend -n default --timeout=180s
+          register: backend_rollout
+          changed_when: false
+
+        - name: Wait for frontend rollout to complete
+          command: /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-frontend -n default --timeout=180s
+          register: frontend_rollout
+          changed_when: false
+
+        - name: Display parameter update status
+          debug:
+            msg:
+              - "✅ Backend service external IP updated to: {{ private_ip }}"
+              - "✅ Frontend service external IP updated to: {{ private_ip }}"
+              - "✅ Backend image updated to: localhost/orgmgmt-backend:{{ app_version }}"
+              - "✅ Frontend image updated to: localhost/orgmgmt-frontend:{{ app_version }}"
+              - "✅ All environment-specific parameters are now dynamic!"
+
+      tags:
+        - parameterize
+
+    # ========================================
     # Phase 6: サービス確認
     # ========================================
     - name: "PHASE 6: Verify Services"
