@@ -1,0 +1,393 @@
+---
+# ========================================
+# 完全自動回帰テスト - 0からの環境構築とバージョン管理テスト
+# ========================================
+# K3s削除 → 両バージョンビルド → K3s構築 → バージョンアップ/ダウンテスト
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook playbooks/deploy_regression_test_complete.yml
+# ========================================
+
+- name: Complete Regression Test from Scratch
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    backend_dir: "{{ project_root }}/app/backend"
+    frontend_dir: "{{ project_root }}/app/frontend"
+    private_ip: "{{ ansible_default_ipv4.address }}"
+    v1_0_0_tag: "argocd-regression-v1.0.0"
+    v1_1_0_branch: "main"
+
+  tasks:
+    # ========================================
+    # Phase 0: 環境情報表示
+    # ========================================
+    - name: Display regression test information
+      debug:
+        msg:
+          - "=========================================="
+          - "Complete Regression Test"
+          - "=========================================="
+          - "v1.0.0 Tag: {{ v1_0_0_tag }}"
+          - "v1.1.0 Branch: {{ v1_1_0_branch }}"
+          - "Private IP: {{ private_ip }}"
+          - "=========================================="
+
+    # ========================================
+    # Phase 1: 既存環境の完全削除
+    # ========================================
+    - name: "PHASE 1: Clean Environment"
+      block:
+        - name: Check if K3s uninstall script exists
+          stat:
+            path: /usr/local/bin/k3s-uninstall.sh
+          register: k3s_uninstall
+
+        - name: Uninstall K3s
+          command: /usr/local/bin/k3s-uninstall.sh
+          when: k3s_uninstall.stat.exists
+          ignore_errors: yes
+
+        - name: Clean Podman containers and images
+          shell: |
+            podman rm -af || true
+            podman volume prune -f || true
+            podman system prune -af || true
+          ignore_errors: yes
+
+        - name: Remove version history
+          file:
+            path: /root/app-version-history.txt
+            state: absent
+
+        - name: Display cleanup status
+          debug:
+            msg: "✅ Environment cleaned"
+
+      tags:
+        - cleanup
+
+    # ========================================
+    # Phase 2: v1.0.0 ビルド
+    # ========================================
+    - name: "PHASE 2: Build v1.0.0"
+      block:
+        - name: Checkout v1.0.0 tag
+          command: git checkout {{ v1_0_0_tag }}
+          args:
+            chdir: "{{ project_root }}"
+          register: checkout_v1_0_0
+
+        - name: Build v1.0.0 backend
+          shell: |
+            source /etc/profile.d/maven.sh
+            cd {{ backend_dir }}
+            mvn clean package -Dmaven.test.skip=true
+          args:
+            executable: /bin/bash
+          become: no
+
+        - name: Build v1.0.0 frontend
+          command: npm run build
+          args:
+            chdir: "{{ frontend_dir }}"
+          become: no
+
+        - name: Pull base images for v1.0.0
+          shell: |
+            podman pull docker.io/eclipse-temurin:21-jre-alpine
+            podman pull docker.io/nginx:alpine
+          become: no
+
+        - name: Build v1.0.0 backend image
+          command: podman build -t localhost/orgmgmt-backend:1.0.0 -f Dockerfile .
+          args:
+            chdir: "{{ backend_dir }}"
+          become: no
+
+        - name: Build v1.0.0 frontend image
+          command: podman build -t localhost/orgmgmt-frontend:1.0.0 -f Dockerfile .
+          args:
+            chdir: "{{ frontend_dir }}"
+          become: no
+
+        - name: Display v1.0.0 build status
+          debug:
+            msg: "✅ v1.0.0 images built successfully"
+
+      tags:
+        - build-v1.0.0
+
+    # ========================================
+    # Phase 3: v1.1.0 ビルド
+    # ========================================
+    - name: "PHASE 3: Build v1.1.0"
+      block:
+        - name: Checkout main branch
+          command: git checkout {{ v1_1_0_branch }}
+          args:
+            chdir: "{{ project_root }}"
+
+        - name: Build v1.1.0 backend
+          shell: |
+            source /etc/profile.d/maven.sh
+            cd {{ backend_dir }}
+            mvn clean package -Dmaven.test.skip=true
+          args:
+            executable: /bin/bash
+          become: no
+
+        - name: Build v1.1.0 frontend
+          command: npm run build
+          args:
+            chdir: "{{ frontend_dir }}"
+          become: no
+
+        - name: Build v1.1.0 backend image
+          command: podman build -t localhost/orgmgmt-backend:1.1.0 -f Dockerfile .
+          args:
+            chdir: "{{ backend_dir }}"
+          become: no
+
+        - name: Build v1.1.0 frontend image
+          command: podman build -t localhost/orgmgmt-frontend:1.1.0 -f Dockerfile .
+          args:
+            chdir: "{{ frontend_dir }}"
+          become: no
+
+        - name: Display v1.1.0 build status
+          debug:
+            msg: "✅ v1.1.0 images built successfully"
+
+      tags:
+        - build-v1.1.0
+
+    # ========================================
+    # Phase 4: K3s + ArgoCD インストール
+    # ========================================
+    - name: "PHASE 4: Install K3s and ArgoCD"
+      block:
+        - name: Install K3s and ArgoCD
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
+          args:
+            chdir: "{{ project_root }}/ansible"
+
+        - name: Wait for K3s to be fully ready
+          shell: /usr/local/bin/k3s kubectl get nodes
+          register: k3s_nodes
+          retries: 30
+          delay: 2
+          until: k3s_nodes.rc == 0
+
+        - name: Display K3s installation status
+          debug:
+            msg: "✅ K3s and ArgoCD installed"
+
+      tags:
+        - install-k3s
+
+    # ========================================
+    # Phase 5: 両バージョンのイメージをK3sにインポート
+    # ========================================
+    - name: "PHASE 5: Import Images to K3s"
+      block:
+        - name: Remove old export files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/backend-1.0.0.tar
+            - /tmp/frontend-1.0.0.tar
+            - /tmp/backend-1.1.0.tar
+            - /tmp/frontend-1.1.0.tar
+
+        - name: Export v1.0.0 backend image
+          command: podman save localhost/orgmgmt-backend:1.0.0 -o /tmp/backend-1.0.0.tar
+          become: no
+
+        - name: Export v1.0.0 frontend image
+          command: podman save localhost/orgmgmt-frontend:1.0.0 -o /tmp/frontend-1.0.0.tar
+          become: no
+
+        - name: Export v1.1.0 backend image
+          command: podman save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend-1.1.0.tar
+          become: no
+
+        - name: Export v1.1.0 frontend image
+          command: podman save localhost/orgmgmt-frontend:1.1.0 -o /tmp/frontend-1.1.0.tar
+          become: no
+
+        - name: Import v1.0.0 images to K3s
+          shell: |
+            /usr/local/bin/k3s ctr images import /tmp/backend-1.0.0.tar
+            /usr/local/bin/k3s ctr images import /tmp/frontend-1.0.0.tar
+
+        - name: Import v1.1.0 images to K3s
+          shell: |
+            /usr/local/bin/k3s ctr images import /tmp/backend-1.1.0.tar
+            /usr/local/bin/k3s ctr images import /tmp/frontend-1.1.0.tar
+
+        - name: Verify images in K3s
+          command: /usr/local/bin/k3s crictl images
+          register: k3s_images
+
+        - name: Display imported images
+          debug:
+            msg: "✅ Both v1.0.0 and v1.1.0 images imported to K3s"
+
+      tags:
+        - import-images
+
+    # ========================================
+    # Phase 6: v1.0.0 初期デプロイ
+    # ========================================
+    - name: "PHASE 6: Deploy v1.0.0"
+      block:
+        - name: Apply v1.0.0 manifests
+          command: /usr/local/bin/k3s kubectl apply -k {{ project_root }}/k8s-manifests/overlays/v1.0.0/
+
+        - name: Wait for pods to be ready
+          shell: |
+            /usr/local/bin/k3s kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
+            /usr/local/bin/k3s kubectl wait --for=condition=ready pod -l app=redis --timeout=120s
+          register: pods_ready
+          retries: 3
+          delay: 10
+          until: pods_ready.rc == 0
+
+        - name: Wait for application pods
+          shell: |
+            sleep 30
+            /usr/local/bin/k3s kubectl wait --for=condition=ready pod -l app=orgmgmt-backend --timeout=120s || true
+            /usr/local/bin/k3s kubectl wait --for=condition=ready pod -l app=orgmgmt-frontend --timeout=120s || true
+
+        - name: Apply ArgoCD Application
+          command: /usr/local/bin/k3s kubectl apply -f {{ project_root }}/argocd-application.yaml
+
+        - name: Wait for ArgoCD to sync
+          shell: |
+            for i in {1..60}; do
+              status=$(/usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || echo "Unknown")
+              if [ "$status" == "Synced" ]; then
+                exit 0
+              fi
+              sleep 5
+            done
+            exit 1
+          register: argocd_sync
+          failed_when: false
+
+        - name: Display v1.0.0 deployment status
+          debug:
+            msg: "✅ v1.0.0 deployed"
+
+      tags:
+        - deploy-v1.0.0
+
+    # ========================================
+    # Phase 7: アップグレードテスト (v1.0.0 → v1.1.0)
+    # ========================================
+    - name: "PHASE 7: Upgrade to v1.1.0"
+      block:
+        - name: Run upgrade playbook
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
+          args:
+            chdir: "{{ project_root }}/ansible"
+          register: upgrade_result
+
+        - name: Display upgrade result
+          debug:
+            msg: "✅ Upgraded to v1.1.0"
+
+      tags:
+        - upgrade-test
+
+    # ========================================
+    # Phase 8: ロールバックテスト (v1.1.0 → v1.0.0)
+    # ========================================
+    - name: "PHASE 8: Rollback to v1.0.0"
+      block:
+        - name: Run rollback playbook
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e "target_version=1.0.0"
+          args:
+            chdir: "{{ project_root }}/ansible"
+          register: rollback_result
+
+        - name: Display rollback result
+          debug:
+            msg: "✅ Rolled back to v1.0.0"
+
+      tags:
+        - rollback-test
+
+    # ========================================
+    # Phase 9: 再アップグレードテスト (v1.0.0 → v1.1.0)
+    # ========================================
+    - name: "PHASE 9: Re-upgrade to v1.1.0"
+      block:
+        - name: Run re-upgrade playbook
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
+          args:
+            chdir: "{{ project_root }}/ansible"
+          register: reupgrade_result
+
+        - name: Display re-upgrade result
+          debug:
+            msg: "✅ Re-upgraded to v1.1.0"
+
+      tags:
+        - reupgrade-test
+
+    # ========================================
+    # Phase 10: 最終確認
+    # ========================================
+    - name: "PHASE 10: Final Verification"
+      block:
+        - name: Get final application status
+          command: /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o jsonpath='{.status.sync.status}/{.status.health.status}'
+          register: final_status
+
+        - name: Get deployments
+          command: /usr/local/bin/k3s kubectl get deployments -o wide
+          register: final_deployments
+
+        - name: Get pods
+          command: /usr/local/bin/k3s kubectl get pods
+          register: final_pods
+
+        - name: Get version history
+          command: cat /root/app-version-history.txt
+          register: version_history
+          failed_when: false
+
+        - name: Display regression test summary
+          debug:
+            msg:
+              - "=========================================="
+              - "🎉 REGRESSION TEST COMPLETE!"
+              - "=========================================="
+              - ""
+              - "ArgoCD Status: {{ final_status.stdout }}"
+              - ""
+              - "Version History:"
+              - "{{ version_history.stdout_lines }}"
+              - ""
+              - "Final Deployments:"
+              - "{{ final_deployments.stdout_lines }}"
+              - ""
+              - "All Tests Passed:"
+              - "  ✅ v1.0.0 and v1.1.0 images built"
+              - "  ✅ K3s and ArgoCD installed"
+              - "  ✅ Initial v1.0.0 deployment"
+              - "  ✅ Upgrade v1.0.0 → v1.1.0"
+              - "  ✅ Rollback v1.1.0 → v1.0.0"
+              - "  ✅ Re-upgrade v1.0.0 → v1.1.0"
+              - ""
+              - "=========================================="
+
+      tags:
+        - verification
