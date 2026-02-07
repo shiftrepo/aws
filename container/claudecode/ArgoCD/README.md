@@ -1,45 +1,43 @@
 # Organization Management System - ArgoCD GitOps Deployment
 
-Kubernetes（K3s）+ ArgoCD GitOpsによる組織管理システムの完全自動デプロイメント
+Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システムの完全自動デプロイメント・バージョン管理
 
 ## 目次
 
 - [概要](#概要)
-- [前提条件](#前提条件)
-- [環境セットアップ](#環境セットアップ)
 - [クイックスタート](#クイックスタート)
+- [完全自動回帰テスト](#完全自動回帰テスト)
+- [GitOpsバージョン管理](#gitopsバージョン管理)
 - [サービス一覧](#サービス一覧)
 - [アクセス方法](#アクセス方法)
-- [Kubernetes Dashboard](#kubernetes-dashboard)
 - [アーキテクチャ](#アーキテクチャ)
 - [主要コマンド](#主要コマンド)
-- [開発ワークフロー](#開発ワークフロー)
 - [トラブルシューティング](#トラブルシューティング)
 - [技術スタック](#技術スタック)
 
 ## 概要
 
-このプロジェクトは、以下のコンポーネントで構成されています：
+### 特徴
 
-### インフラストラクチャ
-- **K3s v1.34.3**: 軽量Kubernetesディストリビューション（Kubernetes v1.34.3）
-- **ArgoCD v2.10.0**: GitOps継続的デプロイメント
-- **Kubernetes Dashboard v2.7.0**: Kubernetes管理Web UI
-- **PostgreSQL 16**: リレーショナルデータベース
-- **Redis 7**: セッション管理・キャッシュ
+- **完全自動化**: 1コマンドで環境削除→構築→回帰テスト実行
+- **GitOps準拠**: Kustomize overlaysによる宣言的バージョン管理
+- **両バージョン対応**: v1.0.0とv1.1.0を自動ビルド・インポート
+- **ゼロダウンタイム**: ローリングアップデートによる無停止デプロイ
+- **完全なポータビリティ**: どの環境でも同一の手順で実行可能
 
-### アプリケーション
-- **Backend**: Spring Boot 3.2.1 + Java 21 REST API（2レプリカ）
-- **Frontend**: React 18 + Vite Web UI（2レプリカ）
+### システム構成
 
-### ネットワーク
-- **socat**: ポート転送（外部アクセス用）
-- **iptables**: ファイアウォールルール管理
-- **LoadBalancer**: K3s ServiceLB（外部IPアサイン）
+| コンポーネント | バージョン | 説明 |
+|--------------|----------|------|
+| **K3s** | v1.34.3 | 軽量Kubernetesディストリビューション |
+| **ArgoCD** | v2.10.0 | GitOps継続的デプロイメント |
+| **Kustomize** | Built-in | Kubernetes ネイティブ構成管理 |
+| **PostgreSQL** | 16-alpine | リレーショナルデータベース |
+| **Redis** | 7-alpine | セッション管理・キャッシュ |
+| **Backend** | Spring Boot 3.2.1 + Java 21 | REST API (2レプリカ) |
+| **Frontend** | React 18 + Vite | Web UI (2レプリカ) |
 
-## 前提条件
-
-### システム要件
+### 前提条件
 
 | 項目 | 要件 |
 |------|------|
@@ -49,224 +47,248 @@ Kubernetes（K3s）+ ArgoCD GitOpsによる組織管理システムの完全自�
 | ディスク | 20GB以上の空き容量 |
 | ネットワーク | インターネット接続必須 |
 
-### 必要なソフトウェア
+**必要なソフトウェアはAnsibleが自動インストール**します：
+- K3s, ArgoCD, Maven, Node.js, Podman, socat
 
-以下のソフトウェアは**Ansibleが自動インストール**します（手動インストール不要）：
+## クイックスタート
 
-- K3s v1.34.3
-- ArgoCD v2.10.0
-- Kubernetes Dashboard v2.7.0
-- Maven 3.9.6
-- Node.js 20.x
-- Podman (コンテナビルド)
-- socat (ポート転送)
-
-### AWS EC2要件
-
-- **セキュリティグループ**: 以下のポートを開放
-  - 22 (SSH)
-  - 3000 (Kubernetes Dashboard)
-  - 5006 (Frontend)
-  - 8000 (ArgoCD HTTP)
-  - 8082 (ArgoCD HTTPS)
-  - 8083 (Backend API)
-
-- **IAMロール**: 不要（パブリックアクセスのみ）
-
-## 環境セットアップ
-
-### 1. 初回セットアップ
+### リポジトリクローン
 
 ```bash
-# 1. リポジトリクローン
 cd /root
 git clone https://github.com/shiftrepo/aws.git
-
-# 2. プロジェクトディレクトリに移動
 cd /root/aws.git/container/claudecode/ArgoCD
-
-# 3. Ansible実行ユーザーの確認
-whoami  # root または sudo権限を持つユーザー
 ```
 
-**別環境での利用**:
+### 完全自動回帰テスト（推奨）
 
-このプロジェクトは完全にポータブルです。環境依存の値は全てパラメータ化されており、
-別の環境にクローンして異なるパラメータで実行できます。
-
-```bash
-# 例: 別のサーバー（192.168.1.100）でデプロイ
-git clone https://github.com/shiftrepo/aws.git
-cd /your/path/aws.git/container/claudecode/ArgoCD/ansible
-
-ansible-playbook playbooks/deploy_k8s_complete.yml \
-  -e "private_ip=192.168.1.100" \
-  -e "project_root=/your/path/aws.git/container/claudecode/ArgoCD"
-```
-
-詳細は [docs/ENVIRONMENT_PORTABILITY.md](./docs/ENVIRONMENT_PORTABILITY.md) を参照。
-
-### 2. EC2パブリックDNS名の確認
-
-Kubernetes DashboardはEC2のパブリックDNS名でアクセスします。事前に確認しておきます。
-
-```bash
-# EC2パブリックDNS名を取得
-curl -s http://169.254.169.254/latest/meta-data/public-hostname
-
-# 出力例
-# ec2-54-172-30-175.compute-1.amazonaws.com
-```
-
-**重要**: この値は環境削除・再構築後も変わりません（EC2インスタンスを停止/起動すると変わります）。
-
-### 3. 完全自動デプロイ（初回構築）
-
-**このplaybookを使用する場合**:
-- 初回セットアップ
-- 完全削除後の再構築
-- K3s/ArgoCD/全サービスを一から構築する場合
+**すべての操作を1コマンドで実行**:
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/deploy_regression_test_complete.yml
+```
 
-# デフォルト設定で実行（自動でIPアドレスを検出）
+**所要時間**: 約15-20分
+
+**実行内容**:
+1. **環境削除**: K3s、Podman、履歴ファイルの完全削除
+2. **v1.0.0ビルド**: Git tag `argocd-regression-v1.0.0` から自動ビルド
+3. **v1.1.0ビルド**: mainブランチから自動ビルド
+4. **K3s + ArgoCD構築**: 新規環境構築
+5. **イメージインポート**: v1.0.0とv1.1.0の両方をK3sにインポート
+6. **v1.0.0初期デプロイ**: Kustomize overlays/v1.0.0でデプロイ
+7. **アップグレードテスト**: v1.0.0 → v1.1.0 (GitOps)
+8. **ロールバックテスト**: v1.1.0 → v1.0.0 (GitOps)
+9. **再アップグレードテスト**: v1.0.0 → v1.1.0 (GitOps)
+10. **最終確認**: ステータス、履歴、サマリー表示
+
+**実行結果例**:
+```
+PLAY RECAP
+========
+localhost: ok=48  changed=36  unreachable=0  failed=0  skipped=0
+
+ArgoCD Status: Synced/Healthy
+
+All Tests Passed:
+  ✅ v1.0.0 and v1.1.0 images built
+  ✅ K3s and ArgoCD installed
+  ✅ Initial v1.0.0 deployment
+  ✅ Upgrade v1.0.0 → v1.1.0
+  ✅ Rollback v1.1.0 → v1.0.0
+  ✅ Re-upgrade v1.0.0 → v1.1.0
+```
+
+### 個別構築（詳細制御が必要な場合）
+
+#### 1. 初回環境構築のみ
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/install_k3s_and_argocd.yml
+```
+
+#### 2. アプリケーションデプロイのみ
+
+```bash
 ansible-playbook playbooks/deploy_k8s_complete.yml
-
-# または、パラメータを明示的に指定
-ansible-playbook playbooks/deploy_k8s_complete.yml \
-  -e "private_ip=10.0.1.200" \
-  -e "project_root=/root/aws.git/container/claudecode/ArgoCD" \
-  -e "app_version=1.1.0"
 ```
 
-**環境パラメータ（全て省略可能）**:
-- `private_ip`: サービスのexternal IP（デフォルト: 自動検出）
-- `project_root`: プロジェクトルートパス（デフォルト: /root/aws.git/container/claudecode/ArgoCD）
-- `app_version`: アプリケーションバージョン（デフォルト: 1.1.0）
+## 完全自動回帰テスト
 
-**所要時間**: 約8-10分
-
-**処理内容**:
-1. K3s + ArgoCD インストール
-2. ビルドツール（Maven, Node.js）セットアップ
-3. Backend/Frontend ビルド
-4. コンテナイメージ作成・インポート
-5. Kubernetesへのデプロイ（PostgreSQL, Redis, Backend, Frontend）
-6. ポート転送設定（socat systemdサービス作成）
-7. iptablesファイアウォールルール設定
-8. ArgoCD GitOpsアプリケーション設定
-9. Kubernetes Dashboard インストール・設定
-
-### 4. アプリケーションバージョンアップ
-
-**このplaybookを使用する場合**:
-- アプリケーションの新しいバージョンをデプロイする場合
-- K3sとArgoCDは既にインストール済み
-- アプリケーションコードの変更をデプロイしたい場合
+### 実行方法
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-
-# デフォルト設定で実行
-ansible-playbook playbooks/deploy_app_version.yml
-
-# 特定のバージョンを指定してデプロイ
-ansible-playbook playbooks/deploy_app_version.yml \
-  -e "app_version=1.2.0"
-
-# 別環境で実行する場合（全パラメータ指定）
-ansible-playbook playbooks/deploy_app_version.yml \
-  -e "app_version=1.2.0" \
-  -e "private_ip=192.168.1.100" \
-  -e "project_root=/path/to/project"
+ansible-playbook playbooks/deploy_regression_test_complete.yml
 ```
 
-**環境パラメータ（全て省略可能）**:
-- `app_version`: デプロイするバージョン（デフォルト: 1.1.0）
-- `private_ip`: サービスのexternal IP（デフォルト: 自動検出）
-- `project_root`: プロジェクトルートパス（デフォルト: /root/aws.git/container/claudecode/ArgoCD）
+### テストフロー
 
-**所要時間**: 約3-5分
+```
+Phase 1: 環境削除
+  └─> K3s uninstall
+  └─> Podman cleanup
+  └─> 履歴ファイル削除
 
-**処理内容**:
-1. アプリケーションビルド（Backend/Frontend）
-2. Dockerイメージビルド（バージョンタグ付き）
-3. K3sへのイメージインポート
-4. Deploymentのローリングアップデート
-5. ヘルスチェック確認
-6. ArgoCD同期
+Phase 2-3: 両バージョンビルド
+  └─> v1.0.0 (tag: argocd-regression-v1.0.0)
+      ├─> Backend Maven build
+      ├─> Frontend npm build
+      └─> Podman image build
+  └─> v1.1.0 (branch: main)
+      ├─> Backend Maven build
+      ├─> Frontend npm build
+      └─> Podman image build
 
-**詳細なバージョンアップ手順**:
-- [VERSION_UPGRADE.md](./VERSION_UPGRADE.md) を参照
+Phase 4: K3s + ArgoCD構築
+  └─> K3s installation
+  └─> ArgoCD installation
+  └─> Wait for ready
 
-**バージョン履歴の確認**:
+Phase 5: イメージインポート
+  └─> Export to tar files
+  └─> Import to K3s containerd
+  └─> Verify both versions
+
+Phase 6: v1.0.0初期デプロイ
+  └─> Apply Kustomize overlays/v1.0.0
+  └─> Wait for pods ready
+  └─> Apply ArgoCD Application
+  └─> Wait for sync
+
+Phase 7-9: バージョン変更テスト
+  └─> Upgrade v1.0.0 → v1.1.0 (GitOps)
+  └─> Rollback v1.1.0 → v1.0.0 (GitOps)
+  └─> Re-upgrade v1.0.0 → v1.1.0 (GitOps)
+
+Phase 10: 最終確認
+  └─> ArgoCD status
+  └─> Deployments
+  └─> Pods
+  └─> Version history
+```
+
+### タグベース実行
+
+特定のフェーズのみ実行する場合:
+
 ```bash
-cat /root/argocd-regression-version-history.txt
+# 環境削除のみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=cleanup
+
+# v1.0.0ビルドのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=build-v1.0.0
+
+# v1.1.0ビルドのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=build-v1.1.0
+
+# K3sインストールのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=install-k3s
+
+# イメージインポートのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=import-images
+
+# 初期デプロイのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=deploy-v1.0.0
+
+# アップグレードテストのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=upgrade-test
+
+# ロールバックテストのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=rollback-test
+
+# 再アップグレードテストのみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=reupgrade-test
+
+# 最終確認のみ
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=verification
 ```
 
-### 5. アプリケーションバージョンロールバック
+## GitOpsバージョン管理
 
-**このplaybookを使用する場合**:
-- デプロイしたバージョンに問題があり、以前のバージョンに戻したい場合
-- バージョンアップのテストを繰り返したい場合
+### Kustomize構造
+
+```
+k8s-manifests/
+├── base/                           # 共通ベース
+│   ├── backend-deployment.yaml     # image: latest (placeholder)
+│   ├── backend-service.yaml
+│   ├── frontend-deployment.yaml    # image: latest (placeholder)
+│   ├── frontend-service.yaml
+│   ├── postgres-deployment.yaml
+│   ├── redis-deployment.yaml
+│   └── kustomization.yaml
+├── overlays/
+│   ├── v1.0.0/                     # v1.0.0環境
+│   │   └── kustomization.yaml     # newTag: "1.0.0"
+│   └── v1.1.0/                     # v1.1.0環境
+│       └── kustomization.yaml     # newTag: "1.1.0"
+```
+
+### バージョン変更の仕組み
+
+**GitOps方式** - ArgoCD Application pathの変更でバージョン切り替え:
+
+```bash
+# v1.0.0にロールバック
+kubectl patch application orgmgmt-app -n argocd --type merge \
+  -p '{"spec":{"source":{"path":"k8s-manifests/overlays/v1.0.0"}}}'
+
+# v1.1.0にアップグレード
+kubectl patch application orgmgmt-app -n argocd --type merge \
+  -p '{"spec":{"source":{"path":"k8s-manifests/overlays/v1.1.0"}}}'
+```
+
+**重要**: `kubectl set image`は使用しません（非GitOps準拠のため）。
+
+### バージョンアップグレード（GitOps方式）
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-
-# 直前のバージョンに戻す（Kubernetes rollout undo）
-ansible-playbook playbooks/rollback_app_version.yml
-
-# 特定のバージョンに戻す（Gitタグ argocd-regression-v1.0.0 からビルド）
-ansible-playbook playbooks/rollback_app_version.yml \
-  -e "target_version=1.0.0"
-
-# 特定のリビジョンに戻す
-ansible-playbook playbooks/rollback_app_version.yml \
-  -e "target_revision=1"
-
-# 別環境でパラメータを明示的に指定
-ansible-playbook playbooks/rollback_app_version.yml \
-  -e "target_version=1.0.0" \
-  -e "private_ip=192.168.1.100" \
-  -e "project_root=/path/to/project"
+ansible-playbook playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
 ```
 
-**環境パラメータ**:
-- `target_version`: ロールバック先のバージョン（Gitタグ: argocd-regression-v{version}）
-- `target_revision`: Kubernetesリビジョン番号（直前に戻す場合は省略可）
-- `private_ip`: サービスのexternal IP（デフォルト: 自動検出）
-- `project_root`: プロジェクトルートパス（デフォルト: /root/aws.git/container/claudecode/ArgoCD）
+**処理内容**:
+1. ArgoCD Application pathを`overlays/v1.1.0`に変更
+2. ArgoCD syncを自動トリガー
+3. Kustomizeが`newTag: "1.1.0"`を適用
+4. Deploymentがローリングアップデート
+5. Health checkで確認
 
-**重要**: `target_version`を指定する場合、該当するGitタグ（`argocd-regression-v{version}`）が存在する必要があります。
+**所要時間**: 約2-3分
+
+### バージョンロールバック（GitOps方式）
 
 ```bash
-# 利用可能なバージョンを確認
-git tag -l argocd-regression-v*
-
-# 出力例:
-# argocd-regression-v1.0.0
-# argocd-regression-v1.1.0
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/rollback_app_version_gitops.yml -e "target_version=1.0.0"
 ```
 
-**所要時間**:
-- `target_version`指定: 約3-5分（Gitタグからビルドを含む）
-- その他: 約2-3分
+**処理内容**:
+1. ArgoCD Application pathを`overlays/v1.0.0`に変更
+2. ArgoCD syncを自動トリガー
+3. Kustomizeが`newTag: "1.0.0"`を適用
+4. Deploymentがローリングアップデート
+5. Health checkで確認
 
-**処理内容（target_version指定時）**:
-1. Gitタグ `argocd-regression-v{target_version}` の存在確認
-2. Gitタグをチェックアウト
-3. アプリケーションをビルド（Backend/Frontend）
-4. Dockerイメージ作成
-5. K3sにインポート
-6. Deploymentローリングアップデート
-7. 元のブランチに戻る
-8. ヘルスチェック
-9. バージョン履歴更新
+**所要時間**: 約2-3分
 
-**バージョンアップとロールバックの繰り返し**:
+### バージョン履歴確認
 
-各バージョンはGitタグ（`argocd-regression-v{version}`）として**mainブランチ**に保存され、ロールバック時に該当タグからビルドされます。
+```bash
+cat /root/app-version-history.txt
+```
+
+**出力例**:
+```
+2026-02-07T07:17:09Z | DEPLOY (GitOps) | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
+2026-02-07T07:17:09Z | ROLLBACK (GitOps) | 1.0.0 | Backend: localhost/orgmgmt-backend:1.0.0, Frontend: localhost/orgmgmt-frontend:1.0.0
+2026-02-07T07:17:09Z | DEPLOY (GitOps) | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
+```
+
+### Gitタグによるバージョン管理
 
 ```bash
 # 利用可能なバージョンを確認
@@ -275,85 +297,7 @@ git tag -l argocd-regression-v*
 # 出力例:
 # argocd-regression-v1.0.0  <- ベースバージョン
 # argocd-regression-v1.1.0  <- System Information機能追加
-
-# 環境作成（初回のみ）
-ansible-playbook playbooks/deploy_k8s_complete.yml
-
-# バージョンアップ (1.0.0 → 1.1.0)
-ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
-
-# バージョン戻し (1.1.0 → 1.0.0)
-# Gitタグ argocd-regression-v1.0.0 からビルドして1.0.0にロールバック
-ansible-playbook playbooks/rollback_app_version.yml -e "target_version=1.0.0"
-
-# 再度バージョンアップ (1.0.0 → 1.1.0)
-ansible-playbook playbooks/deploy_app_version.yml -e "app_version=1.1.0"
-
-# このサイクルを無限に繰り返し可能
 ```
-
-**ポータビリティ**: このリポジトリをクローンすれば、どの環境でも同じサイクルを実行できます。
-
-### 6. デプロイ完了確認
-
-```bash
-# 全Pod状態確認
-sudo /usr/local/bin/k3s kubectl get pods -A
-
-# サービス状態確認
-systemctl status socat-frontend socat-backend socat-argocd-http socat-argocd-https socat-k8s-dashboard
-
-# ポート確認
-ss -tlnp | grep -E "(3000|5006|8000|8082|8083)"
-```
-
-すべてのサービスが`Running`かつ`active`であれば正常です。
-
-## クイックスタート
-
-### デプロイ
-
-**初回構築・完全再構築の場合**:
-```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_k8s_complete.yml
-```
-
-**アプリケーションバージョンアップの場合**:
-```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_app_version.yml
-```
-
-**アプリケーションバージョンロールバックの場合**:
-```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/rollback_app_version.yml
-```
-
-### アクセス
-
-| サービス | URL | 認証 | デフォルトユーザー |
-|---------|-----|------|-------------------|
-| Frontend | http://10.0.1.200:5006 | 不要 | - |
-| Backend API | http://10.0.1.200:8083 | 不要 | - |
-| ArgoCD HTTPS | https://10.0.1.200:8082 | 必要 | admin / (CREDENTIALS.md参照) |
-| ArgoCD HTTP | http://10.0.1.200:8000 | 必要 | admin / (CREDENTIALS.md参照) |
-| Kubernetes Dashboard | https://\<EC2-DNS\>:3000 | トークン | (トークンファイル参照) |
-
-### 認証情報
-
-**すべての認証情報は以下のファイルに記載されています**:
-
-```bash
-# ArgoCD認証情報
-cat /root/argocd-credentials.txt
-
-# Kubernetes Dashboard トークン
-cat /root/k8s-dashboard-token.txt
-```
-
-詳細は [CREDENTIALS.md](CREDENTIALS.md) を参照してください。
 
 ## サービス一覧
 
@@ -372,27 +316,6 @@ cat /root/k8s-dashboard-token.txt
 |-----------|--------|-----------|------|
 | **ArgoCD Server** | 8082 (HTTPS)<br>8000 (HTTP) | HTTPS/HTTP | GitOps継続的デプロイメント管理UI |
 | **Kubernetes Dashboard** | 3000 → 30000 | HTTPS | Kubernetes管理Web UI（DNS名必須） |
-
-### Kubernetesシステムサービス
-
-| サービス名 | Namespace | 説明 |
-|-----------|-----------|------|
-| **coredns** | kube-system | クラスタ内DNS解決 |
-| **metrics-server** | kube-system | リソース使用量メトリクス収集 |
-| **local-path-provisioner** | kube-system | 動的PersistentVolume作成 |
-| **svclb-*** | kube-system | Service LoadBalancer（外部IP割り当て） |
-
-### ポート転送サービス（socat）
-
-| サービス名 | 外部ポート | 内部ポート | 説明 |
-|-----------|-----------|-----------|------|
-| socat-frontend | 5006 | NodePort（動的） | Frontendポート転送 |
-| socat-backend | 8083 | NodePort（動的） | Backendポート転送 |
-| socat-argocd-http | 8000 | NodePort（動的） | ArgoCD HTTPポート転送 |
-| socat-argocd-https | 8082 | NodePort（動的） | ArgoCD HTTPSポート転送 |
-| socat-k8s-dashboard | 3000 | 30000 | Kubernetes Dashboardポート転送 |
-
-すべてのsocatサービスは`systemd`で管理され、自動起動されます。
 
 ## アクセス方法
 
@@ -429,9 +352,6 @@ curl http://10.0.1.200:8083/api/departments
 curl http://10.0.1.200:8083/api/users
 ```
 
-**APIドキュメント**:
-- Swagger UI: `http://10.0.1.200:8083/swagger-ui.html`（有効化されている場合）
-
 ### ArgoCD（GitOps管理）
 
 **Web UI**:
@@ -441,6 +361,11 @@ https://10.0.1.200:8082
 
 # HTTP（HTTPSにリダイレクト）
 http://10.0.1.200:8000
+```
+
+**認証情報**:
+```bash
+cat /root/argocd-credentials.txt
 ```
 
 **CLI**:
@@ -461,85 +386,21 @@ argocd app get orgmgmt-app
 argocd app sync orgmgmt-app
 ```
 
-## Kubernetes Dashboard
+### Kubernetes Dashboard
 
-Kubernetes管理用のWeb UIです。クラスタの全リソースを可視化・管理できます。
-
-### アクセス方法
-
-**⚠️ 重要**: Kubernetes DashboardはIPアドレスではアクセスできません。EC2インスタンスのパブリックDNS名を使用してください。
-
-#### 1. EC2パブリックDNS名を取得
+**⚠️ 重要**: IPアドレスではアクセスできません。EC2インスタンスのパブリックDNS名を使用してください。
 
 ```bash
+# EC2パブリックDNS名を取得
 curl -s http://169.254.169.254/latest/meta-data/public-hostname
 # 出力例: ec2-54-172-30-175.compute-1.amazonaws.com
+
+# ブラウザでアクセス
+https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/
+
+# トークン取得
+cat /root/k8s-dashboard-token.txt
 ```
-
-#### 2. ブラウザでアクセス
-
-```
-https://<取得したDNS名>:3000/
-
-例: https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/
-```
-
-#### 3. 証明書警告を承認
-
-自己署名証明書を使用しているため、ブラウザで警告が表示されます。
-
-- **Chrome/Edge**: 「詳細設定」→「<DNS名> にアクセスする（安全ではありません）」
-- **Firefox**: 「詳細情報」→「危険性を承知で続行」
-- **Safari**: 「詳細を表示」→「このWebサイトを閲覧」
-
-#### 4. トークン認証
-
-1. ログイン画面で「トークン」を選択
-2. 以下のコマンドでトークンを取得:
-   ```bash
-   cat /root/k8s-dashboard-token.txt
-   ```
-3. トークンを貼り付けて「サインイン」
-
-**トークン有効期限**: 10年間（2036年まで）
-
-### Dashboard機能
-
-Kubernetes Dashboardでは以下の操作が可能です：
-
-- **リソース管理**: Pods, Deployments, Services, ConfigMaps, Secrets等の表示・編集
-- **ログ確認**: Pod単位でリアルタイムログ表示
-- **シェル接続**: Pod内でコマンド実行（kubectl exec相当）
-- **リソースメトリクス**: CPU/メモリ使用率のグラフ表示
-- **イベント確認**: クラスタイベントの時系列表示
-- **YAML編集**: リソース定義の直接編集
-
-### トークン再発行
-
-トークンを再発行する場合:
-
-```bash
-# 10年間有効なトークン生成
-sudo /usr/local/bin/k3s kubectl create token admin-user \
-  -n kubernetes-dashboard \
-  --duration=87600h
-
-# 1時間有効なトークン生成
-sudo /usr/local/bin/k3s kubectl create token admin-user \
-  -n kubernetes-dashboard \
-  --duration=1h
-```
-
-### DNS名が変わる場合
-
-EC2インスタンスを**停止/起動**するとパブリックDNS名が変わります。その場合は再度DNS名を取得してアクセスしてください。
-
-```bash
-# 最新のDNS名を取得
-curl -s http://169.254.169.254/latest/meta-data/public-hostname
-```
-
-**注意**: インスタンスを再起動（reboot）するだけではDNS名は変わりません。
 
 ## アーキテクチャ
 
@@ -573,121 +434,72 @@ curl -s http://169.254.169.254/latest/meta-data/public-hostname
                      GitOps by ArgoCD
 ```
 
-### GitOps Workflow
+### GitOps Workflow with Kustomize
 
 ```
 GitHub Repository
   └─ container/claudecode/ArgoCD/k8s-manifests/
-       ├─ backend-deployment.yaml
-       ├─ backend-service.yaml
-       ├─ frontend-deployment.yaml
-       ├─ frontend-service.yaml
-       ├─ postgres-deployment.yaml
-       └─ redis-deployment.yaml
-            │
-            ├─ ArgoCD自動検出（3分ごと）
-            │
-            └─→ Kubernetes Cluster
-                 ├─ Backend Deployment (2 replicas)
-                 ├─ Frontend Deployment (2 replicas)
-                 ├─ PostgreSQL Deployment (1 replica)
-                 └─ Redis Deployment (1 replica)
+       ├─ base/
+       │   ├─ backend-deployment.yaml     (image: latest)
+       │   ├─ frontend-deployment.yaml    (image: latest)
+       │   └─ kustomization.yaml
+       └─ overlays/
+           ├─ v1.0.0/
+           │   └─ kustomization.yaml      (newTag: "1.0.0")
+           └─ v1.1.0/
+               └─ kustomization.yaml      (newTag: "1.1.0")
+                  │
+                  ├─ ArgoCD自動検出（3分ごと）
+                  │
+                  └─→ Kubernetes Cluster
+                       ├─ Backend Deployment (2 replicas, image:1.1.0)
+                       ├─ Frontend Deployment (2 replicas, image:1.1.0)
+                       ├─ PostgreSQL Deployment (1 replica)
+                       └─ Redis Deployment (1 replica)
 ```
 
 **GitOps機能**:
 - **自動同期**: 3分ごとにGitリポジトリをチェック
 - **Self Heal**: 手動変更を自動で元に戻す
 - **Prune**: マニフェストから削除されたリソースを自動削除
+- **Kustomize**: ネイティブサポート（overlaysによるバージョン管理）
 
-### ポート構成
-
-#### 外部公開ポート
-
-| 外部ポート | サービス | プロトコル | 説明 |
-|-----------|---------|-----------|------|
-| 3000 | Kubernetes Dashboard | HTTPS | K8s管理UI（DNS名必須） |
-| 5006 | Frontend | HTTP | React Web UI |
-| 8000 | ArgoCD | HTTP | GitOps管理（HTTPSリダイレクト） |
-| 8082 | ArgoCD | HTTPS | GitOps管理 |
-| 8083 | Backend API | HTTP | REST API |
-
-#### 内部ポート（NodePort）
-
-NodePortは自動割り当てされます（30000-32767の範囲）。socatが自動的にマッピングします。
-
-#### クラスタ内部ポート
-
-| サービス | ClusterIP Port | 説明 |
-|---------|---------------|------|
-| postgres | 5432 | PostgreSQL接続 |
-| redis | 6379 | Redis接続 |
-| kubernetes | 443 | Kubernetes API Server |
-
-### iptablesファイアウォールルール
-
-外部アクセスを許可するため、以下のiptablesルールが**自動的に設定**されます：
-
-```bash
-# ルール確認
-sudo iptables -L INPUT -n --line-numbers | head -10
-```
-
-**重要**: ルールはINPUTチェインの**先頭**に挿入されます（K3sのKUBE-ROUTER-INPUTより前）。
-
-```
-1. ACCEPT tcp dpt:3000  (Kubernetes Dashboard)
-2. KUBE-ROUTER-INPUT    (K3s管理チェイン)
-3. ACCEPT tcp dpt:8082  (ArgoCD HTTPS)
-4. ACCEPT tcp dpt:8000  (ArgoCD HTTP)
-5. ACCEPT tcp dpt:8083  (Backend API)
-6. ACCEPT tcp dpt:5006  (Frontend)
-```
-
-この順序により、K3sのネットワークポリシーに影響を受けずに外部アクセスが可能になります。
-
-## ディレクトリ構造
+### ディレクトリ構造
 
 ```
 .
 ├── ansible/
-│   ├── playbooks/
-│   │   ├── deploy_k8s_complete.yml    # 完全自動デプロイ（メイン）
-│   │   ├── install_k3s_and_argocd.yml # K3s+ArgoCD単独インストール
-│   │   └── install_build_tools.yml    # Maven/Node.js単独インストール
-│   └── inventory/
-│       └── hosts.yml                   # Ansibleインベントリ（localhost）
-├── k8s-manifests/                      # Kubernetesマニフェスト（ArgoCD管理対象）
-│   ├── backend-deployment.yaml
-│   ├── backend-service.yaml
-│   ├── frontend-deployment.yaml
-│   ├── frontend-service.yaml
-│   ├── postgres-deployment.yaml
-│   ├── postgres-service.yaml
-│   ├── redis-deployment.yaml
-│   └── redis-service.yaml
+│   └── playbooks/
+│       ├── deploy_regression_test_complete.yml  # 完全自動回帰テスト（推奨）
+│       ├── deploy_app_version_gitops.yml        # GitOpsアップグレード
+│       ├── rollback_app_version_gitops.yml      # GitOpsロールバック
+│       ├── install_k3s_and_argocd.yml           # K3s+ArgoCD単独
+│       └── install_build_tools.yml              # Maven/Node.js単独
+├── k8s-manifests/                               # ArgoCD管理対象
+│   ├── base/                                    # Kustomize base
+│   │   ├── backend-deployment.yaml
+│   │   ├── backend-service.yaml
+│   │   ├── frontend-deployment.yaml
+│   │   ├── frontend-service.yaml
+│   │   ├── postgres-deployment.yaml
+│   │   ├── redis-deployment.yaml
+│   │   └── kustomization.yaml
+│   └── overlays/                                # Kustomize overlays
+│       ├── v1.0.0/
+│       │   └── kustomization.yaml               # newTag: "1.0.0"
+│       └── v1.1.0/
+│           └── kustomization.yaml               # newTag: "1.1.0"
 ├── app/
-│   ├── backend/                        # Spring Boot アプリケーション
+│   ├── backend/                                 # Spring Boot
 │   │   ├── Dockerfile
 │   │   ├── pom.xml
 │   │   └── src/
-│   │       └── main/
-│   │           ├── java/
-│   │           └── resources/
-│   │               ├── application.yml
-│   │               └── db/migration/   # Flyway DBマイグレーション
-│   └── frontend/                       # React アプリケーション
+│   └── frontend/                                # React
 │       ├── Dockerfile
-│       ├── nginx.conf
 │       ├── package.json
 │       └── src/
-│           ├── components/
-│           ├── api/
-│           └── App.jsx
-├── argocd-application.yaml             # ArgoCD Applicationマニフェスト
-├── CREDENTIALS.md                      # 認証情報・アクセスガイド
-├── README.md                           # このファイル
-└── archive/                            # 過去の経緯・履歴ファイル
-
+├── argocd-application.yaml                      # ArgoCD Application
+└── README.md                                    # このファイル
 ```
 
 ## 主要コマンド
@@ -695,22 +507,14 @@ sudo iptables -L INPUT -n --line-numbers | head -10
 ### Kubernetesクラスタ管理
 
 ```bash
-# クラスタ情報
-sudo /usr/local/bin/k3s kubectl cluster-info
-
 # 全Namespace のPod確認
 sudo /usr/local/bin/k3s kubectl get pods -A
 
-# 特定Namespace のPod確認
-sudo /usr/local/bin/k3s kubectl get pods -n default
-sudo /usr/local/bin/k3s kubectl get pods -n argocd
-sudo /usr/local/bin/k3s kubectl get pods -n kubernetes-dashboard
+# Deployments確認
+sudo /usr/local/bin/k3s kubectl get deployments -o wide
 
 # サービス確認
 sudo /usr/local/bin/k3s kubectl get svc -A
-
-# ノード確認
-sudo /usr/local/bin/k3s kubectl get nodes -o wide
 ```
 
 ### ArgoCD管理
@@ -719,13 +523,28 @@ sudo /usr/local/bin/k3s kubectl get nodes -o wide
 # ArgoCD Application確認
 sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd
 
-# Application詳細
-sudo /usr/local/bin/k3s kubectl describe application orgmgmt-app -n argocd
-
 # Application ステータス（簡易）
 sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd \
-  -o jsonpath='{.status.sync.status}:{.status.health.status}'
-# 出力例: Synced:Healthy
+  -o jsonpath='{.status.sync.status}/{.status.health.status}'
+# 出力例: Synced/Healthy
+
+# 手動同期
+sudo /usr/local/bin/k3s kubectl patch application orgmgmt-app -n argocd \
+  --type merge \
+  -p '{"operation": {"sync": {"prune": true}}}'
+```
+
+### イメージ確認
+
+```bash
+# K3sにインポートされたイメージ確認
+sudo /usr/local/bin/k3s crictl images | grep orgmgmt
+
+# 出力例:
+# localhost/orgmgmt-backend    1.0.0    xxx    259MB
+# localhost/orgmgmt-backend    1.1.0    xxx    268MB
+# localhost/orgmgmt-frontend   1.0.0    xxx    64.8MB
+# localhost/orgmgmt-frontend   1.1.0    xxx    64.8MB
 ```
 
 ### ログ確認
@@ -737,360 +556,85 @@ sudo /usr/local/bin/k3s kubectl logs -f deployment/orgmgmt-backend
 # Frontend ログ
 sudo /usr/local/bin/k3s kubectl logs -f deployment/orgmgmt-frontend
 
-# PostgreSQL ログ
-sudo /usr/local/bin/k3s kubectl logs -f deployment/postgres
-
 # ArgoCD Server ログ
 sudo /usr/local/bin/k3s kubectl logs -f deployment/argocd-server -n argocd
-
-# Kubernetes Dashboard ログ
-sudo /usr/local/bin/k3s kubectl logs -f deployment/kubernetes-dashboard -n kubernetes-dashboard
-```
-
-### サービス管理
-
-```bash
-# socat サービス状態確認
-systemctl status socat-frontend
-systemctl status socat-backend
-systemctl status socat-argocd-http
-systemctl status socat-argocd-https
-systemctl status socat-k8s-dashboard
-
-# socat サービス再起動
-sudo systemctl restart socat-frontend
-sudo systemctl restart socat-backend
-
-# K3s サービス確認
-sudo systemctl status k3s
-
-# K3s サービス再起動
-sudo systemctl restart k3s
-```
-
-### ポート確認
-
-```bash
-# リスニングポート確認
-ss -tlnp | grep -E "(3000|5006|8000|8082|8083)"
-
-# iptablesルール確認
-sudo iptables -L INPUT -n --line-numbers | head -15
-```
-
-## 開発ワークフロー
-
-### 1. マニフェスト変更（GitOps）
-
-Kubernetesマニフェストを変更してGitにプッシュすると、ArgoCDが自動的にデプロイします。
-
-```bash
-# 1. マニフェストファイルを編集
-vim k8s-manifests/backend-deployment.yaml
-
-# 例: レプリカ数を変更
-# replicas: 2 → replicas: 3
-
-# 2. 変更をコミット・プッシュ
-git add k8s-manifests/backend-deployment.yaml
-git commit -m "feat: Increase backend replicas to 3"
-git push origin main
-
-# 3. ArgoCDが自動的にデプロイ（最大3分）
-# ブラウザでArgoCD UIを開いて進捗確認
-# https://10.0.1.200:8082
-
-# 4. 同期状態確認
-sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd
-```
-
-### 2. アプリケーションイメージ更新
-
-アプリケーションコードを変更してイメージを更新します。
-
-#### Backend更新
-
-```bash
-# 1. コード変更
-vim app/backend/src/main/java/com/example/orgmgmt/controller/OrganizationController.java
-
-# 2. ビルド
-cd app/backend
-mvn clean package -DskipTests
-
-# 3. コンテナイメージビルド
-podman build -t orgmgmt-backend:latest .
-
-# 4. イメージエクスポート・インポート
-podman save localhost/orgmgmt-backend:latest -o /tmp/backend.tar
-sudo k3s ctr images import /tmp/backend.tar
-
-# 5. Podを再起動（ローリングアップデート）
-sudo /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-backend
-
-# 6. ロールアウト状態確認
-sudo /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-backend
-```
-
-#### Frontend更新
-
-```bash
-# 1. コード変更
-vim app/frontend/src/App.jsx
-
-# 2. ビルド
-cd app/frontend
-npm install
-npm run build
-
-# 3. コンテナイメージビルド
-podman build -t orgmgmt-frontend:latest .
-
-# 4. イメージエクスポート・インポート
-podman save localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar
-sudo k3s ctr images import /tmp/frontend.tar
-
-# 5. Podを再起動
-sudo /usr/local/bin/k3s kubectl rollout restart deployment/orgmgmt-frontend
-
-# 6. ロールアウト状態確認
-sudo /usr/local/bin/k3s kubectl rollout status deployment/orgmgmt-frontend
-```
-
-### 3. データベースマイグレーション
-
-Flywayを使用してデータベーススキーマを管理します。
-
-```bash
-# 1. マイグレーションファイル作成
-vim app/backend/src/main/resources/db/migration/V5__add_new_column.sql
-
-# 例:
-# ALTER TABLE organizations ADD COLUMN description TEXT;
-
-# 2. Backendを再ビルド・デプロイ
-cd app/backend
-mvn clean package -DskipTests
-# ... （イメージビルド・インポート・再起動）
-
-# 3. マイグレーション実行確認
-sudo /usr/local/bin/k3s kubectl logs deployment/orgmgmt-backend | grep Flyway
 ```
 
 ## トラブルシューティング
 
-### 外部アクセスできない
-
-**症状**: ブラウザでサービスにアクセスできない
-
-```bash
-# 1. socatサービス状態確認
-systemctl status socat-frontend
-systemctl status socat-backend
-systemctl status socat-argocd-http
-systemctl status socat-argocd-https
-systemctl status socat-k8s-dashboard
-
-# 2. ポートリッスン確認
-ss -tlnp | grep -E "(3000|5006|8000|8082|8083)"
-
-# 出力例:
-# LISTEN 0  5  0.0.0.0:3000  0.0.0.0:*  users:(("socat",pid=XXX,fd=5))
-
-# 3. iptablesルール確認
-sudo iptables -L INPUT -n --line-numbers | head -10
-
-# ルールが先頭にあることを確認
-# 1. ACCEPT tcp dpt:3000
-# 2. KUBE-ROUTER-INPUT
-
-# 4. socatサービス再起動
-sudo systemctl restart socat-frontend
-sudo systemctl restart socat-backend
-sudo systemctl restart socat-argocd-http
-sudo systemctl restart socat-argocd-https
-sudo systemctl restart socat-k8s-dashboard
-
-# 5. アクセステスト
-curl -I http://10.0.1.200:5006/
-curl -I http://10.0.1.200:8083/actuator/health
-curl -k -I https://10.0.1.200:8082/
-```
-
-### Kubernetes Dashboard にアクセスできない
-
-**症状**: `https://ec2-xxx.compute-1.amazonaws.com:3000/` にアクセスできない
-
-```bash
-# 1. 最新のEC2パブリックDNS名を取得
-curl -s http://169.254.169.254/latest/meta-data/public-hostname
-
-# 2. Dashboard Pod状態確認
-sudo /usr/local/bin/k3s kubectl get pods -n kubernetes-dashboard
-
-# 3. Dashboard Service確認
-sudo /usr/local/bin/k3s kubectl get svc kubernetes-dashboard -n kubernetes-dashboard
-# TYPE: NodePort, PORT(S): 443:30000/TCP
-
-# 4. socat-k8s-dashboard サービス確認
-systemctl status socat-k8s-dashboard
-
-# 5. ポート3000確認
-ss -tlnp | grep :3000
-
-# 6. iptablesルール確認（先頭にあることを確認）
-sudo iptables -L INPUT -n --line-numbers | grep 3000
-
-# 7. 内部アクセステスト
-curl -k -I https://127.0.0.1:30000/
-curl -k -I https://127.0.0.1:3000/
-
-# 8. トークン確認
-cat /root/k8s-dashboard-token.txt
-```
-
-**解決策**:
-- EC2インスタンスを停止/起動した場合、パブリックDNS名が変わります
-- 最新のDNS名で再度アクセスしてください
-- IPアドレス（10.0.1.200）ではアクセスできません
-
 ### ArgoCD Application が OutOfSync
 
-**症状**: ArgoCD UIで「OutOfSync」と表示される
-
 ```bash
-# 1. Application状態確認
+# Application状態確認
 sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd
 
-# 2. 手動同期
+# 手動同期
 sudo /usr/local/bin/k3s kubectl patch application orgmgmt-app -n argocd \
   --type merge \
   -p '{"operation": {"sync": {"prune": true}}}'
 
-# 3. ArgoCDの同期設定確認
-sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o yaml | grep -A 5 syncPolicy
-
-# 4. GitリポジトリのマニフェストとK8sリソースの差分確認
-# ArgoCD UIで "App Diff" を確認
+# syncPolicy確認
+sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd \
+  -o jsonpath='{.spec.syncPolicy}' | jq .
 ```
 
 ### Pod が起動しない
 
-**症状**: Pod が `Pending`、`CrashLoopBackOff`、`Error` 状態
-
 ```bash
-# 1. Pod状態詳細確認
+# Pod状態詳細確認
 sudo /usr/local/bin/k3s kubectl describe pod <pod-name>
 
-# 2. イベント確認
+# イベント確認
 sudo /usr/local/bin/k3s kubectl get events --sort-by='.lastTimestamp' | tail -20
 
-# 3. ログ確認
+# ログ確認
 sudo /usr/local/bin/k3s kubectl logs <pod-name>
-sudo /usr/local/bin/k3s kubectl logs <pod-name> --previous  # 前回のログ
-
-# 4. リソース不足確認
-sudo /usr/local/bin/k3s kubectl top nodes
-sudo /usr/local/bin/k3s kubectl top pods
-
-# 5. イメージPull確認
-sudo /usr/local/bin/k3s kubectl describe pod <pod-name> | grep -A 5 Events
-
-# 6. Pod再起動
-sudo /usr/local/bin/k3s kubectl delete pod <pod-name>
 ```
 
-**よくある原因**:
-- イメージがK3sにインポートされていない
-- リソース不足（メモリ/CPU）
-- ConfigMap/Secretが存在しない
-- 環境変数の設定ミス
-
-### Backend API が 500 エラー
-
-**症状**: Backend API で Internal Server Error
+### イメージが見つからない
 
 ```bash
-# 1. Backend ログ確認
-sudo /usr/local/bin/k3s kubectl logs -f deployment/orgmgmt-backend
+# K3sのイメージ確認
+sudo /usr/local/bin/k3s crictl images | grep orgmgmt
 
-# 2. PostgreSQL接続確認
-sudo /usr/local/bin/k3s kubectl get pods | grep postgres
-sudo /usr/local/bin/k3s kubectl logs deployment/postgres
-
-# 3. PostgreSQL サービス確認
-sudo /usr/local/bin/k3s kubectl get svc postgres
-
-# 4. Backend環境変数確認
-sudo /usr/local/bin/k3s kubectl describe deployment orgmgmt-backend | grep -A 10 Environment
-
-# 5. データベース接続テスト（Backend Pod内）
-sudo /usr/local/bin/k3s kubectl exec -it deployment/orgmgmt-backend -- \
-  curl postgres:5432
+# イメージが無い場合、再インポート
+podman save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend.tar
+sudo /usr/local/bin/k3s ctr images import /tmp/backend.tar
 ```
 
 ### システム全体のリセット
 
-すべてのサービスを削除して再構築する場合:
-
 ```bash
-# 1. K3s完全削除
+# K3s完全削除
 sudo /usr/local/bin/k3s-uninstall.sh
 
-# 2. socat サービス削除
-for service in socat-frontend socat-backend socat-argocd-http socat-argocd-https socat-k8s-dashboard; do
-  sudo systemctl stop $service 2>/dev/null
-  sudo systemctl disable $service 2>/dev/null
-  sudo rm -f /etc/systemd/system/${service}.service
-done
-sudo systemctl daemon-reload
+# Podman イメージ削除
+podman rmi -af
 
-# 3. 認証情報ファイル削除
-sudo rm -f /root/argocd-credentials.txt /root/k8s-dashboard-token.txt
+# バージョン履歴削除
+rm -f /root/app-version-history.txt
 
-# 4. Podman イメージ削除
-podman rmi -f $(podman images -q localhost/orgmgmt-backend localhost/orgmgmt-frontend 2>/dev/null) 2>/dev/null || true
-
-# 5. 再構築
+# 再構築
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_k8s_complete.yml
+ansible-playbook playbooks/deploy_regression_test_complete.yml
 ```
 
-## 環境削除
+## Playbook一覧
 
-```bash
-# K3s完全削除（すべてのリソースを削除）
-sudo /usr/local/bin/k3s-uninstall.sh
-```
-
-このコマンドにより、以下がすべて削除されます:
-- K3s クラスタ
-- ArgoCD
-- Kubernetes Dashboard
-- すべてのアプリケーション（Backend, Frontend, PostgreSQL, Redis）
-- コンテナイメージ
-- ネットワーク設定
-
-**注意**: socatサービスは自動削除されません。手動で削除する場合は上記「システム全体のリセット」を参照してください。
-
-## ドキュメント
-
-- **[CREDENTIALS.md](CREDENTIALS.md)**: 🔑 認証情報・アクセスガイド（必読）
-  - ArgoCD / Kubernetes Dashboard / PostgreSQL / Redis 認証情報
-  - パスワード・トークン取得方法
-  - セキュリティ設定とトラブルシューティング
-- **[ARGOCD-DEPLOYMENT-GUIDE.md](ARGOCD-DEPLOYMENT-GUIDE.md)**: ArgoCDの詳細な運用ガイド
-- **[DEPLOYMENT-SUMMARY.md](DEPLOYMENT-SUMMARY.md)**: デプロイメント詳細サマリー
-- **[EXTERNAL-ACCESS-SOLUTION.md](EXTERNAL-ACCESS-SOLUTION.md)**: 外部アクセスのためのsocat設定
-- **[EXTERNAL-PORTS.md](EXTERNAL-PORTS.md)**: ポート設定ガイド
-- **[PORT-ALLOCATION-STATUS.md](PORT-ALLOCATION-STATUS.md)**: 現在のポート使用状況
+| Playbook | 用途 | 所要時間 |
+|----------|------|---------|
+| **deploy_regression_test_complete.yml** | **完全自動回帰テスト（推奨）** | 15-20分 |
+| install_k3s_and_argocd.yml | K3s + ArgoCD単独インストール | 3-5分 |
+| deploy_app_version_gitops.yml | GitOpsアップグレード | 2-3分 |
+| rollback_app_version_gitops.yml | GitOpsロールバック | 2-3分 |
+| install_build_tools.yml | Maven/Node.js単独インストール | 2-3分 |
 
 ## 技術スタック
 
 ### インフラストラクチャ
 - **K3s v1.34.3** (Kubernetes v1.34.3)
-- **ArgoCD v2.10.0**
-- **Kubernetes Dashboard v2.7.0**
+- **ArgoCD v2.10.0** (GitOps CD)
+- **Kustomize** (Built-in K8s)
 - **PostgreSQL 16 Alpine**
 - **Redis 7 Alpine**
 
@@ -1099,38 +643,37 @@ sudo /usr/local/bin/k3s-uninstall.sh
 - **Spring Boot 3.2.1**
 - **Spring Data JPA** (Hibernate)
 - **Flyway 10** (Database Migration)
-- **Lombok** (Code Generation)
 - **Maven 3.9.6** (Build Tool)
 
 ### Frontend
 - **React 18.2.0**
 - **Vite 5** (Build Tool)
-- **React Router DOM** (Routing)
 - **Axios 1.6.5** (HTTP Client)
 - **Nginx Alpine** (Web Server)
 - **Node.js 20.x** (Runtime)
 
 ### デプロイ・運用
-- **Ansible 2.14+** (Infrastructure as Code)
+- **Ansible 2.14+** (IaC)
 - **Podman** (Container Build)
 - **socat** (Port Forwarding)
 - **systemd** (Service Management)
 - **iptables** (Firewall Management)
 
-### Kubernetes エコシステム
-- **K3s ServiceLB** (Load Balancer)
-- **CoreDNS** (DNS Server)
-- **Metrics Server** (Resource Metrics)
-- **Local Path Provisioner** (Storage)
-- **Kube-Router** (Network Policy)
-
 ## バージョン
 
-**Current Version**: 1.0.0
+**Current Version**: 1.1.0
 
-**Tag**: v1.0.0 (Stable Release)
+**Git Tags**:
+- `argocd-regression-v1.0.0`: ベースバージョン
+- `argocd-regression-v1.1.0`: System Information機能追加
 
-**最終更新**: 2026-02-06
+**最終更新**: 2026-02-07
+
+## ドキュメント
+
+- **[CREDENTIALS.md](CREDENTIALS.md)**: 認証情報・アクセスガイド
+- **[QUICKSTART.md](QUICKSTART.md)**: クイックスタートガイド
+- **[VERSION_UPGRADE.md](VERSION_UPGRADE.md)**: バージョンアップグレード手順
 
 ## サポート
 
@@ -1138,13 +681,13 @@ sudo /usr/local/bin/k3s-uninstall.sh
 
 問題や質問がある場合は、GitHubのIssueで報告してください。
 
-### コミュニティ
+### リポジトリ情報
 
-- Repository: https://github.com/shiftrepo/aws
-- Path: container/claudecode/ArgoCD
+- **Repository**: https://github.com/shiftrepo/aws
+- **Path**: container/claudecode/ArgoCD
+- **License**: Private
 
 ---
 
-**Repository**: https://github.com/shiftrepo/aws
-**Path**: container/claudecode/ArgoCD
-**License**: Private
+**完全自動化されたGitOps継続的デプロイメント**
+1コマンドで環境構築からバージョン管理まで完全自動化
