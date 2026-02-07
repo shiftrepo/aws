@@ -68,7 +68,7 @@
         /usr/local/bin/k3s kubectl patch application orgmgmt-app
         -n argocd
         --type merge
-        -p '{"spec":{"source":{"path":"container/claudecode/ArgoCD/k8s-manifests/overlays/v{{ target_version }}"}}}'
+        -p '{"spec":{"source":{"path":"container/claudecode/ArgoCD/k8s-manifests/overlays/v{{ target_version }}"},"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
       register: argocd_patch
       changed_when: true
 
