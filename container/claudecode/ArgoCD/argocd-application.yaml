@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/shiftrepo/aws.git
     targetRevision: main
-    path: container/claudecode/ArgoCD/k8s-manifests
+    path: container/claudecode/ArgoCD/k8s-manifests/overlays/v1.1.0
   destination:
     server: https://kubernetes.default.svc
     namespace: default

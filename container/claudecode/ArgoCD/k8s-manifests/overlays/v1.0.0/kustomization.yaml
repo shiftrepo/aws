@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  - ../../base
+
+images:
+  - name: localhost/orgmgmt-backend
+    newName: localhost/orgmgmt-backend
+    newTag: "1.0.0"
+  - name: localhost/orgmgmt-frontend
+    newName: localhost/orgmgmt-frontend
+    newTag: "1.0.0"
+
+labels:
+  - pairs:
+      version: v1.0.0

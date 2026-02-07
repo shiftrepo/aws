@@ -1,0 +1,238 @@
+---
+# ========================================
+# アプリケーションバージョンアップグレード (GitOps方式)
+# ========================================
+# ArgoCDを使用してGitリポジトリ経由でアップグレードを実施
+#
+# 前提条件:
+#   - K3sとArgoCDがインストール済み
+#   - Kustomize構造が整備済み
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
+# ========================================
+
+- name: Deploy Application Version (GitOps)
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    private_ip: "{{ ansible_default_ipv4.address }}"
+    version_history_file: "/root/app-version-history.txt"
+    app_version: "1.1.0"  # デフォルトバージョン
+
+  tasks:
+    # ========================================
+    # Phase 1: 環境確認
+    # ========================================
+    - name: Display deployment information
+      debug:
+        msg:
+          - "=========================================="
+          - "GitOps Application Deployment"
+          - "=========================================="
+          - "Target Version: v{{ app_version }}"
+          - "Kustomize Path: k8s-manifests/overlays/v{{ app_version }}"
+          - "=========================================="
+
+    - name: Check if K3s is installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_bin
+
+    - name: Fail if K3s is not installed
+      fail:
+        msg: "K3s is not installed. Cannot perform deployment."
+      when: not k3s_bin.stat.exists
+
+    - name: Get current ArgoCD Application path
+      shell: |
+        /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o jsonpath='{.spec.source.path}'
+      register: current_app_path
+      changed_when: false
+      failed_when: false
+
+    - name: Display current application status
+      debug:
+        msg:
+          - "Current ArgoCD Application Path: {{ current_app_path.stdout }}"
+
+    # ========================================
+    # Phase 2: ArgoCD Applicationの更新 (GitOps)
+    # ========================================
+    - name: Update ArgoCD Application path to target version
+      command: >
+        /usr/local/bin/k3s kubectl patch application orgmgmt-app
+        -n argocd
+        --type merge
+        -p '{"spec":{"source":{"path":"container/claudecode/ArgoCD/k8s-manifests/overlays/v{{ app_version }}"}}}'
+      register: argocd_patch
+      changed_when: true
+
+    - name: Display GitOps update status
+      debug:
+        msg:
+          - "✅ ArgoCD Application updated via GitOps"
+          - "New path: k8s-manifests/overlays/v{{ app_version }}"
+          - "ArgoCD will automatically sync from Git repository"
+
+    # ========================================
+    # Phase 3: ArgoCD同期待機
+    # ========================================
+    - name: Trigger ArgoCD sync
+      shell: |
+        /usr/local/bin/k3s kubectl patch application orgmgmt-app -n argocd \
+          --type merge \
+          -p '{"operation":{"sync":{"revision":"HEAD"}}}'
+      register: argocd_sync_trigger
+      changed_when: true
+      failed_when: false
+
+    - name: Wait for ArgoCD to sync (max 5 minutes)
+      shell: |
+        /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o jsonpath='{.status.sync.status}'
+      register: argocd_sync_status
+      retries: 60
+      delay: 5
+      until: argocd_sync_status.stdout == "Synced"
+      changed_when: false
+
+    - name: Wait for ArgoCD health status
+      shell: |
+        /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd -o jsonpath='{.status.health.status}'
+      register: argocd_health_status
+      retries: 60
+      delay: 5
+      until: argocd_health_status.stdout == "Healthy"
+      changed_when: false
+
+    - name: Display ArgoCD sync result
+      debug:
+        msg:
+          - "✅ ArgoCD sync completed"
+          - "Sync Status: {{ argocd_sync_status.stdout }}"
+          - "Health Status: {{ argocd_health_status.stdout }}"
+
+    # ========================================
+    # Phase 4: デプロイ確認
+    # ========================================
+    - name: Get deployed backend image
+      shell: |
+        /usr/local/bin/k3s kubectl get deployment orgmgmt-backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+      register: deployed_backend_image
+      changed_when: false
+
+    - name: Get deployed frontend image
+      shell: |
+        /usr/local/bin/k3s kubectl get deployment orgmgmt-frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+      register: deployed_frontend_image
+      changed_when: false
+
+    - name: Get backend pods status
+      shell: |
+        /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-backend -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].image}{"\t"}{.status.phase}{"\n"}{end}'
+      register: backend_pods_info
+      changed_when: false
+
+    - name: Get frontend pods status
+      shell: |
+        /usr/local/bin/k3s kubectl get pods -l app=orgmgmt-frontend -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].image}{"\t"}{.status.phase}{"\n"}{end}'
+      register: frontend_pods_info
+      changed_when: false
+
+    - name: Display deployment verification
+      debug:
+        msg:
+          - "=========================================="
+          - "DEPLOYMENT VERIFICATION"
+          - "=========================================="
+          - ""
+          - "Deployed Images:"
+          - "  Backend: {{ deployed_backend_image.stdout }}"
+          - "  Frontend: {{ deployed_frontend_image.stdout }}"
+          - ""
+          - "Backend Pods:"
+          - "{{ backend_pods_info.stdout_lines }}"
+          - ""
+          - "Frontend Pods:"
+          - "{{ frontend_pods_info.stdout_lines }}"
+          - ""
+          - "=========================================="
+
+    # ========================================
+    # Phase 5: ヘルスチェック
+    # ========================================
+    - name: Wait for backend health check
+      uri:
+        url: "http://{{ private_ip }}:8083/actuator/health"
+        status_code: 200
+        timeout: 5
+      register: backend_health
+      retries: 30
+      delay: 10
+      until: backend_health.status == 200
+
+    - name: Wait for frontend to respond
+      uri:
+        url: "http://{{ private_ip }}:5006/"
+        status_code: 200
+        timeout: 5
+      register: frontend_health
+      retries: 10
+      delay: 5
+      until: frontend_health.status == 200
+
+    - name: Display health check results
+      debug:
+        msg:
+          - "Health Check Results:"
+          - "  Backend API: ✅ {{ backend_health.status }}"
+          - "  Frontend: ✅ {{ frontend_health.status }}"
+
+    # ========================================
+    # Phase 6: バージョン履歴記録
+    # ========================================
+    - name: Record deployment in version history
+      lineinfile:
+        path: "{{ version_history_file }}"
+        line: "{{ ansible_date_time.iso8601 }} | DEPLOY (GitOps) | {{ app_version }} | Backend: {{ deployed_backend_image.stdout }}, Frontend: {{ deployed_frontend_image.stdout }}"
+        create: yes
+        mode: '0644'
+      become: no
+
+    # ========================================
+    # Phase 7: 完了サマリー
+    # ========================================
+    - name: Display deployment completion summary
+      debug:
+        msg:
+          - "=========================================="
+          - "🎉 GitOps DEPLOYMENT COMPLETE!"
+          - "=========================================="
+          - ""
+          - "Deployed Version: v{{ app_version }}"
+          - "  Backend: {{ deployed_backend_image.stdout }}"
+          - "  Frontend: {{ deployed_frontend_image.stdout }}"
+          - ""
+          - "✅ ArgoCD sync completed"
+          - "✅ Deployments updated via GitOps"
+          - "✅ Health checks passed"
+          - "✅ Version history recorded"
+          - ""
+          - "GitOps Benefits:"
+          - "  - All changes tracked in Git"
+          - "  - Self-heal enabled (ArgoCD maintains desired state)"
+          - "  - Audit trail available"
+          - "  - Declarative deployment"
+          - ""
+          - "Access URLs:"
+          - "  Frontend:     http://{{ private_ip }}:5006"
+          - "  Backend API:  http://{{ private_ip }}:8083"
+          - ""
+          - "To rollback:"
+          - "  ansible-playbook playbooks/rollback_app_version_gitops.yml -e 'target_version=1.0.0'"
+          - ""
+          - "=========================================="
