@@ -25,12 +25,16 @@ export class TestCaseInfo {
     this.branchesCovered = 0;
     this.branchesTotal = 0;
     this.coverageStatus = 'カバレッジなし';
+    this.coverage = null; // CoverageInfo object with full coverage data
 
     // テスト実行情報
     this.testsTotal = 0;
     this.testsPassed = 0;
     this.testExecutionStatus = 'N/A';
     this.testSuccessRate = 0.0;
+    this.executionDuration = 0;
+    this.errorMessage = '';
+    this.errorType = '';
   }
 
   /**
@@ -75,6 +79,56 @@ export class TestCaseInfo {
     if (total > 0) {
       this.testSuccessRate = (passed / total) * 100;
       this.testExecutionStatus = passed === total ? '成功' : '一部失敗';
+    }
+  }
+
+  /**
+   * Set detailed execution information from Jest results
+   * @param {Object} executionInfo - Execution info from TestExecutionParser
+   */
+  setDetailedExecutionInfo(executionInfo) {
+    if (!executionInfo) {
+      this.testExecutionStatus = 'N/A';
+      return;
+    }
+
+    this.testExecutionStatus = executionInfo.status || 'N/A';
+    this.executionDuration = executionInfo.duration || 0;
+    this.errorMessage = executionInfo.errorMessage || '';
+    this.errorType = executionInfo.errorType || '';
+
+    // Set success rate based on status
+    if (executionInfo.status === 'PASS') {
+      this.testsTotal = 1;
+      this.testsPassed = 1;
+      this.testSuccessRate = 100;
+    } else if (executionInfo.status === 'FAIL') {
+      this.testsTotal = 1;
+      this.testsPassed = 0;
+      this.testSuccessRate = 0;
+    } else if (executionInfo.status === 'SKIP') {
+      this.testsTotal = 1;
+      this.testsPassed = 0;
+      this.testSuccessRate = 0;
+    }
+  }
+
+  /**
+   * Get execution status display with icon
+   * @returns {string}
+   */
+  getExecutionStatusDisplay() {
+    switch (this.testExecutionStatus) {
+      case 'PASS':
+        return '✓ PASS';
+      case 'FAIL':
+        return '✗ FAIL';
+      case 'SKIP':
+        return '○ SKIP';
+      case 'ERROR':
+        return '⚠ ERROR';
+      default:
+        return 'N/A';
     }
   }
 

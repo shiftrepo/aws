@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import { TestCaseInfo } from '../model/TestCaseInfo.js';
+import { logger } from '../util/Logger.js';
 
 /**
  * JSDocアノテーションを解析してテスト情報を抽出するクラス
@@ -48,7 +49,7 @@ export class AnnotationParser {
       const content = await this.readFileWithEncoding(filePath);
       return this.extractTestCases(content, filePath);
     } catch (error) {
-      console.error(`ファイル解析エラー [${filePath}]:`, error.message);
+      logger.error('ファイル解析エラー', { filePath, error: error.message });
       return [];
     }
   }

@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import { JSDOM } from 'jsdom';
 import { CoverageInfo } from '../model/CoverageInfo.js';
+import { logger } from '../util/Logger.js';
 
 /**
  * Jestカバレッジレポートを解析するクラス
@@ -23,11 +24,14 @@ export class CoverageReportParser {
       const coverageMap = new Map();
 
       for (const [filePath, fileData] of Object.entries(coverageData)) {
-        const coverageInfo = new CoverageInfo();
-
         // ファイルパスからクラス名を抽出
         const fileName = filePath.split('/').pop().split('\\').pop();
-        coverageInfo.className = fileName.replace(/\.(js|jsx|ts|tsx)$/, '');
+        const className = fileName.replace(/\.(js|jsx|ts|tsx)$/, '');
+
+        // Always create file-level coverage info
+        const coverageInfo = new CoverageInfo();
+        coverageInfo.className = className;
+        coverageInfo.methodName = '';
 
         // ブランチカバレッジ
         if (fileData.b) {
@@ -52,15 +56,112 @@ export class CoverageReportParser {
           coverageInfo.methodCovered = functions.filter(count => count > 0).length;
         }
 
-        coverageMap.set(coverageInfo.className, coverageInfo);
+        // Add file-level coverage
+        coverageMap.set(className, coverageInfo);
+
+        // Parse method-level coverage if fnMap exists
+        if (fileData.fnMap && fileData.f) {
+          const methodCoverages = this.parseMethodCoverage(fileData, className);
+
+          for (const methodCoverage of methodCoverages) {
+            const key = `${className}.${methodCoverage.methodName}`;
+            coverageMap.set(key, methodCoverage);
+          }
+        }
       }
 
       this.coverageData = coverageMap;
       return coverageMap;
     } catch (error) {
-      console.error('JSONカバレッジ解析エラー:', error.message);
+      logger.error('JSONカバレッジ解析エラー', { error: error.message });
       return new Map();
     }
+  }
+
+  /**
+   * Parse method-level coverage from coverage data
+   * @param {Object} fileData - File coverage data
+   * @param {string} className - Class name
+   * @returns {Array<CoverageInfo>} Array of method-level coverage info
+   */
+  parseMethodCoverage(fileData, className) {
+    const methodCoverages = [];
+
+    try {
+      const fnMap = fileData.fnMap || {};
+      const fnExecutionCounts = fileData.f || {};
+      const statementMap = fileData.statementMap || {};
+      const statements = fileData.s || {};
+      const branchMap = fileData.branchMap || {};
+      const branches = fileData.b || {};
+
+      // Process each function in fnMap
+      for (const [fnId, fnInfo] of Object.entries(fnMap)) {
+        const coverageInfo = new CoverageInfo();
+        coverageInfo.className = className;
+        coverageInfo.methodName = fnInfo.name || `anonymous_${fnId}`;
+
+        // Method execution coverage
+        const executionCount = fnExecutionCounts[fnId] || 0;
+        coverageInfo.methodCovered = executionCount > 0 ? 1 : 0;
+        coverageInfo.methodTotal = 1;
+
+        // Calculate line coverage for this method
+        const fnStartLine = fnInfo.loc?.start?.line || 0;
+        const fnEndLine = fnInfo.loc?.end?.line || 0;
+
+        let methodLineCovered = 0;
+        let methodLineTotal = 0;
+
+        for (const [stmtId, stmtInfo] of Object.entries(statementMap)) {
+          const stmtStartLine = stmtInfo.start?.line || 0;
+          const stmtEndLine = stmtInfo.end?.line || 0;
+
+          // Check if statement is within function bounds
+          if (stmtStartLine >= fnStartLine && stmtEndLine <= fnEndLine) {
+            methodLineTotal++;
+            if (statements[stmtId] > 0) {
+              methodLineCovered++;
+            }
+          }
+        }
+
+        coverageInfo.lineCovered = methodLineCovered;
+        coverageInfo.lineTotal = methodLineTotal;
+
+        // Calculate branch coverage for this method
+        let methodBranchCovered = 0;
+        let methodBranchTotal = 0;
+
+        for (const [branchId, branchInfo] of Object.entries(branchMap)) {
+          const branchLine = branchInfo.loc?.start?.line || 0;
+
+          // Check if branch is within function bounds
+          if (branchLine >= fnStartLine && branchLine <= fnEndLine) {
+            const branchCounts = branches[branchId] || [];
+            methodBranchTotal += branchCounts.length;
+            methodBranchCovered += branchCounts.filter(count => count > 0).length;
+          }
+        }
+
+        coverageInfo.branchCovered = methodBranchCovered;
+        coverageInfo.branchTotal = methodBranchTotal;
+
+        methodCoverages.push(coverageInfo);
+      }
+
+      logger.debug('メソッドレベルカバレッジ解析完了', {
+        className,
+        methodCount: methodCoverages.length
+      });
+    } catch (error) {
+      logger.warn('メソッドレベルカバレッジ解析エラー', {
+        className,
+        error: error.message
+      });
+    }
+
+    return methodCoverages;
   }
 
   /**
@@ -114,7 +215,7 @@ export class CoverageReportParser {
       this.coverageData = coverageMap;
       return coverageMap;
     } catch (error) {
-      console.error('HTMLカバレッジ解析エラー:', error.message);
+      logger.error('HTMLカバレッジ解析エラー', { error: error.message });
       return new Map();
     }
   }
@@ -130,7 +231,7 @@ export class CoverageReportParser {
       const jsonPath = `${coverageDir}/coverage-final.json`;
       try {
         await fs.access(jsonPath);
-        console.log('coverage-final.jsonを解析中...');
+        logger.info('coverage-final.jsonを解析中', { path: jsonPath });
         return await this.parseCoverageJson(jsonPath);
       } catch {
         // JSONファイルがない場合はHTMLを試行
@@ -140,15 +241,15 @@ export class CoverageReportParser {
       const htmlPath = `${coverageDir}/lcov-report/index.html`;
       try {
         await fs.access(htmlPath);
-        console.log('HTMLカバレッジレポートを解析中...');
+        logger.info('HTMLカバレッジレポートを解析中', { path: htmlPath });
         return await this.parseCoverageHtml(htmlPath);
       } catch {
-        console.warn('カバレッジファイルが見つかりません');
+        logger.warn('カバレッジファイルが見つかりません', { coverageDir });
       }
 
       return new Map();
     } catch (error) {
-      console.error('カバレッジディレクトリ解析エラー:', error.message);
+      logger.error('カバレッジディレクトリ解析エラー', { error: error.message });
       return new Map();
     }
   }
@@ -172,6 +273,41 @@ export class CoverageReportParser {
     }
 
     return null;
+  }
+
+  /**
+   * Get method-level coverage for a class
+   * @param {string} className - Class name
+   * @returns {Array<CoverageInfo>} Array of method-level coverage info
+   */
+  getMethodCoverageForClass(className) {
+    const methodCoverages = [];
+
+    for (const [key, value] of this.coverageData.entries()) {
+      // Check if key matches pattern: className.methodName
+      if (key.startsWith(className + '.')) {
+        methodCoverages.push(value);
+      }
+    }
+
+    return methodCoverages;
+  }
+
+  /**
+   * Get all method-level coverage data
+   * @returns {Array<CoverageInfo>} Array of all method-level coverage info
+   */
+  getAllMethodCoverage() {
+    const methodCoverages = [];
+
+    for (const [key, value] of this.coverageData.entries()) {
+      // Check if this is method-level coverage (contains a dot)
+      if (key.includes('.') && value.methodName) {
+        methodCoverages.push(value);
+      }
+    }
+
+    return methodCoverages;
   }
 
   /**

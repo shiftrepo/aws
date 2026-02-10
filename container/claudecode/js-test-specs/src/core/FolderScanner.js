@@ -1,6 +1,7 @@
 import fg from 'fast-glob';
 import path from 'path';
 import fs from 'fs/promises';
+import { logger } from '../util/Logger.js';
 
 /**
  * ディレクトリをスキャンしてファイルを検索するクラス
@@ -52,16 +53,16 @@ export class FolderScanner {
           if (stats.size <= this.maxFileSize) {
             validFiles.push(file);
           } else {
-            console.warn(`ファイルサイズが大きすぎるためスキップ: ${file}`);
+            logger.warn('ファイルサイズが大きすぎるためスキップ', { file, size: stats.size });
           }
         } catch (error) {
-          console.warn(`ファイル読み取りエラー: ${file}`, error.message);
+          logger.warn('ファイル読み取りエラー', { file, error: error.message });
         }
       }
 
       return validFiles.sort();
     } catch (error) {
-      console.error('テストファイル検索エラー:', error);
+      logger.error('テストファイル検索エラー', error);
       return [];
     }
   }
@@ -89,7 +90,7 @@ export class FolderScanner {
 
       return files.sort();
     } catch (error) {
-      console.error('カバレッジファイル検索エラー:', error);
+      logger.error('カバレッジファイル検索エラー', error);
       return [];
     }
   }
@@ -118,13 +119,13 @@ export class FolderScanner {
             validFiles.push(file);
           }
         } catch (error) {
-          console.warn(`ファイル読み取りエラー: ${file}`, error.message);
+          logger.warn('ファイル読み取りエラー', { file, error: error.message });
         }
       }
 
       return validFiles.sort();
     } catch (error) {
-      console.error('JavaScriptファイル検索エラー:', error);
+      logger.error('JavaScriptファイル検索エラー', error);
       return [];
     }
   }
