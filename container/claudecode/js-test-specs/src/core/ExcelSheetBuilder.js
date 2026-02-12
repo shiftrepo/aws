@@ -42,23 +42,27 @@ export class ExcelSheetBuilder {
   async createTestDetailsSheet(testCases) {
     const sheet = this.workbook.addWorksheet('テスト詳細');
 
-    // ヘッダー行
+    // ヘッダー行（指定された19列）
     const headers = [
-      '番号',
+      'FQN',
       'ソフトウェア・サービス',
       '項目名',
       '試験内容',
       '確認項目',
+      'テスト実施実績日',
+      'テスト結果',
+      'テスト実施者',
+      'テスト検証者',
+      '申し送り有無',
+      '申し送りテスト実施タイミング',
+      '申し送りテスト実施時期(予定)',
+      '備考',
       'テスト対象モジュール名',
       'テスト実施ベースラインバージョン',
       'テストケース作成者',
       'テストケース作成日',
       'テストケース修正者',
       'テストケース修正日',
-      'テスト実行ステータス',
-      '実行時間(ms)',
-      'カバレッジ率',
-      'カバレッジステータス',
     ];
 
     sheet.addRow(headers);
@@ -76,53 +80,47 @@ export class ExcelSheetBuilder {
     // データ行
     testCases.forEach((testCase, index) => {
       const row = sheet.addRow([
-        index + 1,
-        testCase.softwareService,
-        testCase.testItemName,
-        testCase.testContent,
-        testCase.confirmationItem,
-        testCase.testModule,
-        testCase.baselineVersion,
-        testCase.creator,
-        testCase.createdDate,
-        testCase.modifier,
-        testCase.modifiedDate,
-        testCase.getExecutionStatusDisplay(),
-        testCase.executionDuration || 'N/A',
-        testCase.getCoverageDisplay(),
-        testCase.coverageStatus,
+        testCase.filePath,                    // FQCN（テストケースファイルフルパス）
+        testCase.softwareService,             // ソフトウェア・サービス
+        testCase.testItemName,                // 項目名
+        testCase.testContent,                 // 試験内容
+        testCase.confirmationItem,            // 確認項目
+        testCase.testExecutionDate,           // テスト実施実績日
+        testCase.testResult,                  // テスト結果（OK/NG）
+        testCase.testExecutor,                // テスト実施者（CI）
+        testCase.testVerifier,                // テスト検証者（空欄）
+        testCase.handoverFlag,                // 申し送り有無（空欄）
+        testCase.handoverTiming,              // 申し送りテスト実施タイミング（空欄）
+        testCase.handoverSchedule,            // 申し送りテスト実施時期(予定)（空欄）
+        testCase.remarks,                     // 備考（空欄）
+        testCase.testModule,                  // テスト対象モジュール名
+        testCase.baselineVersion,             // テスト実施ベースラインバージョン
+        testCase.creator,                     // テストケース作成者
+        testCase.createdDate,                 // テストケース作成日
+        testCase.modifier,                    // テストケース修正者
+        testCase.modifiedDate,                // テストケース修正日
       ]);
 
-      // Color-code execution status cell
-      const statusCell = row.getCell(12);
-      switch (testCase.testExecutionStatus) {
-        case 'PASS':
-          statusCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF90EE90' },
-          };
-          break;
-        case 'FAIL':
-          statusCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFFB6C1' },
-          };
-          break;
-        case 'SKIP':
-          statusCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFFFF99' },
-          };
-          break;
+      // テスト結果に色分け（OKは緑、NGは赤）
+      const testResultCell = row.getCell(7);
+      if (testCase.testResult === 'OK') {
+        testResultCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF90EE90' },
+        };
+      } else if (testCase.testResult === 'NG') {
+        testResultCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFB6C1' },
+        };
       }
 
-      // 偶数行に薄い青色の背景（実行ステータスとカバレッジステータス以外）
+      // 偶数行に薄い青色の背景（テスト結果列以外）
       if (index % 2 === 0) {
-        for (let i = 1; i <= 15; i++) {
-          if (i !== 12 && i !== 15) { // Skip execution status and coverage status columns
+        for (let i = 1; i <= 19; i++) {
+          if (i !== 7) { // Skip test result column
             const cell = row.getCell(i);
             if (!cell.fill || !cell.fill.fgColor) {
               cell.fill = {
@@ -140,6 +138,7 @@ export class ExcelSheetBuilder {
     sheet.columns.forEach((column) => {
       column.width = 20;
     });
+    sheet.getColumn(1).width = 50; // FQN
     sheet.getColumn(3).width = 30; // 項目名
     sheet.getColumn(4).width = 40; // 試験内容
     sheet.getColumn(5).width = 40; // 確認項目

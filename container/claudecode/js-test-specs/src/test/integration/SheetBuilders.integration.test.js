@@ -173,7 +173,7 @@ describe('CsvSheetBuilder Integration Tests', () => {
 
     // Read and verify content
     const content = await fs.readFile(outputPath, 'utf8');
-    expect(content).toContain('番号');
+    expect(content).toContain('FQN');
     expect(content).toContain('テスト1');
   });
 

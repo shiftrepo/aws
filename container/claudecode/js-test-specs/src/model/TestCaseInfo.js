@@ -20,6 +20,16 @@ export class TestCaseInfo {
     this.modifier = 'N/A';
     this.modifiedDate = 'N/A';
 
+    // テスト実行情報（新仕様）
+    this.testExecutionDate = '';  // テスト実施実績日
+    this.testResult = 'N/A';      // テスト結果（OK/NG）
+    this.testExecutor = 'CI';     // テスト実施者（固定値）
+    this.testVerifier = '';       // テスト検証者（空欄）
+    this.handoverFlag = '';       // 申し送り有無（空欄）
+    this.handoverTiming = '';     // 申し送りテスト実施タイミング（空欄）
+    this.handoverSchedule = '';   // 申し送りテスト実施時期(予定)（空欄）
+    this.remarks = '';            // 備考（空欄）
+
     // カバレッジ情報
     this.coveragePercent = 0.0;
     this.branchesCovered = 0;
@@ -27,7 +37,7 @@ export class TestCaseInfo {
     this.coverageStatus = 'カバレッジなし';
     this.coverage = null; // CoverageInfo object with full coverage data
 
-    // テスト実行情報
+    // テスト実行情報（内部処理用）
     this.testsTotal = 0;
     this.testsPassed = 0;
     this.testExecutionStatus = 'N/A';
@@ -89,6 +99,7 @@ export class TestCaseInfo {
   setDetailedExecutionInfo(executionInfo) {
     if (!executionInfo) {
       this.testExecutionStatus = 'N/A';
+      this.testResult = 'N/A';
       return;
     }
 
@@ -97,20 +108,31 @@ export class TestCaseInfo {
     this.errorMessage = executionInfo.errorMessage || '';
     this.errorType = executionInfo.errorType || '';
 
-    // Set success rate based on status
+    // Set test result (OK/NG) based on status
     if (executionInfo.status === 'PASS') {
+      this.testResult = 'OK';
       this.testsTotal = 1;
       this.testsPassed = 1;
       this.testSuccessRate = 100;
     } else if (executionInfo.status === 'FAIL') {
+      this.testResult = 'NG';
       this.testsTotal = 1;
       this.testsPassed = 0;
       this.testSuccessRate = 0;
     } else if (executionInfo.status === 'SKIP') {
+      this.testResult = 'N/A';
       this.testsTotal = 1;
       this.testsPassed = 0;
       this.testSuccessRate = 0;
     }
+  }
+
+  /**
+   * Set test execution date
+   * @param {string} date - Execution date
+   */
+  setTestExecutionDate(date) {
+    this.testExecutionDate = date;
   }
 
   /**

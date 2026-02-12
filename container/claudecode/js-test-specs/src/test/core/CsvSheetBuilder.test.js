@@ -73,7 +73,7 @@ describe('CsvSheetBuilder', () => {
     await csvBuilder.generateTestDetailsCsv(outputPath, testCases);
 
     const content = await fs.readFile(outputPath, 'utf8');
-    expect(content).toContain('番号');
+    expect(content).toContain('FQN');
     expect(content).toContain('テスト1');
 
     await fs.unlink(outputPath);
@@ -128,7 +128,7 @@ describe('CsvSheetBuilder', () => {
     await csvBuilder.generateTestDetailsCsv(outputPath, []);
 
     const content = await fs.readFile(outputPath, 'utf8');
-    expect(content).toContain('番号');
+    expect(content).toContain('FQN');
 
     await fs.unlink(outputPath);
   });

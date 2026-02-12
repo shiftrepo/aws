@@ -62,36 +62,50 @@ export class CsvSheetBuilder {
       const csvWriter = createObjectCsvWriter({
         path: outputPath,
         header: [
-          { id: 'number', title: '番号' },
+          { id: 'fqcn', title: 'FQN' },
           { id: 'softwareService', title: 'ソフトウェア・サービス' },
           { id: 'testItemName', title: '項目名' },
           { id: 'testContent', title: '試験内容' },
           { id: 'confirmationItem', title: '確認項目' },
+          { id: 'testExecutionDate', title: 'テスト実施実績日' },
+          { id: 'testResult', title: 'テスト結果' },
+          { id: 'testExecutor', title: 'テスト実施者' },
+          { id: 'testVerifier', title: 'テスト検証者' },
+          { id: 'handoverFlag', title: '申し送り有無' },
+          { id: 'handoverTiming', title: '申し送りテスト実施タイミング' },
+          { id: 'handoverSchedule', title: '申し送りテスト実施時期(予定)' },
+          { id: 'remarks', title: '備考' },
           { id: 'testModule', title: 'テスト対象モジュール名' },
           { id: 'baselineVersion', title: 'テスト実施ベースラインバージョン' },
           { id: 'creator', title: 'テストケース作成者' },
           { id: 'createdDate', title: 'テストケース作成日' },
           { id: 'modifier', title: 'テストケース修正者' },
-          { id: 'modifiedDate', title: 'テストケース修正日' },
-          { id: 'coverageStatus', title: 'カバレッジ状況' }
+          { id: 'modifiedDate', title: 'テストケース修正日' }
         ],
         encoding: 'utf8',
         append: false
       });
 
       const records = testCases.map((testCase, index) => ({
-        number: index + 1,
+        fqcn: testCase.filePath || '',
         softwareService: testCase.softwareService || '',
         testItemName: testCase.testItemName || testCase.methodName || '',
         testContent: testCase.testContent || '',
         confirmationItem: testCase.confirmationItem || '',
+        testExecutionDate: testCase.testExecutionDate || '',
+        testResult: testCase.testResult || 'N/A',
+        testExecutor: testCase.testExecutor || 'CI',
+        testVerifier: testCase.testVerifier || '',
+        handoverFlag: testCase.handoverFlag || '',
+        handoverTiming: testCase.handoverTiming || '',
+        handoverSchedule: testCase.handoverSchedule || '',
+        remarks: testCase.remarks || '',
         testModule: testCase.testModule || testCase.className || '',
         baselineVersion: testCase.baselineVersion || '',
         creator: testCase.creator || '',
         createdDate: testCase.createdDate || '',
         modifier: testCase.modifier || '',
-        modifiedDate: testCase.modifiedDate || '',
-        coverageStatus: testCase.coverageStatus || 'N/A'
+        modifiedDate: testCase.modifiedDate || ''
       }));
 
       await csvWriter.writeRecords(records);

@@ -194,6 +194,7 @@ program
       };
 
       let coverageParser = null;
+      let coverageReportDate = null;
 
       if (options.coverage) {
         logger.info('【ステップ3】カバレッジ解析開始');
@@ -206,6 +207,18 @@ program
 
         logger.info('ブランチカバレッジ', { percent: coverageSummary.branchCoverage.toFixed(2) });
         logger.info('行カバレッジ', { percent: coverageSummary.lineCoverage.toFixed(2) });
+
+        // Get coverage report creation date from coverage-final.json
+        try {
+          const coverageFinalPath = path.join(coverageDir, 'coverage-final.json');
+          const fs = await import('fs/promises');
+          const stats = await fs.stat(coverageFinalPath);
+          coverageReportDate = stats.mtime.toISOString().split('T')[0]; // YYYY-MM-DD
+          logger.info('カバレッジレポート作成日', { date: coverageReportDate });
+        } catch (error) {
+          logger.warn('カバレッジレポート作成日の取得に失敗', { error: error.message });
+          coverageReportDate = new Date().toISOString().split('T')[0];
+        }
 
         // テストケースにカバレッジ情報を統合
         for (const testCase of testCases) {
@@ -244,7 +257,12 @@ program
         });
 
         // Integrate execution info with test cases
+        // Use coverage report date as test execution date
+        const testExecutionDate = coverageReportDate || new Date().toISOString().split('T')[0];
         for (const testCase of testCases) {
+          // Set test execution date (from coverage report creation date)
+          testCase.setTestExecutionDate(testExecutionDate);
+
           const executionInfo = executionParser.getExecutionInfo(
             testCase.className,
             testCase.methodName
@@ -260,6 +278,13 @@ program
           path: options.testResults,
           hint: 'npm run test:coverage を実行してテスト結果を生成してください'
         });
+
+        // Set test execution date even if execution info is not available
+        // Use coverage report date as test execution date
+        const testExecutionDate = coverageReportDate || new Date().toISOString().split('T')[0];
+        for (const testCase of testCases) {
+          testCase.setTestExecutionDate(testExecutionDate);
+        }
       }
 
       // ステップ4: Excel生成
