@@ -43,17 +43,23 @@ public class CsvSheetBuilder {
                      .setHeader(getTestDetailsHeaders())
                      .build())) {
 
-            int rowNumber = 1;
             for (TestCaseInfo testCase : testCases) {
-                logger.debug("[Detail Log] CSV行出力: {} - FQCN: {}, テスト名: {}",
-                           rowNumber, testCase.getFullyQualifiedName(), testCase.getTestItemName());
+                logger.debug("[Detail Log] CSV行出力: FQCN: {}, テスト名: {}",
+                           testCase.getFullyQualifiedName(), testCase.getTestItemName());
                 csvPrinter.printRecord(
-                    rowNumber++,
                     testCase.getFullyQualifiedName(),
                     testCase.getSoftwareService(),
                     testCase.getTestItemName(),
                     testCase.getTestContent(),
                     testCase.getConfirmationItem(),
+                    testCase.getTestExecutionDate(),
+                    testCase.getTestResult(),
+                    testCase.getTestExecutor(),
+                    testCase.getTestVerifier(),
+                    testCase.getHandoverRequired(),
+                    testCase.getHandoverTestTiming(),
+                    testCase.getHandoverTestSchedule(),
+                    testCase.getRemarks(),
                     testCase.getTestModule(),
                     testCase.getBaselineVersion(),
                     testCase.getCreator(),
@@ -131,16 +137,23 @@ public class CsvSheetBuilder {
     }
 
     /**
-     * Test Detailsシートのヘッダー配列を取得
+     * Test Detailsシートのヘッダー配列を取得（19列対応）
      */
     private String[] getTestDetailsHeaders() {
         return new String[]{
-            "No.",
             "FQCN (完全修飾クラス名)",
             "ソフトウェア・サービス",
             "項目名",
             "試験内容",
             "確認項目",
+            "テスト実施実績日",
+            "テスト結果",
+            "テスト実施者",
+            "テスト検証者",
+            "申し送り有無",
+            "申し送りテスト実施タイミング",
+            "申し送りテスト実施時期(予定)",
+            "備考",
             "テスト対象モジュール名",
             "テスト実施ベースラインバージョン",
             "テストケース作成者",

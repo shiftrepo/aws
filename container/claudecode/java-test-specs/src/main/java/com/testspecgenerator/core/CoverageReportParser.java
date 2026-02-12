@@ -14,6 +14,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1219,6 +1224,48 @@ public class CoverageReportParser {
                 .map(line -> line.trim().replaceFirst("package\\s+", "").replaceAll(";.*", ""))
                 .findFirst()
                 .orElse(null);
+        }
+    }
+
+    /**
+     * カバレッジレポートファイルの作成日を取得
+     * @param coverageFiles カバレッジファイルのリスト
+     * @return フォーマットされた作成日時（yyyy-MM-dd形式）、取得できない場合は空文字列
+     */
+    public String getCoverageReportCreationDate(List<Path> coverageFiles) {
+        if (coverageFiles == null || coverageFiles.isEmpty()) {
+            logger.debug("[Coverage Date] No coverage files provided");
+            return "";
+        }
+
+        try {
+            // 最初のXMLファイルの作成日を取得
+            for (Path coverageFile : coverageFiles) {
+                if (coverageFile.getFileName().toString().toLowerCase().endsWith(".xml")) {
+                    BasicFileAttributes attrs = Files.readAttributes(coverageFile, BasicFileAttributes.class);
+                    FileTime creationTime = attrs.creationTime();
+
+                    // FileTimeをLocalDateTimeに変換
+                    LocalDateTime dateTime = LocalDateTime.ofInstant(
+                        creationTime.toInstant(),
+                        ZoneId.systemDefault()
+                    );
+
+                    // yyyy-MM-dd形式でフォーマット
+                    String formattedDate = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    logger.debug("[Coverage Date] Coverage report creation date: {} (from file: {})",
+                        formattedDate, coverageFile.getFileName());
+
+                    return formattedDate;
+                }
+            }
+
+            logger.warn("[Coverage Date] No XML coverage files found");
+            return "";
+
+        } catch (IOException e) {
+            logger.warn("[Coverage Date] Failed to get coverage file creation date: {}", e.getMessage());
+            return "";
         }
     }
 

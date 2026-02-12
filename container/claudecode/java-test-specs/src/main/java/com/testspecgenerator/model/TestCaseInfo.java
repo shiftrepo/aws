@@ -49,6 +49,16 @@ public class TestCaseInfo {
     private String testExecutionStatus = "Unknown";
     private double testSuccessRate = 0.0;
 
+    // 新規追加フィールド（19列対応）
+    private String testExecutionDate = "";  // テスト実施実績日（カバレッジファイルの作成日）
+    private String testResult = "";  // テスト結果（OK/NG）
+    private String testExecutor = "CI";  // テスト実施者（固定値）
+    private String testVerifier = "";  // テスト検証者（空欄）
+    private String handoverRequired = "";  // 申し送り有無（空欄）
+    private String handoverTestTiming = "";  // 申し送りテスト実施タイミング（空欄）
+    private String handoverTestSchedule = "";  // 申し送りテスト実施時期(予定)（空欄）
+    private String remarks = "";  // 備考（空欄）
+
     // メタデータ
     private LocalDateTime extractedAt;
     private String sourceFilePath;
@@ -177,6 +187,31 @@ public class TestCaseInfo {
 
     public double getTestSuccessRate() { return testSuccessRate; }
     public void setTestSuccessRate(double testSuccessRate) { this.testSuccessRate = testSuccessRate; }
+
+    // 新規追加フィールドのGetter/Setter（19列対応）
+    public String getTestExecutionDate() { return testExecutionDate; }
+    public void setTestExecutionDate(String testExecutionDate) { this.testExecutionDate = testExecutionDate; }
+
+    public String getTestResult() { return testResult; }
+    public void setTestResult(String testResult) { this.testResult = testResult; }
+
+    public String getTestExecutor() { return testExecutor; }
+    public void setTestExecutor(String testExecutor) { this.testExecutor = testExecutor; }
+
+    public String getTestVerifier() { return testVerifier; }
+    public void setTestVerifier(String testVerifier) { this.testVerifier = testVerifier; }
+
+    public String getHandoverRequired() { return handoverRequired; }
+    public void setHandoverRequired(String handoverRequired) { this.handoverRequired = handoverRequired; }
+
+    public String getHandoverTestTiming() { return handoverTestTiming; }
+    public void setHandoverTestTiming(String handoverTestTiming) { this.handoverTestTiming = handoverTestTiming; }
+
+    public String getHandoverTestSchedule() { return handoverTestSchedule; }
+    public void setHandoverTestSchedule(String handoverTestSchedule) { this.handoverTestSchedule = handoverTestSchedule; }
+
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 
     // ヘルパーメソッド
 

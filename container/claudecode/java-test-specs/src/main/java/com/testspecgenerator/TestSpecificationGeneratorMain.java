@@ -381,6 +381,49 @@ public class TestSpecificationGeneratorMain {
                 logger.info("WARNING: Surefire test reports not found - test execution results will be displayed as 0/0");
             }
 
+            // Step 3.6: Set test execution date and test result (OK/NG) for 19-column output format
+            logger.info("Step 3.6: Setting test execution date and test result (OK/NG)...");
+
+            // Get coverage file creation date
+            String testExecutionDate = "";
+            if (includeCoverage) {
+                List<Path> coverageFiles = folderScanner.scanForCoverageReports(Paths.get(
+                    (coverageDirectory != null) ? coverageDirectory : sourceDirectory));
+                testExecutionDate = coverageParser.getCoverageReportCreationDate(coverageFiles);
+                logger.info("Coverage report creation date: {}", testExecutionDate.isEmpty() ? "not found" : testExecutionDate);
+            }
+
+            // Set test execution date and determine test result (OK/NG) for each test case
+            for (TestCaseInfo testCase : testCases) {
+                // Set test execution date
+                testCase.setTestExecutionDate(testExecutionDate);
+
+                // Determine test result: NG if any failures, OK otherwise
+                int totalTests = testCase.getTestsTotal();
+                int passedTests = testCase.getTestsPassed();
+                String testResult;
+
+                if (totalTests > 0) {
+                    // If test data exists, check for failures
+                    if (passedTests < totalTests) {
+                        testResult = "NG";  // At least one failure
+                    } else {
+                        testResult = "OK";  // All tests passed
+                    }
+                } else {
+                    // No test data available
+                    testResult = "";  // Empty if no test results
+                }
+
+                testCase.setTestResult(testResult);
+
+                logger.debug("Test case {}.{}: Date={}, Result={} (passed={}/{} tests)",
+                    testCase.getClassName(), testCase.getMethodName(),
+                    testExecutionDate, testResult, passedTests, totalTests);
+            }
+
+            logger.info("Test execution date and result (OK/NG) set for {} test cases", testCases.size());
+
             // Step 4: Excel report generation
             logger.info("========== Step 4: Excel report generation started ==========");
             logger.info("[MAIN LINE-BY-LINE] Output file: {}", outputFile);

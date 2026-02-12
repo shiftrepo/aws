@@ -115,12 +115,28 @@ public class ExcelSheetBuilder {
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dataStyle = createDataStyle(workbook);
 
-        // ヘッダー行を作成（日本語項目）
+        // ヘッダー行を作成（日本語項目・19列）
         Row headerRow = sheet.createRow(0);
         String[] headers = {
-                "No.", "FQCN (完全修飾クラス名)", "ソフトウェア・サービス", "項目名", "試験内容", "確認項目",
-                "テスト対象モジュール名", "テスト実施ベースラインバージョン",
-                "テストケース作成者", "テストケース作成日", "テストケース修正者", "テストケース修正日"
+                "FQCN (完全修飾クラス名)",
+                "ソフトウェア・サービス",
+                "項目名",
+                "試験内容",
+                "確認項目",
+                "テスト実施実績日",
+                "テスト結果",
+                "テスト実施者",
+                "テスト検証者",
+                "申し送り有無",
+                "申し送りテスト実施タイミング",
+                "申し送りテスト実施時期(予定)",
+                "備考",
+                "テスト対象モジュール名",
+                "テスト実施ベースラインバージョン",
+                "テストケース作成者",
+                "テストケース作成日",
+                "テストケース修正者",
+                "テストケース修正日"
         };
 
         for (int i = 0; i < headers.length; i++) {
@@ -134,26 +150,34 @@ public class ExcelSheetBuilder {
             TestCaseInfo testCase = testCases.get(i);
             Row dataRow = sheet.createRow(i + 1);
 
-            // データセルを設定（日本語項目）
-            setCellValue(dataRow, 0, i + 1, dataStyle);
-            setCellValue(dataRow, 1, testCase.getFullyQualifiedName(), dataStyle);
-            setCellValue(dataRow, 2, testCase.getSoftwareService(), dataStyle);
-            setCellValue(dataRow, 3, testCase.getTestItemName(), dataStyle);
-            setCellValue(dataRow, 4, testCase.getTestContent(), dataStyle);
-            setCellValue(dataRow, 5, testCase.getConfirmationItem(), dataStyle);
-            setCellValue(dataRow, 6, testCase.getTestModule(), dataStyle);
-            setCellValue(dataRow, 7, testCase.getBaselineVersion(), dataStyle);
-            setCellValue(dataRow, 8, testCase.getCreator(), dataStyle);
-            setCellValue(dataRow, 9, testCase.getCreatedDate(), dataStyle);
-            setCellValue(dataRow, 10, testCase.getModifier(), dataStyle);
-            setCellValue(dataRow, 11, testCase.getModifiedDate(), dataStyle);
+            // データセルを設定（19列対応）
+            int colIndex = 0;
+            setCellValue(dataRow, colIndex++, testCase.getFullyQualifiedName(), dataStyle);  // FQCN
+            setCellValue(dataRow, colIndex++, testCase.getSoftwareService(), dataStyle);  // ソフトウェア・サービス
+            setCellValue(dataRow, colIndex++, testCase.getTestItemName(), dataStyle);  // 項目名
+            setCellValue(dataRow, colIndex++, testCase.getTestContent(), dataStyle);  // 試験内容
+            setCellValue(dataRow, colIndex++, testCase.getConfirmationItem(), dataStyle);  // 確認項目
+            setCellValue(dataRow, colIndex++, testCase.getTestExecutionDate(), dataStyle);  // テスト実施実績日
+            setCellValue(dataRow, colIndex++, testCase.getTestResult(), dataStyle);  // テスト結果
+            setCellValue(dataRow, colIndex++, testCase.getTestExecutor(), dataStyle);  // テスト実施者
+            setCellValue(dataRow, colIndex++, testCase.getTestVerifier(), dataStyle);  // テスト検証者
+            setCellValue(dataRow, colIndex++, testCase.getHandoverRequired(), dataStyle);  // 申し送り有無
+            setCellValue(dataRow, colIndex++, testCase.getHandoverTestTiming(), dataStyle);  // 申し送りテスト実施タイミング
+            setCellValue(dataRow, colIndex++, testCase.getHandoverTestSchedule(), dataStyle);  // 申し送りテスト実施時期(予定)
+            setCellValue(dataRow, colIndex++, testCase.getRemarks(), dataStyle);  // 備考
+            setCellValue(dataRow, colIndex++, testCase.getTestModule(), dataStyle);  // テスト対象モジュール名
+            setCellValue(dataRow, colIndex++, testCase.getBaselineVersion(), dataStyle);  // テスト実施ベースラインバージョン
+            setCellValue(dataRow, colIndex++, testCase.getCreator(), dataStyle);  // テストケース作成者
+            setCellValue(dataRow, colIndex++, testCase.getCreatedDate(), dataStyle);  // テストケース作成日
+            setCellValue(dataRow, colIndex++, testCase.getModifier(), dataStyle);  // テストケース修正者
+            setCellValue(dataRow, colIndex++, testCase.getModifiedDate(), dataStyle);  // テストケース修正日
         }
 
         // 列幅を自動調整
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
             // FQCN列は長いパッケージ名に対応
-            if (i == 1) {
+            if (i == 0) {
                 if (sheet.getColumnWidth(i) < 10000) {
                     sheet.setColumnWidth(i, 10000);
                 }
