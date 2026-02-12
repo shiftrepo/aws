@@ -1,36 +1,79 @@
 # JavaScript Test Specification Generator
 
-JavaScript/TypeScript テスト仕様書自動生成ツール - JSDocアノテーションからExcelテスト仕様書を生成
+> JSDocアノテーションから自動生成する、包括的なテスト仕様書ツール
+
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## 📋 目次
+
+- [概要](#概要)
+- [主な機能](#主な機能)
+- [クイックスタート](#クイックスタート)
+- [インストール](#インストール)
+- [使用方法](#使用方法)
+- [出力フォーマット](#出力フォーマット)
+- [JSDocアノテーション](#jsdocアノテーション)
+- [Playwright E2Eテスト対応](#playwright-e2eテスト対応)
+- [カバレッジ統合](#カバレッジ統合)
+- [マルチモジュール/Monorepo対応](#マルチモジュールmonorepo対応)
+- [DEBUGログと環境情報](#debugログと環境情報)
+- [npm スクリプト](#npm-スクリプト)
+- [トラブルシューティング](#トラブルシューティング)
+- [FAQ](#faq)
+- [技術スタック](#技術スタック)
+- [ライセンス](#ライセンス)
+
+---
 
 ## 概要
 
-このツールは、JavaScript/TypeScriptのテストファイルに記述されたJSDocアノテーションを解析し、Excel形式のテスト仕様書を自動生成します。Jestのカバレッジレポートとの統合により、テストカバレッジ情報も含めた包括的なテスト仕様書を作成できます。
+**JavaScript Test Specification Generator** は、JavaScript/TypeScriptのテストファイルに記述されたJSDocアノテーションを解析し、Excel/CSV形式のテスト仕様書を自動生成するツールです。
+
+### なぜこのツールを使うのか？
+
+- ✅ **ドキュメント作成の自動化**: テストコードに書いたアノテーションから自動的にテスト仕様書を生成
+- ✅ **カバレッジの可視化**: Jestのカバレッジレポートと統合し、テストの網羅性を確認
+- ✅ **テスト実行結果の統合**: PASSFAILステータスと実行時間を仕様書に反映
+- ✅ **複数テストフレームワーク対応**: Jest（ユニットテスト）とPlaywright（E2Eテスト）の両方をサポート
+- ✅ **エンタープライズ対応**: 19列の詳細なテスト仕様フォーマット、マルチモジュール処理、構造化ログ
+
+### 対応テストフレームワーク
+
+- **Jest** - ユニットテスト、統合テスト
+- **Playwright** - E2Eテスト、ブラウザテスト
+
+---
 
 ## 主な機能
 
-- ✅ **JSDocアノテーション解析**: JavaScript/TypeScriptテストファイルからテストメタデータを抽出
-- ✅ **日本語・英語アノテーション対応**: 日本語アノテーション優先、英語も後方互換サポート
-- ✅ **Jest & Playwright対応**: JestユニットテストとPlaywright E2Eテストの両方をサポート
-- ✅ **Jestカバレッジ統合**: coverage-final.jsonまたはHTMLレポートからカバレッジデータを取得
-- ✅ **メソッドレベルカバレッジ**: ファイルレベルではなく関数/メソッドごとのカバレッジを表示
-- ✅ **テスト実行結果統合**: Jest/Playwright JSON出力からテスト実行ステータス（PASS/FAIL/SKIP）と実行時間を取得
-- ✅ **Excel出力**: 4シート構成の専門的なテスト仕様書を生成
-  - テスト詳細シート（19列の詳細情報、実行ステータス・実行時間含む）
-  - サマリーシート（実行統計含む）
-  - カバレッジシート（メソッドレベル・行カバレッジ）
-  - 設定情報シート
-- ✅ **CSV出力**: Test DetailsとCoverageのCSVエクスポート（UTF-8 BOM付き）
-- ✅ **マルチモジュール/Monorepo対応**: npm/yarn/lerna workspacesを自動検出し並列処理
-- ✅ **構造化ログ**: Winston による詳細なログ出力（DEBUG, INFO, WARN, ERROR）
-- ✅ **CLI対応**: コマンドライン from any ディレクトリで実行可能
-- ✅ **カラーコーディング**: カバレッジステータスと実行ステータスに応じた視覚的な表現
+### コア機能
 
-## 必要要件
+| 機能 | 説明 |
+|------|------|
+| 🔍 **JSDocアノテーション解析** | JavaScript/TypeScriptテストファイルからメタデータを抽出 |
+| 🌐 **日本語・英語対応** | 日本語アノテーション優先、英語も後方互換でサポート |
+| 🧪 **Jest & Playwright統合** | ユニットテストとE2Eテストの両方をサポート |
+| 📊 **カバレッジ統合** | Jest coverage-final.jsonからメソッドレベルのカバレッジを取得 |
+| ✅ **テスト実行結果統合** | PASS/FAIL/SKIPステータスと実行時間を記録 |
+| 📑 **Excel出力（4シート）** | テスト詳細、サマリー、カバレッジ、設定情報 |
+| 💾 **CSV出力** | UTF-8 BOM付きでExcel互換のCSVファイルを生成 |
+| 🎨 **カラーコーディング** | カバレッジとテスト結果に応じた色分け |
+| 🚀 **マルチモジュール対応** | Monorepoプロジェクトを並列処理 |
+| 📝 **構造化ログ** | Winston による詳細なDEBUGログ |
+| 💻 **CLI対応** | コマンドラインから簡単に実行 |
 
-- Node.js >= 18.0.0
-- npm または yarn
+### 最新機能（v1.0.0）
 
-## インストール
+- ✨ **19列の詳細テスト仕様フォーマット**: FQN、テスト実施実績日、テスト結果、申し送り情報など
+- ✨ **テスト実施実績日の自動取得**: カバレッジレポート（coverage-final.json）の作成日から自動設定
+- ✨ **Playwright E2Eテスト完全対応**: LoginPage、ShoppingCartのサンプル付き
+- ✨ **包括的なDEBUGログ**: 環境情報（Node.js、OS、CPU、メモリ）を冒頭で出力
+- ✨ **処理時間の計測**: 各ステップの処理時間を記録
+
+---
+
+## クイックスタート
 
 ### 1. 依存関係のインストール
 
@@ -38,117 +81,257 @@ JavaScript/TypeScript テスト仕様書自動生成ツール - JSDocアノテ�
 npm install
 ```
 
-### 2. 実行権限の付与（Linuxの場合）
+### 2. テストを実行してカバレッジを生成
 
 ```bash
-chmod +x src/index.js
+npm run test:coverage
 ```
+
+### 3. テスト仕様書を生成
+
+```bash
+npm start
+# または
+npm run generate:spec
+```
+
+### 4. 生成されたファイルを確認
+
+- `test_specification.xlsx` - テスト仕様書（Excel）
+- `test_specification_test_details.csv` - テスト詳細（CSV）
+- `test_specification_coverage.csv` - カバレッジ情報（CSV）
+
+**これだけで完了！** 🎉
+
+---
+
+## インストール
+
+### 必要要件
+
+- **Node.js**: >= 18.0.0
+- **npm** または **yarn**
+
+### ステップ
+
+```bash
+# 1. リポジトリのクローン（または既にある場合はスキップ）
+git clone <repository-url>
+cd js-test-specs
+
+# 2. 依存関係のインストール
+npm install
+
+# 3. 実行権限の付与（Linux/macOSの場合）
+chmod +x src/index.js
+
+# 4. 動作確認
+npm start -- --help
+```
+
+---
 
 ## 使用方法
 
 ### 基本的な使い方
 
 ```bash
-# デフォルト設定で実行
+# デフォルト設定で実行（最も簡単）
+npm start
+
+# コマンドを直接実行
 node src/index.js
 
-# または
-npm start
+# カスタムディレクトリを指定
+node src/index.js --source-dir ./tests --coverage-dir ./coverage --output report.xlsx
 ```
 
-### オプション指定
+### よく使うパターン
+
+#### パターン1: Jest テスト仕様書を生成
 
 ```bash
-# カスタムディレクトリを指定
-node src/index.js --source-dir ./src/test --coverage-dir ./coverage --output report.xlsx
+# 1. テストを実行してカバレッジを生成
+npm run test:coverage
 
-# カバレッジ処理をスキップ
-node src/index.js --no-coverage
-
-# CSV出力を有効化
-node src/index.js --csv-output
-
-# デバッグモード
-node src/index.js --log-level DEBUG
-
-# マルチモジュール/Monorepo プロジェクト処理
-node src/index.js --project-root . --output-dir ./reports --csv-output
-
-# シングルモジュールとして強制処理（ワークスペース自動検出をスキップ）
-node src/index.js --single-module
+# 2. テスト仕様書を生成
+node src/index.js --source-dir ./src/test --coverage-dir ./coverage --output test_spec.xlsx --csv-output
 ```
 
-### CLIオプション
+#### パターン2: Playwright E2Eテスト仕様書を生成
+
+```bash
+# Playwrightテスト仕様書のみを生成（カバレッジなし）
+node src/index.js --source-dir ./tests/e2e --output e2e_spec.xlsx --no-coverage
+```
+
+#### パターン3: デバッグモードで実行
+
+```bash
+# 詳細なログを出力（環境情報、処理時間、ファイル情報など）
+node src/index.js --log-level DEBUG
+```
+
+#### パターン4: Monorepo プロジェクトを処理
+
+```bash
+# マルチモジュールプロジェクトを自動検出して並列処理
+node src/index.js --project-root . --output-dir ./reports --csv-output
+```
+
+### CLIオプション一覧
 
 #### シングルモジュールオプション
 
-| オプション | 説明 | デフォルト値 |
-|----------|------|------------|
-| `-s, --source-dir <path>` | テストファイルのソースディレクトリ | `./src/test` |
-| `-c, --coverage-dir <path>` | カバレッジレポートディレクトリ | `./coverage` |
-| `-o, --output <path>` | 出力Excelファイルパス | `test_specification.xlsx` |
-| `--no-coverage` | カバレッジ処理をスキップ | false |
-| `--test-results <path>` | Jestテスト実行結果JSONファイル | `test-results.json` |
-| `--csv-output` | CSV形式でも出力 | false |
-| `--log-level <level>` | ログレベル (DEBUG, INFO, WARN, ERROR) | `INFO` |
+| オプション | 説明 | デフォルト値 | 例 |
+|----------|------|------------|-----|
+| `-s, --source-dir <path>` | テストファイルのディレクトリ | `./src/test` | `--source-dir ./tests` |
+| `-c, --coverage-dir <path>` | カバレッジレポートディレクトリ | `./coverage` | `--coverage-dir ./cov` |
+| `-o, --output <path>` | 出力Excelファイルパス | `test_specification.xlsx` | `--output report.xlsx` |
+| `--no-coverage` | カバレッジ処理をスキップ | `false` | `--no-coverage` |
+| `--test-results <path>` | テスト実行結果JSONファイル | `test-results.json` | `--test-results results.json` |
+| `--csv-output` | CSV形式でも出力 | `false` | `--csv-output` |
+| `--log-level <level>` | ログレベル | `INFO` | `--log-level DEBUG` |
 
 #### マルチモジュールオプション
 
-| オプション | 説明 | デフォルト値 |
-|----------|------|------------|
-| `--project-root <path>` | プロジェクトルートディレクトリ（monorepo） | - |
-| `--output-dir <path>` | モジュールごとのレポート出力ディレクトリ | `./reports` |
-| `--single-module` | シングルモジュールとして処理（ワークスペース検出スキップ） | false |
-| `--csv-output` | CSV形式でも出力 | false |
-| `--log-level <level>` | ログレベル | `INFO` |
+| オプション | 説明 | デフォルト値 | 例 |
+|----------|------|------------|-----|
+| `--project-root <path>` | プロジェクトルート（monorepo） | - | `--project-root .` |
+| `--output-dir <path>` | レポート出力ディレクトリ | `./reports` | `--output-dir ./out` |
+| `--single-module` | シングルモジュールとして処理 | `false` | `--single-module` |
+
+### ログレベル
+
+| レベル | 用途 | 出力内容 |
+|--------|------|---------|
+| `ERROR` | エラーのみ | エラーメッセージのみ |
+| `WARN` | 警告以上 | 警告とエラー |
+| `INFO` | 通常運用（推奨） | 処理の進捗、結果サマリー |
+| `DEBUG` | 詳細デバッグ | 環境情報、ファイル詳細、処理時間 |
+
+---
+
+## 出力フォーマット
+
+### Excel出力（4シート構成）
+
+#### シート1: テスト詳細（19列）
+
+| 列番号 | 列名 | 内容 | データソース |
+|--------|------|------|-------------|
+| 1 | FQN | テストファイルのフルパス | ファイルシステム |
+| 2 | ソフトウェア・サービス | システム/サービス名 | JSDocアノテーション |
+| 3 | 項目名 | テスト項目名 | JSDocアノテーション |
+| 4 | 試験内容 | テストの目的・内容 | JSDocアノテーション |
+| 5 | 確認項目 | 確認すべき項目 | JSDocアノテーション |
+| 6 | テスト実施実績日 | カバレッジレポート作成日 | coverage-final.jsonのmtime |
+| 7 | テスト結果 | OK/NG | Jest/Playwright実行結果 |
+| 8 | テスト実施者 | 実施者名 | 固定値「CI」 |
+| 9 | テスト検証者 | 検証者名 | 空欄（手入力用） |
+| 10 | 申し送り有無 | 申し送りフラグ | 空欄（手入力用） |
+| 11 | 申し送りテスト実施タイミング | 申し送り実施タイミング | 空欄（手入力用） |
+| 12 | 申し送りテスト実施時期(予定) | 申し送り予定時期 | 空欄（手入力用） |
+| 13 | 備考 | 備考欄 | 空欄（手入力用） |
+| 14 | テスト対象モジュール名 | テスト対象モジュール | JSDocアノテーション |
+| 15 | テスト実施ベースラインバージョン | バージョン | JSDocアノテーション |
+| 16 | テストケース作成者 | 作成者名 | JSDocアノテーション |
+| 17 | テストケース作成日 | 作成日 | JSDocアノテーション |
+| 18 | テストケース修正者 | 修正者名 | JSDocアノテーション |
+| 19 | テストケース修正日 | 修正日 | JSDocアノテーション |
+
+#### シート2: サマリー
+
+- 総テストケース数、ファイル数
+- テスト実行サマリー（実行数、成功、失敗、スキップ、成功率）
+- カバレッジサマリー（ブランチ、行、メソッド）
+- 生成日時
+
+#### シート3: カバレッジ
+
+- クラス名、メソッド名
+- ブランチカバレッジ（%、covered/total）
+- 行カバレッジ（%、covered/total）
+- カバレッジステータス（色分け：優秀/良好/普通/要改善）
+
+#### シート4: 設定情報
+
+- ツール名、バージョン
+- 実行日時、Node.jsバージョン、プラットフォーム
+- 機能説明
+
+### CSV出力（2ファイル）
+
+1. **`*_test_details.csv`** - テスト詳細（19列、UTF-8 BOM付き）
+2. **`*_coverage.csv`** - カバレッジ情報（クラス単位集計）
+
+---
 
 ## JSDocアノテーション
 
-### 日本語アノテーション（推奨）
+### サポートされているアノテーション
+
+#### 日本語アノテーション（推奨）
+
+| アノテーション | 説明 | 必須 | 例 |
+|---------------|------|------|-----|
+| `@ソフトウェア・サービス` | システム/サービス名 | - | `計算サービス` |
+| `@項目名` | テスト項目名 | ✅ | `加算機能テスト` |
+| `@試験内容` | テストの目的・内容 | ✅ | `正の数、負の数、ゼロを含む加算演算` |
+| `@確認項目` | 確認すべき項目 | ✅ | `すべての結果が数学的に正しいこと` |
+| `@テスト対象モジュール名` | テスト対象モジュール | - | `BasicCalculator` |
+| `@テスト実施ベースラインバージョン` | バージョン | - | `1.0.0` |
+| `@テストケース作成者` | 作成者 | - | `開発チーム` |
+| `@テストケース作成日` | 作成日 | - | `2026-02-12` |
+| `@テストケース修正者` | 修正者 | - | `QAチーム` |
+| `@テストケース修正日` | 修正日 | - | `2026-02-12` |
+
+#### 英語アノテーション（後方互換）
+
+| アノテーション | 対応する日本語アノテーション |
+|---------------|---------------------------|
+| `@TestModule` | `@テスト対象モジュール名` |
+| `@TestCase` | `@項目名` |
+| `@TestObjective` | `@試験内容` |
+| `@ExpectedResult` | `@確認項目` |
+| `@BaselineVersion` | `@テスト実施ベースラインバージョン` |
+| `@Creator` | `@テストケース作成者` |
+| `@CreatedDate` | `@テストケース作成日` |
+| `@Modifier` | `@テストケース修正者` |
+| `@ModifiedDate` | `@テストケース修正日` |
+
+### Jestテストの例
 
 ```javascript
+import { BasicCalculator } from '../main/example/BasicCalculator';
+
 /**
  * @ソフトウェア・サービス 計算サービス
  * @項目名 加算機能テスト
- * @試験内容 正の数、負の数、ゼロを含む加算演算を実行
- * @確認項目 すべての加算結果が数学的に正しいことを確認
+ * @試験内容 正の数、負の数、ゼロを含む加算演算を実行し、結果が正しいことを確認
+ * @確認項目 すべての加算結果が数学的に正しいこと
  * @テスト対象モジュール名 BasicCalculator
  * @テスト実施ベースラインバージョン 1.0.0
  * @テストケース作成者 開発チーム
  * @テストケース作成日 2026-01-14
- * @テストケース修正者 開発チーム
- * @テストケース修正日 2026-01-14
  */
 test('加算機能のテスト', () => {
+  const calculator = new BasicCalculator();
   expect(calculator.add(2, 3)).toBe(5);
+  expect(calculator.add(-1, 1)).toBe(0);
+  expect(calculator.add(0, 0)).toBe(0);
 });
 ```
 
-### 英語アノテーション（後方互換）
-
-```javascript
-/**
- * @TestCase testAddition
- * @TestType Functional
- * @TestObjective Test addition functionality
- * @ExpectedResult Correct addition results
- * @TestModule BasicCalculator
- * @BaselineVersion 1.0.0
- * @Creator Development Team
- * @CreatedDate 2026-01-14
- */
-test('addition functionality test', () => {
-  expect(calculator.add(2, 3)).toBe(5);
-});
-```
+---
 
 ## Playwright E2Eテスト対応
 
-このツールは **Playwright** のE2Eテストにも完全対応しています。
-
 ### 対応ファイルパターン
+
 - `**/*.spec.js`, `**/*.spec.ts`
 - `**/*.test.js`, `**/*.test.ts`
+- `**/*.spec.jsx`, `**/*.spec.tsx`
 
 ### Playwrightテストの例
 
@@ -174,225 +357,445 @@ test('正常なログイン処理', async ({ page }) => {
 });
 ```
 
-### Playwrightテスト用スクリプト
+### サンプルテストケース
 
-```bash
-# Playwrightテストを実行
-npm run test:playwright
+このプロジェクトには**11件のPlaywrightサンプル**が含まれています：
 
-# ヘッドレスモードで実行
-npm run test:playwright:headed
+#### 1. LoginPage.spec.js（5テストケース）
+- ✅ 正常なログイン処理
+- ✅ 無効な認証情報でのログイン試行
+- ✅ 必須項目のバリデーション
+- ✅ ログアウト処理
+- ✅ パスワード表示切り替え
 
-# Playwrightテスト仕様書を生成
-npm run generate:spec:playwright
-```
-
-### サンプルファイル
-
-このプロジェクトには2つのPlaywrightサンプルが含まれています：
-
-1. **LoginPage.spec.js** - ログイン機能テスト（5テストケース）
-   - 正常ログイン、無効な認証情報、バリデーション、ログアウト、パスワード表示切り替え
-
-2. **ShoppingCart.spec.js** - ショッピングカート機能テスト（6テストケース）
-   - 商品追加、数量変更、商品削除、複数商品、チェックアウト、カート永続化
+#### 2. ShoppingCart.spec.js（6テストケース）
+- ✅ 商品をカートに追加
+- ✅ カート内の商品数量を変更
+- ✅ カートから商品を削除
+- ✅ 複数の商品をカートに追加
+- ✅ チェックアウトページへの遷移
+- ✅ カートの永続化（リロード後も保持）
 
 場所: `src/test/example/LoginPage.spec.js`, `src/test/example/ShoppingCart.spec.js`
 
 詳細は [PLAYWRIGHT_GUIDE.md](./PLAYWRIGHT_GUIDE.md) を参照してください。
 
-## プロジェクト構造
+---
 
-```
-js-test-specs/
-├── src/
-│   ├── index.js                     # メインエントリポイント
-│   ├── core/                        # コアモジュール
-│   │   ├── FolderScanner.js        # ディレクトリスキャン
-│   │   ├── AnnotationParser.js      # アノテーション解析
-│   │   ├── CoverageReportParser.js  # カバレッジ解析（メソッドレベル対応）
-│   │   ├── TestExecutionParser.js   # テスト実行結果解析（NEW）
-│   │   ├── ExcelSheetBuilder.js     # Excel生成
-│   │   ├── CsvSheetBuilder.js       # CSV生成（NEW）
-│   │   ├── WorkspaceDetector.js     # Monorepoワークスペース検出（NEW）
-│   │   └── MultiModuleProcessor.js  # マルチモジュール並列処理（NEW）
-│   ├── model/                       # データモデル
-│   │   ├── TestCaseInfo.js         # テストケース情報（実行情報追加）
-│   │   ├── CoverageInfo.js         # カバレッジ情報（メソッド名追加）
-│   │   ├── ModuleInfo.js            # モジュール情報（NEW）
-│   │   └── ModuleResult.js          # モジュール処理結果（NEW）
-│   ├── util/                        # ユーティリティ（NEW）
-│   │   └── Logger.js                # Winston ロガー設定
-│   ├── workers/                     # Worker Threads（NEW）
-│   │   └── moduleProcessor.js       # モジュール処理ワーカー
-│   ├── main/                        # サンプル実装
-│   │   └── example/
-│   │       └── BasicCalculator.js   # サンプル計算機クラス
-│   └── test/                        # テストファイル
-│       ├── setup.js                # Jest セットアップ
-│       └── example/
-│           └── BasicCalculator.test.js  # サンプルテスト
-├── package.json                     # プロジェクト設定
-├── jest.config.js                   # Jest 設定
-├── babel.config.cjs                 # Babel 設定
-├── vite.config.js                   # Vite 設定
-└── README.md                        # このファイル
-```
+## カバレッジ統合
 
-## テストの実行
+### Jestカバレッジの生成
 
 ```bash
-# テスト実行
-npm test
-
-# カバレッジ付きテスト実行
+# カバレッジ付きでテストを実行
 npm run test:coverage
 ```
 
-## 出力例
+これにより以下のファイルが生成されます：
+- `coverage/coverage-final.json` - Jest カバレッジデータ（JSON）
+- `coverage/lcov-report/index.html` - カバレッジレポート（HTML）
 
-生成されるExcelファイルには以下の4つのシートが含まれます:
+### カバレッジ統合の仕組み
 
-1. **テスト詳細**: 各テストケースの詳細情報
-   - 番号、ソフトウェア・サービス、項目名、試験内容、確認項目
-   - テスト対象モジュール、バージョン、作成者、作成日、修正者、修正日
-   - **テスト実行ステータス**（PASS/FAIL/SKIP）と**実行時間**（NEW）
-   - カバレッジ率、カバレッジステータス
+1. **ファイルレベルカバレッジ**: クラス全体のカバレッジを取得
+2. **メソッドレベルカバレッジ**: 各関数/メソッドごとのカバレッジを取得
+3. **テストケースとの関連付け**: テストケースのクラス名とカバレッジデータを突合
+4. **カバレッジステータスの判定**:
+   - **優秀**: 90%以上（緑色）
+   - **良好**: 70-89%（黄色）
+   - **普通**: 50-69%（グレー）
+   - **要改善**: 50%未満（赤色）
 
-2. **サマリー**: 全体の統計情報
-   - 総テストケース数、ファイル数
-   - **テスト実行サマリー**（実行数、成功、失敗、スキップ、成功率）（NEW）
-   - ブランチカバレッジ、行カバレッジ、メソッドカバレッジ
-   - 処理日時
-
-3. **カバレッジ**: **メソッドレベル**のカバレッジ詳細（NEW）
-   - クラス名、**メソッド名**
-   - ブランチカバレッジ、カバーされたブランチ数、総ブランチ数
-   - **行カバレッジ、カバーされた行数、総行数**（NEW）
-   - カバレッジステータス（色分け表示）
-
-4. **設定情報**: ツールの設定とメタデータ
-   - ツール名、バージョン
-   - 実行日時、Node.jsバージョン、プラットフォーム
-   - 機能説明
-
-## CSV出力
-
-`--csv-output` オプションを使用すると、Excel形式に加えてCSV形式でもデータをエクスポートできます。
+### カバレッジなしで実行
 
 ```bash
-node src/index.js --csv-output
+node src/index.js --no-coverage
 ```
 
-生成されるCSVファイル:
-- `test_specification_test_details.csv`: テスト詳細データ
-- `test_specification_coverage.csv`: カバレッジデータ
+---
 
-CSV形式はExcelで開くか、データ分析ツール（Python pandas、R、BIツールなど）で処理できます。UTF-8 BOMエンコーディングでExcelとの互換性を確保しています。
+## マルチモジュール/Monorepo対応
 
-## マルチモジュール/Monorepoサポート
+### 自動検出
 
-npm/yarn workspaces または lerna を使用するmonorepoプロジェクトを自動検出し、並列処理します。
-
-### 自動検出モード
-
-プロジェクトルートでツールを実行すると、package.jsonの`workspaces`フィールドまたは`lerna.json`を自動検出します。
+プロジェクトルートの `package.json` に `workspaces` フィールドがある場合、または `lerna.json` が存在する場合、自動的にマルチモジュールモードで実行されます。
 
 ```bash
 cd /path/to/monorepo
-node /path/to/js-test-spec-gen --output-dir ./reports --csv-output
+node /path/to/js-test-spec-gen --output-dir ./reports
 ```
 
-### 明示的なマルチモジュールモード
+### 手動指定
 
 ```bash
-node src/index.js --project-root /path/to/monorepo --output-dir ./reports
+node src/index.js --project-root /path/to/monorepo --output-dir ./reports --csv-output
 ```
 
 ### 生成される出力
 
-マルチモジュールモードでは以下のファイルが生成されます:
+```
+reports/
+├── combined_test_specification.xlsx      # 全モジュール統合レポート
+├── combined_test_specification_test_details.csv
+├── combined_test_specification_coverage.csv
+├── module1_test_specification.xlsx       # モジュール1個別レポート
+├── module1_test_specification_test_details.csv
+├── module1_test_specification_coverage.csv
+├── module2_test_specification.xlsx       # モジュール2個別レポート
+└── ...
+```
 
-- `combined_test_specification.xlsx`: 全モジュールの統合レポート
-- `{module-name}_test_specification.xlsx`: モジュールごとの個別レポート
-- CSV出力オプション有効時: 各Excelファイルに対応するCSVファイル
+### パフォーマンス設定
 
-### パフォーマンス
-
-- **並列処理**: 最大4モジュールを同時処理（設定可能）
+- **並列処理**: 最大4モジュールを同時処理（ハードコード）
 - **Worker Threads**: 各モジュールは独立したWorkerスレッドで処理
-- **タイムアウト**: モジュールごとに5分のタイムアウト（設定可能）
+- **タイムアウト**: モジュールごとに5分
 
-### シングルモジュールとして強制処理
+---
 
-workspaceを含むmonorepoでも、特定のモジュールだけを処理したい場合:
+## DEBUGログと環境情報
+
+### 環境情報の出力
+
+`--log-level DEBUG` を指定すると、ツール実行開始時に以下の環境情報が出力されます：
+
+```
+========================================
+環境情報
+========================================
+Node.js バージョン: v22.22.0
+OS情報: Linux 5.14.0-503.15.1.el9_5.x86_64 (x64)
+実行ユーザー: ec2-user (UID: 1000)
+ディレクトリ情報:
+  - 作業ディレクトリ: /root/aws.git/container/claudecode/js-test-specs
+  - スクリプトディレクトリ: /root/aws.git/container/claudecode/js-test-specs/src
+  - Node.js実行パス: /home/ec2-user/.nvm/versions/node/v22.22.0/bin/node
+メモリ使用量: RSS 121MB, Heap 64MB
+システムメモリ: Total 15GB, Free 14GB
+CPU情報: 4コア, Intel Xeon Platinum 8259CL
+環境変数: NODE_ENV, NODE_OPTIONS, PATH, SHELL, TERM
+ツールバージョン: js-test-specification-generator 1.0.0
+主要な依存パッケージ: commander, exceljs, fast-glob, winston
+========================================
+```
+
+### DEBUGログの詳細
+
+- ✅ 各ステップの処理時間（ミリ秒単位）
+- ✅ ファイルスキャン詳細（検索パターン、除外ディレクトリ）
+- ✅ ファイル情報（サイズ、更新日時、内容長）
+- ✅ カバレッジ統合結果（統合成功/失敗件数）
+- ✅ テスト実行統合結果
+- ✅ エラースタックトレース
+
+### 使用例
 
 ```bash
+# DEBUGモードで実行
+node src/index.js --log-level DEBUG --source-dir ./src/test
+
+# ログをファイルに保存
+node src/index.js --log-level DEBUG 2>&1 | tee debug.log
+```
+
+---
+
+## npm スクリプト
+
+### テスト実行
+
+| スクリプト | コマンド | 説明 |
+|-----------|---------|------|
+| `npm test` | `jest` | テスト実行 |
+| `npm run test:coverage` | `jest --coverage` | カバレッジ付きテスト実行 |
+| `npm run test:playwright` | `playwright test` | Playwrightテスト実行 |
+| `npm run test:playwright:headed` | `playwright test --headed` | ブラウザUIでPlaywrightテスト実行 |
+| `npm run test:playwright:report` | `playwright show-report` | Playwrightレポート表示 |
+
+### 仕様書生成
+
+| スクリプト | コマンド | 説明 |
+|-----------|---------|------|
+| `npm start` | `node src/index.js` | デフォルト設定で実行 |
+| `npm run generate:spec` | テスト仕様書生成（カバレッジ・CSV付き） | フル機能で生成 |
+| `npm run generate:spec:playwright` | Playwrightテスト仕様書生成（カバレッジなし） | E2Eテスト専用 |
+
+### 開発用
+
+| スクリプト | コマンド | 説明 |
+|-----------|---------|------|
+| `npm run lint` | `eslint src` | コードリント |
+| `npm run format` | `prettier --write` | コードフォーマット |
+| `npm run build` | `vite build` | ビルド（React用） |
+
+---
+
+## トラブルシューティング
+
+### 問題: テストファイルが見つからない
+
+**原因**:
+- `--source-dir` オプションで指定したディレクトリが存在しない
+- テストファイルの拡張子が対応していない
+
+**解決方法**:
+```bash
+# ディレクトリの存在確認
+ls -la ./src/test
+
+# DEBUGモードで詳細を確認
+node src/index.js --log-level DEBUG --source-dir ./src/test
+```
+
+**対応ファイルパターン**:
+- `**/*.test.js`, `**/*.spec.js`
+- `**/*.test.jsx`, `**/*.spec.jsx`
+- `**/*.test.ts`, `**/*.spec.ts`
+- `**/*.test.tsx`, `**/*.spec.tsx`
+
+---
+
+### 問題: カバレッジが表示されない
+
+**原因**:
+- カバレッジレポートが生成されていない
+- `coverage-final.json` が存在しない
+
+**解決方法**:
+```bash
+# カバレッジを生成
+npm run test:coverage
+
+# カバレッジファイルの存在確認
+ls -la coverage/coverage-final.json
+
+# カバレッジなしで実行
+node src/index.js --no-coverage
+```
+
+---
+
+### 問題: テスト実行ステータスが "N/A" になる
+
+**原因**:
+- `test-results.json` が生成されていない
+- テスト実行結果ファイルのパスが間違っている
+
+**解決方法**:
+```bash
+# カバレッジ付きテスト実行（自動的にtest-results.jsonを生成）
+npm run test:coverage
+
+# 手動でJSON出力
+npx jest --json --outputFile=test-results.json
+
+# ファイルの存在確認
+ls -la test-results.json
+```
+
+---
+
+### 問題: Excelファイルが生成されない
+
+**原因**:
+- 出力ディレクトリの書き込み権限がない
+- ディスク容量不足
+- ExcelJS のメモリ不足
+
+**解決方法**:
+```bash
+# 書き込み権限の確認
+ls -la $(dirname test_specification.xlsx)
+
+# DEBUGモードで詳細エラーを確認
+node src/index.js --log-level DEBUG
+
+# 出力先を変更
+node src/index.js --output /tmp/test_spec.xlsx
+```
+
+---
+
+### 問題: マルチモジュール処理が失敗する
+
+**原因**:
+- 各モジュールに `package.json` がない
+- モジュール数が多すぎてタイムアウト
+
+**解決方法**:
+```bash
+# 各モジュールのpackage.jsonを確認
+find . -name package.json -type f
+
+# DEBUGモードで処理状況を確認
+node src/index.js --project-root . --log-level DEBUG
+
+# シングルモジュールとして処理
 cd packages/my-module
 node /path/to/js-test-spec-gen --single-module
 ```
 
+---
+
+### 問題: メモリ不足エラー
+
+**原因**:
+- 大量のテストファイル
+- 巨大なカバレッジレポート
+
+**解決方法**:
+```bash
+# Node.jsのヒープサイズを増やす
+NODE_OPTIONS="--max-old-space-size=4096" node src/index.js
+
+# テストファイルを分割して実行
+node src/index.js --source-dir ./src/test/unit
+node src/index.js --source-dir ./src/test/integration
+```
+
+---
+
+## FAQ
+
+### Q1: Playwrightのテスト結果も統合できますか？
+
+A: はい、Playwrightのテスト結果もJSON形式で出力すれば統合できます。
+
+```bash
+# playwright.config.jsでJSONレポーターを設定
+reporter: [['json', { outputFile: 'playwright-results.json' }]]
+
+# テスト仕様書生成時に指定
+node src/index.js --test-results playwright-results.json
+```
+
+---
+
+### Q2: カバレッジの基準値を変更できますか？
+
+A: はい、`src/model/TestCaseInfo.js` の `updateCoverageStatus()` メソッドで変更できます。
+
+```javascript
+updateCoverageStatus() {
+  if (this.coveragePercent >= 95) {
+    this.coverageStatus = '優秀';  // 95%以上
+  } else if (this.coveragePercent >= 80) {
+    this.coverageStatus = '良好';  // 80-94%
+  }
+  // ...
+}
+```
+
+---
+
+### Q3: アノテーションを書かないとどうなりますか？
+
+A: アノテーションがない場合、該当フィールドは `N/A` として出力されます。テストケースは検出されますが、詳細情報が不足します。
+
+---
+
+### Q4: TypeScriptのテストファイルに対応していますか？
+
+A: はい、`*.test.ts`, `*.spec.ts`, `*.test.tsx`, `*.spec.tsx` のファイルパターンをサポートしています。
+
+---
+
+### Q5: 生成されたExcelファイルを編集できますか？
+
+A: はい、Excelファイルは通常のExcel形式なので、Microsoft Excel、Google Sheets、LibreOffice Calcなどで編集できます。
+
+---
+
 ## 技術スタック
+
+### コア技術
+
+| カテゴリ | 技術 | バージョン | 用途 |
+|---------|------|----------|------|
+| ランタイム | Node.js | >= 18.0.0 | JavaScript実行環境 |
+| テストフレームワーク | Jest | 29.7.0 | ユニットテスト |
+| E2Eテスト | Playwright | ^1.58.2 | ブラウザテスト |
+| Excel生成 | ExcelJS | 4.4.0 | Excel XLSX生成 |
+| CSV生成 | csv-writer | 1.6.0 | CSV生成 |
+| CLI | Commander | 12.0.0 | コマンドライン解析 |
+| ロギング | winston | 3.11.0 | 構造化ログ |
+
+### 開発用技術
 
 | カテゴリ | 技術 | バージョン |
 |---------|------|----------|
-| フレームワーク | React | 18.3.1 |
+| UIフレームワーク | React | 18.3.1 |
 | ビルドツール | Vite | 5.4.11 |
-| テスト | Jest | 29.7.0 |
 | テストライブラリ | @testing-library/react | 16.0.1 |
-| UI | React Router | 7.1.1 |
-| Excel生成 | ExcelJS | 4.4.0 |
-| CSV生成 | csv-writer | 1.6.0 |
-| ロギング | winston | 3.11.0 |
-| CLI | Commander | 12.0.0 |
-| ファイル検索 | fast-glob | 3.3.2 |
-| XML解析 | fast-xml-parser | 4.3.4 |
-| HTML解析 | jsdom | 24.0.0 |
+| ルーティング | React Router | 7.1.1 |
+| トランスパイラ | Babel | 7.x |
+| Linter | ESLint | 8.56.0 |
+| Formatter | Prettier | 3.2.4 |
 
-## トラブルシューティング
+### ユーティリティ
 
-### テストファイルが見つからない
+| カテゴリ | 技術 | バージョン | 用途 |
+|---------|------|----------|------|
+| ファイル検索 | fast-glob | 3.3.2 | 高速ファイル検索 |
+| XML解析 | fast-xml-parser | 4.3.4 | XMLカバレッジ解析 |
+| HTML解析 | jsdom | 24.0.0 | HTMLカバレッジ解析 |
 
-- `--source-dir` オプションで正しいディレクトリを指定しているか確認
-- テストファイルの拡張子が `.test.js`, `.spec.js`, `.test.jsx`, `.spec.jsx` であることを確認
-
-### カバレッジが表示されない
-
-- `npm run test:coverage` を実行してカバレッジレポートを生成
-- `--coverage-dir` オプションで正しいディレクトリを指定
-- `coverage/coverage-final.json` または `coverage/lcov-report/index.html` が存在することを確認
-
-### テスト実行ステータスが表示されない
-
-- テストを `npm run test:coverage` で実行すると自動的に `test-results.json` が生成されます
-- 手動で実行する場合: `jest --json --outputFile=test-results.json`
-- `--test-results` オプションで正しいパスを指定
-
-### Excelファイルが生成されない
-
-- 出力ディレクトリの書き込み権限を確認
-- `--log-level DEBUG` オプションでエラー詳細を確認
-- ログファイル `test_spec_generator.log` を確認
-
-### マルチモジュール処理が失敗する
-
-- 各モジュールに `package.json` が存在することを確認
-- 各モジュールのテストディレクトリ構造が正しいか確認
-- `--log-level DEBUG` でモジュールごとの処理状況を確認
-- タイムアウトが発生する場合、モジュール数が多すぎる可能性あり
+---
 
 ## ライセンス
 
-MIT
+MIT License
 
-## 作成者
+Copyright (c) 2026
 
-開発チーム
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## バージョン履歴
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-- **v1.0.0** (2026-01-14): 初版リリース
-  - JSDocアノテーション解析機能
-  - Jestカバレッジ統合
-  - Excel出力機能
-  - CLIインターフェース
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 貢献・フィードバック
+
+バグ報告、機能リクエスト、プルリクエストを歓迎します！
+
+### 問題を報告する
+
+GitHubのIssueページで報告してください：
+- バグ報告: 再現手順、期待される動作、実際の動作
+- 機能リクエスト: 具体的なユースケース、期待される効果
+
+### 開発に参加する
+
+1. リポジトリをフォーク
+2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add amazing feature'`)
+4. ブランチをプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
+
+---
+
+## サポート
+
+質問やサポートが必要な場合：
+
+- 📖 ドキュメント: [PLAYWRIGHT_GUIDE.md](./PLAYWRIGHT_GUIDE.md), [CLAUDE.md](./CLAUDE.md)
+- 🐛 バグ報告: GitHub Issues
+- 💬 ディスカッション: GitHub Discussions
+
+---
+
+**このツールを使って、テストドキュメント作成を自動化しましょう！** 🚀
