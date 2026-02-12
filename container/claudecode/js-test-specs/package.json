@@ -12,6 +12,11 @@
     "build": "vite build",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --json --outputFile=test-results.json",
+    "test:playwright": "playwright test",
+    "test:playwright:headed": "playwright test --headed",
+    "test:playwright:report": "playwright show-report",
+    "generate:spec": "node src/index.js --source-dir ./src/test --coverage-dir ./coverage --output ./test_specification.xlsx --csv-output",
+    "generate:spec:playwright": "node src/index.js --source-dir ./src/test/example --output ./playwright_test_specification.xlsx --csv-output --no-coverage",
     "lint": "eslint src --ext .js,.jsx",
     "format": "prettier --write \"src/**/*.{js,jsx,json}\""
   },
@@ -22,7 +27,10 @@
     "excel",
     "jsdoc",
     "coverage",
-    "jest"
+    "jest",
+    "playwright",
+    "e2e",
+    "automation"
   ],
   "author": "",
   "license": "MIT",
@@ -41,6 +49,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.23.9",
     "@babel/preset-react": "^7.23.3",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "16.0.1",
     "@testing-library/user-event": "^14.5.2",
