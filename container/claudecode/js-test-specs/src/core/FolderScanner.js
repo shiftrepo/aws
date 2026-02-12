@@ -28,6 +28,8 @@ export class FolderScanner {
    */
   async findTestFiles(dirPath) {
     try {
+      logger.debug('テストファイル検索開始', { dirPath });
+
       const patterns = [
         '**/*.test.js',
         '**/*.test.jsx',
@@ -39,30 +41,51 @@ export class FolderScanner {
         '**/*.spec.tsx',
       ];
 
+      logger.debug('検索パターン', { patterns: patterns.join(', ') });
+      logger.debug('除外ディレクトリ', { excluded: this.excludedDirs });
+
       const files = await fg(patterns, {
         cwd: dirPath,
         absolute: true,
         ignore: this.excludedDirs,
       });
 
+      logger.debug('検出されたファイル数（サイズチェック前）', { count: files.length });
+
       // ファイルサイズチェック
       const validFiles = [];
+      let skippedCount = 0;
       for (const file of files) {
         try {
           const stats = await fs.stat(file);
           if (stats.size <= this.maxFileSize) {
             validFiles.push(file);
           } else {
-            logger.warn('ファイルサイズが大きすぎるためスキップ', { file, size: stats.size });
+            skippedCount++;
+            logger.warn('ファイルサイズが大きすぎるためスキップ', {
+              file,
+              size: `${Math.round(stats.size / 1024 / 1024)}MB`,
+              maxSize: `${this.maxFileSize / 1024 / 1024}MB`
+            });
           }
         } catch (error) {
+          skippedCount++;
           logger.warn('ファイル読み取りエラー', { file, error: error.message });
         }
       }
 
+      logger.debug('ファイルサイズチェック完了', {
+        valid: validFiles.length,
+        skipped: skippedCount
+      });
+
       return validFiles.sort();
     } catch (error) {
-      logger.error('テストファイル検索エラー', error);
+      logger.error('テストファイル検索エラー', {
+        message: error.message,
+        dirPath
+      });
+      logger.debug('エラースタック', { stack: error.stack });
       return [];
     }
   }

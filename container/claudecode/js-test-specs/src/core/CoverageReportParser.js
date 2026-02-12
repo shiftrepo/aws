@@ -227,14 +227,29 @@ export class CoverageReportParser {
    */
   async parseCoverageDirectory(coverageDir) {
     try {
+      logger.debug('カバレッジディレクトリ解析開始', { coverageDir });
+
       // coverage-final.jsonを優先
       const jsonPath = `${coverageDir}/coverage-final.json`;
       try {
         await fs.access(jsonPath);
+        const stats = await fs.stat(jsonPath);
         logger.info('coverage-final.jsonを解析中', { path: jsonPath });
-        return await this.parseCoverageJson(jsonPath);
-      } catch {
+        logger.debug('カバレッジJSONファイル情報', {
+          size: `${Math.round(stats.size / 1024)}KB`,
+          modified: stats.mtime.toISOString()
+        });
+        const result = await this.parseCoverageJson(jsonPath);
+        logger.debug('カバレッジJSON解析完了', {
+          entriesCount: result.size,
+          hasData: result.size > 0
+        });
+        return result;
+      } catch (jsonError) {
         // JSONファイルがない場合はHTMLを試行
+        logger.debug('coverage-final.jsonが見つかりません。HTMLレポートを試行します。', {
+          error: jsonError.code
+        });
       }
 
       // HTMLレポートを試行
@@ -242,14 +257,27 @@ export class CoverageReportParser {
       try {
         await fs.access(htmlPath);
         logger.info('HTMLカバレッジレポートを解析中', { path: htmlPath });
-        return await this.parseCoverageHtml(htmlPath);
-      } catch {
-        logger.warn('カバレッジファイルが見つかりません', { coverageDir });
+        const result = await this.parseCoverageHtml(htmlPath);
+        logger.debug('カバレッジHTML解析完了', {
+          entriesCount: result.size
+        });
+        return result;
+      } catch (htmlError) {
+        logger.warn('カバレッジファイルが見つかりません', {
+          coverageDir,
+          jsonPath,
+          htmlPath,
+          hint: 'npm run test:coverage を実行してカバレッジレポートを生成してください'
+        });
       }
 
       return new Map();
     } catch (error) {
-      logger.error('カバレッジディレクトリ解析エラー', { error: error.message });
+      logger.error('カバレッジディレクトリ解析エラー', {
+        message: error.message,
+        coverageDir
+      });
+      logger.debug('エラースタック', { stack: error.stack });
       return new Map();
     }
   }

@@ -46,10 +46,18 @@ export class AnnotationParser {
    */
   async parseFile(filePath) {
     try {
+      logger.debug('ファイル解析開始', { filePath });
       const content = await this.readFileWithEncoding(filePath);
-      return this.extractTestCases(content, filePath);
+      const testCases = this.extractTestCases(content, filePath);
+      logger.debug('ファイル解析完了', {
+        filePath,
+        testCaseCount: testCases.length,
+        contentLength: content.length
+      });
+      return testCases;
     } catch (error) {
       logger.error('ファイル解析エラー', { filePath, error: error.message });
+      logger.debug('エラースタック', { stack: error.stack });
       return [];
     }
   }
