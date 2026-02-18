@@ -53,44 +53,30 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 
 ## Ansibleのインストール
 
-Ansibleはすべての自動化playbook実行に必要です。対象OSに応じて以下の方法でインストールしてください。
+Ansibleはすべての自動化playbook実行に必要です。FedoraベースのOSでの手順を示します。
 
-### Amazon Linux 2023
-
-```bash
-# pipxを使用したインストール（推奨）
-sudo dnf install -y python3-pip
-pip3 install --user ansible
-
-# PATHに追加
-echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-
-# バージョン確認
-ansible --version
-```
-
-### RHEL 9 / CentOS Stream 9
+### Fedora
 
 ```bash
-# EPELリポジトリを有効化してインストール
-sudo dnf install -y epel-release
+# 標準リポジトリからインストール
 sudo dnf install -y ansible
 
 # バージョン確認
 ansible --version
 ```
 
-### pip3を使用したインストール（全OS共通）
+### Fedora / RHEL系（pip3を使用）
+
+特定バージョンのAnsibleが必要な場合やパッケージ版が古い場合はpip3を使用します。
 
 ```bash
-# pip3でインストール
-sudo pip3 install ansible
+# pip3のインストール
+sudo dnf install -y python3-pip
 
-# または ユーザーローカルインストール
+# Ansibleインストール（ユーザーローカル）
 pip3 install --user ansible
 
-# PATHに追加（ユーザーローカルの場合）
+# PATHに追加
 echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
@@ -117,7 +103,7 @@ ansible localhost -m ping
 
 - Ansible **2.14以上**が必要です
 - rootユーザーまたはsudo権限が必要です
-- Python **3.9以上**が前提です（Amazon Linux 2023 / RHEL 9はデフォルトで満たします）
+- Python **3.9以上**が前提です（Fedoraはデフォルトで満たします）
 
 ## クイックスタート
 
