@@ -20,6 +20,10 @@ directories:
   data_dir: "/var/lib/orgmgmt"
   gitops_dir: "/root/aws.git/container/claudecode/ArgoCD/gitops"
   kubectl_path: "/usr/local/bin/k3s"
+  kubeconfig_path: "/etc/rancher/k3s/k3s.yaml"
+
+kubernetes:
+  k3s_version: "v1.34.3+k3s1"
 
 git:
   # ArgoCDが参照するGitリポジトリ（フォーク先や別リポジトリの場合は変更）

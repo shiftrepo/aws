@@ -177,13 +177,13 @@ database:
 
 使用するミドルウェアのバージョンを変更する場合に編集してください。
 
-| キー | デフォルト値 | 反映先ファイル |
-|-----|------------|--------------|
-| `argocd.version` | `v2.10.0` | `environment.yml` → `group_vars/all.yml` 経由で参照可能。ただし `install_k3s_and_argocd.yml` の `vars.argocd_version` も要変更 |
-| K3s バージョン | `v1.34.3+k3s1` | `ansible/playbooks/install_k3s_and_argocd.yml` の `vars.k3s_version` を直接編集 |
-| `database.postgres.version` | `16-alpine` | `k8s-manifests/base/postgres-deployment.yaml` も直接編集 |
+| キー | デフォルト値 | 反映先 |
+|-----|------------|--------|
+| `kubernetes.k3s_version` | `v1.34.3+k3s1` | `ansible/config/environment.yml` → `install_k3s_and_argocd.yml` へ自動反映 |
+| `argocd.version` | `v2.10.0` | `ansible/config/environment.yml` → `install_k3s_and_argocd.yml` へ自動反映 |
+| `database.postgres.version` | `16-alpine` | `ansible/config/environment.yml` に記載。ただし `k8s-manifests/base/postgres-deployment.yaml` も直接編集が必要 |
 | Redis イメージ | `7-alpine` | `k8s-manifests/base/redis-deployment.yaml` を直接編集 |
-| Java ベースイメージ | `eclipse-temurin:21-jre-alpine` | `app/backend/Dockerfile` を直接編集 |
+| Java ベースイメージ（実行環境） | `eclipse-temurin:21-jre-alpine` | `app/backend/Dockerfile` を直接編集 |
 
 ---
 

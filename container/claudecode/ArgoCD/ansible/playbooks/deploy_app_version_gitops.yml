@@ -168,7 +168,7 @@
     # ========================================
     - name: Wait for backend health check
       uri:
-        url: "http://{{ private_ip }}:8083/actuator/health"
+        url: "http://{{ private_ip }}:{{ environment_config.ports.backend }}/actuator/health"
         status_code: 200
         timeout: 5
       register: backend_health
@@ -178,7 +178,7 @@
 
     - name: Wait for frontend to respond
       uri:
-        url: "http://{{ private_ip }}:5006/"
+        url: "http://{{ private_ip }}:{{ environment_config.ports.frontend }}/"
         status_code: 200
         timeout: 5
       register: frontend_health
@@ -230,8 +230,8 @@
           - "  - Declarative deployment"
           - ""
           - "Access URLs:"
-          - "  Frontend:     http://{{ private_ip }}:5006"
-          - "  Backend API:  http://{{ private_ip }}:8083"
+          - "  Frontend:     http://{{ private_ip }}:{{ environment_config.ports.frontend }}"
+          - "  Backend API:  http://{{ private_ip }}:{{ environment_config.ports.backend }}"
           - ""
           - "To rollback:"
           - "  ansible-playbook playbooks/rollback_app_version_gitops.yml -e 'target_version=1.0.0'"

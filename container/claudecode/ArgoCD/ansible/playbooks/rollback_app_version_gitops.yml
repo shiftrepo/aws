@@ -19,10 +19,11 @@
   gather_facts: yes
 
   vars:
-    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    # ansible/config/environment.yml の directories.base_dir から取得
+    project_root: "{{ environment_config.directories.base_dir }}"
     private_ip: "{{ ansible_default_ipv4.address }}"
     version_history_file: "/root/app-version-history.txt"
-    target_version: "1.1.0"  # デフォルトバージョン
+    target_version: "1.1.0"  # デフォルトバージョン（-e target_version=x.x.x で上書き可能）
 
   tasks:
     # ========================================
@@ -68,7 +69,7 @@
         /usr/local/bin/k3s kubectl patch application orgmgmt-app
         -n argocd
         --type merge
-        -p '{"spec":{"source":{"path":"container/claudecode/ArgoCD/k8s-manifests/overlays/v{{ target_version }}"},"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+        -p '{"spec":{"source":{"path":"{{ environment_config.git.manifests_path }}/v{{ target_version }}"},"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
       register: argocd_patch
       changed_when: true
 
@@ -167,7 +168,7 @@
     # ========================================
     - name: Wait for backend health check
       uri:
-        url: "http://{{ private_ip }}:8083/actuator/health"
+        url: "http://{{ private_ip }}:{{ environment_config.ports.backend }}/actuator/health"
         status_code: 200
         timeout: 5
       register: backend_health
@@ -177,7 +178,7 @@
 
     - name: Wait for frontend to respond
       uri:
-        url: "http://{{ private_ip }}:5006/"
+        url: "http://{{ private_ip }}:{{ environment_config.ports.frontend }}/"
         status_code: 200
         timeout: 5
       register: frontend_health
@@ -229,8 +230,8 @@
           - "  - Rollback is declarative"
           - ""
           - "Access URLs:"
-          - "  Frontend:     http://{{ private_ip }}:5006"
-          - "  Backend API:  http://{{ private_ip }}:8083"
+          - "  Frontend:     http://{{ private_ip }}:{{ environment_config.ports.frontend }}"
+          - "  Backend API:  http://{{ private_ip }}:{{ environment_config.ports.backend }}"
           - ""
           - "To upgrade to another version:"
           - "  ansible-playbook playbooks/rollback_app_version_gitops.yml -e 'target_version=1.1.0'"

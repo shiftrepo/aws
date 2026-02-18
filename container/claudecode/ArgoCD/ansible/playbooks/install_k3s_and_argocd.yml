@@ -15,13 +15,14 @@
   gather_facts: yes
 
   vars:
-    k3s_version: v1.34.3+k3s1
-    argocd_version: v2.10.0
-    argocd_namespace: argocd
-    kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+    # ansible/config/environment.yml から取得
+    k3s_version: "{{ environment_config.kubernetes.k3s_version }}"
+    argocd_version: "{{ environment_config.argocd.version }}"
+    argocd_namespace: "{{ environment_config.argocd.namespace }}"
+    kubeconfig_path: "{{ environment_config.directories.kubeconfig_path }}"
     local_kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
-    argocd_server_port_http: 8000
-    argocd_server_port_https: 8082
+    argocd_server_port_http: "{{ environment_config.ports.argocd_http }}"
+    argocd_server_port_https: "{{ environment_config.ports.argocd_https }}"
     private_ip: "{{ ansible_default_ipv4.address }}"
 
   tasks:
