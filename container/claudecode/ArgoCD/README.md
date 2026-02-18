@@ -231,11 +231,17 @@ database:
        - database.password    : 本番環境では必ず変更
 
 [ ] 3. Ansibleをインストール（未インストールの場合）
-       sudo dnf install -y ansible
+       sudo pip3 install ansible        # /usr/local/bin/ansible-playbook にインストールされる
+       # または Fedora の場合
+       sudo dnf install -y ansible      # /usr/bin/ansible-playbook にインストールされる
 
-[ ] 4. 完全自動回帰テストを実行
+[ ] 4. ビルドツールをインストール（初回のみ）
        cd /root/aws.git/container/claudecode/ArgoCD/ansible
-       ansible-playbook playbooks/deploy_regression_test_complete.yml
+       /usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/install_build_tools.yml
+
+[ ] 5. 完全自動回帰テストを実行
+       cd /root/aws.git/container/claudecode/ArgoCD/ansible
+       /usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
 ```
 
 ## Ansibleのインストール
@@ -304,12 +310,21 @@ cd /root/aws.git/container/claudecode/ArgoCD
 
 ### 完全自動回帰テスト（推奨）
 
+**前提条件: ビルドツールのインストール**（初回のみ）:
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/install_build_tools.yml
+```
+
 **すべての操作を1コマンドで実行**:
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_regression_test_complete.yml
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
 ```
+
+> **Note**: Ansible を `sudo pip3 install ansible` でインストールした場合は `/usr/local/bin/ansible-playbook` を使用します。`pip3 install --user ansible` でインストールした場合は `~/.local/bin/ansible-playbook` を使用してください。
 
 **所要時間**: 約15-20分
 
@@ -329,7 +344,7 @@ ansible-playbook playbooks/deploy_regression_test_complete.yml
 ```
 PLAY RECAP
 ========
-localhost: ok=48  changed=36  unreachable=0  failed=0  skipped=0
+localhost: ok=57  changed=39  unreachable=0  failed=0  skipped=1
 
 ArgoCD Status: Synced/Healthy
 
@@ -348,13 +363,13 @@ All Tests Passed:
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/install_k3s_and_argocd.yml
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/install_k3s_and_argocd.yml
 ```
 
 #### 2. アプリケーションデプロイのみ
 
 ```bash
-ansible-playbook playbooks/deploy_k8s_complete.yml
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_k8s_complete.yml
 ```
 
 ## 完全自動回帰テスト
@@ -363,7 +378,7 @@ ansible-playbook playbooks/deploy_k8s_complete.yml
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_regression_test_complete.yml
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
 ```
 
 ### テストフロー
@@ -418,34 +433,34 @@ Phase 10: 最終確認
 
 ```bash
 # 環境削除のみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=cleanup
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=cleanup
 
 # v1.0.0ビルドのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=build-v1.0.0
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=build-v1.0.0
 
 # v1.1.0ビルドのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=build-v1.1.0
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=build-v1.1.0
 
 # K3sインストールのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=install-k3s
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=install-k3s
 
 # イメージインポートのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=import-images
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=import-images
 
 # 初期デプロイのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=deploy-v1.0.0
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=deploy-v1.0.0
 
 # アップグレードテストのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=upgrade-test
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=upgrade-test
 
 # ロールバックテストのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=rollback-test
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=rollback-test
 
 # 再アップグレードテストのみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=reupgrade-test
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=reupgrade-test
 
 # 最終確認のみ
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=verification
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=verification
 ```
 
 ## GitOpsバージョン管理
@@ -489,7 +504,7 @@ kubectl patch application orgmgmt-app -n argocd --type merge \
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
 ```
 
 **処理内容**:
@@ -505,7 +520,7 @@ ansible-playbook playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/rollback_app_version_gitops.yml -e "target_version=1.0.0"
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version_gitops.yml -e "target_version=1.0.0"
 ```
 
 **処理内容**:
@@ -810,7 +825,7 @@ sudo /usr/local/bin/k3s kubectl logs -f deployment/argocd-server -n argocd
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=cleanup
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=cleanup
 ```
 
 削除対象:
@@ -947,7 +962,7 @@ echo "イメージ:"; podman images | grep orgmgmt || echo "OK: orgmgmtイメー
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
 
 # 完全削除 → 再構築 → 回帰テストまで一括実行
-ansible-playbook playbooks/deploy_regression_test_complete.yml
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
 ```
 
 このコマンド1つで以下がすべて自動実行されます：
@@ -1019,7 +1034,7 @@ rm -f /root/app-version-history.txt
 
 # 再構築
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook playbooks/deploy_regression_test_complete.yml
+/usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
 ```
 
 ## Playbook一覧

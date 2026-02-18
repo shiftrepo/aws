@@ -55,7 +55,7 @@
           register: k3s_bin
 
         - name: Install K3s and ArgoCD
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
+          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
           args:
             chdir: "{{ project_root }}/ansible"
           when: not k3s_bin.stat.exists
@@ -100,7 +100,7 @@
           changed_when: false
 
         - name: Install build tools if not present
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/install_build_tools.yml
+          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/install_build_tools.yml
           args:
             chdir: "{{ project_root }}/ansible"
           when: maven_check.rc != 0
