@@ -1,0 +1,178 @@
+---
+# ========================================
+# ビルドツール完全アンインストール
+# ========================================
+# Java, Maven, Node.js, NPM を完全削除します
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   /usr/local/bin/ansible-playbook -i inventory/hosts.yml playbooks/uninstall_build_tools.yml
+# ========================================
+
+- name: Uninstall build tools (Java, Maven, Node.js, NPM)
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+  tasks:
+    # ========================================
+    # Phase 1: Java アンインストール
+    # ========================================
+    - name: Phase 1 - Uninstall Java
+      block:
+        - name: Remove all OpenJDK packages
+          dnf:
+            name:
+              - java-*-openjdk-devel
+              - java-*-openjdk
+              - java-*-openjdk-headless
+            state: absent
+            autoremove: yes
+
+        - name: Verify Java is removed
+          command: java -version
+          register: java_check
+          failed_when: false
+          changed_when: false
+
+        - name: Display Java removal status
+          debug:
+            msg: "{{ '✅ Java removed' if java_check.rc != 0 else '⚠️ Java still present: ' + java_check.stderr }}"
+
+      tags: [java]
+
+    # ========================================
+    # Phase 2: Maven アンインストール
+    # ========================================
+    - name: Phase 2 - Uninstall Maven
+      block:
+        - name: Remove Maven symlink
+          file:
+            path: /opt/maven
+            state: absent
+
+        - name: Find Maven installation directories
+          find:
+            paths: /opt
+            patterns: "apache-maven-*"
+            file_type: directory
+          register: maven_dirs
+
+        - name: Remove Maven installation directories
+          file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ maven_dirs.files }}"
+
+        - name: Remove Maven environment script
+          file:
+            path: /etc/profile.d/maven.sh
+            state: absent
+
+        - name: Remove Maven tar archives from /tmp
+          find:
+            paths: /tmp
+            patterns: "apache-maven-*.tar.gz"
+          register: maven_tars
+
+        - name: Delete Maven tar archives
+          file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ maven_tars.files }}"
+
+        - name: Verify Maven is removed
+          shell: "source /etc/profile.d/maven.sh 2>/dev/null; mvn --version 2>/dev/null || echo 'not found'"
+          register: mvn_check
+          changed_when: false
+          failed_when: false
+
+        - name: Display Maven removal status
+          debug:
+            msg: "✅ Maven removed"
+
+      tags: [maven]
+
+    # ========================================
+    # Phase 3: Node.js & NPM アンインストール
+    # ========================================
+    - name: Phase 3 - Uninstall Node.js and NPM
+      block:
+        - name: Remove Node.js and NPM packages
+          dnf:
+            name:
+              - nodejs
+              - npm
+            state: absent
+            autoremove: yes
+
+        - name: Remove NodeSource repository file
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /etc/yum.repos.d/nodesource-el9.repo
+            - /etc/yum.repos.d/nodesource.repo
+
+        - name: Remove NodeSource repository config from dnf
+          dnf:
+            name: nodesource-release-el9
+            state: absent
+          failed_when: false
+
+        - name: Verify Node.js is removed
+          command: node --version
+          register: node_check
+          failed_when: false
+          changed_when: false
+
+        - name: Display Node.js removal status
+          debug:
+            msg: "{{ '✅ Node.js removed' if node_check.rc != 0 else '⚠️ Node.js still present: ' + node_check.stdout }}"
+
+      tags: [nodejs]
+
+    # ========================================
+    # Phase 4: 確認サマリー
+    # ========================================
+    - name: Phase 4 - Verify all uninstalled
+      block:
+        - name: Final check - Java
+          command: java -version
+          register: final_java
+          failed_when: false
+          changed_when: false
+
+        - name: Final check - Maven
+          command: mvn --version
+          register: final_mvn
+          failed_when: false
+          changed_when: false
+
+        - name: Final check - Node.js
+          command: node --version
+          register: final_node
+          failed_when: false
+          changed_when: false
+
+        - name: Display uninstall summary
+          debug:
+            msg:
+              - "=========================================="
+              - "  Build Tools Uninstall Summary"
+              - "=========================================="
+              - ""
+              - "Java:    {{ '✅ Removed' if final_java.rc != 0 else '⚠️ Still present' }}"
+              - "Maven:   {{ '✅ Removed' if final_mvn.rc != 0 else '⚠️ Still present' }}"
+              - "Node.js: {{ '✅ Removed' if final_node.rc != 0 else '⚠️ Still present' }}"
+              - ""
+              - "=========================================="
+
+      tags: [verify]

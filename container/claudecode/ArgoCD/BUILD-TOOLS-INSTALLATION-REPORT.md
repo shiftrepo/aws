@@ -8,7 +8,7 @@
 ## インストールされたツール
 
 ### Java
-- **Version**: OpenJDK 17
+- **Version**: OpenJDK 21
 - **Path**: /usr/bin/java
 - **Status**: Installed
 

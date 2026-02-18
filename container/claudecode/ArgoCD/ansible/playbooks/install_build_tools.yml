@@ -14,7 +14,7 @@
   gather_facts: yes
 
   vars:
-    java_version: "17"
+    java_version: "21"
     maven_version: "3.9.6"
     node_version: "20"
 
@@ -32,9 +32,9 @@
 
     - name: Phase 1 - Install Java
       block:
-        - name: Install OpenJDK 17
+        - name: Install OpenJDK 21
           dnf:
-            name: java-17-openjdk-devel
+            name: java-21-openjdk-devel
             state: present
 
         - name: Verify Java installation
@@ -185,7 +185,7 @@
               ## インストールされたツール
 
               ### Java
-              - **Version**: OpenJDK 17
+              - **Version**: OpenJDK 21
               - **Path**: /usr/bin/java
               - **Status**: {{ 'Installed' if java_check.rc == 0 else 'Failed' }}
 
@@ -247,7 +247,7 @@
               - "  Build Tools Installation Complete!"
               - "=========================================="
               - ""
-              - "Java: ✅ OpenJDK 17"
+              - "Java: ✅ OpenJDK 21"
               - "Maven: ✅ {{ maven_version }}"
               - "Node.js: ✅ {{ node_check.stdout }}"
               - "NPM: ✅ {{ npm_check.stdout }}"
