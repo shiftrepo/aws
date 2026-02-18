@@ -44,14 +44,15 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 
 | 項目 | 要件 |
 |------|------|
-| OS | Amazon Linux 2023 / RHEL 9 / CentOS 9 |
+| OS | Fedora / RHEL 9 / CentOS Stream 9 |
 | CPU | 2コア以上（推奨: 4コア） |
 | メモリ | 4GB以上（推奨: 8GB） |
 | ディスク | 20GB以上の空き容量 |
 | ネットワーク | インターネット接続必須 |
 
 **必要なソフトウェアはAnsibleが自動インストール**します：
-- K3s, ArgoCD, Maven, Node.js, Podman, socat
+- K3s, ArgoCD, Java 21 (OpenJDK), Maven, Node.js, socat
+- コンテナランタイム: Docker または Podman（docker → podman の順で自動検出）
 
 ## 環境依存パラメータ
 
@@ -881,20 +882,22 @@ sudo iptables -D INPUT -p tcp --dport 3000 -j ACCEPT
 sudo iptables-save > /etc/sysconfig/iptables
 ```
 
-#### Step 4: Podman リソースの削除
+#### Step 4: コンテナリソースの削除（Docker / Podman）
 
 ```bash
-# 全コンテナ強制削除
-podman rm -af
+# 使用中のコンテナランタイムを確認
+CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
+echo "Using: $CRUN"
 
-# 全ボリューム削除
-podman volume prune -f
+# 全コンテナ停止・削除
+$CRUN ps -q | xargs -r $CRUN stop 2>/dev/null || true
+$CRUN ps -aq | xargs -r $CRUN rm -f 2>/dev/null || true
 
-# 全イメージ削除（ビルドキャッシュ含む）
-podman system prune -af
+# 全ボリューム・イメージ削除（ビルドキャッシュ含む）
+$CRUN system prune -af --volumes 2>/dev/null || true
 
 # ネットワーク削除
-podman network rm argocd-network 2>/dev/null || true
+$CRUN network rm argocd-network 2>/dev/null || true
 ```
 
 #### Step 5: 一時ファイル・生成ファイルの削除
@@ -946,10 +949,11 @@ systemctl list-units --type=service | grep socat || echo "OK: socatサービス�
 # ポート開放確認
 ss -tlnp | grep -E "5006|8083|8000|8082|3000" || echo "OK: 対象ポートは未使用"
 
-# Podman リソース確認
-echo "コンテナ:"; podman ps -a
-echo "ボリューム:"; podman volume ls
-echo "イメージ:"; podman images | grep orgmgmt || echo "OK: orgmgmtイメージなし"
+# コンテナリソース確認（docker / podman 自動選択）
+CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
+echo "コンテナ:"; $CRUN ps -a
+echo "ボリューム:"; $CRUN volume ls
+echo "イメージ:"; $CRUN images | grep orgmgmt || echo "OK: orgmgmtイメージなし"
 ```
 
 ---
@@ -1015,8 +1019,9 @@ sudo /usr/local/bin/k3s kubectl logs <pod-name>
 # K3sのイメージ確認
 sudo /usr/local/bin/k3s crictl images | grep orgmgmt
 
-# イメージが無い場合、再インポート
-podman save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend.tar
+# イメージが無い場合、再インポート（docker / podman 自動選択）
+CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
+$CRUN save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend.tar
 sudo /usr/local/bin/k3s ctr images import /tmp/backend.tar
 ```
 
@@ -1026,8 +1031,9 @@ sudo /usr/local/bin/k3s ctr images import /tmp/backend.tar
 # K3s完全削除
 sudo /usr/local/bin/k3s-uninstall.sh
 
-# Podman イメージ削除
-podman rmi -af
+# コンテナイメージ削除（docker / podman 自動選択）
+CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
+$CRUN system prune -af --volumes
 
 # バージョン履歴削除
 rm -f /root/app-version-history.txt
@@ -1045,7 +1051,8 @@ cd /root/aws.git/container/claudecode/ArgoCD/ansible
 | install_k3s_and_argocd.yml | K3s + ArgoCD単独インストール | 3-5分 |
 | deploy_app_version_gitops.yml | GitOpsアップグレード | 2-3分 |
 | rollback_app_version_gitops.yml | GitOpsロールバック | 2-3分 |
-| install_build_tools.yml | Maven/Node.js単独インストール | 2-3分 |
+| install_build_tools.yml | Java 21 / Maven / Node.js 単独インストール | 2-3分 |
+| uninstall_build_tools.yml | Java / Maven / Node.js 完全アンインストール | 1-2分 |
 
 ## 技術スタック
 
@@ -1072,7 +1079,7 @@ cd /root/aws.git/container/claudecode/ArgoCD/ansible
 
 ### デプロイ・運用
 - **Ansible 2.14+** (IaC)
-- **Podman** (Container Build)
+- **Docker / Podman** (Container Build / Run、docker → podman の順で自動検出)
 - **socat** (Port Forwarding)
 - **systemd** (Service Management)
 - **iptables** (Firewall Management)
@@ -1085,7 +1092,7 @@ cd /root/aws.git/container/claudecode/ArgoCD/ansible
 - `argocd-regression-v1.0.0`: ベースバージョン
 - `argocd-regression-v1.1.0`: System Information機能追加
 
-**最終更新**: 2026-02-07
+**最終更新**: 2026-02-18
 
 ## ドキュメント
 
