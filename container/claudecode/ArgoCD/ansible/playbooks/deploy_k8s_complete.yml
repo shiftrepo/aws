@@ -23,6 +23,12 @@
     private_ip: "{{ ansible_default_ipv4.address }}"
     app_version: "{{ environment_config.application.version }}"
 
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+
   tasks:
     # ========================================
     # Phase 0: 環境確認

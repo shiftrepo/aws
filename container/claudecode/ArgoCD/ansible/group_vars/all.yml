@@ -6,7 +6,7 @@
 # ========================================
 
 # Load environment configuration
-environment_config: "{{ lookup('file', playbook_dir + '/../config/environment.yml') | from_yaml }}"
+environment_config: "{{ lookup('file', inventory_dir + '/../config/environment.yml') | from_yaml }}"
 
 # Network Configuration
 public_ip: "{{ environment_config.network.public_ip | default(ansible_default_ipv4.address) }}"

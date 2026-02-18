@@ -37,6 +37,12 @@
     target_version: ""  # 空の場合は直前のバージョンに戻す
     target_revision: ""  # 空の場合はkubectl rollout undoを使用
 
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+
   tasks:
     # ========================================
     # Phase 0: 環境確認とバージョン履歴取得

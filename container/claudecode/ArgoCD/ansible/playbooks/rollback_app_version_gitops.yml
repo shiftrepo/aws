@@ -25,6 +25,12 @@
     version_history_file: "{{ environment_config.directories.version_history_file }}"
     target_version: "{{ environment_config.argocd.application.initial_version }}"  # -e target_version=x.x.x で上書き可能
 
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+
   tasks:
     # ========================================
     # Phase 1: 環境確認

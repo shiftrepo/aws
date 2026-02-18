@@ -32,6 +32,12 @@
     private_ip: "{{ ansible_default_ipv4.address }}"
     version_history_file: "{{ environment_config.directories.version_history_file }}"
 
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+
   tasks:
     # ========================================
     # Phase 0: バージョンとインフラ確認

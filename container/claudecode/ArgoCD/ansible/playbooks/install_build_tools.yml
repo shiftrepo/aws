@@ -18,6 +18,12 @@
     maven_version: "3.9.6"
     node_version: "20"
 
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+
   tasks:
     # ========================================
     # Phase 1: Java (OpenJDK) インストール

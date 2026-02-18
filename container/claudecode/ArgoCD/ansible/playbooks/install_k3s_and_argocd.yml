@@ -25,6 +25,12 @@
     argocd_server_port_https: "{{ environment_config.ports.argocd_https }}"
     private_ip: "{{ ansible_default_ipv4.address }}"
 
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+
   tasks:
     # ========================================
     # Phase 1: K3s インストール
