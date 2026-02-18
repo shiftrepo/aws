@@ -14,6 +14,7 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 - [アクセス方法](#アクセス方法)
 - [アーキテクチャ](#アーキテクチャ)
 - [主要コマンド](#主要コマンド)
+- [スクラップビルド（完全削除と再構築）](#スクラップビルド完全削除と再構築)
 - [トラブルシューティング](#トラブルシューティング)
 - [技術スタック](#技術スタック)
 
@@ -757,6 +758,167 @@ sudo /usr/local/bin/k3s kubectl logs -f deployment/orgmgmt-frontend
 
 # ArgoCD Server ログ
 sudo /usr/local/bin/k3s kubectl logs -f deployment/argocd-server -n argocd
+```
+
+## スクラップビルド（完全削除と再構築）
+
+既存環境をすべて削除してゼロから再構築する手順です。
+
+### 方法1: Ansible playbook による一括削除（推奨）
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+ansible-playbook playbooks/deploy_regression_test_complete.yml --tags=cleanup
+```
+
+削除対象:
+- K3s（`k3s-uninstall.sh` を自動実行）
+- Podman コンテナ・ボリューム・イメージ
+- バージョン履歴ファイル（`/root/app-version-history.txt`）
+
+> 削除後すぐに再構築する場合は `--tags` なしで実行するとフルフローが実行されます。
+
+---
+
+### 方法2: 手動による完全削除
+
+Ansible が使えない場合や、より細かく制御したい場合の手順です。
+
+#### Step 1: K3s アンインストール
+
+```bash
+# K3s と関連リソースをすべて削除
+sudo /usr/local/bin/k3s-uninstall.sh
+
+# 残存ディレクトリの手動削除
+sudo rm -rf /etc/rancher/
+sudo rm -rf /var/lib/rancher/
+sudo rm -f /usr/local/bin/k3s*
+sudo rm -f /usr/local/bin/kubectl
+sudo rm -rf ~/.kube/
+```
+
+#### Step 2: socat ポートフォワードサービスの停止・削除
+
+```bash
+# サービス停止・無効化
+sudo systemctl stop socat-frontend socat-backend socat-argocd-http socat-argocd-https socat-k8s-dashboard
+sudo systemctl disable socat-frontend socat-backend socat-argocd-http socat-argocd-https socat-k8s-dashboard
+
+# サービスファイル削除
+sudo rm -f /etc/systemd/system/socat-*.service
+sudo systemctl daemon-reload
+```
+
+#### Step 3: iptables ルールの削除
+
+```bash
+# 追加したルールを個別削除
+sudo iptables -D INPUT -p tcp --dport 5006 -j ACCEPT
+sudo iptables -D INPUT -p tcp --dport 8083 -j ACCEPT
+sudo iptables -D INPUT -p tcp --dport 8000 -j ACCEPT
+sudo iptables -D INPUT -p tcp --dport 8082 -j ACCEPT
+sudo iptables -D INPUT -p tcp --dport 3000 -j ACCEPT
+
+# ルールを永続化ファイルに反映
+sudo iptables-save > /etc/sysconfig/iptables
+```
+
+#### Step 4: Podman リソースの削除
+
+```bash
+# 全コンテナ強制削除
+podman rm -af
+
+# 全ボリューム削除
+podman volume prune -f
+
+# 全イメージ削除（ビルドキャッシュ含む）
+podman system prune -af
+
+# ネットワーク削除
+podman network rm argocd-network 2>/dev/null || true
+```
+
+#### Step 5: 一時ファイル・生成ファイルの削除
+
+```bash
+# イメージ tar ファイル
+rm -f /tmp/backend-*.tar /tmp/frontend-*.tar
+rm -f /tmp/k3s-install.sh /tmp/argocd-*.yaml
+
+# バージョン履歴・認証情報
+rm -f /root/app-version-history.txt
+rm -f /root/argocd-credentials.txt
+rm -f /root/k8s-dashboard-token.txt
+rm -f /root/K3S-ARGOCD-INSTALLATION-REPORT.md
+```
+
+#### Step 6: ビルド成果物の削除（再ビルドしたい場合）
+
+```bash
+PROJECT_ROOT=/root/aws.git/container/claudecode/ArgoCD
+
+# Mavenビルド成果物
+rm -rf ${PROJECT_ROOT}/app/backend/target/
+
+# npmビルド成果物・依存関係
+rm -rf ${PROJECT_ROOT}/app/frontend/dist/
+rm -rf ${PROJECT_ROOT}/app/frontend/node_modules/
+
+# Playwrightテスト結果
+rm -rf ${PROJECT_ROOT}/playwright-tests/test-results/
+rm -rf ${PROJECT_ROOT}/playwright-tests/playwright-report/
+rm -rf ${PROJECT_ROOT}/playwright-tests/node_modules/
+```
+
+---
+
+### 削除確認
+
+削除後、以下のコマンドで確認してください。
+
+```bash
+# K3s 削除確認
+which k3s 2>/dev/null && echo "残存あり" || echo "OK: k3s削除済み"
+ls /etc/rancher/ 2>/dev/null && echo "残存あり" || echo "OK: /etc/rancher削除済み"
+
+# socat サービス確認
+systemctl list-units --type=service | grep socat || echo "OK: socatサービスなし"
+
+# ポート開放確認
+ss -tlnp | grep -E "5006|8083|8000|8082|3000" || echo "OK: 対象ポートは未使用"
+
+# Podman リソース確認
+echo "コンテナ:"; podman ps -a
+echo "ボリューム:"; podman volume ls
+echo "イメージ:"; podman images | grep orgmgmt || echo "OK: orgmgmtイメージなし"
+```
+
+---
+
+### スクラップビルド（削除→再構築を一括実行）
+
+削除と再構築を続けて行う場合:
+
+```bash
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
+
+# 完全削除 → 再構築 → 回帰テストまで一括実行
+ansible-playbook playbooks/deploy_regression_test_complete.yml
+```
+
+このコマンド1つで以下がすべて自動実行されます：
+
+```
+1. 既存環境の完全削除
+2. v1.0.0 / v1.1.0 のイメージビルド
+3. K3s + ArgoCD の新規インストール
+4. イメージのインポート
+5. v1.0.0 初期デプロイ
+6. v1.1.0 アップグレードテスト
+7. v1.0.0 ロールバックテスト
+8. v1.1.0 再アップグレードテスト
 ```
 
 ## トラブルシューティング
