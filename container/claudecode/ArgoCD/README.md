@@ -5,6 +5,7 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 ## 目次
 
 - [概要](#概要)
+- [Ansibleのインストール](#ansibleのインストール)
 - [クイックスタート](#クイックスタート)
 - [完全自動回帰テスト](#完全自動回帰テスト)
 - [GitOpsバージョン管理](#gitopsバージョン管理)
@@ -49,6 +50,74 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 
 **必要なソフトウェアはAnsibleが自動インストール**します：
 - K3s, ArgoCD, Maven, Node.js, Podman, socat
+
+## Ansibleのインストール
+
+Ansibleはすべての自動化playbook実行に必要です。対象OSに応じて以下の方法でインストールしてください。
+
+### Amazon Linux 2023
+
+```bash
+# pipxを使用したインストール（推奨）
+sudo dnf install -y python3-pip
+pip3 install --user ansible
+
+# PATHに追加
+echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# バージョン確認
+ansible --version
+```
+
+### RHEL 9 / CentOS Stream 9
+
+```bash
+# EPELリポジトリを有効化してインストール
+sudo dnf install -y epel-release
+sudo dnf install -y ansible
+
+# バージョン確認
+ansible --version
+```
+
+### pip3を使用したインストール（全OS共通）
+
+```bash
+# pip3でインストール
+sudo pip3 install ansible
+
+# または ユーザーローカルインストール
+pip3 install --user ansible
+
+# PATHに追加（ユーザーローカルの場合）
+echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# バージョン確認
+ansible --version
+```
+
+### インストール確認
+
+```bash
+# バージョン確認
+ansible --version
+# ansible [core 2.14.x]  (2.14以上推奨)
+
+# playbookコマンド確認
+ansible-playbook --version
+
+# localhostへの接続テスト
+ansible localhost -m ping
+# localhost | SUCCESS => { "ping": "pong" }
+```
+
+### 注意事項
+
+- Ansible **2.14以上**が必要です
+- rootユーザーまたはsudo権限が必要です
+- Python **3.9以上**が前提です（Amazon Linux 2023 / RHEL 9はデフォルトで満たします）
 
 ## クイックスタート
 
