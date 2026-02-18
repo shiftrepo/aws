@@ -74,6 +74,12 @@
             path: "{{ environment_config.directories.version_history_file }}"
             state: absent
 
+        - name: Reset git working tree to clean state
+          command: git checkout -- .
+          args:
+            chdir: "{{ project_root }}"
+          ignore_errors: yes
+
         - name: Display cleanup status
           debug:
             msg: "✅ Environment cleaned"
