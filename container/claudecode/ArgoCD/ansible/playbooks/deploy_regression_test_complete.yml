@@ -64,7 +64,7 @@
 
         - name: Remove version history
           file:
-            path: /root/app-version-history.txt
+            path: "{{ environment_config.directories.version_history_file }}"
             state: absent
 
         - name: Display cleanup status
@@ -341,14 +341,14 @@
     - name: "PHASE 7: Upgrade to v1.1.0"
       block:
         - name: Run upgrade playbook
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
           args:
             chdir: "{{ project_root }}/ansible"
           register: upgrade_result
 
         - name: Display upgrade result
           debug:
-            msg: "✅ Upgraded to v1.1.0"
+            msg: "✅ Upgraded to v{{ environment_config.application.version }}"
 
       tags:
         - upgrade-test
@@ -359,14 +359,14 @@
     - name: "PHASE 8: Rollback to v1.0.0"
       block:
         - name: Run rollback playbook
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e "target_version=1.0.0"
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e "target_version={{ environment_config.argocd.application.initial_version }}"
           args:
             chdir: "{{ project_root }}/ansible"
           register: rollback_result
 
         - name: Display rollback result
           debug:
-            msg: "✅ Rolled back to v1.0.0"
+            msg: "✅ Rolled back to v{{ environment_config.argocd.application.initial_version }}"
 
       tags:
         - rollback-test
@@ -377,14 +377,14 @@
     - name: "PHASE 9: Re-upgrade to v1.1.0"
       block:
         - name: Run re-upgrade playbook
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
+          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
           args:
             chdir: "{{ project_root }}/ansible"
           register: reupgrade_result
 
         - name: Display re-upgrade result
           debug:
-            msg: "✅ Re-upgraded to v1.1.0"
+            msg: "✅ Re-upgraded to v{{ environment_config.application.version }}"
 
       tags:
         - reupgrade-test
@@ -407,7 +407,7 @@
           register: final_pods
 
         - name: Get version history
-          command: cat /root/app-version-history.txt
+          command: cat "{{ environment_config.directories.version_history_file }}"
           register: version_history
           failed_when: false
 

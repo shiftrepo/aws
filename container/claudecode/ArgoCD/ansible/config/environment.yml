@@ -21,6 +21,8 @@ directories:
   gitops_dir: "/root/aws.git/container/claudecode/ArgoCD/gitops"
   kubectl_path: "/usr/local/bin/k3s"
   kubeconfig_path: "/etc/rancher/k3s/k3s.yaml"
+  # バージョン履歴ファイルパス（rootユーザー以外で実行する場合は変更）
+  version_history_file: "/root/app-version-history.txt"
 
 kubernetes:
   k3s_version: "v1.34.3+k3s1"

@@ -76,7 +76,8 @@ ansible/config/environment.yml            ← 環境ごとに編集するファ�
         ├─ argocd.namespace               → install_k3s_and_argocd.yml の argocd_namespace へ自動反映
         ├─ ports.argocd_http/https        → install_k3s_and_argocd.yml の ArgoCD Service ポートへ自動反映
         ├─ ports.backend / ports.frontend → 全 playbook のヘルスチェック URL へ自動反映
-        └─ directories.kubeconfig_path    → install_k3s_and_argocd.yml の kubeconfig_path へ自動反映
+        ├─ directories.kubeconfig_path    → install_k3s_and_argocd.yml の kubeconfig_path へ自動反映
+        └─ directories.version_history_file → 全 playbook のバージョン履歴ファイルパスへ自動反映
 
 【直接編集が必要な項目（environment.yml から自動反映されない）】
         ├─ database.*         → k8s-manifests/base/postgres-deployment.yaml

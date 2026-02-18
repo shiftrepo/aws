@@ -22,7 +22,7 @@
     # ansible/config/environment.yml の directories.base_dir から取得
     project_root: "{{ environment_config.directories.base_dir }}"
     private_ip: "{{ ansible_default_ipv4.address }}"
-    version_history_file: "/root/app-version-history.txt"
+    version_history_file: "{{ environment_config.directories.version_history_file }}"
     app_version: "{{ environment_config.application.version }}"  # -e app_version=x.x.x で上書き可能
 
   tasks:
