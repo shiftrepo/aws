@@ -44,6 +44,30 @@
         name: environment_config
 
       tags: [always]
+    - name: Detect container runtime (docker first, then {{ container_cmd }})
+      block:
+        - name: Check docker availability
+          command: docker info
+          register: docker_check
+          failed_when: false
+          changed_when: false
+          become: no
+
+        - name: Set container runtime to docker
+          set_fact:
+            container_cmd: "docker"
+          when: docker_check.rc == 0
+
+        - name: Set container runtime to {{ container_cmd }} (fallback)
+          set_fact:
+            container_cmd: "{{ container_cmd }}"
+          when: docker_check.rc != 0
+
+        - name: Display container runtime
+          debug:
+            msg: "Using container runtime: {{ container_cmd }}"
+      tags: [always]
+
   tasks:
     # ========================================
     # Phase 0: 環境確認とバージョン履歴取得
@@ -210,14 +234,14 @@
               failed_when: not frontend_dist.stat.exists
 
             - name: Build backend container image
-              command: podman build -t orgmgmt-backend:{{ target_version }} -t orgmgmt-backend:latest -f Dockerfile .
+              command: "{{ container_cmd }} build -t orgmgmt-backend:{{ target_version }} -t orgmgmt-backend:latest -f Dockerfile ."
               args:
                 chdir: "{{ backend_dir }}"
               register: backend_image
               changed_when: true
 
             - name: Build frontend container image
-              command: podman build -t orgmgmt-frontend:{{ target_version }} -t orgmgmt-frontend:latest -f Dockerfile .
+              command: "{{ container_cmd }} build -t orgmgmt-frontend:{{ target_version }} -t orgmgmt-frontend:latest -f Dockerfile ."
               args:
                 chdir: "{{ frontend_dir }}"
               register: frontend_image
@@ -233,12 +257,12 @@
               become: yes
 
             - name: Export backend image
-              command: podman save localhost/orgmgmt-backend:{{ target_version }} localhost/orgmgmt-backend:latest -o /tmp/backend.tar
+              command: "{{ container_cmd }} save localhost/orgmgmt-backend:{{ target_version }} localhost/orgmgmt-backend:latest -o /tmp/backend.tar"
               register: export_backend
               changed_when: true
 
             - name: Export frontend image
-              command: podman save localhost/orgmgmt-frontend:{{ target_version }} localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar
+              command: "{{ container_cmd }} save localhost/orgmgmt-frontend:{{ target_version }} localhost/orgmgmt-frontend:latest -o /tmp/frontend.tar"
               register: export_frontend
               changed_when: true
 

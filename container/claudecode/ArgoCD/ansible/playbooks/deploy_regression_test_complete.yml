@@ -32,6 +32,30 @@
         name: environment_config
 
       tags: [always]
+    - name: Detect container runtime (docker first, then {{ container_cmd }})
+      block:
+        - name: Check docker availability
+          command: docker info
+          register: docker_check
+          failed_when: false
+          changed_when: false
+          become: no
+
+        - name: Set container runtime to docker
+          set_fact:
+            container_cmd: "docker"
+          when: docker_check.rc == 0
+
+        - name: Set container runtime to {{ container_cmd }} (fallback)
+          set_fact:
+            container_cmd: "{{ container_cmd }}"
+          when: docker_check.rc != 0
+
+        - name: Display container runtime
+          debug:
+            msg: "Using container runtime: {{ container_cmd }}"
+      tags: [always]
+
   tasks:
     # ========================================
     # Phase 0: 環境情報表示
@@ -62,11 +86,11 @@
           when: k3s_uninstall.stat.exists
           ignore_errors: yes
 
-        - name: Clean Podman containers and images
+        - name: Clean container images and volumes
           shell: |
-            podman rm -af || true
-            podman volume prune -f || true
-            podman system prune -af || true
+            {{ container_cmd }} ps -q 2>/dev/null | xargs -r {{ container_cmd }} stop 2>/dev/null || true
+            {{ container_cmd }} ps -aq 2>/dev/null | xargs -r {{ container_cmd }} rm -f 2>/dev/null || true
+            {{ container_cmd }} system prune -af --volumes 2>/dev/null || true
           ignore_errors: yes
 
         - name: Remove version history
@@ -121,18 +145,18 @@
 
         - name: Pull base images for v1.0.0
           shell: |
-            podman pull docker.io/eclipse-temurin:21-jre-alpine
-            podman pull docker.io/nginx:alpine
+            {{ container_cmd }} pull docker.io/eclipse-temurin:21-jre-alpine
+            {{ container_cmd }} pull docker.io/nginx:alpine
           become: no
 
         - name: Build v1.0.0 backend image
-          command: podman build -t localhost/orgmgmt-backend:1.0.0 -f Dockerfile .
+          command: "{{ container_cmd }} build -t localhost/orgmgmt-backend:1.0.0 -f Dockerfile ."
           args:
             chdir: "{{ backend_dir }}"
           become: no
 
         - name: Build v1.0.0 frontend image
-          command: podman build -t localhost/orgmgmt-frontend:1.0.0 -f Dockerfile .
+          command: "{{ container_cmd }} build -t localhost/orgmgmt-frontend:1.0.0 -f Dockerfile ."
           args:
             chdir: "{{ frontend_dir }}"
           become: no
@@ -176,13 +200,13 @@
           become: no
 
         - name: Build v1.1.0 backend image
-          command: podman build -t localhost/orgmgmt-backend:1.1.0 -f Dockerfile .
+          command: "{{ container_cmd }} build -t localhost/orgmgmt-backend:1.1.0 -f Dockerfile ."
           args:
             chdir: "{{ backend_dir }}"
           become: no
 
         - name: Build v1.1.0 frontend image
-          command: podman build -t localhost/orgmgmt-frontend:1.1.0 -f Dockerfile .
+          command: "{{ container_cmd }} build -t localhost/orgmgmt-frontend:1.1.0 -f Dockerfile ."
           args:
             chdir: "{{ frontend_dir }}"
           become: no
@@ -278,19 +302,19 @@
             - /tmp/frontend-1.1.0.tar
 
         - name: Export v1.0.0 backend image
-          command: podman save localhost/orgmgmt-backend:1.0.0 -o /tmp/backend-1.0.0.tar
+          command: "{{ container_cmd }} save localhost/orgmgmt-backend:1.0.0 -o /tmp/backend-1.0.0.tar"
           become: no
 
         - name: Export v1.0.0 frontend image
-          command: podman save localhost/orgmgmt-frontend:1.0.0 -o /tmp/frontend-1.0.0.tar
+          command: "{{ container_cmd }} save localhost/orgmgmt-frontend:1.0.0 -o /tmp/frontend-1.0.0.tar"
           become: no
 
         - name: Export v1.1.0 backend image
-          command: podman save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend-1.1.0.tar
+          command: "{{ container_cmd }} save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend-1.1.0.tar"
           become: no
 
         - name: Export v1.1.0 frontend image
-          command: podman save localhost/orgmgmt-frontend:1.1.0 -o /tmp/frontend-1.1.0.tar
+          command: "{{ container_cmd }} save localhost/orgmgmt-frontend:1.1.0 -o /tmp/frontend-1.1.0.tar"
           become: no
 
         - name: Import v1.0.0 images to K3s
