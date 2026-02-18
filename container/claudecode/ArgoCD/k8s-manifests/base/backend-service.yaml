@@ -9,7 +9,7 @@ metadata:
 spec:
   type: LoadBalancer
   externalIPs:
-  - 10.0.1.200
+  - 10.0.1.84
   sessionAffinity: ClientIP
   sessionAffinityConfig:
     clientIP:

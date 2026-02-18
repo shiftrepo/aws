@@ -1,8 +1,7 @@
 ---
 # ArgoCD Application マニフェスト
-# このファイルは ansible/templates/argocd-application.yaml.j2 から自動生成されます
-# ansible/config/environment.yml の値を変更してください
-# 手動で編集した場合、次回デプロイ時に environment.yml の値で上書きされます
+# ansible/config/environment.yml の設定から Ansible が自動生成します
+# このファイルは直接編集しないでください
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
