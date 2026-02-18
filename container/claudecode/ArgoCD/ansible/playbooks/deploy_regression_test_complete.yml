@@ -100,6 +100,12 @@
             executable: /bin/bash
           become: no
 
+        - name: Install v1.0.0 frontend dependencies
+          command: npm install
+          args:
+            chdir: "{{ frontend_dir }}"
+          become: no
+
         - name: Build v1.0.0 frontend
           command: npm run build
           args:
@@ -148,6 +154,12 @@
             mvn clean package -Dmaven.test.skip=true
           args:
             executable: /bin/bash
+          become: no
+
+        - name: Install v1.1.0 frontend dependencies
+          command: npm install
+          args:
+            chdir: "{{ frontend_dir }}"
           become: no
 
         - name: Build v1.1.0 frontend
