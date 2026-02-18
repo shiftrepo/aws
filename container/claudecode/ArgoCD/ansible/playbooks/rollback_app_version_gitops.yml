@@ -31,6 +31,7 @@
         file: "{{ playbook_dir }}/../config/environment.yml"
         name: environment_config
 
+      tags: [always]
   tasks:
     # ========================================
     # Phase 1: 環境確認

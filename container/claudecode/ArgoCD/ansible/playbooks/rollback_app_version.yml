@@ -43,6 +43,7 @@
         file: "{{ playbook_dir }}/../config/environment.yml"
         name: environment_config
 
+      tags: [always]
   tasks:
     # ========================================
     # Phase 0: 環境確認とバージョン履歴取得
