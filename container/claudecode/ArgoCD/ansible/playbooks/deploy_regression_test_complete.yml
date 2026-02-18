@@ -237,7 +237,7 @@
     - name: "PHASE 4: Install K3s and ArgoCD"
       block:
         - name: Install K3s and ArgoCD
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
+          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
           args:
             chdir: "{{ project_root }}/ansible"
 
@@ -359,7 +359,7 @@
     - name: "PHASE 7: Upgrade to v1.1.0"
       block:
         - name: Run upgrade playbook
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
+          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
           args:
             chdir: "{{ project_root }}/ansible"
           register: upgrade_result
@@ -377,7 +377,7 @@
     - name: "PHASE 8: Rollback to v1.0.0"
       block:
         - name: Run rollback playbook
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e "target_version={{ environment_config.argocd.application.initial_version }}"
+          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e "target_version={{ environment_config.argocd.application.initial_version }}"
           args:
             chdir: "{{ project_root }}/ansible"
           register: rollback_result
@@ -395,7 +395,7 @@
     - name: "PHASE 9: Re-upgrade to v1.1.0"
       block:
         - name: Run re-upgrade playbook
-          command: ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
+          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
           args:
             chdir: "{{ project_root }}/ansible"
           register: reupgrade_result
