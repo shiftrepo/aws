@@ -56,6 +56,25 @@
             msg: "Using container runtime: {{ container_cmd }}"
       tags: [always]
 
+    - name: Detect ansible-playbook executable path
+      block:
+        - name: Find ansible-playbook binary
+          shell: |
+            which ansible-playbook 2>/dev/null ||             find /usr/local/bin /usr/bin /root/.local/bin /home -name ansible-playbook 2>/dev/null | head -1
+          register: ap_path
+          changed_when: false
+          failed_when: ap_path.stdout == ""
+          become: no
+
+        - name: Set ansible_playbook_cmd fact
+          set_fact:
+            ansible_playbook_cmd: "{{ ap_path.stdout }}"
+
+        - name: Display ansible-playbook path
+          debug:
+            msg: "Using ansible-playbook: {{ ansible_playbook_cmd }}"
+      tags: [always]
+
   tasks:
     # ========================================
     # Phase 0: 環境情報表示
@@ -268,7 +287,7 @@
     - name: "PHASE 4: Install K3s and ArgoCD"
       block:
         - name: Install K3s and ArgoCD
-          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
+          command: "{{ ansible_playbook_cmd }} {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml"
           args:
             chdir: "{{ project_root }}/ansible"
 
@@ -390,7 +409,7 @@
     - name: "PHASE 7: Upgrade to v1.1.0"
       block:
         - name: Run upgrade playbook
-          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
+          command: "{{ ansible_playbook_cmd }} {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e 'app_version={{ environment_config.application.version }}'"
           args:
             chdir: "{{ project_root }}/ansible"
           register: upgrade_result
@@ -408,7 +427,7 @@
     - name: "PHASE 8: Rollback to v1.0.0"
       block:
         - name: Run rollback playbook
-          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e "target_version={{ environment_config.argocd.application.initial_version }}"
+          command: "{{ ansible_playbook_cmd }} {{ project_root }}/ansible/playbooks/rollback_app_version_gitops.yml -e 'target_version={{ environment_config.argocd.application.initial_version }}'"
           args:
             chdir: "{{ project_root }}/ansible"
           register: rollback_result
@@ -426,7 +445,7 @@
     - name: "PHASE 9: Re-upgrade to v1.1.0"
       block:
         - name: Run re-upgrade playbook
-          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e "app_version={{ environment_config.application.version }}"
+          command: "{{ ansible_playbook_cmd }} {{ project_root }}/ansible/playbooks/deploy_app_version_gitops.yml -e 'app_version={{ environment_config.application.version }}'"
           args:
             chdir: "{{ project_root }}/ansible"
           register: reupgrade_result

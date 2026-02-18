@@ -54,6 +54,25 @@
             msg: "Using container runtime: {{ container_cmd }}"
       tags: [always]
 
+    - name: Detect ansible-playbook executable path
+      block:
+        - name: Find ansible-playbook binary
+          shell: |
+            which ansible-playbook 2>/dev/null ||             find /usr/local/bin /usr/bin /root/.local/bin /home -name ansible-playbook 2>/dev/null | head -1
+          register: ap_path
+          changed_when: false
+          failed_when: ap_path.stdout == ""
+          become: no
+
+        - name: Set ansible_playbook_cmd fact
+          set_fact:
+            ansible_playbook_cmd: "{{ ap_path.stdout }}"
+
+        - name: Display ansible-playbook path
+          debug:
+            msg: "Using ansible-playbook: {{ ansible_playbook_cmd }}"
+      tags: [always]
+
   tasks:
     # ========================================
     # Phase 0: 環境確認
@@ -79,7 +98,7 @@
           register: k3s_bin
 
         - name: Install K3s and ArgoCD
-          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml
+          command: "{{ ansible_playbook_cmd }} {{ project_root }}/ansible/playbooks/install_k3s_and_argocd.yml"
           args:
             chdir: "{{ project_root }}/ansible"
           when: not k3s_bin.stat.exists
@@ -124,7 +143,7 @@
           changed_when: false
 
         - name: Install build tools if not present
-          command: /usr/local/bin/ansible-playbook {{ project_root }}/ansible/playbooks/install_build_tools.yml
+          command: "{{ ansible_playbook_cmd }} {{ project_root }}/ansible/playbooks/install_build_tools.yml"
           args:
             chdir: "{{ project_root }}/ansible"
           when: maven_check.rc != 0
