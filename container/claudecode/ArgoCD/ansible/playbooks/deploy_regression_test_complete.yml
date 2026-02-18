@@ -15,9 +15,12 @@
   gather_facts: yes
 
   vars:
-    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    # ansible/config/environment.yml の directories.base_dir から取得
+    project_root: "{{ environment_config.directories.base_dir }}"
     backend_dir: "{{ project_root }}/app/backend"
     frontend_dir: "{{ project_root }}/app/frontend"
+    # externalIPsに使用するIP: environment.ymlで指定、空の場合は自動検出
+    effective_external_ip: "{{ environment_config.network.external_ip | default('') | trim }}"
     private_ip: "{{ ansible_default_ipv4.address }}"
     v1_0_0_tag: "argocd-regression-v1.0.0"
     v1_1_0_branch: "main"
@@ -165,6 +168,50 @@
 
       tags:
         - build-v1.1.0
+
+    # ========================================
+    # Phase 3.5: 環境依存マニフェストの準備
+    # ansible/config/environment.yml の設定を k8s マニフェストに反映
+    # ========================================
+    - name: "PHASE 3.5: Prepare Environment-Specific Manifests"
+      block:
+        - name: Resolve effective external IP
+          set_fact:
+            resolved_external_ip: "{{ effective_external_ip if effective_external_ip != '' else ansible_default_ipv4.address }}"
+
+        - name: Display resolved IP
+          debug:
+            msg: "Using externalIP: {{ resolved_external_ip }} (source: {{ 'environment.yml' if effective_external_ip != '' else 'auto-detected' }})"
+
+        - name: Patch externalIPs in backend-service.yaml
+          lineinfile:
+            path: "{{ project_root }}/k8s-manifests/base/backend-service.yaml"
+            regexp: '^\s*- \d+\.\d+\.\d+\.\d+\s*$'
+            line: "  - {{ resolved_external_ip }}"
+
+        - name: Patch externalIPs in frontend-service.yaml
+          lineinfile:
+            path: "{{ project_root }}/k8s-manifests/base/frontend-service.yaml"
+            regexp: '^\s*- \d+\.\d+\.\d+\.\d+\s*$'
+            line: "  - {{ resolved_external_ip }}"
+
+        - name: Generate argocd-application.yaml from template
+          template:
+            src: "{{ project_root }}/ansible/templates/argocd-application.yaml.j2"
+            dest: "{{ project_root }}/argocd-application.yaml"
+            mode: '0644'
+
+        - name: Display manifest preparation status
+          debug:
+            msg:
+              - "✅ Manifests prepared"
+              - "  externalIPs: {{ resolved_external_ip }}"
+              - "  repoURL: {{ environment_config.git.repository_url }}"
+              - "  branch: {{ environment_config.git.branch }}"
+              - "  manifests_path: {{ environment_config.git.manifests_path }}/v{{ environment_config.argocd.application.initial_version }}"
+
+      tags:
+        - prepare-manifests
 
     # ========================================
     # Phase 4: K3s + ArgoCD インストール

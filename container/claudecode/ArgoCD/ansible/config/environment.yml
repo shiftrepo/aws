@@ -1,0 +1,108 @@
+---
+# ========================================
+# 環境設定ファイル
+# Fedora環境ごとにこのファイルのみ変更してください
+# k8s マニフェストや argocd-application.yaml を直接編集する必要はありません
+# ========================================
+
+network:
+  # ホストのIPアドレス（Kubernetes ServiceのexternalIPsに使用）
+  # 空文字 "" の場合はAnsibleがansible_default_ipv4.addressを自動使用（推奨）
+  external_ip: ""
+  private_ip: ""
+  domain: ""
+
+directories:
+  # このプロジェクトのクローン先ディレクトリ（環境に合わせて変更）
+  base_dir: "/root/aws.git/container/claudecode/ArgoCD"
+  data_dir: "/var/lib/orgmgmt"
+  gitops_dir: "/root/aws.git/container/claudecode/ArgoCD/gitops"
+  kubectl_path: "/usr/local/bin/k3s"
+
+git:
+  # ArgoCDが参照するGitリポジトリ（フォーク先や別リポジトリの場合は変更）
+  repository_url: "https://github.com/shiftrepo/aws.git"
+  branch: "main"
+  manifests_path: "container/claudecode/ArgoCD/k8s-manifests/overlays"
+  user_name: "ArgoCD Deploy"
+  user_email: "argocd@example.com"
+
+argocd:
+  version: "v2.10.0"
+  namespace: "argocd"
+  application:
+    name: "orgmgmt-app"
+    initial_version: "1.0.0"
+    auto_sync: true
+    prune: true
+    self_heal: true
+
+ports:
+  frontend: 5006
+  backend: 8083
+  argocd_https: 8082
+  argocd_http: 8000
+  dashboard: 3000
+
+containers:
+  runtime: "podman"
+  network_name: "argocd-network"
+  registry:
+    url: "localhost"
+    insecure: true
+
+application:
+  name: "orgmgmt"
+  version: "1.1.0"
+  frontend:
+    image_name: "localhost/orgmgmt-frontend"
+    replicas: 2
+  backend:
+    image_name: "localhost/orgmgmt-backend"
+    replicas: 2
+
+database:
+  name: "orgmgmt"
+  user: "orgmgmt_user"
+  password: "SecurePassword123!"
+  postgres:
+    version: "16-alpine"
+
+authentication:
+  pgadmin:
+    email: "admin@orgmgmt.local"
+    password: "AdminPassword123!"
+  nexus:
+    username: "admin"
+    password: "admin123"
+
+kubernetes_dashboard:
+  version: "v2.7.0"
+  namespace: "kubernetes-dashboard"
+  admin_user: "admin-user"
+
+nexus:
+  version: "3.63.0"
+  repositories:
+    - name: "maven-snapshots"
+      type: "maven2"
+    - name: "npm-hosted"
+      type: "npm"
+
+features:
+  argocd_enabled: true
+  dashboard_enabled: true
+  nexus_enabled: false
+  monitoring_enabled: false
+  backup_enabled: false
+
+firewall:
+  enabled: true
+  service: "firewalld"
+  public_ports:
+    - "5006/tcp"
+    - "8083/tcp"
+    - "8082/tcp"
+    - "8000/tcp"
+    - "3000/tcp"
+  private_ports: []

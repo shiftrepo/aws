@@ -1,0 +1,37 @@
+---
+# ArgoCD Application マニフェスト
+# ansible/config/environment.yml の設定から Ansible が自動生成します
+# このファイルは直接編集しないでください
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ environment_config.argocd.application.name }}
+  namespace: {{ environment_config.argocd.namespace }}
+spec:
+  project: default
+  source:
+    repoURL: {{ environment_config.git.repository_url }}
+    targetRevision: {{ environment_config.git.branch }}
+    path: {{ environment_config.git.manifests_path }}/v{{ environment_config.argocd.application.initial_version }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: {{ environment_config.argocd.application.prune | string | lower }}
+      selfHeal: {{ environment_config.argocd.application.self_heal | string | lower }}
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+  # externalIPs はAnsibleが環境ごとに設定するため、ArgoCDの同期対象から除外
+  ignoreDifferences:
+    - group: ""
+      kind: Service
+      name: orgmgmt-backend
+      jsonPointers:
+        - /spec/externalIPs
+    - group: ""
+      kind: Service
+      name: orgmgmt-frontend
+      jsonPointers:
+        - /spec/externalIPs
