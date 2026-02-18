@@ -9,6 +9,8 @@ network:
   # ホストのIPアドレス（Kubernetes ServiceのexternalIPsに使用）
   # 空文字 "" の場合はAnsibleがansible_default_ipv4.addressを自動使用（推奨）
   external_ip: ""
+  # group_vars/all.yml の public_ip 変数へのマッピング用（通常はexternal_ipと同値）
+  public_ip: ""
   private_ip: ""
   domain: ""
 

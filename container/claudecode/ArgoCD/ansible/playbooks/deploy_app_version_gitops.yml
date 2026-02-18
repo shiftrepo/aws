@@ -19,10 +19,11 @@
   gather_facts: yes
 
   vars:
-    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    # ansible/config/environment.yml の directories.base_dir から取得
+    project_root: "{{ environment_config.directories.base_dir }}"
     private_ip: "{{ ansible_default_ipv4.address }}"
     version_history_file: "/root/app-version-history.txt"
-    app_version: "1.1.0"  # デフォルトバージョン
+    app_version: "1.1.0"  # デフォルトバージョン（-e app_version=x.x.x で上書き可能）
 
   tasks:
     # ========================================
@@ -68,7 +69,7 @@
         /usr/local/bin/k3s kubectl patch application orgmgmt-app
         -n argocd
         --type merge
-        -p '{"spec":{"source":{"path":"container/claudecode/ArgoCD/k8s-manifests/overlays/v{{ app_version }}"},"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+        -p '{"spec":{"source":{"path":"{{ environment_config.git.manifests_path }}/v{{ app_version }}"},"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
       register: argocd_patch
       changed_when: true
 
