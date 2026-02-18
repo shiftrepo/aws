@@ -5,6 +5,7 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 ## 目次
 
 - [概要](#概要)
+- [環境依存パラメータ](#環境依存パラメータ)
 - [Ansibleのインストール](#ansibleのインストール)
 - [クイックスタート](#クイックスタート)
 - [完全自動回帰テスト](#完全自動回帰テスト)
@@ -50,6 +51,149 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 
 **必要なソフトウェアはAnsibleが自動インストール**します：
 - K3s, ArgoCD, Maven, Node.js, Podman, socat
+
+## 環境依存パラメータ
+
+別のFedora環境で本プロジェクトを動かす際に変更が必要なパラメータを一覧化します。
+
+### 変更必須パラメータ
+
+環境ごとに必ず変更が必要な項目です。
+
+#### ネットワーク（IPアドレス）
+
+| パラメータ | デフォルト値 | 変更対象ファイル | 説明 |
+|-----------|------------|----------------|------|
+| `externalIPs` | `10.0.1.200` | `k8s-manifests/base/backend-service.yaml` | バックエンド外部公開IP |
+| `externalIPs` | `10.0.1.200` | `k8s-manifests/base/frontend-service.yaml` | フロントエンド外部公開IP |
+| `host` | `ec2-13-219-96-72.compute-1.amazonaws.com` | `k8s-manifests/base/frontend-ingress.yaml` | IngressのFQDN（DNS名） |
+
+変更方法（各サービスYAMLの `spec.externalIPs`）:
+```yaml
+spec:
+  externalIPs:
+    - 192.168.1.100   # ← 実際のホストIPに変更
+```
+
+#### Gitリポジトリ
+
+| パラメータ | デフォルト値 | 変更対象ファイル | 説明 |
+|-----------|------------|----------------|------|
+| `repoURL` | `https://github.com/shiftrepo/aws.git` | `argocd-application.yaml` | ArgoCDが参照するGitリポジトリURL |
+| `targetRevision` | `main` | `argocd-application.yaml` | 参照ブランチ |
+| `path` | `container/claudecode/ArgoCD/k8s-manifests/overlays/v1.0.0` | `argocd-application.yaml` | マニフェストのリポジトリ内パス |
+
+#### プロジェクトルートパス
+
+| パラメータ | デフォルト値 | 変更対象ファイル | 説明 |
+|-----------|------------|----------------|------|
+| `project_root` | `/root/aws.git/container/claudecode/ArgoCD` | `ansible/playbooks/deploy_app_version.yml` 他 | クローン先ディレクトリ |
+| `version_history_file` | `/root/app-version-history.txt` | 各Ansible playbook | バージョン履歴ファイルパス |
+| `kubeconfig_path` | `/etc/rancher/k3s/k3s.yaml` | `ansible/playbooks/install_k3s_and_argocd.yml` | K3s kubeconfigパス |
+
+---
+
+### 変更推奨パラメータ（セキュリティ）
+
+本番・検証環境では必ず変更してください。
+
+#### データベース認証情報
+
+同一の値が複数ファイルに存在します。すべて一致させる必要があります。
+
+| パラメータ | デフォルト値 | 変更対象ファイル |
+|-----------|------------|----------------|
+| `POSTGRES_USER` / `SPRING_DATASOURCE_USERNAME` | `orgmgmt_user` | `k8s-manifests/base/postgres-deployment.yaml`<br>`k8s-manifests/base/backend-deployment.yaml`<br>`app/backend/src/main/resources/application.yml` |
+| `POSTGRES_PASSWORD` / `SPRING_DATASOURCE_PASSWORD` | `SecurePassword123!` | 同上 |
+| `POSTGRES_DB` | `orgmgmt` | `k8s-manifests/base/postgres-deployment.yaml`<br>`app/backend/src/main/resources/application.yml` |
+
+---
+
+### 変更任意パラメータ（ポート番号）
+
+ポートが競合する場合のみ変更してください。
+
+#### 外部公開ポート
+
+| サービス | デフォルトポート | 変更対象ファイル |
+|---------|---------------|----------------|
+| Frontend | `5006` | `k8s-manifests/base/frontend-service.yaml`<br>`ansible/playbooks/deploy_k8s_complete.yml` |
+| Backend | `8083` | `k8s-manifests/base/backend-service.yaml`<br>`ansible/playbooks/deploy_k8s_complete.yml` |
+| ArgoCD HTTPS | `8082` | `ansible/playbooks/install_k3s_and_argocd.yml`<br>`ansible/playbooks/deploy_k8s_complete.yml` |
+| ArgoCD HTTP | `8000` | 同上 |
+| K8s Dashboard | `3000` | `ansible/playbooks/deploy_k8s_complete.yml` |
+
+#### 内部ポート（通常変更不要）
+
+| サービス | ポート | 備考 |
+|---------|--------|------|
+| Backend (コンテナ内) | `8080` | `app/backend/src/main/resources/application.yml` |
+| Frontend / Nginx (コンテナ内) | `80` | `app/frontend/Dockerfile` |
+| PostgreSQL | `5432` | K8s内部通信 |
+| Redis | `6379` | K8s内部通信 |
+
+---
+
+### 変更任意パラメータ（バージョン）
+
+使用するミドルウェアのバージョンを変更する場合に編集してください。
+
+| ソフトウェア | デフォルト値 | 変更対象ファイル |
+|------------|------------|----------------|
+| K3s | `v1.34.3+k3s1` | `ansible/playbooks/install_k3s_and_argocd.yml` |
+| ArgoCD | `v2.10.0` | `ansible/playbooks/install_k3s_and_argocd.yml` |
+| PostgreSQL イメージ | `postgres:16-alpine` | `k8s-manifests/base/postgres-deployment.yaml` |
+| Redis イメージ | `redis:7-alpine` | `k8s-manifests/base/redis-deployment.yaml` |
+| Java (Backend ベースイメージ) | `eclipse-temurin:21-jre-alpine` | `app/backend/Dockerfile` |
+| Maven | `3.9.6` | `ansible/playbooks/install_build_tools.yml` |
+| Node.js | `20` | `ansible/playbooks/install_build_tools.yml` |
+
+---
+
+### 変更任意パラメータ（リソース制限）
+
+ホストのスペックに合わせて調整してください。
+
+| コンポーネント | requests (CPU/Memory) | limits (CPU/Memory) | 変更対象ファイル |
+|-------------|----------------------|--------------------|----|
+| Backend | `250m` / `256Mi` | `500m` / `512Mi` | `k8s-manifests/base/backend-deployment.yaml` |
+| Frontend | `100m` / `64Mi` | `200m` / `128Mi` | `k8s-manifests/base/frontend-deployment.yaml` |
+| PostgreSQL | `-` / `256Mi` | `-` / `512Mi` | `k8s-manifests/base/postgres-deployment.yaml` |
+| JVM (Backend) | `-Xms256m` | `-Xmx512m` | `app/backend/Dockerfile` |
+
+---
+
+### 別環境へのデプロイ手順（チェックリスト）
+
+新しいFedora環境にデプロイする際の手順です。
+
+```
+[ ] 1. リポジトリをクローン
+       git clone <repoURL> /root/aws.git
+
+[ ] 2. IPアドレスを変更
+       k8s-manifests/base/backend-service.yaml  → externalIPs
+       k8s-manifests/base/frontend-service.yaml → externalIPs
+
+[ ] 3. Ingressホスト名を変更（DNS名でアクセスする場合）
+       k8s-manifests/base/frontend-ingress.yaml → host
+
+[ ] 4. argocd-application.yaml を変更
+       repoURL       → 自環境のGitリポジトリURL
+       targetRevision → 使用するブランチ名
+
+[ ] 5. DBパスワードを変更（本番環境の場合）
+       k8s-manifests/base/postgres-deployment.yaml
+       k8s-manifests/base/backend-deployment.yaml
+       app/backend/src/main/resources/application.yml
+
+[ ] 6. Ansibleをインストール（未インストールの場合）
+       sudo dnf install -y ansible
+
+[ ] 7. 完全自動回帰テストを実行
+       cd /root/aws.git/container/claudecode/ArgoCD/ansible
+       ansible-playbook playbooks/deploy_regression_test_complete.yml
+```
 
 ## Ansibleのインストール
 
