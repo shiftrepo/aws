@@ -23,11 +23,12 @@
   gather_facts: yes
 
   vars:
-    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    # ansible/config/environment.yml から取得
+    project_root: "{{ environment_config.directories.base_dir }}"
     backend_dir: "{{ project_root }}/app/backend"
     frontend_dir: "{{ project_root }}/app/frontend"
     k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
-    app_version: "1.1.0"  # デフォルトバージョン（-e で上書き可能）
+    app_version: "{{ environment_config.application.version }}"  # デフォルトバージョン（-e で上書き可能）
     private_ip: "{{ ansible_default_ipv4.address }}"
     version_history_file: "/root/app-version-history.txt"
 
@@ -321,7 +322,7 @@
 
         - name: Wait for backend health check
           uri:
-            url: "http://{{ private_ip }}:8083/actuator/health"
+            url: "http://{{ private_ip }}:{{ environment_config.ports.backend }}/actuator/health"
             status_code: 200
             timeout: 5
           register: backend_health
@@ -331,7 +332,7 @@
 
         - name: Wait for frontend to respond
           uri:
-            url: "http://{{ private_ip }}:5006/"
+            url: "http://{{ private_ip }}:{{ environment_config.ports.frontend }}/"
             status_code: 200
             timeout: 5
           register: frontend_health
@@ -341,7 +342,7 @@
 
         - name: Get system info from backend API
           uri:
-            url: "http://{{ private_ip }}:8083/api/system/info"
+            url: "http://{{ private_ip }}:{{ environment_config.ports.backend }}/api/system/info"
             method: GET
             return_content: yes
           register: system_info
@@ -464,12 +465,12 @@
           - "✅ ArgoCD Synced"
           - ""
           - "Access URLs:"
-          - "  Frontend:     http://{{ private_ip }}:5006"
-          - "  Backend API:  http://{{ private_ip }}:8083"
-          - "  System Info:  http://{{ private_ip }}:8083/api/system/info"
+          - "  Frontend:     http://{{ private_ip }}:{{ environment_config.ports.frontend }}"
+          - "  Backend API:  http://{{ private_ip }}:{{ environment_config.ports.backend }}"
+          - "  System Info:  http://{{ private_ip }}:{{ environment_config.ports.backend }}/api/system/info"
           - ""
           - "Next Steps:"
-          - "  1. Access frontend: http://{{ private_ip }}:5006"
+          - "  1. Access frontend: http://{{ private_ip }}:{{ environment_config.ports.frontend }}"
           - "  2. Check 'System Information' card on homepage"
           - "  3. Verify Pod names and session tracking"
           - "  4. Test application functionality"

@@ -27,7 +27,8 @@
   gather_facts: yes
 
   vars:
-    project_root: "/root/aws.git/container/claudecode/ArgoCD"
+    # ansible/config/environment.yml から取得
+    project_root: "{{ environment_config.directories.base_dir }}"
     backend_dir: "{{ project_root }}/app/backend"
     frontend_dir: "{{ project_root }}/app/frontend"
     k8s_manifests_dir: "{{ project_root }}/k8s-manifests"
@@ -417,7 +418,7 @@
       block:
         - name: Wait for backend health check
           uri:
-            url: "http://{{ private_ip }}:8083/actuator/health"
+            url: "http://{{ private_ip }}:{{ environment_config.ports.backend }}/actuator/health"
             status_code: 200
             timeout: 5
           register: backend_health
@@ -427,7 +428,7 @@
 
         - name: Wait for frontend to respond
           uri:
-            url: "http://{{ private_ip }}:5006/"
+            url: "http://{{ private_ip }}:{{ environment_config.ports.frontend }}/"
             status_code: 200
             timeout: 5
           register: frontend_health
@@ -437,7 +438,7 @@
 
         - name: Get system info from backend API
           uri:
-            url: "http://{{ private_ip }}:8083/api/system/info"
+            url: "http://{{ private_ip }}:{{ environment_config.ports.backend }}/api/system/info"
             method: GET
             return_content: yes
           register: system_info
@@ -500,9 +501,9 @@
           - "✅ Version History Updated"
           - ""
           - "Access URLs:"
-          - "  Frontend:     http://{{ private_ip }}:5006"
-          - "  Backend API:  http://{{ private_ip }}:8083"
-          - "  System Info:  http://{{ private_ip }}:8083/api/system/info"
+          - "  Frontend:     http://{{ private_ip }}:{{ environment_config.ports.frontend }}"
+          - "  Backend API:  http://{{ private_ip }}:{{ environment_config.ports.backend }}"
+          - "  System Info:  http://{{ private_ip }}:{{ environment_config.ports.backend }}/api/system/info"
           - ""
           - "Verification:"
           - "  1. Access frontend and check System Information card"

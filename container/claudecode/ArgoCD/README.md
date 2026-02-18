@@ -63,14 +63,28 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 k8s マニフェスト・`argocd-application.yaml` を直接編集する必要はありません。Ansible が `environment.yml` の値を自動的に反映します。
 
 ```
-ansible/config/environment.yml       ← 環境ごとに編集するファイル（唯一）
+ansible/config/environment.yml            ← 環境ごとに編集するファイル（唯一）
         │
-        ├─ network.external_ip        → k8s-manifests/base/backend-service.yaml (externalIPs) へ自動反映
-        │                             → k8s-manifests/base/frontend-service.yaml (externalIPs) へ自動反映
-        ├─ git.repository_url         → argocd-application.yaml (repoURL) へ自動生成
-        ├─ git.branch                 → argocd-application.yaml (targetRevision) へ自動生成
-        ├─ git.manifests_path         → argocd-application.yaml (path) へ自動生成
-        └─ directories.base_dir       → 各 playbook の project_root へ自動反映
+        ├─ network.external_ip            → backend-service.yaml / frontend-service.yaml (externalIPs) へ自動反映
+        ├─ git.repository_url             → argocd-application.yaml (repoURL) へ自動生成
+        ├─ git.branch                     → argocd-application.yaml (targetRevision) へ自動生成
+        ├─ git.manifests_path             → argocd-application.yaml (path) へ自動生成 / playbook の ArgoCD patch へ反映
+        ├─ directories.base_dir           → 全 playbook の project_root へ自動反映
+        ├─ application.version            → 全 playbook の app_version デフォルト値へ自動反映
+        ├─ kubernetes.k3s_version         → install_k3s_and_argocd.yml の k3s_version へ自動反映
+        ├─ argocd.version                 → install_k3s_and_argocd.yml の argocd_version へ自動反映
+        ├─ argocd.namespace               → install_k3s_and_argocd.yml の argocd_namespace へ自動反映
+        ├─ ports.argocd_http/https        → install_k3s_and_argocd.yml の ArgoCD Service ポートへ自動反映
+        ├─ ports.backend / ports.frontend → 全 playbook のヘルスチェック URL へ自動反映
+        └─ directories.kubeconfig_path    → install_k3s_and_argocd.yml の kubeconfig_path へ自動反映
+
+【直接編集が必要な項目（environment.yml から自動反映されない）】
+        ├─ database.*         → k8s-manifests/base/postgres-deployment.yaml
+        │                     → k8s-manifests/base/backend-deployment.yaml
+        │                     → app/backend/src/main/resources/application.yml
+        ├─ ports.* (Service)  → k8s-manifests/base/backend-service.yaml (port: 8083)
+        │                     → k8s-manifests/base/frontend-service.yaml (port: 5006)
+        └─ Redis イメージ     → k8s-manifests/base/redis-deployment.yaml
 ```
 
 ---
@@ -160,7 +174,8 @@ database:
 | `ports.argocd_http` | `8000` | ArgoCD HTTP ポート |
 | `ports.dashboard` | `3000` | Kubernetes Dashboard ポート |
 
-> **注意**: `ports.*` の値は現時点では k8s サービスマニフェストへ自動反映されません。変更する場合は `k8s-manifests/base/backend-service.yaml`・`frontend-service.yaml` および `ansible/playbooks/install_k3s_and_argocd.yml` も直接編集してください。
+> **自動反映される範囲**: ヘルスチェック URL・ArgoCD Service ポート・iptables ルール対象ポートは `environment.yml` の値が playbook に反映されます。
+> **直接編集が必要な箇所**: k8s Service マニフェストのポート番号（`backend-service.yaml` の `port: 8083`・`frontend-service.yaml` の `port: 5006`）は `environment.yml` から自動反映されません。変更する場合はこれらのファイルも直接編集してください。
 
 #### 内部ポート（変更不要）
 
