@@ -295,7 +295,6 @@
           retries: 60
           delay: 10
           until: k3s_nodes.rc == 0
-          failed_when: false
 
         - name: Display K3s installation status
           debug:

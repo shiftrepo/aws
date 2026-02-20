@@ -79,7 +79,6 @@
           delay: 10
           until: k3s_nodes.rc == 0
           changed_when: false
-          failed_when: false
 
       tags:
         - k3s

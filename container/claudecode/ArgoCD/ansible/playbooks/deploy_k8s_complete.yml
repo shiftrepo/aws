@@ -106,20 +106,22 @@
         - name: Wait for K3s to be ready
           command: /usr/local/bin/k3s kubectl get nodes
           register: k3s_nodes
-          until: "'Ready' in k3s_nodes.stdout"
+          until: k3s_nodes.rc == 0 and 'Ready' in k3s_nodes.stdout
           retries: 60
           delay: 10
           changed_when: false
-          failed_when: false
 
         - name: Wait for ArgoCD pods to be ready
-          shell: /usr/local/bin/k3s kubectl get pods -n argocd --no-headers 2>/dev/null | grep -v Running | wc -l
+          shell: |
+            set -o pipefail
+            /usr/local/bin/k3s kubectl get pods -n argocd --no-headers | grep -v Running | wc -l
+          args:
+            executable: /bin/bash
           register: argocd_status
-          until: argocd_status.stdout | trim == "0"
+          until: argocd_status.rc == 0 and argocd_status.stdout | trim == "0"
           retries: 90
           delay: 10
           changed_when: false
-          failed_when: false
 
         - name: Display K3s and ArgoCD status
           debug:
