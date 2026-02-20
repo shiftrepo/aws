@@ -287,22 +287,20 @@
           changed_when: false
 
         - name: Open Gitea HTTP port in firewalld
-          firewalld:
-            port: "{{ gitea_port }}/tcp"
-            permanent: yes
-            state: enabled
-            immediate: yes
+          shell: |
+            firewall-cmd --permanent --add-port={{ gitea_port }}/tcp
+            firewall-cmd --reload
           when: firewalld_status.stdout == 'active'
           failed_when: false
+          changed_when: false
 
         - name: Open Gitea SSH port in firewalld
-          firewalld:
-            port: "{{ gitea_ssh_port }}/tcp"
-            permanent: yes
-            state: enabled
-            immediate: yes
+          shell: |
+            firewall-cmd --permanent --add-port={{ gitea_ssh_port }}/tcp
+            firewall-cmd --reload
           when: firewalld_status.stdout == 'active'
           failed_when: false
+          changed_when: false
 
         - name: Display firewall status
           debug:
