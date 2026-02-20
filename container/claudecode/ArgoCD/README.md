@@ -1,6 +1,6 @@
 # Organization Management System - ArgoCD GitOps Deployment
 
-Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システムの完全自動デプロイメント・バージョン管理
+Kubernetes（K3s）+ ArgoCD GitOps + Kustomize + Gitea による組織管理システムの完全自動デプロイメント・バージョン管理
 
 ## 目次
 
@@ -8,11 +8,13 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 - [環境依存パラメータ](#環境依存パラメータ)
 - [Ansibleのインストール](#ansibleのインストール)
 - [クイックスタート](#クイックスタート)
+- [Gitea Git サーバー](#gitea-git-サーバー)
 - [完全自動回帰テスト](#完全自動回帰テスト)
 - [GitOpsバージョン管理](#gitopsバージョン管理)
 - [サービス一覧](#サービス一覧)
 - [アクセス方法](#アクセス方法)
 - [アーキテクチャ](#アーキテクチャ)
+- [Playbook一覧](#playbook一覧)
 - [主要コマンド](#主要コマンド)
 - [スクラップビルド（完全削除と再構築）](#スクラップビルド完全削除と再構築)
 - [トラブルシューティング](#トラブルシューティング)
@@ -24,8 +26,10 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 
 - **完全自動化**: 1コマンドで環境削除→構築→回帰テスト実行
 - **GitOps準拠**: Kustomize overlaysによる宣言的バージョン管理
+- **Gitea統合**: オンプレミス Git サーバーを Ansible で自動構築・管理
 - **両バージョン対応**: v1.0.0とv1.1.0を自動ビルド・インポート
 - **ゼロダウンタイム**: ローリングアップデートによる無停止デプロイ
+- **コンテナランタイム切替**: Docker / Podman を設定ファイル1行で切替可能
 - **完全なポータビリティ**: どの環境でも同一の手順で実行可能
 
 ### システム構成
@@ -35,6 +39,7 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 | **K3s** | v1.34.3 | 軽量Kubernetesディストリビューション |
 | **ArgoCD** | v2.10.0 | GitOps継続的デプロイメント |
 | **Kustomize** | Built-in | Kubernetes ネイティブ構成管理 |
+| **Gitea** | 1.22 | オンプレミス Git サーバー（Podman コンテナ） |
 | **PostgreSQL** | 16-alpine | リレーショナルデータベース |
 | **Redis** | 7-alpine | セッション管理・キャッシュ |
 | **Backend** | Spring Boot 3.2.1 + Java 21 | REST API (2レプリカ) |
@@ -52,57 +57,35 @@ Kubernetes（K3s）+ ArgoCD GitOps + Kustomizeによる組織管理システム�
 
 **必要なソフトウェアはAnsibleが自動インストール**します：
 - K3s, ArgoCD, Java 21 (OpenJDK), Maven, Node.js, socat
-- コンテナランタイム: Docker または Podman（docker → podman の順で自動検出）
+- コンテナランタイム: Docker または Podman（`environment.yml` で選択）
 
 ## 環境依存パラメータ
-
-別のFedora環境で本プロジェクトを動かす際に変更が必要なパラメータを一覧化します。
 
 ### 設定ファイルの構造
 
 **`ansible/config/environment.yml` を唯一の設定ファイルとして管理します。**
-k8s マニフェスト・`argocd-application.yaml` を直接編集する必要はありません。Ansible が `environment.yml` の値を自動的に反映します。
+k8s マニフェスト・`argocd-application.yaml` を直接編集する必要はありません。
 
 ```
 ansible/config/environment.yml            ← 環境ごとに編集するファイル（唯一）
         │
-        ├─ network.external_ip            → backend-service.yaml / frontend-service.yaml (externalIPs) へ自動反映
-        ├─ git.repository_url             → argocd-application.yaml (repoURL) へ自動生成
-        ├─ git.branch                     → argocd-application.yaml (targetRevision) へ自動生成
-        ├─ git.manifests_path             → argocd-application.yaml (path) へ自動生成 / playbook の ArgoCD patch へ反映
-        ├─ directories.base_dir           → 全 playbook の project_root へ自動反映
-        ├─ application.version            → 全 playbook の app_version デフォルト値へ自動反映
-        ├─ kubernetes.k3s_version         → install_k3s_and_argocd.yml の k3s_version へ自動反映
-        ├─ argocd.version                 → install_k3s_and_argocd.yml の argocd_version へ自動反映
-        ├─ argocd.namespace               → install_k3s_and_argocd.yml の argocd_namespace へ自動反映
-        ├─ ports.argocd_http/https        → install_k3s_and_argocd.yml の ArgoCD Service ポートへ自動反映
-        ├─ ports.backend / ports.frontend → 全 playbook のヘルスチェック URL へ自動反映
-        ├─ directories.kubeconfig_path    → install_k3s_and_argocd.yml の kubeconfig_path へ自動反映
-        └─ directories.version_history_file → 全 playbook のバージョン履歴ファイルパスへ自動反映
-
-【直接編集が必要な項目（environment.yml から自動反映されない）】
-        ├─ database.*         → k8s-manifests/base/postgres-deployment.yaml
-        │                     → k8s-manifests/base/backend-deployment.yaml
-        │                     → app/backend/src/main/resources/application.yml
-        ├─ ports.* (Service)  → k8s-manifests/base/backend-service.yaml (port: 8083)
-        │                     → k8s-manifests/base/frontend-service.yaml (port: 5006)
-        └─ Redis イメージ     → k8s-manifests/base/redis-deployment.yaml
+        ├─ network.external_ip            → backend-service.yaml / frontend-service.yaml (externalIPs)
+        ├─ git.repository_url             → argocd-application.yaml (repoURL)
+        ├─ git.branch                     → argocd-application.yaml (targetRevision)
+        ├─ directories.base_dir           → 全 playbook の project_root
+        ├─ application.version            → 全 playbook の app_version デフォルト値
+        ├─ kubernetes.k3s_version         → K3s バージョン
+        ├─ argocd.version                 → ArgoCD バージョン
+        ├─ containers.runtime             → "podman" または "docker" で切替
+        ├─ features.gitea_enabled         → true で Gitea を有効化
+        └─ gitea.*                        → Gitea のバージョン・ポート・認証情報
 ```
-
----
 
 ### 変更必須パラメータ
 
-環境ごとに必ず確認・変更が必要な項目です。すべて `ansible/config/environment.yml` で設定します。
-
 #### ネットワーク（IPアドレス）
 
-| キー | デフォルト値 | 説明 |
-|-----|------------|------|
-| `network.external_ip` | `""` （空 = 自動検出） | ホストのIPアドレス。Kubernetes ServiceのexternalIPsに使用。空文字の場合はAnsibleが `ansible_default_ipv4.address` を自動使用 |
-
 ```yaml
-# ansible/config/environment.yml
 network:
   external_ip: ""          # 空 = 自動検出（推奨）
   # external_ip: "192.168.1.100"  # 固定したい場合は明記
@@ -110,63 +93,59 @@ network:
 
 #### プロジェクトパス
 
-| キー | デフォルト値 | 説明 |
-|-----|------------|------|
-| `directories.base_dir` | `/root/aws.git/container/claudecode/ArgoCD` | リポジトリのクローン先。`/root/aws.git` 以外にクローンした場合は変更 |
-
 ```yaml
-# ansible/config/environment.yml
 directories:
   base_dir: "/root/aws.git/container/claudecode/ArgoCD"
 ```
 
 #### Gitリポジトリ
 
-| キー | デフォルト値 | 説明 |
-|-----|------------|------|
-| `git.repository_url` | `https://github.com/shiftrepo/aws.git` | ArgoCDが参照するGitリポジトリURL。フォーク先の場合は変更 |
-| `git.branch` | `main` | 参照ブランチ |
-| `git.manifests_path` | `container/claudecode/ArgoCD/k8s-manifests/overlays` | リポジトリ内のマニフェストパス（通常変更不要） |
-
 ```yaml
-# ansible/config/environment.yml
 git:
   repository_url: "https://github.com/shiftrepo/aws.git"
   branch: "main"
   manifests_path: "container/claudecode/ArgoCD/k8s-manifests/overlays"
 ```
 
----
+### コンテナランタイムの選択
+
+Docker と Podman を設定ファイル1行で切り替えられます。
+
+```yaml
+containers:
+  runtime: "podman"   # "docker" に変更すると Docker を使用
+```
+
+> この環境では `/usr/bin/docker` は Podman へのラッパーです。`runtime: "docker"` でも実体は Podman が動作します。
+
+### Gitea 設定
+
+```yaml
+features:
+  gitea_enabled: true    # false にすると install_gitea.yml / start_all.yml で Gitea をスキップ
+
+gitea:
+  version: "1.22"
+  port: 3001             # Web UI ポート
+  ssh_port: 2222         # SSH ポート
+  data_dir: "/var/lib/gitea"
+  container_name: "gitea"
+  admin:
+    username: "gitea_admin"
+    password: "GiteaAdmin123!"
+    email: "admin@gitea.local"
+```
 
 ### 変更推奨パラメータ（セキュリティ）
 
-本番・検証環境では必ず変更してください。すべて `ansible/config/environment.yml` で設定します。
-
-#### データベース認証情報
-
-| キー | デフォルト値 | 反映先ファイル |
-|-----|------------|--------------|
-| `database.user` | `orgmgmt_user` | `k8s-manifests/base/postgres-deployment.yaml`<br>`k8s-manifests/base/backend-deployment.yaml` |
-| `database.password` | `SecurePassword123!` | 同上および `app/backend/src/main/resources/application.yml` |
-| `database.name` | `orgmgmt` | 同上 |
-
-> **注意**: `database.*` の値は現時点では `environment.yml` から k8s マニフェストへ自動反映されません。変更する場合は上記3ファイルも直接編集してください。
-
 ```yaml
-# ansible/config/environment.yml
 database:
   name: "orgmgmt"
   user: "orgmgmt_user"
-  password: "SecurePassword123!"   # ← 本番環境では必ず変更
+  password: "SecurePassword123!"   # 本番環境では必ず変更
 ```
 
----
-
 ### 変更任意パラメータ（ポート番号）
-
-ポートが競合する場合のみ変更してください。
-
-#### 外部公開ポート（`environment.yml` で管理）
 
 | キー | デフォルト値 | 説明 |
 |-----|------------|------|
@@ -175,222 +154,184 @@ database:
 | `ports.argocd_https` | `8082` | ArgoCD HTTPS ポート |
 | `ports.argocd_http` | `8000` | ArgoCD HTTP ポート |
 | `ports.dashboard` | `3000` | Kubernetes Dashboard ポート |
-
-> **自動反映される範囲**: ヘルスチェック URL・ArgoCD Service ポート・iptables ルール対象ポートは `environment.yml` の値が playbook に反映されます。
-> **直接編集が必要な箇所**: k8s Service マニフェストのポート番号（`backend-service.yaml` の `port: 8083`・`frontend-service.yaml` の `port: 5006`）は `environment.yml` から自動反映されません。変更する場合はこれらのファイルも直接編集してください。
-
-#### 内部ポート（変更不要）
-
-| サービス | ポート | 参照先 |
-|---------|--------|--------|
-| Backend (コンテナ内) | `8080` | `app/backend/src/main/resources/application.yml` |
-| Frontend / Nginx (コンテナ内) | `80` | `app/frontend/Dockerfile` |
-| PostgreSQL | `5432` | K8s内部通信 |
-| Redis | `6379` | K8s内部通信 |
-
----
-
-### 変更任意パラメータ（バージョン）
-
-使用するミドルウェアのバージョンを変更する場合に編集してください。
-
-| キー | デフォルト値 | 反映先 |
-|-----|------------|--------|
-| `kubernetes.k3s_version` | `v1.34.3+k3s1` | `ansible/config/environment.yml` → `install_k3s_and_argocd.yml` へ自動反映 |
-| `argocd.version` | `v2.10.0` | `ansible/config/environment.yml` → `install_k3s_and_argocd.yml` へ自動反映 |
-| `database.postgres.version` | `16-alpine` | `ansible/config/environment.yml` に記載。ただし `k8s-manifests/base/postgres-deployment.yaml` も直接編集が必要 |
-| Redis イメージ | `7-alpine` | `k8s-manifests/base/redis-deployment.yaml` を直接編集 |
-| Java ベースイメージ（実行環境） | `eclipse-temurin:21-jre-alpine` | `app/backend/Dockerfile` を直接編集 |
-
----
-
-### 変更任意パラメータ（リソース制限）
-
-ホストのスペックに合わせて調整してください。`k8s-manifests/base/` を直接編集します。
-
-| コンポーネント | requests (CPU/Memory) | limits (CPU/Memory) | 変更対象ファイル |
-|-------------|----------------------|--------------------|----|
-| Backend | `250m` / `256Mi` | `500m` / `512Mi` | `k8s-manifests/base/backend-deployment.yaml` |
-| Frontend | `100m` / `64Mi` | `200m` / `128Mi` | `k8s-manifests/base/frontend-deployment.yaml` |
-| PostgreSQL | `-` / `256Mi` | `-` / `512Mi` | `k8s-manifests/base/postgres-deployment.yaml` |
-| JVM (Backend) | `-Xms256m` | `-Xmx512m` | `app/backend/Dockerfile` |
-
----
+| `gitea.port` | `3001` | Gitea Web UI ポート |
+| `gitea.ssh_port` | `2222` | Gitea SSH ポート |
 
 ### 別環境へのデプロイ手順（チェックリスト）
-
-新しいFedora環境にデプロイする際の手順です。
 
 ```
 [ ] 1. リポジトリをクローン
        git clone https://github.com/shiftrepo/aws.git /root/aws.git
 
-[ ] 2. ansible/config/environment.yml を編集（唯一の設定ファイル）
-       - directories.base_dir : クローン先が /root/aws.git 以外の場合は変更
-       - network.external_ip  : 固定IPにしたい場合のみ設定（空 = 自動検出）
-       - git.repository_url   : フォーク先リポジトリの場合は変更
-       - database.password    : 本番環境では必ず変更
+[ ] 2. ansible/config/environment.yml を編集
+       - directories.base_dir  : クローン先が /root/aws.git 以外の場合は変更
+       - network.external_ip   : 固定IPにしたい場合のみ設定（空 = 自動検出）
+       - git.repository_url    : フォーク先リポジトリの場合は変更
+       - database.password     : 本番環境では必ず変更
+       - features.gitea_enabled: Gitea を使う場合は true
 
-[ ] 3. Ansibleをインストール（未インストールの場合）
-       sudo pip3 install ansible        # ansible-playbook にインストールされる
-       # または Fedora の場合
-       sudo dnf install -y ansible      # /usr/bin/ansible-playbook にインストールされる
+[ ] 3. Ansible をインストール
+       sudo python3 -m pip install ansible
+       sudo ln -sf /usr/local/bin/ansible-playbook /usr/bin/ansible-playbook
 
-[ ] 4. ビルドツールをインストール（初回のみ）
+[ ] 4. 全サービスを一括起動
        cd /root/aws.git/container/claudecode/ArgoCD/ansible
-       ansible-playbook -i inventory/hosts.yml playbooks/install_build_tools.yml
-
-[ ] 5. 完全自動回帰テストを実行
-       cd /root/aws.git/container/claudecode/ArgoCD/ansible
-       ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
+       ansible-playbook -i inventory/hosts.yml playbooks/start_all.yml
 ```
 
 ## Ansibleのインストール
 
-Ansibleはすべての自動化playbook実行に必要です。FedoraベースのOSでの手順を示します。
-
-### Fedora
+### インストール（推奨: システム全体）
 
 ```bash
-# 標準リポジトリからインストール
-sudo dnf install -y ansible
+# pip3 でシステム全体にインストール（root権限必須）
+sudo python3 -m pip install ansible
+
+# PATH に追加（root で実行する場合は不要）
+sudo ln -sf /usr/local/bin/ansible-playbook /usr/bin/ansible-playbook
 
 # バージョン確認
-ansible --version
+ansible-playbook --version
 ```
 
-### Fedora / RHEL系（pip3を使用）
-
-特定バージョンのAnsibleが必要な場合やパッケージ版が古い場合はpip3を使用します。
+### インストール（dnf）
 
 ```bash
-# pip3のインストール
-sudo dnf install -y python3-pip
-
-# Ansibleインストール（ユーザーローカル）
-pip3 install --user ansible
-
-# PATHに追加
-echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-
-# バージョン確認
+sudo dnf install -y ansible
 ansible --version
 ```
 
 ### インストール確認
 
 ```bash
-# バージョン確認
-ansible --version
-# ansible [core 2.14.x]  (2.14以上推奨)
-
-# playbookコマンド確認
 ansible-playbook --version
+# ansible-playbook [core 2.15.x]
 
-# localhostへの接続テスト
 ansible localhost -m ping
 # localhost | SUCCESS => { "ping": "pong" }
 ```
 
 ### PATH の設定
 
-インストール方法によって `ansible-playbook` のパスが異なります。以下のいずれかで PATH に追加してください。
+| インストール方法 | バイナリパス |
+|--------------|------------|
+| `sudo python3 -m pip install ansible` | `/usr/local/bin/ansible-playbook` |
+| `sudo dnf install ansible` | `/usr/bin/ansible-playbook` |
+| `pip3 install --user ansible` | `~/.local/bin/ansible-playbook` |
 
-| インストール方法 | バイナリパス | PATH 追加コマンド |
-|--------------|------------|----------------|
-| `sudo dnf install ansible` | `/usr/bin/ansible-playbook` | 通常は自動で PATH に入る |
-| `sudo pip3 install ansible` | `/usr/local/bin/ansible-playbook` | `export PATH=/usr/local/bin:$PATH` |
-| `pip3 install --user ansible` | `~/.local/bin/ansible-playbook` | `export PATH=$HOME/.local/bin:$PATH` |
-
-```bash
-# 永続化する場合（~/.bashrc に追記）
-echo 'export PATH=/usr/local/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-
-# パスを確認
-which ansible-playbook
-```
-
-### 注意事項
-
-- Ansible **2.14以上**が必要です
-- rootユーザーまたはsudo権限が必要です
-- Python **3.9以上**が前提です（Fedoraはデフォルトで満たします）
+> **注意**: `pip3 install --user` でインストールした場合、root として実行する playbook から呼び出せないことがあります。システム全体へのインストール（`sudo pip3`）を推奨します。
 
 ## クイックスタート
 
 ### リポジトリクローン
 
 ```bash
-cd /root
-git clone https://github.com/shiftrepo/aws.git
-cd /root/aws.git/container/claudecode/ArgoCD
+git clone https://github.com/shiftrepo/aws.git /root/aws.git
+cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ```
 
-### 完全自動回帰テスト（推奨）
+### 全サービス一括起動（推奨）
 
-**前提条件: ビルドツールのインストール**（初回のみ）:
+K3s・ArgoCD・アプリ・Gitea をすべて一括で構築・起動します。
 
 ```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook -i inventory/hosts.yml playbooks/install_build_tools.yml
+ansible-playbook -i inventory/hosts.yml playbooks/start_all.yml
 ```
 
-**すべての操作を1コマンドで実行**:
+**実行内容**:
+1. `deploy_k8s_complete.yml` — K3s・ArgoCD・ビルド・デプロイ・socat
+2. `install_gitea.yml` — Gitea コンテナ起動・管理者ユーザー作成（`gitea_enabled: true` の場合）
+
+### 全サービス一括削除
 
 ```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
+# データ保持（再インストール用）
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml
+
+# データも含めて完全削除
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml -e "purge_data=true"
+
+# ビルドツール（Java/Maven/Node.js）も削除
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml \
+  -e "purge_data=true remove_build_tools=true"
+```
+
+### 完全自動回帰テスト
+
+```bash
 ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
 ```
 
-> **Note**: `ansible-playbook` コマンドが見つからない場合は PATH を確認してください（[Ansibleのインストール > PATH の設定](#path-の設定) 参照）。
+## Gitea Git サーバー
 
-**所要時間**: 約15-20分
+### 概要
 
-**実行内容**:
-1. **環境削除**: K3s、Podman、履歴ファイルの完全削除
-2. **v1.0.0ビルド**: Git tag `argocd-regression-v1.0.0` から自動ビルド
-3. **v1.1.0ビルド**: mainブランチから自動ビルド
-4. **K3s + ArgoCD構築**: 新規環境構築
-5. **イメージインポート**: v1.0.0とv1.1.0の両方をK3sにインポート
-6. **v1.0.0初期デプロイ**: Kustomize overlays/v1.0.0でデプロイ
-7. **アップグレードテスト**: v1.0.0 → v1.1.0 (GitOps)
-8. **ロールバックテスト**: v1.1.0 → v1.0.0 (GitOps)
-9. **再アップグレードテスト**: v1.0.0 → v1.1.0 (GitOps)
-10. **最終確認**: ステータス、履歴、サマリー表示
+Gitea はオンプレミスの Git サーバーです。Podman コンテナとして起動し、systemd で自動起動管理されます。`features.gitea_enabled` フラグで有効・無効を切り替えられます。
 
-**実行結果例**:
-```
-PLAY RECAP
-========
-localhost: ok=57  changed=39  unreachable=0  failed=0  skipped=1
+### 有効化
 
-ArgoCD Status: Synced/Healthy
-
-All Tests Passed:
-  ✅ v1.0.0 and v1.1.0 images built
-  ✅ K3s and ArgoCD installed
-  ✅ Initial v1.0.0 deployment
-  ✅ Upgrade v1.0.0 → v1.1.0
-  ✅ Rollback v1.1.0 → v1.0.0
-  ✅ Re-upgrade v1.0.0 → v1.1.0
+```yaml
+# ansible/config/environment.yml
+features:
+  gitea_enabled: true
 ```
 
-### 個別構築（詳細制御が必要な場合）
-
-#### 1. 初回環境構築のみ
+### 単独インストール・削除
 
 ```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook -i inventory/hosts.yml playbooks/install_k3s_and_argocd.yml
+# インストール（K3s が起動済みの状態でも単独追加可能）
+ansible-playbook -i inventory/hosts.yml playbooks/install_gitea.yml
+
+# 削除（データ保持）
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_gitea.yml
+
+# 完全削除（データも削除）
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_gitea.yml -e "purge_data=true"
 ```
 
-#### 2. アプリケーションデプロイのみ
+### バージョンアップ・バージョンダウン回帰テスト
+
+1つのプレイブックで「構築→バージョンアップ確認→バージョンダウン確認」まで自動検証します。
 
 ```bash
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_k8s_complete.yml
+# デフォルト: 1.21 → 1.22 → 1.21
+ansible-playbook -i inventory/hosts.yml playbooks/gitea_regression_test.yml
+
+# バージョン指定
+ansible-playbook -i inventory/hosts.yml playbooks/gitea_regression_test.yml \
+  -e "test_version_old=1.21 test_version_new=1.22"
 ```
+
+**テストフロー**:
+```
+Phase 1: 既存 Gitea 削除（クリーンスタート）
+Phase 2: 旧・新バージョン イメージ事前取得
+Phase 3: 旧バージョン (1.21) インストール
+Phase 4: 動作確認 + テストデータ作成（Org/Repo）
+Phase 5: バージョンアップ (1.21 → 1.22)
+Phase 6: 新バージョン確認 + データ保持確認
+Phase 7: バージョンダウン (1.22 → 1.21)
+Phase 8: 旧バージョン確認 + データ保持確認
+Phase 9: 全テスト結果サマリー
+```
+
+### アクセス情報
+
+| 項目 | 値（デフォルト） |
+|------|--------------|
+| Web UI | `http://<HOST_IP>:3001` |
+| SSH | `<HOST_IP>:2222` |
+| 管理者ユーザー | `gitea_admin` |
+| 管理者パスワード | `GiteaAdmin123!` |
+
+> パスワードは `ansible/config/environment.yml` の `gitea.admin.password` で変更できます。
+
+### 技術的注意事項
+
+- **SELinux**: ボリュームマウントに `:Z` フラグを使用（自動でコンテキストを設定）
+- **ディレクトリ権限**: コンテナ内 git ユーザー（UID 1000）でデータディレクトリを事前作成
+- **systemd**: `podman generate systemd` で自動起動サービスを生成（フォールバックあり）
+- **Docker 切替**: `runtime: "docker"` に変更すると `docker generate systemd` は非対応のためフォールバックで手動 systemd サービスを生成
 
 ## 完全自動回帰テスト
 
@@ -405,82 +346,34 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 
 ```
 Phase 1: 環境削除
-  └─> K3s uninstall
-  └─> Podman cleanup
-  └─> 履歴ファイル削除
+  └─> K3s uninstall / コンテナクリーンアップ / 履歴ファイル削除
 
 Phase 2-3: 両バージョンビルド
   └─> v1.0.0 (tag: argocd-regression-v1.0.0)
-      ├─> Backend Maven build
-      ├─> Frontend npm build
-      └─> Podman image build
   └─> v1.1.0 (branch: main)
-      ├─> Backend Maven build
-      ├─> Frontend npm build
-      └─> Podman image build
 
 Phase 4: K3s + ArgoCD構築
-  └─> K3s installation
-  └─> ArgoCD installation
-  └─> Wait for ready
 
 Phase 5: イメージインポート
-  └─> Export to tar files
-  └─> Import to K3s containerd
-  └─> Verify both versions
+  └─> v1.0.0 / v1.1.0 両方を K3s containerd へ
 
-Phase 6: v1.0.0初期デプロイ
-  └─> Apply Kustomize overlays/v1.0.0
-  └─> Wait for pods ready
-  └─> Apply ArgoCD Application
-  └─> Wait for sync
+Phase 6: v1.0.0 初期デプロイ
 
 Phase 7-9: バージョン変更テスト
-  └─> Upgrade v1.0.0 → v1.1.0 (GitOps)
-  └─> Rollback v1.1.0 → v1.0.0 (GitOps)
+  └─> Upgrade   v1.0.0 → v1.1.0 (GitOps)
+  └─> Rollback  v1.1.0 → v1.0.0 (GitOps)
   └─> Re-upgrade v1.0.0 → v1.1.0 (GitOps)
 
 Phase 10: 最終確認
-  └─> ArgoCD status
-  └─> Deployments
-  └─> Pods
-  └─> Version history
 ```
 
 ### タグベース実行
 
-特定のフェーズのみ実行する場合:
-
 ```bash
-# 環境削除のみ
 ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=cleanup
-
-# v1.0.0ビルドのみ
 ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=build-v1.0.0
-
-# v1.1.0ビルドのみ
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=build-v1.1.0
-
-# K3sインストールのみ
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=install-k3s
-
-# イメージインポートのみ
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=import-images
-
-# 初期デプロイのみ
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=deploy-v1.0.0
-
-# アップグレードテストのみ
 ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=upgrade-test
-
-# ロールバックテストのみ
 ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=rollback-test
-
-# 再アップグレードテストのみ
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=reupgrade-test
-
-# 最終確認のみ
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=verification
 ```
 
 ## GitOpsバージョン管理
@@ -490,67 +383,31 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 ```
 k8s-manifests/
 ├── base/                           # 共通ベース
-│   ├── backend-deployment.yaml     # image: latest (placeholder)
+│   ├── backend-deployment.yaml
 │   ├── backend-service.yaml
-│   ├── frontend-deployment.yaml    # image: latest (placeholder)
+│   ├── frontend-deployment.yaml
 │   ├── frontend-service.yaml
 │   ├── postgres-deployment.yaml
 │   ├── redis-deployment.yaml
 │   └── kustomization.yaml
-├── overlays/
-│   ├── v1.0.0/                     # v1.0.0環境
-│   │   └── kustomization.yaml     # newTag: "1.0.0"
-│   └── v1.1.0/                     # v1.1.0環境
-│       └── kustomization.yaml     # newTag: "1.1.0"
+└── overlays/
+    ├── v1.0.0/
+    │   └── kustomization.yaml     # newTag: "1.0.0"
+    └── v1.1.0/
+        └── kustomization.yaml     # newTag: "1.1.0"
 ```
-
-### バージョン変更の仕組み
-
-**GitOps方式** - ArgoCD Application pathの変更でバージョン切り替え:
-
-```bash
-# v1.0.0にロールバック
-kubectl patch application orgmgmt-app -n argocd --type merge \
-  -p '{"spec":{"source":{"path":"k8s-manifests/overlays/v1.0.0"}}}'
-
-# v1.1.0にアップグレード
-kubectl patch application orgmgmt-app -n argocd --type merge \
-  -p '{"spec":{"source":{"path":"k8s-manifests/overlays/v1.1.0"}}}'
-```
-
-**重要**: `kubectl set image`は使用しません（非GitOps準拠のため）。
 
 ### バージョンアップグレード（GitOps方式）
 
 ```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ansible-playbook -i inventory/hosts.yml playbooks/deploy_app_version_gitops.yml -e "app_version=1.1.0"
 ```
-
-**処理内容**:
-1. ArgoCD Application pathを`overlays/v1.1.0`に変更
-2. ArgoCD syncを自動トリガー
-3. Kustomizeが`newTag: "1.1.0"`を適用
-4. Deploymentがローリングアップデート
-5. Health checkで確認
-
-**所要時間**: 約2-3分
 
 ### バージョンロールバック（GitOps方式）
 
 ```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
 ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version_gitops.yml -e "target_version=1.0.0"
 ```
-
-**処理内容**:
-1. ArgoCD Application pathを`overlays/v1.0.0`に変更
-2. ArgoCD syncを自動トリガー
-3. Kustomizeが`newTag: "1.0.0"`を適用
-4. Deploymentがローリングアップデート
-5. Health checkで確認
-
-**所要時間**: 約2-3分
 
 ### バージョン履歴確認
 
@@ -558,125 +415,91 @@ ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version_gitops.ym
 cat /root/app-version-history.txt
 ```
 
-**出力例**:
-```
-2026-02-07T07:17:09Z | DEPLOY (GitOps) | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
-2026-02-07T07:17:09Z | ROLLBACK (GitOps) | 1.0.0 | Backend: localhost/orgmgmt-backend:1.0.0, Frontend: localhost/orgmgmt-frontend:1.0.0
-2026-02-07T07:17:09Z | DEPLOY (GitOps) | 1.1.0 | Backend: localhost/orgmgmt-backend:1.1.0, Frontend: localhost/orgmgmt-frontend:1.1.0
-```
-
-### Gitタグによるバージョン管理
-
-```bash
-# 利用可能なバージョンを確認
-git tag -l argocd-regression-v*
-
-# 出力例:
-# argocd-regression-v1.0.0  <- ベースバージョン
-# argocd-regression-v1.1.0  <- System Information機能追加
-```
-
 ## サービス一覧
 
-### アプリケーションサービス
+### アプリケーションサービス（K3s 内）
 
-| サービス名 | ポート | プロトコル | レプリカ | 説明 |
-|-----------|--------|-----------|---------|------|
-| **orgmgmt-frontend** | 5006 | HTTP | 2 | React Web UI（Nginx） |
-| **orgmgmt-backend** | 8083 | HTTP | 2 | Spring Boot REST API |
-| **postgres** | 5432 | TCP | 1 | PostgreSQL 16データベース |
-| **redis** | 6379 | TCP | 1 | Redis 7キャッシュ |
+| サービス名 | ポート | レプリカ | 説明 |
+|-----------|--------|---------|------|
+| **orgmgmt-frontend** | 5006 | 2 | React Web UI（Nginx） |
+| **orgmgmt-backend** | 8083 | 2 | Spring Boot REST API |
+| **postgres** | 5432 | 1 | PostgreSQL 16 |
+| **redis** | 6379 | 1 | Redis 7 キャッシュ |
 
-### 管理サービス
+### 管理サービス（K3s 内）
 
-| サービス名 | ポート | プロトコル | 説明 |
-|-----------|--------|-----------|------|
-| **ArgoCD Server** | 8082 (HTTPS)<br>8000 (HTTP) | HTTPS/HTTP | GitOps継続的デプロイメント管理UI |
-| **Kubernetes Dashboard** | 3000 → 30000 | HTTPS | Kubernetes管理Web UI（DNS名必須） |
+| サービス名 | ポート | 説明 |
+|-----------|--------|------|
+| **ArgoCD Server** | 8082 (HTTPS) / 8000 (HTTP) | GitOps 管理 UI |
+| **Kubernetes Dashboard** | 3000 | K8s 管理 Web UI |
+
+### インフラサービス（Podman コンテナ）
+
+| サービス名 | ポート | 説明 |
+|-----------|--------|------|
+| **Gitea** | 3001 (HTTP) / 2222 (SSH) | オンプレミス Git サーバー |
 
 ## アクセス方法
 
-### Frontend（Web UI）
+### Frontend
 
 ```bash
-# ブラウザでアクセス
-http://10.0.1.200:5006
-
-# curlでテスト
-curl -I http://10.0.1.200:5006/
-# HTTP/1.1 200 OK
+http://<HOST_IP>:5006
 ```
 
-**機能**:
-- 組織管理（CRUD）
-- 部署管理（CRUD）
-- ユーザー管理（CRUD）
-
-### Backend API（REST API）
+### Backend API
 
 ```bash
 # ヘルスチェック
-curl http://10.0.1.200:8083/actuator/health
-# {"status":"UP"}
+curl http://<HOST_IP>:8083/actuator/health
 
-# 組織一覧取得
-curl http://10.0.1.200:8083/api/organizations
-
-# 部署一覧取得
-curl http://10.0.1.200:8083/api/departments
-
-# ユーザー一覧取得
-curl http://10.0.1.200:8083/api/users
+# API エンドポイント
+curl http://<HOST_IP>:8083/api/organizations
+curl http://<HOST_IP>:8083/api/departments
+curl http://<HOST_IP>:8083/api/users
 ```
 
-### ArgoCD（GitOps管理）
+### ArgoCD
 
-**Web UI**:
 ```bash
-# HTTPS（推奨）
-https://10.0.1.200:8082
+# Web UI
+https://<HOST_IP>:8082
 
-# HTTP（HTTPSにリダイレクト）
-http://10.0.1.200:8000
-```
-
-**認証情報**:
-```bash
+# 認証情報
 cat /root/argocd-credentials.txt
-```
 
-**CLI**:
-```bash
-# ログイン
-argocd login 10.0.1.200:8082 \
+# CLI ログイン
+argocd login <HOST_IP>:8082 \
   --username admin \
-  --password "$(cat /root/argocd-credentials.txt | grep Password | awk '{print $2}')" \
+  --password "$(grep Password /root/argocd-credentials.txt | awk '{print $2}')" \
   --insecure
-
-# アプリケーション一覧
-argocd app list
-
-# アプリケーション詳細
-argocd app get orgmgmt-app
-
-# 手動同期
-argocd app sync orgmgmt-app
 ```
 
 ### Kubernetes Dashboard
 
-**⚠️ 重要**: IPアドレスではアクセスできません。EC2インスタンスのパブリックDNS名を使用してください。
-
 ```bash
-# EC2パブリックDNS名を取得
-curl -s http://169.254.169.254/latest/meta-data/public-hostname
-# 出力例: ec2-54-172-30-175.compute-1.amazonaws.com
-
-# ブラウザでアクセス
-https://ec2-54-172-30-175.compute-1.amazonaws.com:3000/
+# EC2 の場合はパブリック DNS 名でアクセス
+https://ec2-xx-xx-xx-xx.compute-1.amazonaws.com:3000/
 
 # トークン取得
 cat /root/k8s-dashboard-token.txt
+```
+
+### Gitea
+
+```bash
+# Web UI
+http://<HOST_IP>:3001
+
+# SSH git clone
+git clone git@<HOST_IP>:2222/<user>/<repo>.git
+
+# API バージョン確認
+curl http://<HOST_IP>:3001/api/v1/version
+
+# 管理者ログイン情報
+Username : gitea_admin
+Password : GiteaAdmin123!  (environment.yml で変更可)
 ```
 
 ## アーキテクチャ
@@ -686,142 +509,150 @@ cat /root/k8s-dashboard-token.txt
 ```
                           外部アクセス（インターネット）
                                     │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-            Port 3000 (HTTPS)  Port 5006 (HTTP)  Port 8083 (HTTP)
-            Port 8000 (HTTP)   Port 8082 (HTTPS)
-                    │               │               │
-              ┌─────┴──────────────┴───────────────┴─────┐
-              │         socat Port Forwarding             │
-              │  (systemd services - 5 services)          │
-              └─────┬──────────────┬───────────────┬─────┘
-                    │              │               │
-          ┌─────────┴──────┬──────┴───────┬──────┴─────────┐
-          │                │              │                │
-    K8s Dashboard    Frontend(x2)   Backend(x2)        ArgoCD
-    (NodePort 30000) (LoadBalancer) (LoadBalancer)   (LoadBalancer)
-          │                │              │                │
-          │                └──────┬───────┘                │
-          │                       │                        │
-          │                  PostgreSQL                    │
-          │                  Redis                         │
-          │                       │                        │
-          └───────────────────────┴────────────────────────┘
-                    Kubernetes (K3s) Cluster
-                     GitOps by ArgoCD
+          ┌─────────────────────────┼──────────────────────────────┐
+          │                         │                              │
+    Port 3001 (HTTP)           Port 5006/8083                Port 8082/8000/3000
+    Port 2222 (SSH)           (Frontend/Backend)             (ArgoCD/Dashboard)
+          │                         │                              │
+    ┌─────┴──────┐      ┌───────────┴──────────────────────────────┴───┐
+    │   Gitea    │      │          socat Port Forwarding               │
+    │  (Podman)  │      │       (systemd services × 5)                 │
+    └────────────┘      └───────────┬──────────────────────────────────┘
+                                    │
+          ┌─────────────────────────┼─────────────────────┐
+          │                         │                     │
+    Frontend(×2)             Backend(×2)              ArgoCD(×7)
+    (LoadBalancer)           (LoadBalancer)           (LoadBalancer)
+          │                         │                     │
+          └────────────┬────────────┘                     │
+                       │                                  │
+                  PostgreSQL                    Kubernetes Dashboard
+                  Redis                         (NodePort)
+                       │
+          ┌────────────┴────────────────────┐
+          │   Kubernetes (K3s) Cluster       │
+          │    GitOps by ArgoCD              │
+          └──────────────────────────────────┘
 ```
 
-### GitOps Workflow with Kustomize
+### GitOps Workflow
 
 ```
 GitHub Repository
-  └─ container/claudecode/ArgoCD/k8s-manifests/
-       ├─ base/
-       │   ├─ backend-deployment.yaml     (image: latest)
-       │   ├─ frontend-deployment.yaml    (image: latest)
-       │   └─ kustomization.yaml
+  └─ k8s-manifests/
+       ├─ base/              (image: latest)
        └─ overlays/
-           ├─ v1.0.0/
-           │   └─ kustomization.yaml      (newTag: "1.0.0")
-           └─ v1.1.0/
-               └─ kustomization.yaml      (newTag: "1.1.0")
-                  │
-                  ├─ ArgoCD自動検出（3分ごと）
-                  │
-                  └─→ Kubernetes Cluster
-                       ├─ Backend Deployment (2 replicas, image:1.1.0)
-                       ├─ Frontend Deployment (2 replicas, image:1.1.0)
-                       ├─ PostgreSQL Deployment (1 replica)
-                       └─ Redis Deployment (1 replica)
+           ├─ v1.0.0/        (newTag: "1.0.0")
+           └─ v1.1.0/        (newTag: "1.1.0")
+                │
+                ├─ ArgoCD 自動検出（3分ごと）
+                │
+                └─→ Kubernetes Cluster
+                     ├─ Backend  (×2 replicas)
+                     ├─ Frontend (×2 replicas)
+                     ├─ PostgreSQL
+                     └─ Redis
 ```
-
-**GitOps機能**:
-- **自動同期**: 3分ごとにGitリポジトリをチェック
-- **Self Heal**: 手動変更を自動で元に戻す
-- **Prune**: マニフェストから削除されたリソースを自動削除
-- **Kustomize**: ネイティブサポート（overlaysによるバージョン管理）
 
 ### ディレクトリ構造
 
 ```
 .
 ├── ansible/
+│   ├── config/
+│   │   └── environment.yml              ← 唯一の設定ファイル
+│   ├── group_vars/
+│   │   └── all.yml                      ← 変数マッピング
+│   ├── inventory/
+│   │   └── hosts.yml
 │   └── playbooks/
-│       ├── deploy_regression_test_complete.yml  # 完全自動回帰テスト（推奨）
-│       ├── deploy_app_version_gitops.yml        # GitOpsアップグレード
-│       ├── rollback_app_version_gitops.yml      # GitOpsロールバック
-│       ├── install_k3s_and_argocd.yml           # K3s+ArgoCD単独
-│       └── install_build_tools.yml              # Maven/Node.js単独
-├── k8s-manifests/                               # ArgoCD管理対象
-│   ├── base/                                    # Kustomize base
-│   │   ├── backend-deployment.yaml
-│   │   ├── backend-service.yaml
-│   │   ├── frontend-deployment.yaml
-│   │   ├── frontend-service.yaml
-│   │   ├── postgres-deployment.yaml
-│   │   ├── redis-deployment.yaml
-│   │   └── kustomization.yaml
-│   └── overlays/                                # Kustomize overlays
+│       ├── start_all.yml                ← 全サービス一括起動（推奨）
+│       ├── uninstall_all.yml            ← 全サービス一括削除
+│       ├── deploy_regression_test_complete.yml  ← 完全自動回帰テスト
+│       ├── deploy_k8s_complete.yml      ← K3s+ArgoCD+アプリ構築
+│       ├── install_k3s_and_argocd.yml   ← K3s+ArgoCD単独
+│       ├── install_build_tools.yml      ← Java/Maven/Node.js
+│       ├── uninstall_build_tools.yml    ← ビルドツール削除
+│       ├── install_gitea.yml            ← Gitea インストール
+│       ├── uninstall_gitea.yml          ← Gitea 削除
+│       ├── gitea_regression_test.yml    ← Gitea バージョン回帰テスト
+│       ├── deploy_app_version_gitops.yml      ← GitOps アップグレード
+│       ├── rollback_app_version_gitops.yml    ← GitOps ロールバック
+│       ├── deploy_app_version.yml       ← 直接デプロイ
+│       └── rollback_app_version.yml     ← 直接ロールバック
+├── k8s-manifests/                       ← ArgoCD 管理対象
+│   ├── base/
+│   └── overlays/
 │       ├── v1.0.0/
-│       │   └── kustomization.yaml               # newTag: "1.0.0"
 │       └── v1.1.0/
-│           └── kustomization.yaml               # newTag: "1.1.0"
 ├── app/
-│   ├── backend/                                 # Spring Boot
-│   │   ├── Dockerfile
-│   │   ├── pom.xml
-│   │   └── src/
-│   └── frontend/                                # React
-│       ├── Dockerfile
-│       ├── package.json
-│       └── src/
-├── argocd-application.yaml                      # ArgoCD Application
-└── README.md                                    # このファイル
+│   ├── backend/                         ← Spring Boot
+│   └── frontend/                        ← React
+├── argocd-application.yaml
+└── README.md
 ```
+
+## Playbook一覧
+
+### 起動・削除
+
+| Playbook | 用途 |
+|----------|------|
+| **start_all.yml** | **全サービス一括起動（推奨）** K3s+ArgoCD+アプリ+Gitea |
+| **uninstall_all.yml** | **全サービス一括削除** socat/Gitea/K3s/イメージ/データ |
+
+### K3s / アプリ
+
+| Playbook | 用途 |
+|----------|------|
+| deploy_regression_test_complete.yml | 完全自動回帰テスト（削除→ビルド→デプロイ→バージョンテスト） |
+| deploy_k8s_complete.yml | K3s+ArgoCD+アプリ構築（`start_all` のステップ1） |
+| install_k3s_and_argocd.yml | K3s + ArgoCD 単独インストール |
+| deploy_app_version_gitops.yml | GitOps バージョンアップグレード |
+| rollback_app_version_gitops.yml | GitOps バージョンロールバック |
+
+### Gitea
+
+| Playbook | 用途 |
+|----------|------|
+| install_gitea.yml | Gitea インストール（単独追加可能） |
+| uninstall_gitea.yml | Gitea 削除（`-e purge_data=true` でデータも削除） |
+| gitea_regression_test.yml | バージョンアップ・バージョンダウン回帰テスト |
+
+### ビルドツール
+
+| Playbook | 用途 |
+|----------|------|
+| install_build_tools.yml | Java 21 / Maven / Node.js インストール |
+| uninstall_build_tools.yml | Java / Maven / Node.js 削除 |
 
 ## 主要コマンド
 
 ### Kubernetesクラスタ管理
 
 ```bash
-# 全Namespace のPod確認
+# 全 Namespace の Pod 確認
 sudo /usr/local/bin/k3s kubectl get pods -A
-
-# Deployments確認
-sudo /usr/local/bin/k3s kubectl get deployments -o wide
 
 # サービス確認
 sudo /usr/local/bin/k3s kubectl get svc -A
-```
 
-### ArgoCD管理
-
-```bash
-# ArgoCD Application確認
-sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd
-
-# Application ステータス（簡易）
+# ArgoCD Application 状態確認
 sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd \
   -o jsonpath='{.status.sync.status}/{.status.health.status}'
-# 出力例: Synced/Healthy
-
-# 手動同期
-sudo /usr/local/bin/k3s kubectl patch application orgmgmt-app -n argocd \
-  --type merge \
-  -p '{"operation": {"sync": {"prune": true}}}'
 ```
 
-### イメージ確認
+### Gitea コンテナ管理
 
 ```bash
-# K3sにインポートされたイメージ確認
-sudo /usr/local/bin/k3s crictl images | grep orgmgmt
+# コンテナ状態確認
+podman ps | grep gitea
 
-# 出力例:
-# localhost/orgmgmt-backend    1.0.0    xxx    259MB
-# localhost/orgmgmt-backend    1.1.0    xxx    268MB
-# localhost/orgmgmt-frontend   1.0.0    xxx    64.8MB
-# localhost/orgmgmt-frontend   1.1.0    xxx    64.8MB
+# ログ確認
+podman logs gitea
+
+# コンテナ再起動
+systemctl restart container-gitea
 ```
 
 ### ログ確認
@@ -839,166 +670,69 @@ sudo /usr/local/bin/k3s kubectl logs -f deployment/argocd-server -n argocd
 
 ## スクラップビルド（完全削除と再構築）
 
-既存環境をすべて削除してゼロから再構築する手順です。
-
-### 方法1: Ansible playbook による一括削除（推奨）
+### 方法1: Ansible playbook による一括削除・再構築（推奨）
 
 ```bash
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml --tags=cleanup
+
+# 全削除（データ保持）
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml
+
+# 全削除（データも含めて完全削除）
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml -e "purge_data=true"
+
+# 削除後すぐに再構築
+ansible-playbook -i inventory/hosts.yml playbooks/start_all.yml
 ```
 
-削除対象:
-- K3s（`k3s-uninstall.sh` を自動実行）
-- Podman コンテナ・ボリューム・イメージ
-- バージョン履歴ファイル（`/root/app-version-history.txt`）
+**削除対象**:
+- socat ポート転送 systemd サービス
+- Gitea コンテナ / systemd サービス / イメージ
+- K3s（ArgoCD・全 K8s ワークロードを含む）
+- コンテナイメージ（orgmgmt-backend/frontend, gitea 等）
+- ファイアウォールルール
+- データディレクトリ（`purge_data=true` 時のみ）
+- ビルドツール（`remove_build_tools=true` 時のみ）
 
-> 削除後すぐに再構築する場合は `--tags` なしで実行するとフルフローが実行されます。
+### 方法2: 回帰テストによる再構築
 
----
-
-### 方法2: 手動による完全削除
-
-Ansible が使えない場合や、より細かく制御したい場合の手順です。
-
-#### Step 1: K3s アンインストール
+削除→ビルド→デプロイ→バージョン検証まで一括実行：
 
 ```bash
-# K3s と関連リソースをすべて削除
+ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
+```
+
+### 方法3: 手動による完全削除
+
+#### K3s アンインストール
+
+```bash
 sudo /usr/local/bin/k3s-uninstall.sh
-
-# 残存ディレクトリの手動削除
-sudo rm -rf /etc/rancher/
-sudo rm -rf /var/lib/rancher/
-sudo rm -f /usr/local/bin/k3s*
-sudo rm -f /usr/local/bin/kubectl
-sudo rm -rf ~/.kube/
+sudo rm -rf /etc/rancher/ /var/lib/rancher/ ~/.kube/
 ```
 
-#### Step 2: socat ポートフォワードサービスの停止・削除
+#### socat サービス停止・削除
 
 ```bash
-# サービス停止・無効化
 sudo systemctl stop socat-frontend socat-backend socat-argocd-http socat-argocd-https socat-k8s-dashboard
 sudo systemctl disable socat-frontend socat-backend socat-argocd-http socat-argocd-https socat-k8s-dashboard
-
-# サービスファイル削除
 sudo rm -f /etc/systemd/system/socat-*.service
 sudo systemctl daemon-reload
 ```
 
-#### Step 3: iptables ルールの削除
+#### Gitea 削除
 
 ```bash
-# 追加したルールを個別削除
-sudo iptables -D INPUT -p tcp --dport 5006 -j ACCEPT
-sudo iptables -D INPUT -p tcp --dport 8083 -j ACCEPT
-sudo iptables -D INPUT -p tcp --dport 8000 -j ACCEPT
-sudo iptables -D INPUT -p tcp --dport 8082 -j ACCEPT
-sudo iptables -D INPUT -p tcp --dport 3000 -j ACCEPT
-
-# ルールを永続化ファイルに反映
-sudo iptables-save > /etc/sysconfig/iptables
+podman stop gitea && podman rm gitea
+systemctl stop container-gitea && systemctl disable container-gitea
+rm -f /etc/systemd/system/container-gitea.service
+rm -rf /var/lib/gitea
 ```
 
-#### Step 4: コンテナリソースの削除（Docker / Podman）
+#### コンテナリソース削除
 
 ```bash
-# 使用中のコンテナランタイムを確認
-CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
-echo "Using: $CRUN"
-
-# 全コンテナ停止・削除
-$CRUN ps -q | xargs -r $CRUN stop 2>/dev/null || true
-$CRUN ps -aq | xargs -r $CRUN rm -f 2>/dev/null || true
-
-# 全ボリューム・イメージ削除（ビルドキャッシュ含む）
-$CRUN system prune -af --volumes 2>/dev/null || true
-
-# ネットワーク削除
-$CRUN network rm argocd-network 2>/dev/null || true
-```
-
-#### Step 5: 一時ファイル・生成ファイルの削除
-
-```bash
-# イメージ tar ファイル
-rm -f /tmp/backend-*.tar /tmp/frontend-*.tar
-rm -f /tmp/k3s-install.sh /tmp/argocd-*.yaml
-
-# バージョン履歴・認証情報
-rm -f /root/app-version-history.txt
-rm -f /root/argocd-credentials.txt
-rm -f /root/k8s-dashboard-token.txt
-rm -f /root/K3S-ARGOCD-INSTALLATION-REPORT.md
-```
-
-#### Step 6: ビルド成果物の削除（再ビルドしたい場合）
-
-```bash
-PROJECT_ROOT=/root/aws.git/container/claudecode/ArgoCD
-
-# Mavenビルド成果物
-rm -rf ${PROJECT_ROOT}/app/backend/target/
-
-# npmビルド成果物・依存関係
-rm -rf ${PROJECT_ROOT}/app/frontend/dist/
-rm -rf ${PROJECT_ROOT}/app/frontend/node_modules/
-
-# Playwrightテスト結果
-rm -rf ${PROJECT_ROOT}/playwright-tests/test-results/
-rm -rf ${PROJECT_ROOT}/playwright-tests/playwright-report/
-rm -rf ${PROJECT_ROOT}/playwright-tests/node_modules/
-```
-
----
-
-### 削除確認
-
-削除後、以下のコマンドで確認してください。
-
-```bash
-# K3s 削除確認
-which k3s 2>/dev/null && echo "残存あり" || echo "OK: k3s削除済み"
-ls /etc/rancher/ 2>/dev/null && echo "残存あり" || echo "OK: /etc/rancher削除済み"
-
-# socat サービス確認
-systemctl list-units --type=service | grep socat || echo "OK: socatサービスなし"
-
-# ポート開放確認
-ss -tlnp | grep -E "5006|8083|8000|8082|3000" || echo "OK: 対象ポートは未使用"
-
-# コンテナリソース確認（docker / podman 自動選択）
-CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
-echo "コンテナ:"; $CRUN ps -a
-echo "ボリューム:"; $CRUN volume ls
-echo "イメージ:"; $CRUN images | grep orgmgmt || echo "OK: orgmgmtイメージなし"
-```
-
----
-
-### スクラップビルド（削除→再構築を一括実行）
-
-削除と再構築を続けて行う場合:
-
-```bash
-cd /root/aws.git/container/claudecode/ArgoCD/ansible
-
-# 完全削除 → 再構築 → 回帰テストまで一括実行
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
-```
-
-このコマンド1つで以下がすべて自動実行されます：
-
-```
-1. 既存環境の完全削除
-2. v1.0.0 / v1.1.0 のイメージビルド
-3. K3s + ArgoCD の新規インストール
-4. イメージのインポート
-5. v1.0.0 初期デプロイ
-6. v1.1.0 アップグレードテスト
-7. v1.0.0 ロールバックテスト
-8. v1.1.0 再アップグレードテスト
+podman system prune -af --volumes
 ```
 
 ## トラブルシューティング
@@ -1006,72 +740,51 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 ### ArgoCD Application が OutOfSync
 
 ```bash
-# Application状態確認
-sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd
-
-# 手動同期
 sudo /usr/local/bin/k3s kubectl patch application orgmgmt-app -n argocd \
   --type merge \
   -p '{"operation": {"sync": {"prune": true}}}'
-
-# syncPolicy確認
-sudo /usr/local/bin/k3s kubectl get application orgmgmt-app -n argocd \
-  -o jsonpath='{.spec.syncPolicy}' | jq .
 ```
 
 ### Pod が起動しない
 
 ```bash
-# Pod状態詳細確認
 sudo /usr/local/bin/k3s kubectl describe pod <pod-name>
-
-# イベント確認
 sudo /usr/local/bin/k3s kubectl get events --sort-by='.lastTimestamp' | tail -20
-
-# ログ確認
-sudo /usr/local/bin/k3s kubectl logs <pod-name>
 ```
 
-### イメージが見つからない
+### Gitea が起動しない
 
 ```bash
-# K3sのイメージ確認
-sudo /usr/local/bin/k3s crictl images | grep orgmgmt
+# ログ確認
+podman logs gitea
 
-# イメージが無い場合、再インポート（docker / podman 自動選択）
-CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
-$CRUN save localhost/orgmgmt-backend:1.1.0 -o /tmp/backend.tar
-sudo /usr/local/bin/k3s ctr images import /tmp/backend.tar
+# よくある原因:
+# 1. ディレクトリ権限 → chown -R 1000:1000 /var/lib/gitea
+# 2. SELinux → chcon -Rt container_file_t /var/lib/gitea
+# 3. ポート競合 → ss -tlnp | grep 3001
+
+# 再インストール
+ansible-playbook -i inventory/hosts.yml playbooks/install_gitea.yml
+```
+
+### ansible-playbook が見つからない
+
+```bash
+# システム全体にインストール
+sudo python3 -m pip install ansible
+sudo ln -sf /usr/local/bin/ansible-playbook /usr/bin/ansible-playbook
+
+# 確認
+which ansible-playbook
 ```
 
 ### システム全体のリセット
 
 ```bash
-# K3s完全削除
-sudo /usr/local/bin/k3s-uninstall.sh
-
-# コンテナイメージ削除（docker / podman 自動選択）
-CRUN=$(docker info &>/dev/null && echo "docker" || echo "podman")
-$CRUN system prune -af --volumes
-
-# バージョン履歴削除
-rm -f /root/app-version-history.txt
-
-# 再構築
 cd /root/aws.git/container/claudecode/ArgoCD/ansible
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml
+ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml -e "purge_data=true"
+ansible-playbook -i inventory/hosts.yml playbooks/start_all.yml
 ```
-
-## Playbook一覧
-
-| Playbook | 用途 | 所要時間 |
-|----------|------|---------|
-| **deploy_regression_test_complete.yml** | **完全自動回帰テスト（推奨）** | 15-20分 |
-| install_k3s_and_argocd.yml | K3s + ArgoCD単独インストール | 3-5分 |
-| deploy_app_version_gitops.yml | GitOpsアップグレード | 2-3分 |
-| rollback_app_version_gitops.yml | GitOpsロールバック | 2-3分 |
-| install_build_tools.yml | Java 21 / Maven / Node.js 単独インストール | 2-3分 |
-| uninstall_build_tools.yml | Java / Maven / Node.js 完全アンインストール | 1-2分 |
 
 ## 技術スタック
 
@@ -1079,6 +792,7 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 - **K3s v1.34.3** (Kubernetes v1.34.3)
 - **ArgoCD v2.10.0** (GitOps CD)
 - **Kustomize** (Built-in K8s)
+- **Gitea 1.22** (Git Server, Podman コンテナ)
 - **PostgreSQL 16 Alpine**
 - **Redis 7 Alpine**
 
@@ -1097,8 +811,8 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 - **Node.js 20.x** (Runtime)
 
 ### デプロイ・運用
-- **Ansible 2.14+** (IaC)
-- **Docker / Podman** (Container Build / Run、docker → podman の順で自動検出)
+- **Ansible 2.15+** (IaC、`import_playbook` によるサブプレイブック呼び出し)
+- **Docker / Podman** (コンテナビルド・実行、`environment.yml` で切替可能)
 - **socat** (Port Forwarding)
 - **systemd** (Service Management)
 - **iptables** (Firewall Management)
@@ -1111,21 +825,13 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 - `argocd-regression-v1.0.0`: ベースバージョン
 - `argocd-regression-v1.1.0`: System Information機能追加
 
-**最終更新**: 2026-02-18
+**最終更新**: 2026-02-20
 
 ## ドキュメント
 
-- **[CREDENTIALS.md](CREDENTIALS.md)**: 認証情報・アクセスガイド
-- **[QUICKSTART.md](QUICKSTART.md)**: クイックスタートガイド
-- **[VERSION_UPGRADE.md](VERSION_UPGRADE.md)**: バージョンアップグレード手順
+- **[ansible/README.md](ansible/README.md)**: Ansible Playbook 詳細リファレンス
 
-## サポート
-
-### 問題報告
-
-問題や質問がある場合は、GitHubのIssueで報告してください。
-
-### リポジトリ情報
+## リポジトリ情報
 
 - **Repository**: https://github.com/shiftrepo/aws
 - **Path**: container/claudecode/ArgoCD
@@ -1133,5 +839,5 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complet
 
 ---
 
-**完全自動化されたGitOps継続的デプロイメント**
+**完全自動化されたGitOps継続的デプロイメント + Gitea Git サーバー**
 1コマンドで環境構築からバージョン管理まで完全自動化
