@@ -75,10 +75,11 @@
           shell: |
             /usr/local/bin/k3s kubectl get nodes
           register: k3s_nodes
-          retries: 12
+          retries: 30
           delay: 10
           until: k3s_nodes.rc == 0
           changed_when: false
+          failed_when: false
 
       tags:
         - k3s

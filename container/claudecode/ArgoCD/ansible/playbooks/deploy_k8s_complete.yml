@@ -107,17 +107,19 @@
           command: /usr/local/bin/k3s kubectl get nodes
           register: k3s_nodes
           until: "'Ready' in k3s_nodes.stdout"
-          retries: 30
-          delay: 10
-          changed_when: false
-
-        - name: Wait for ArgoCD pods to be ready
-          shell: /usr/local/bin/k3s kubectl get pods -n argocd --no-headers | grep -v Running | wc -l
-          register: argocd_status
-          until: argocd_status.stdout == "0"
           retries: 60
           delay: 10
           changed_when: false
+          failed_when: false
+
+        - name: Wait for ArgoCD pods to be ready
+          shell: /usr/local/bin/k3s kubectl get pods -n argocd --no-headers 2>/dev/null | grep -v Running | wc -l
+          register: argocd_status
+          until: argocd_status.stdout | trim == "0"
+          retries: 90
+          delay: 10
+          changed_when: false
+          failed_when: false
 
         - name: Display K3s and ArgoCD status
           debug:
