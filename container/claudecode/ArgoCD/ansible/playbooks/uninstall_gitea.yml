@@ -158,22 +158,20 @@
           changed_when: false
 
         - name: Remove Gitea HTTP port from firewalld
-          firewalld:
-            port: "{{ gitea_port }}/tcp"
-            permanent: yes
-            state: disabled
-            immediate: yes
+          shell: |
+            firewall-cmd --permanent --remove-port={{ gitea_port }}/tcp 2>/dev/null || true
+            firewall-cmd --reload 2>/dev/null || true
           when: firewalld_status.stdout == 'active'
           failed_when: false
+          changed_when: false
 
         - name: Remove Gitea SSH port from firewalld
-          firewalld:
-            port: "{{ gitea_ssh_port }}/tcp"
-            permanent: yes
-            state: disabled
-            immediate: yes
+          shell: |
+            firewall-cmd --permanent --remove-port={{ gitea_ssh_port }}/tcp 2>/dev/null || true
+            firewall-cmd --reload 2>/dev/null || true
           when: firewalld_status.stdout == 'active'
           failed_when: false
+          changed_when: false
 
         - name: Display firewall removal status
           debug:

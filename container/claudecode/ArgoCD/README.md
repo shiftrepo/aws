@@ -194,9 +194,7 @@ gitea:
 | **deploy_regression_test_complete.yml** | 完全自動回帰テスト。K3s 削除 → v1.0.0/v1.1.0 ビルド → K3s 構築 → バージョンアップ → ロールバック → 再アップグレード。**Gitea は含まない** |
 | **deploy_k8s_complete.yml** | K3s + ArgoCD + ビルド + デプロイ + socat + Dashboard を一括構築 |
 | **install_k3s_and_argocd.yml** | K3s + ArgoCD 単独インストール |
-| **deploy_app_version.yml** | アプリをビルドして指定バージョンでデプロイ（非 GitOps） |
 | **deploy_app_version_gitops.yml** | ArgoCD Application path を変更してバージョンアップグレード（GitOps） |
-| **rollback_app_version.yml** | アプリを指定バージョンにロールバック（非 GitOps） |
 | **rollback_app_version_gitops.yml** | ArgoCD Application path を変更してバージョンロールバック（GitOps） |
 
 ### Gitea
@@ -471,9 +469,7 @@ ansible/
     ├── install_gitea.yml            ← Gitea インストール（単独可）
     ├── uninstall_gitea.yml          ← Gitea 削除
     ├── gitea_regression_test.yml    ← Gitea バージョン回帰テスト
-    ├── deploy_app_version.yml
     ├── deploy_app_version_gitops.yml
-    ├── rollback_app_version.yml
     └── rollback_app_version_gitops.yml
 k8s-manifests/
 ├── base/

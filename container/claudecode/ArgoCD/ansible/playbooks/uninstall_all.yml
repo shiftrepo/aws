@@ -299,13 +299,12 @@
           changed_when: false
 
         - name: Remove project firewall ports
-          firewalld:
-            port: "{{ item }}"
-            permanent: yes
-            state: disabled
-            immediate: yes
+          shell: |
+            firewall-cmd --permanent --remove-port={{ item }} 2>/dev/null || true
+            firewall-cmd --reload 2>/dev/null || true
           when: firewalld_status.stdout == 'active'
           failed_when: false
+          changed_when: false
           loop:
             - "{{ environment_config.ports.frontend }}/tcp"
             - "{{ environment_config.ports.backend }}/tcp"

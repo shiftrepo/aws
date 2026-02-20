@@ -24,9 +24,7 @@ ansible/
     ├── install_gitea.yml
     ├── uninstall_gitea.yml
     ├── gitea_regression_test.yml
-    ├── deploy_app_version.yml
     ├── deploy_app_version_gitops.yml
-    ├── rollback_app_version.yml
     └── rollback_app_version_gitops.yml
 ```
 
@@ -310,34 +308,6 @@ ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version_gitops.ym
 ```
 
 デフォルトの `target_version` は `environment.yml` の `argocd.application.initial_version`（1.0.0）。
-
----
-
-### deploy_app_version.yml — 直接デプロイ（非 GitOps）
-
-```bash
-ansible-playbook -i inventory/hosts.yml playbooks/deploy_app_version.yml \
-  -e "app_version=1.1.0"
-```
-
-ソースビルド → コンテナイメージビルド → K3s インポート → kubectl 適用 → ヘルスチェック → バージョン履歴記録
-
----
-
-### rollback_app_version.yml — 直接ロールバック（非 GitOps）
-
-```bash
-# 直前バージョンに戻す
-ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version.yml
-
-# バージョン指定
-ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version.yml \
-  -e "target_version=1.0.0"
-
-# Kubernetes rollout 番号指定
-ansible-playbook -i inventory/hosts.yml playbooks/rollback_app_version.yml \
-  -e "target_revision=2"
-```
 
 ---
 
