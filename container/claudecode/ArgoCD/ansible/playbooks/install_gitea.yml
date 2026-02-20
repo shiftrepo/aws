@@ -293,6 +293,7 @@
             state: enabled
             immediate: yes
           when: firewalld_status.stdout == 'active'
+          failed_when: false
 
         - name: Open Gitea SSH port in firewalld
           firewalld:
@@ -301,6 +302,7 @@
             state: enabled
             immediate: yes
           when: firewalld_status.stdout == 'active'
+          failed_when: false
 
         - name: Display firewall status
           debug:
