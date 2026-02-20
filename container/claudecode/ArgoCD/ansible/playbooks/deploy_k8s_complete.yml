@@ -502,10 +502,10 @@
 
         - name: Parse NodePorts
           set_fact:
-            frontend_nodeport: "{{ nodeports_output.stdout | regex_search('FRONTEND=(\\d+)', '\\1') | first }}"
-            backend_nodeport: "{{ nodeports_output.stdout | regex_search('BACKEND=(\\d+)', '\\1') | first }}"
-            argocd_http_nodeport: "{{ nodeports_output.stdout | regex_search('ARGOCD_HTTP=(\\d+)', '\\1') | first }}"
-            argocd_https_nodeport: "{{ nodeports_output.stdout | regex_search('ARGOCD_HTTPS=(\\d+)', '\\1') | first }}"
+            frontend_nodeport: "{{ (nodeports_output.stdout | regex_search('FRONTEND=(\\d+)', '\\1') | default(['0'])) | first }}"
+            backend_nodeport: "{{ (nodeports_output.stdout | regex_search('BACKEND=(\\d+)', '\\1') | default(['0'])) | first }}"
+            argocd_http_nodeport: "{{ (nodeports_output.stdout | regex_search('ARGOCD_HTTP=(\\d+)', '\\1') | default(['0'])) | first }}"
+            argocd_https_nodeport: "{{ (nodeports_output.stdout | regex_search('ARGOCD_HTTPS=(\\d+)', '\\1') | default(['0'])) | first }}"
 
         - name: Create socat systemd service for Frontend
           copy:

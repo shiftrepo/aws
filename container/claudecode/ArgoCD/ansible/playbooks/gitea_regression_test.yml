@@ -424,7 +424,6 @@
             that: "api_new.json.version is version(test_version_old, '>=')"
             fail_msg: "API version mismatch after upgrade: {{ api_new.json.version }}"
             success_msg: "API version confirmed: {{ api_new.json.version }}"
-          failed_when: false
 
         - name: Verify organization still exists after upgrade
           uri:
