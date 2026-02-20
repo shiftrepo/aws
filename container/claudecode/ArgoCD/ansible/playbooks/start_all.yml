@@ -32,6 +32,8 @@
           - "  全サービス 一括起動"
           - "======================================================="
           - ""
+          - "  [Step 0] ビルドツール (Java / Maven / Node.js)"
+          - "           → install_build_tools.yml"
           - "  [Step 1] K3s + ArgoCD + orgmgmt アプリ"
           - "           → deploy_k8s_complete.yml"
           - "  [Step 2] Gitea"
@@ -39,6 +41,14 @@
           - "           (gitea_enabled={{ environment_config.features.gitea_enabled }})"
           - ""
           - "======================================================="
+
+# ----------------------------------------
+# Step 0: ビルドツール（常に実行）
+# deploy_k8s_complete.yml はMaven検出済みの場合スキップするが
+# /etc/profile.d/maven.sh が存在しない環境でビルドが失敗するため
+# start_all.yml では先に必ず実行する
+# ----------------------------------------
+- import_playbook: install_build_tools.yml
 
 # ----------------------------------------
 # Step 1: K3s + ArgoCD + アプリ全体
