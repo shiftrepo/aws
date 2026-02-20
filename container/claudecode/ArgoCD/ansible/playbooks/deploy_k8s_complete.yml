@@ -30,7 +30,7 @@
         name: environment_config
 
       tags: [always]
-    - name: Detect container runtime (docker first, fallback to environment.yml)
+    - name: Detect container runtime (docker first, then {{ container_cmd }})
       block:
         - name: Check docker availability
           command: docker info
@@ -44,9 +44,9 @@
             container_cmd: "docker"
           when: docker_check.rc == 0
 
-        - name: Set container runtime from environment.yml (fallback)
+        - name: Set container runtime to {{ container_cmd }} (fallback)
           set_fact:
-            container_cmd: "{{ environment_config.containers.runtime }}"
+            container_cmd: "{{ container_cmd }}"
           when: docker_check.rc != 0
 
         - name: Display container runtime
@@ -57,10 +57,12 @@
     - name: Detect ansible-playbook executable path
       block:
         - name: Find ansible-playbook binary
-          shell: which ansible-playbook 2>/dev/null || find /usr/local/bin /usr/bin -name ansible-playbook 2>/dev/null | head -1
+          shell: |
+            which ansible-playbook 2>/dev/null ||             find /usr/local/bin /usr/bin /root/.local/bin /home -name ansible-playbook 2>/dev/null | head -1
           register: ap_path
           changed_when: false
           failed_when: ap_path.stdout == ""
+          become: no
 
         - name: Set ansible_playbook_cmd fact
           set_fact:
@@ -106,20 +108,16 @@
         - name: Wait for K3s to be ready
           command: /usr/local/bin/k3s kubectl get nodes
           register: k3s_nodes
-          until: k3s_nodes.rc == 0 and 'Ready' in k3s_nodes.stdout
-          retries: 60
+          until: "'Ready' in k3s_nodes.stdout"
+          retries: 30
           delay: 10
           changed_when: false
 
         - name: Wait for ArgoCD pods to be ready
-          shell: |
-            set -o pipefail
-            /usr/local/bin/k3s kubectl get pods -n argocd --no-headers | grep -v Running | wc -l
-          args:
-            executable: /bin/bash
+          shell: /usr/local/bin/k3s kubectl get pods -n argocd --no-headers | grep -v Running | wc -l
           register: argocd_status
-          until: argocd_status.rc == 0 and argocd_status.stdout | trim == "0"
-          retries: 90
+          until: argocd_status.stdout == "0"
+          retries: 60
           delay: 10
           changed_when: false
 
@@ -506,10 +504,10 @@
 
         - name: Parse NodePorts
           set_fact:
-            frontend_nodeport: "{{ (nodeports_output.stdout | regex_search('FRONTEND=(\\d+)', '\\1') | default(['0'])) | first }}"
-            backend_nodeport: "{{ (nodeports_output.stdout | regex_search('BACKEND=(\\d+)', '\\1') | default(['0'])) | first }}"
-            argocd_http_nodeport: "{{ (nodeports_output.stdout | regex_search('ARGOCD_HTTP=(\\d+)', '\\1') | default(['0'])) | first }}"
-            argocd_https_nodeport: "{{ (nodeports_output.stdout | regex_search('ARGOCD_HTTPS=(\\d+)', '\\1') | default(['0'])) | first }}"
+            frontend_nodeport: "{{ nodeports_output.stdout | regex_search('FRONTEND=(\\d+)', '\\1') | first }}"
+            backend_nodeport: "{{ nodeports_output.stdout | regex_search('BACKEND=(\\d+)', '\\1') | first }}"
+            argocd_http_nodeport: "{{ nodeports_output.stdout | regex_search('ARGOCD_HTTP=(\\d+)', '\\1') | first }}"
+            argocd_https_nodeport: "{{ nodeports_output.stdout | regex_search('ARGOCD_HTTPS=(\\d+)', '\\1') | first }}"
 
         - name: Create socat systemd service for Frontend
           copy:

@@ -32,7 +32,7 @@
         name: environment_config
 
       tags: [always]
-    - name: Detect container runtime (docker first, fallback to environment.yml)
+    - name: Detect container runtime (docker first, then {{ container_cmd }})
       block:
         - name: Check docker availability
           command: docker info
@@ -46,9 +46,9 @@
             container_cmd: "docker"
           when: docker_check.rc == 0
 
-        - name: Set container runtime from environment.yml (fallback)
+        - name: Set container runtime to {{ container_cmd }} (fallback)
           set_fact:
-            container_cmd: "{{ environment_config.containers.runtime }}"
+            container_cmd: "{{ container_cmd }}"
           when: docker_check.rc != 0
 
         - name: Display container runtime
@@ -59,10 +59,12 @@
     - name: Detect ansible-playbook executable path
       block:
         - name: Find ansible-playbook binary
-          shell: which ansible-playbook 2>/dev/null || find /usr/local/bin /usr/bin -name ansible-playbook 2>/dev/null | head -1
+          shell: |
+            which ansible-playbook 2>/dev/null ||             find /usr/local/bin /usr/bin /root/.local/bin /home -name ansible-playbook 2>/dev/null | head -1
           register: ap_path
           changed_when: false
           failed_when: ap_path.stdout == ""
+          become: no
 
         - name: Set ansible_playbook_cmd fact
           set_fact:
@@ -292,8 +294,8 @@
         - name: Wait for K3s to be fully ready
           shell: /usr/local/bin/k3s kubectl get nodes
           register: k3s_nodes
-          retries: 60
-          delay: 10
+          retries: 30
+          delay: 2
           until: k3s_nodes.rc == 0
 
         - name: Display K3s installation status
