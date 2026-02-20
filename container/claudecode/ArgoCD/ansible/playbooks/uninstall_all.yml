@@ -1,0 +1,521 @@
+---
+# ========================================
+# 全サービス 一括アンインストール
+# ========================================
+# 以下をすべて削除します:
+#   - Gitea (コンテナ / systemd / イメージ)
+#   - K3s / ArgoCD / Kubernetes ワークロード全体
+#   - socat ポート転送 systemd サービス
+#   - コンテナイメージ (orgmgmt, gitea, etc.)
+#   - ファイアウォールルール
+#   - データディレクトリ (オプション)
+#   - ビルドツール Java/Maven/Node.js (オプション)
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml
+#
+# オプション (デフォルト: データ保持、ビルドツール保持):
+#   # データも完全削除
+#   ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml \
+#     -e "purge_data=true"
+#
+#   # ビルドツール (Java/Maven/Node.js) も削除
+#   ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml \
+#     -e "remove_build_tools=true"
+#
+#   # すべて完全削除
+#   ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml \
+#     -e "purge_data=true remove_build_tools=true"
+# ========================================
+
+- name: Uninstall All Services
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # データディレクトリも削除する場合は true
+    purge_data: false
+    # Java / Maven / Node.js も削除する場合は true
+    remove_build_tools: false
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+    - name: Set variables
+      set_fact:
+        gitea_port: "{{ environment_config.gitea.port }}"
+        gitea_ssh_port: "{{ environment_config.gitea.ssh_port }}"
+        gitea_data_dir: "{{ environment_config.gitea.data_dir }}"
+        gitea_container_name: "{{ environment_config.gitea.container_name }}"
+        container_runtime: "{{ environment_config.containers.runtime }}"
+        app_data_dir: "{{ environment_config.directories.data_dir }}"
+        project_base_dir: "{{ environment_config.directories.base_dir }}"
+      tags: [always]
+
+    - name: Display uninstall plan
+      debug:
+        msg:
+          - "======================================================="
+          - "  全サービス 一括アンインストール"
+          - "======================================================="
+          - ""
+          - "削除対象:"
+          - "  [Phase 1] socat ポート転送 systemd サービス"
+          - "  [Phase 2] Gitea コンテナ / systemd / イメージ"
+          - "  [Phase 3] K3s / ArgoCD / Kubernetes ワークロード"
+          - "  [Phase 4] コンテナイメージ (orgmgmt, gitea, etc.)"
+          - "  [Phase 5] ファイアウォールルール"
+          - "  [Phase 6] データディレクトリ (purge_data={{ purge_data }})"
+          - "  [Phase 7] ビルドツール (remove_build_tools={{ remove_build_tools }})"
+          - "  [Phase 8] 一時ファイル / キャッシュ"
+          - ""
+          - "purge_data      : {{ purge_data }}"
+          - "remove_build_tools : {{ remove_build_tools }}"
+          - "======================================================="
+      tags: [always]
+
+  tasks:
+    # ========================================
+    # Phase 1: socat ポート転送 systemd サービス削除
+    # ========================================
+    - name: "PHASE 1: Remove socat port forwarding services"
+      block:
+        - name: Stop and disable socat services
+          systemd:
+            name: "{{ item }}"
+            state: stopped
+            enabled: no
+          failed_when: false
+          loop:
+            - socat-frontend
+            - socat-backend
+            - socat-argocd-http
+            - socat-argocd-https
+            - socat-k8s-dashboard
+
+        - name: Remove socat service files
+          file:
+            path: "/etc/systemd/system/{{ item }}"
+            state: absent
+          loop:
+            - socat-frontend.service
+            - socat-backend.service
+            - socat-argocd-http.service
+            - socat-argocd-https.service
+            - socat-k8s-dashboard.service
+
+        - name: Reload systemd daemon after socat removal
+          systemd:
+            daemon_reload: yes
+
+        - name: Display socat removal result
+          debug:
+            msg: "✅ socat services removed"
+
+      tags: [socat]
+
+    # ========================================
+    # Phase 2: Gitea コンテナ / systemd / イメージ削除
+    # ========================================
+    - name: "PHASE 2: Remove Gitea"
+      block:
+        - name: Stop and disable Gitea systemd services
+          systemd:
+            name: "{{ item }}"
+            state: stopped
+            enabled: no
+          failed_when: false
+          loop:
+            - "container-{{ gitea_container_name }}"
+            - gitea-container
+
+        - name: Remove Gitea systemd service files
+          file:
+            path: "/etc/systemd/system/{{ item }}"
+            state: absent
+          loop:
+            - "container-{{ gitea_container_name }}.service"
+            - gitea-container.service
+
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+
+        - name: Stop Gitea container
+          command: "{{ container_runtime }} stop {{ gitea_container_name }}"
+          failed_when: false
+          changed_when: false
+
+        - name: Remove Gitea container
+          command: "{{ container_runtime }} rm {{ gitea_container_name }}"
+          failed_when: false
+          changed_when: false
+
+        - name: Remove Gitea container images (all tags)
+          shell: |
+            {{ container_runtime }} images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' \
+              | grep 'gitea/gitea' \
+              | xargs -r {{ container_runtime }} rmi --force 2>/dev/null || true
+          failed_when: false
+          changed_when: false
+
+        - name: Display Gitea removal result
+          debug:
+            msg: "✅ Gitea removed"
+
+      tags: [gitea]
+
+    # ========================================
+    # Phase 3: K3s / ArgoCD / Kubernetes ワークロード削除
+    # ========================================
+    - name: "PHASE 3: Uninstall K3s (removes ArgoCD and all Kubernetes workloads)"
+      block:
+        - name: Check if K3s uninstall script exists
+          stat:
+            path: /usr/local/bin/k3s-uninstall.sh
+          register: k3s_uninstall_script
+
+        - name: Run K3s uninstall script
+          command: /usr/local/bin/k3s-uninstall.sh
+          when: k3s_uninstall_script.stat.exists
+          register: k3s_uninstall
+          failed_when: false
+
+        - name: Check if K3s agent uninstall script exists
+          stat:
+            path: /usr/local/bin/k3s-agent-uninstall.sh
+          register: k3s_agent_uninstall_script
+
+        - name: Run K3s agent uninstall script
+          command: /usr/local/bin/k3s-agent-uninstall.sh
+          when: k3s_agent_uninstall_script.stat.exists
+          failed_when: false
+
+        - name: Remove K3s residual files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /usr/local/bin/k3s
+            - /etc/rancher/k3s
+            - /var/lib/rancher
+            - /var/lib/kubelet
+            - /run/k3s
+            - /tmp/k3s-install.sh
+          failed_when: false
+
+        - name: Remove kubeconfig
+          file:
+            path: "{{ ansible_env.HOME }}/.kube/config"
+            state: absent
+          failed_when: false
+
+        - name: Remove K3s systemd service
+          systemd:
+            name: k3s
+            state: stopped
+            enabled: no
+          failed_when: false
+
+        - name: Reload systemd after K3s removal
+          systemd:
+            daemon_reload: yes
+          failed_when: false
+
+        - name: Display K3s removal result
+          debug:
+            msg: "{{ '✅ K3s removed' if k3s_uninstall_script.stat.exists else '⚠️ K3s was not installed' }}"
+
+      tags: [k3s]
+
+    # ========================================
+    # Phase 4: コンテナイメージ / 未使用リソース削除
+    # ========================================
+    - name: "PHASE 4: Remove container images and unused resources"
+      block:
+        - name: Remove orgmgmt application images
+          shell: |
+            {{ container_runtime }} images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' \
+              | grep -E 'orgmgmt-(backend|frontend)' \
+              | xargs -r {{ container_runtime }} rmi --force 2>/dev/null || true
+          failed_when: false
+          changed_when: false
+
+        - name: Remove base images used for builds
+          shell: |
+            for img in \
+              "docker.io/eclipse-temurin:21-jre-alpine" \
+              "docker.io/nginx:alpine" \
+              "docker.io/library/postgres:16-alpine" \
+              "docker.io/library/redis:7-alpine"; do
+              {{ container_runtime }} rmi --force "$img" 2>/dev/null || true
+            done
+          failed_when: false
+          changed_when: false
+
+        - name: Prune unused container resources (images, volumes, networks)
+          command: "{{ container_runtime }} system prune -af --volumes"
+          failed_when: false
+          changed_when: false
+
+        - name: Remove image export files from /tmp
+          find:
+            paths: /tmp
+            patterns:
+              - "backend-*.tar"
+              - "frontend-*.tar"
+              - "*.tar"
+          register: tmp_tar_files
+
+        - name: Delete tar export files
+          file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ tmp_tar_files.files }}"
+          when: item.path is search('(backend|frontend)-\d+\.\d+\.\d+\.tar')
+          failed_when: false
+
+        - name: Display image cleanup result
+          debug:
+            msg: "✅ Container images and unused resources removed"
+
+      tags: [images]
+
+    # ========================================
+    # Phase 5: ファイアウォールルール削除
+    # ========================================
+    - name: "PHASE 5: Remove firewall rules"
+      block:
+        - name: Check if firewalld is running
+          command: systemctl is-active firewalld
+          register: firewalld_status
+          failed_when: false
+          changed_when: false
+
+        - name: Remove project firewall ports
+          firewalld:
+            port: "{{ item }}"
+            permanent: yes
+            state: disabled
+            immediate: yes
+          when: firewalld_status.stdout == 'active'
+          failed_when: false
+          loop:
+            - "{{ environment_config.ports.frontend }}/tcp"
+            - "{{ environment_config.ports.backend }}/tcp"
+            - "{{ environment_config.ports.argocd_https }}/tcp"
+            - "{{ environment_config.ports.argocd_http }}/tcp"
+            - "{{ environment_config.ports.dashboard }}/tcp"
+            - "{{ gitea_port }}/tcp"
+            - "{{ gitea_ssh_port }}/tcp"
+
+        - name: Display firewall removal result
+          debug:
+            msg: "{{ '✅ Firewall rules removed' if firewalld_status.stdout == 'active' else '⚠️ firewalld not running, skipped' }}"
+
+      tags: [firewall]
+
+    # ========================================
+    # Phase 6: データディレクトリ削除（purge_data=true の場合のみ）
+    # ========================================
+    - name: "PHASE 6: Remove data directories (purge_data={{ purge_data }})"
+      block:
+        - name: Remove Gitea data directory
+          file:
+            path: "{{ gitea_data_dir }}"
+            state: absent
+          when: purge_data | bool
+
+        - name: Remove application data directory
+          file:
+            path: "{{ app_data_dir }}"
+            state: absent
+          when: purge_data | bool
+          failed_when: false
+
+        - name: Remove version history file
+          file:
+            path: "{{ environment_config.directories.version_history_file }}"
+            state: absent
+          when: purge_data | bool
+          failed_when: false
+
+        - name: Display data removal result
+          debug:
+            msg: >-
+              {{
+                '✅ Data directories removed'
+                if purge_data | bool
+                else '⚠️ Data preserved (add -e purge_data=true to delete)'
+              }}
+
+      tags: [data]
+
+    # ========================================
+    # Phase 7: ビルドツール削除（remove_build_tools=true の場合のみ）
+    # ========================================
+    - name: "PHASE 7: Remove build tools (remove_build_tools={{ remove_build_tools }})"
+      block:
+        - name: Remove Java
+          dnf:
+            name:
+              - java-*-openjdk-devel
+              - java-*-openjdk
+              - java-*-openjdk-headless
+            state: absent
+            autoremove: yes
+          when: remove_build_tools | bool
+          failed_when: false
+
+        - name: Remove Maven installation
+          file:
+            path: "{{ item }}"
+            state: absent
+          when: remove_build_tools | bool
+          loop:
+            - /opt/maven
+            - /etc/profile.d/maven.sh
+          failed_when: false
+
+        - name: Find and remove Maven directories in /opt
+          find:
+            paths: /opt
+            patterns: "apache-maven-*"
+            file_type: directory
+          register: maven_dirs
+          when: remove_build_tools | bool
+
+        - name: Remove Maven directories
+          file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ maven_dirs.files | default([]) }}"
+          when: remove_build_tools | bool
+          failed_when: false
+
+        - name: Remove Node.js and NPM
+          dnf:
+            name:
+              - nodejs
+              - npm
+            state: absent
+            autoremove: yes
+          when: remove_build_tools | bool
+          failed_when: false
+
+        - name: Remove NodeSource repository
+          file:
+            path: "{{ item }}"
+            state: absent
+          when: remove_build_tools | bool
+          loop:
+            - /etc/yum.repos.d/nodesource-el9.repo
+            - /etc/yum.repos.d/nodesource.repo
+          failed_when: false
+
+        - name: Display build tools removal result
+          debug:
+            msg: >-
+              {{
+                '✅ Build tools (Java/Maven/Node.js) removed'
+                if remove_build_tools | bool
+                else '⚠️ Build tools preserved (add -e remove_build_tools=true to delete)'
+              }}
+
+      tags: [build-tools]
+
+    # ========================================
+    # Phase 8: 一時ファイル / キャッシュ削除
+    # ========================================
+    - name: "PHASE 8: Clean temporary files and caches"
+      block:
+        - name: Remove Ansible fact cache
+          file:
+            path: /tmp/ansible_facts
+            state: absent
+          failed_when: false
+
+        - name: Remove K3s installation script from /tmp
+          file:
+            path: /tmp/k3s-install.sh
+            state: absent
+          failed_when: false
+
+        - name: Display cleanup result
+          debug:
+            msg: "✅ Temporary files cleaned"
+
+      tags: [cleanup]
+
+    # ========================================
+    # Phase 9: アンインストール確認サマリー
+    # ========================================
+    - name: "PHASE 9: Verification summary"
+      block:
+        - name: Check K3s binary
+          stat:
+            path: /usr/local/bin/k3s
+          register: check_k3s
+
+        - name: Check Gitea container
+          command: "{{ container_runtime }} inspect {{ gitea_container_name }}"
+          register: check_gitea_container
+          failed_when: false
+          changed_when: false
+
+        - name: Check Gitea data directory
+          stat:
+            path: "{{ gitea_data_dir }}"
+          register: check_gitea_data
+
+        - name: Check socat services
+          stat:
+            path: "/etc/systemd/system/socat-frontend.service"
+          register: check_socat
+
+        - name: Check Java
+          command: java -version
+          register: check_java
+          failed_when: false
+          changed_when: false
+
+        - name: Check Node.js
+          command: node --version
+          register: check_node
+          failed_when: false
+          changed_when: false
+
+        - name: Display final uninstall summary
+          debug:
+            msg:
+              - "======================================================="
+              - "  全サービス アンインストール完了"
+              - "======================================================="
+              - ""
+              - "削除結果:"
+              - "  socat services  : {{ '✅ 削除済み' if not check_socat.stat.exists else '⚠️ 残存' }}"
+              - "  Gitea container : {{ '✅ 削除済み' if check_gitea_container.rc != 0 else '⚠️ 残存' }}"
+              - "  Gitea data      : {{ '✅ 削除済み' if not check_gitea_data.stat.exists else ('⚠️ 保持中 (-e purge_data=true で削除)' if not purge_data | bool else '✅ 削除済み') }}"
+              - "  K3s             : {{ '✅ 削除済み' if not check_k3s.stat.exists else '⚠️ 残存' }}"
+              - "  Java            : {{ '✅ 削除済み' if check_java.rc != 0 else ('⚠️ 保持中 (-e remove_build_tools=true で削除)' if not remove_build_tools | bool else '⚠️ 残存') }}"
+              - "  Node.js         : {{ '✅ 削除済み' if check_node.rc != 0 else ('⚠️ 保持中 (-e remove_build_tools=true で削除)' if not remove_build_tools | bool else '⚠️ 残存') }}"
+              - ""
+              - "再構築コマンド:"
+              - "  # K3s + ArgoCD:"
+              - "  ansible-playbook -i inventory/hosts.yml playbooks/install_k3s_and_argocd.yml"
+              - ""
+              - "  # Gitea:"
+              - "  # (environment.yml で features.gitea_enabled: true に設定後)"
+              - "  ansible-playbook -i inventory/hosts.yml playbooks/install_gitea.yml"
+              - ""
+              - "  # 回帰テスト一括実行:"
+              - "  ansible-playbook -i inventory/hosts.yml playbooks/deploy_regression_test_complete.yml"
+              - "======================================================="
+
+      tags: [summary]

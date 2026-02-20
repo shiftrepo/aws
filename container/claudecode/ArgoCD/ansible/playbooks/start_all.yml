@@ -1,0 +1,84 @@
+---
+# ========================================
+# 全サービス 一括起動
+# ========================================
+# K3s / ArgoCD / orgmgmt アプリ / Gitea を
+# 0 から一括で構築・起動します。
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook -i inventory/hosts.yml playbooks/start_all.yml
+# ========================================
+
+# ----------------------------------------
+# Step 0: 起動プラン表示
+# ----------------------------------------
+- name: "START ALL - Show plan"
+  hosts: localhost
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+  tasks:
+    - name: Display startup plan
+      debug:
+        msg:
+          - "======================================================="
+          - "  全サービス 一括起動"
+          - "======================================================="
+          - ""
+          - "  [Step 1] K3s + ArgoCD + orgmgmt アプリ"
+          - "           → deploy_k8s_complete.yml"
+          - "  [Step 2] Gitea"
+          - "           → install_gitea.yml"
+          - "           (gitea_enabled={{ environment_config.features.gitea_enabled }})"
+          - ""
+          - "======================================================="
+
+# ----------------------------------------
+# Step 1: K3s + ArgoCD + アプリ全体
+# ----------------------------------------
+- import_playbook: deploy_k8s_complete.yml
+
+# ----------------------------------------
+# Step 2: Gitea
+# (gitea_enabled: false の場合はスキップ)
+# ----------------------------------------
+- import_playbook: install_gitea.yml
+
+# ----------------------------------------
+# 最終サマリー
+# ----------------------------------------
+- name: "START ALL - Final summary"
+  hosts: localhost
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+  tasks:
+    - name: Display all services summary
+      debug:
+        msg:
+          - "======================================================="
+          - "  全サービス 起動完了"
+          - "======================================================="
+          - ""
+          - "  orgmgmt Frontend : http://{{ ansible_default_ipv4.address }}:{{ environment_config.ports.frontend }}"
+          - "  orgmgmt Backend  : http://{{ ansible_default_ipv4.address }}:{{ environment_config.ports.backend }}"
+          - "  ArgoCD           : https://{{ ansible_default_ipv4.address }}:{{ environment_config.ports.argocd_https }}"
+          - "  K8s Dashboard    : http://{{ ansible_default_ipv4.address }}:{{ environment_config.ports.dashboard }}"
+          - "  Gitea            : {{ 'http://' + ansible_default_ipv4.address + ':' + environment_config.gitea.port|string if environment_config.features.gitea_enabled else 'disabled' }}"
+          - ""
+          - "  停止・削除:"
+          - "    ansible-playbook -i inventory/hosts.yml playbooks/uninstall_all.yml"
+          - "======================================================="

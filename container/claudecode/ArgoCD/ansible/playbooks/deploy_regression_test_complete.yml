@@ -59,12 +59,10 @@
     - name: Detect ansible-playbook executable path
       block:
         - name: Find ansible-playbook binary
-          shell: |
-            which ansible-playbook 2>/dev/null ||             find /usr/local/bin /usr/bin /root/.local/bin /home -name ansible-playbook 2>/dev/null | head -1
+          shell: which ansible-playbook 2>/dev/null || find /usr/local/bin /usr/bin -name ansible-playbook 2>/dev/null | head -1
           register: ap_path
           changed_when: false
           failed_when: ap_path.stdout == ""
-          become: no
 
         - name: Set ansible_playbook_cmd fact
           set_fact:

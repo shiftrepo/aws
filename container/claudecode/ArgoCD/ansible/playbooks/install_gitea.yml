@@ -1,0 +1,431 @@
+---
+# ========================================
+# Gitea インストール - Ansible自動化
+# ========================================
+# Gitea Git サーバーを Podman コンテナとして構築します
+# features.gitea_enabled: true の場合のみ動作します
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook -i inventory/hosts.yml playbooks/install_gitea.yml
+#
+# Gitea を有効化:
+#   ansible/config/environment.yml で features.gitea_enabled: true を設定
+# ========================================
+
+- name: Install Gitea Git server
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+    - name: Set Gitea variables
+      set_fact:
+        gitea_enabled: "{{ environment_config.features.gitea_enabled | bool }}"
+        gitea_version: "{{ environment_config.gitea.version }}"
+        gitea_port: "{{ environment_config.gitea.port }}"
+        gitea_ssh_port: "{{ environment_config.gitea.ssh_port }}"
+        gitea_data_dir: "{{ environment_config.gitea.data_dir }}"
+        gitea_container_name: "{{ environment_config.gitea.container_name }}"
+        gitea_admin_username: "{{ environment_config.gitea.admin.username }}"
+        gitea_admin_password: "{{ environment_config.gitea.admin.password }}"
+        gitea_admin_email: "{{ environment_config.gitea.admin.email }}"
+        container_runtime: "{{ environment_config.containers.runtime }}"
+        external_ip: "{{ environment_config.network.external_ip | default(ansible_default_ipv4.address) }}"
+      tags: [always]
+
+    # ========================================
+    # Phase 0: 機能フラグの確認
+    # ========================================
+    - name: Phase 0 - Check gitea_enabled flag
+      block:
+        - name: Notify Gitea is disabled
+          debug:
+            msg: "Gitea は無効 (features.gitea_enabled: false)。有効化するには environment.yml を編集してください。"
+          when: not gitea_enabled
+
+        - name: End play if Gitea is disabled
+          meta: end_play
+          when: not gitea_enabled
+
+        - name: Display Gitea install info
+          debug:
+            msg:
+              - "=========================================="
+              - "  Gitea インストール開始"
+              - "=========================================="
+              - ""
+              - "Gitea Version : {{ gitea_version }}"
+              - "HTTP Port     : {{ gitea_port }}"
+              - "SSH Port      : {{ gitea_ssh_port }}"
+              - "Data Dir      : {{ gitea_data_dir }}"
+              - "Container     : {{ gitea_container_name }}"
+              - "Runtime       : {{ container_runtime }}"
+              - ""
+              - "=========================================="
+      tags: [always]
+
+  tasks:
+    # ========================================
+    # Phase 1: コンテナランタイム確認
+    # ========================================
+    - name: Phase 1 - Verify container runtime
+      block:
+        - name: Check container runtime availability
+          command: "{{ container_runtime }} --version"
+          register: runtime_check
+          changed_when: false
+
+        - name: Display runtime version
+          debug:
+            msg: "Container runtime: {{ runtime_check.stdout.split('\n')[0] }}"
+
+      tags: [verify]
+
+    # ========================================
+    # Phase 2: データディレクトリの作成
+    # ========================================
+    - name: Phase 2 - Create data directories
+      block:
+        - name: Remove previous Gitea data (clean install)
+          file:
+            path: "{{ gitea_data_dir }}"
+            state: absent
+
+        - name: Create Gitea data directories owned by git user (UID 1000)
+          file:
+            path: "{{ item.path }}"
+            state: directory
+            mode: "{{ item.mode }}"
+            owner: 1000
+            group: 1000
+          loop:
+            - { path: "{{ gitea_data_dir }}",            mode: '0755' }
+            - { path: "{{ gitea_data_dir }}/gitea",      mode: '0755' }
+            - { path: "{{ gitea_data_dir }}/gitea/conf", mode: '0755' }
+            - { path: "{{ gitea_data_dir }}/git",        mode: '0755' }
+            - { path: "{{ gitea_data_dir }}/git/.ssh",   mode: '0700' }
+
+        - name: Fix SELinux context for Gitea data directory
+          command: chcon -Rt container_file_t "{{ gitea_data_dir }}"
+          failed_when: false
+
+        - name: Display directory creation result
+          debug:
+            msg: "Gitea data directory created: {{ gitea_data_dir }}"
+
+      tags: [setup]
+
+    # ========================================
+    # Phase 3: Gitea コンテナイメージの取得
+    # ========================================
+    - name: Phase 3 - Pull Gitea container image
+      block:
+        - name: Pull Gitea image
+          command: "{{ container_runtime }} pull docker.io/gitea/gitea:{{ gitea_version }}"
+          register: pull_result
+          changed_when: "'Downloaded' in pull_result.stdout or 'Pulling' in pull_result.stdout"
+
+        - name: Display pull result
+          debug:
+            msg: "Gitea image ready: gitea/gitea:{{ gitea_version }}"
+
+      tags: [pull]
+
+    # ========================================
+    # Phase 4: 既存コンテナの停止・削除
+    # ========================================
+    - name: Phase 4 - Remove existing container if present
+      block:
+        - name: Stop existing Gitea container
+          command: "{{ container_runtime }} stop {{ gitea_container_name }}"
+          register: stop_result
+          failed_when: false
+          changed_when: stop_result.rc == 0
+
+        - name: Remove existing Gitea container
+          command: "{{ container_runtime }} rm {{ gitea_container_name }}"
+          register: rm_result
+          failed_when: false
+          changed_when: rm_result.rc == 0
+
+      tags: [setup]
+
+    # ========================================
+    # Phase 5: Gitea コンテナの起動
+    # ========================================
+    - name: Phase 5 - Start Gitea container
+      block:
+        - name: Start Gitea container
+          command: >
+            {{ container_runtime }} run -d
+            --name {{ gitea_container_name }}
+            --restart always
+            -p {{ gitea_port }}:3000
+            -p {{ gitea_ssh_port }}:22
+            -v {{ gitea_data_dir }}:/data:Z
+            -e GITEA__database__DB_TYPE=sqlite3
+            -e GITEA__database__PATH=/data/gitea/gitea.db
+            -e GITEA__security__INSTALL_LOCK=true
+            -e GITEA__server__HTTP_PORT=3000
+            -e GITEA__server__DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_PORT={{ gitea_ssh_port }}
+            -e GITEA__server__ROOT_URL=http://{{ external_ip }}:{{ gitea_port }}/
+            -e GITEA__log__MODE=console
+            docker.io/gitea/gitea:{{ gitea_version }}
+          register: container_start
+          changed_when: container_start.rc == 0
+
+        - name: Display container ID
+          debug:
+            msg: "Gitea container started: {{ container_start.stdout[:12] }}"
+
+      tags: [start]
+
+    # ========================================
+    # Phase 6: コンテナ起動待機
+    # ========================================
+    - name: Phase 6 - Wait for Gitea to become ready
+      block:
+        - name: Wait for Gitea HTTP port
+          wait_for:
+            host: "127.0.0.1"
+            port: "{{ gitea_port }}"
+            timeout: 120
+            delay: 5
+
+        - name: Wait for Gitea initialization (DB migration)
+          pause:
+            seconds: 30
+
+        - name: Verify Gitea root URL is responding
+          uri:
+            url: "http://127.0.0.1:{{ gitea_port }}/"
+            method: GET
+            status_code: [200, 302]
+            timeout: 30
+          register: gitea_root_check
+          retries: 10
+          delay: 5
+          until: gitea_root_check.status in [200, 302]
+
+        - name: Verify Gitea API version endpoint
+          uri:
+            url: "http://127.0.0.1:{{ gitea_port }}/api/v1/version"
+            method: GET
+            status_code: [200, 404]
+            timeout: 30
+          register: gitea_api_check
+          retries: 6
+          delay: 5
+          until: gitea_api_check.status in [200, 404]
+
+        - name: Display Gitea version
+          debug:
+            msg: >-
+              Gitea responding:
+              {{ 'API version ' + gitea_api_check.json.version
+                 if gitea_api_check.status == 200
+                 else 'Web UI OK (API path may differ in this Gitea version)' }}
+
+      tags: [wait]
+
+    # ========================================
+    # Phase 7: 管理者ユーザーの作成
+    # ========================================
+    - name: Phase 7 - Create admin user
+      block:
+        - name: Check if admin user already exists
+          command: >
+            {{ container_runtime }} exec --user git {{ gitea_container_name }}
+            gitea admin user list --admin
+          register: user_list
+          changed_when: false
+          failed_when: false
+
+        - name: Create Gitea admin user
+          command: >
+            {{ container_runtime }} exec --user git {{ gitea_container_name }}
+            gitea admin user create
+            --username {{ gitea_admin_username }}
+            --password {{ gitea_admin_password }}
+            --email {{ gitea_admin_email }}
+            --admin
+            --must-change-password=false
+          register: create_user
+          when: gitea_admin_username not in (user_list.stdout | default(''))
+          failed_when: create_user.rc != 0 and 'already exists' not in (create_user.stderr | default(''))
+          changed_when: create_user.rc == 0
+
+        - name: Display admin creation result
+          debug:
+            msg: >-
+              {{
+                'Admin user created: ' + gitea_admin_username
+                if (create_user is defined and create_user.rc is defined and create_user.rc == 0)
+                else 'Admin user already exists: ' + gitea_admin_username
+              }}
+
+      tags: [admin]
+
+    # ========================================
+    # Phase 8: ファイアウォール設定
+    # ========================================
+    - name: Phase 8 - Configure firewall
+      block:
+        - name: Check if firewalld is running
+          command: systemctl is-active firewalld
+          register: firewalld_status
+          failed_when: false
+          changed_when: false
+
+        - name: Open Gitea HTTP port in firewalld
+          firewalld:
+            port: "{{ gitea_port }}/tcp"
+            permanent: yes
+            state: enabled
+            immediate: yes
+          when: firewalld_status.stdout == 'active'
+
+        - name: Open Gitea SSH port in firewalld
+          firewalld:
+            port: "{{ gitea_ssh_port }}/tcp"
+            permanent: yes
+            state: enabled
+            immediate: yes
+          when: firewalld_status.stdout == 'active'
+
+        - name: Display firewall status
+          debug:
+            msg: >-
+              {{
+                'Firewall rules added for ports ' + gitea_port|string + '/tcp and ' + gitea_ssh_port|string + '/tcp'
+                if firewalld_status.stdout == 'active'
+                else 'firewalld not running, skipping firewall configuration'
+              }}
+
+      tags: [firewall]
+
+    # ========================================
+    # Phase 9: systemd サービス設定（自動起動）
+    # ========================================
+    - name: Phase 9 - Configure systemd auto-start
+      block:
+        - name: Generate systemd service file for Gitea container
+          command: >
+            {{ container_runtime }} generate systemd
+            --name {{ gitea_container_name }}
+            --restart-policy always
+            --files
+            --new
+          args:
+            chdir: /etc/systemd/system
+          register: systemd_gen
+          failed_when: false
+          changed_when: systemd_gen.rc == 0
+
+        - name: Create Gitea systemd service manually if generate failed
+          copy:
+            content: |
+              [Unit]
+              Description=Gitea Git server container
+              After=network-online.target
+              Wants=network-online.target
+
+              [Service]
+              Type=simple
+              Restart=always
+              RestartSec=10
+              ExecStartPre=-/usr/bin/{{ container_runtime }} stop {{ gitea_container_name }}
+              ExecStartPre=-/usr/bin/{{ container_runtime }} rm {{ gitea_container_name }}
+              ExecStart=/usr/bin/{{ container_runtime }} run \
+                --name {{ gitea_container_name }} \
+                -p {{ gitea_port }}:3000 \
+                -p {{ gitea_ssh_port }}:22 \
+                -v {{ gitea_data_dir }}:/data:Z \
+                -e GITEA__database__DB_TYPE=sqlite3 \
+                -e GITEA__database__PATH=/data/gitea/gitea.db \
+                -e GITEA__security__INSTALL_LOCK=true \
+                -e GITEA__server__HTTP_PORT=3000 \
+                -e GITEA__server__DOMAIN={{ external_ip }} \
+                -e GITEA__server__SSH_DOMAIN={{ external_ip }} \
+                -e GITEA__server__SSH_PORT={{ gitea_ssh_port }} \
+                -e GITEA__server__ROOT_URL=http://{{ external_ip }}:{{ gitea_port }}/ \
+                docker.io/gitea/gitea:{{ gitea_version }}
+              ExecStop=/usr/bin/{{ container_runtime }} stop {{ gitea_container_name }}
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/gitea-container.service
+            mode: '0644'
+          when: systemd_gen.rc != 0
+
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+
+        - name: Enable Gitea container service
+          systemd:
+            name: "{{ 'container-' + gitea_container_name if systemd_gen.rc == 0 else 'gitea-container' }}"
+            enabled: yes
+          failed_when: false
+
+        - name: Display systemd setup result
+          debug:
+            msg: "Gitea configured for auto-start on boot"
+
+      tags: [systemd]
+
+    # ========================================
+    # Phase 10: インストール確認とサマリー
+    # ========================================
+    - name: Phase 10 - Verify installation and display summary
+      block:
+        - name: Check container status
+          command: "{{ container_runtime }} inspect --format '{{ '{{' }}.State.Status{{ '}}' }}' {{ gitea_container_name }}"
+          register: container_status
+          changed_when: false
+
+        - name: Verify Gitea API
+          uri:
+            url: "http://127.0.0.1:{{ gitea_port }}/api/v1/version"
+            method: GET
+            status_code: 200
+          register: final_api_check
+          failed_when: false
+
+        - name: Display installation summary
+          debug:
+            msg:
+              - "=========================================="
+              - "  Gitea インストール完了"
+              - "=========================================="
+              - ""
+              - "Container Status : {{ container_status.stdout }}"
+              - "API Status       : {{ 'OK (' + final_api_check.json.version + ')' if final_api_check.status == 200 else 'NG' }}"
+              - ""
+              - "アクセス情報:"
+              - "  Web UI  : http://{{ external_ip }}:{{ gitea_port }}"
+              - "  SSH     : {{ external_ip }}:{{ gitea_ssh_port }}"
+              - ""
+              - "管理者ログイン:"
+              - "  Username: {{ gitea_admin_username }}"
+              - "  Password: {{ gitea_admin_password }}"
+              - "  Email   : {{ gitea_admin_email }}"
+              - ""
+              - "設定変更:"
+              - "  ansible/config/environment.yml の gitea セクションを編集"
+              - ""
+              - "アンインストール:"
+              - "  ansible-playbook -i inventory/hosts.yml playbooks/uninstall_gitea.yml"
+              - ""
+              - "=========================================="
+
+      tags: [verify]

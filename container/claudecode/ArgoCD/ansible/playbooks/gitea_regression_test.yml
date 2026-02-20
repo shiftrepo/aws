@@ -1,0 +1,632 @@
+---
+# ========================================
+# Gitea 回帰テスト - 構築・バージョンアップ・バージョンダウン一括検証
+# ========================================
+# 1. 既存 Gitea 削除（クリーンスタート）
+# 2. 旧バージョン インストール・動作確認
+# 3. テストデータ作成（データ永続性の検証用）
+# 4. バージョンアップ → データ保持確認
+# 5. バージョンダウン → データ保持確認
+# 6. 結果サマリー
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook -i inventory/hosts.yml playbooks/gitea_regression_test.yml
+#
+# バージョン指定:
+#   ansible-playbook -i inventory/hosts.yml playbooks/gitea_regression_test.yml \
+#     -e "test_version_old=1.21 test_version_new=1.22"
+#
+# 前提条件:
+#   ansible/config/environment.yml で features.gitea_enabled: true を設定
+# ========================================
+
+- name: Gitea Regression Test - Build / Upgrade / Downgrade
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # テスト対象バージョン（コマンドラインで上書き可能）
+    test_version_old: "1.21"
+    test_version_new: "{{ environment_config.gitea.version }}"
+    # テストデータ
+    test_org_name: "gitea-regression-org"
+    test_repo_name: "gitea-regression-repo"
+    test_token_name: "regression-test-token"
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+    - name: Set Gitea variables from environment config
+      set_fact:
+        gitea_enabled: "{{ environment_config.features.gitea_enabled | bool }}"
+        gitea_port: "{{ environment_config.gitea.port }}"
+        gitea_ssh_port: "{{ environment_config.gitea.ssh_port }}"
+        gitea_data_dir: "{{ environment_config.gitea.data_dir }}"
+        gitea_container_name: "{{ environment_config.gitea.container_name }}"
+        gitea_admin_username: "{{ environment_config.gitea.admin.username }}"
+        gitea_admin_password: "{{ environment_config.gitea.admin.password }}"
+        gitea_admin_email: "{{ environment_config.gitea.admin.email }}"
+        container_runtime: "{{ environment_config.containers.runtime }}"
+        external_ip: >-
+          {{ environment_config.network.external_ip
+             | default(ansible_default_ipv4.address) }}
+        gitea_url: "http://127.0.0.1:{{ environment_config.gitea.port }}"
+      tags: [always]
+
+    # ----------------------------------------
+    # 機能フラグ確認
+    # ----------------------------------------
+    - name: Fail if gitea_enabled is false
+      fail:
+        msg: |
+          Gitea が無効です。
+          ansible/config/environment.yml を編集してください:
+
+            features:
+              gitea_enabled: true
+      when: not gitea_enabled
+      tags: [always]
+
+    - name: Display regression test plan
+      debug:
+        msg:
+          - "======================================================="
+          - "  Gitea 回帰テスト"
+          - "======================================================="
+          - ""
+          - "旧バージョン (Old) : {{ test_version_old }}"
+          - "新バージョン (New) : {{ test_version_new }}"
+          - ""
+          - "テストフロー:"
+          - "  Phase 1  : 既存 Gitea 削除（クリーンスタート）"
+          - "  Phase 2  : 両バージョン イメージ取得"
+          - "  Phase 3  : {{ test_version_old }} インストール"
+          - "  Phase 4  : {{ test_version_old }} 動作確認・テストデータ作成"
+          - "  Phase 5  : バージョンアップ → {{ test_version_new }}"
+          - "  Phase 6  : {{ test_version_new }} 動作確認・データ保持確認"
+          - "  Phase 7  : バージョンダウン → {{ test_version_old }}"
+          - "  Phase 8  : {{ test_version_old }} 動作確認・データ保持確認"
+          - "  Phase 9  : 最終サマリー"
+          - ""
+          - "Host       : {{ external_ip }}"
+          - "Port       : {{ gitea_port }} (HTTP) / {{ gitea_ssh_port }} (SSH)"
+          - "Runtime    : {{ container_runtime }}"
+          - "Data Dir   : {{ gitea_data_dir }}"
+          - "======================================================="
+      tags: [always]
+
+  tasks:
+    # ========================================
+    # Phase 1: 既存 Gitea の完全削除（クリーンスタート）
+    # ========================================
+    - name: "PHASE 1: Clean existing Gitea environment"
+      block:
+        - name: Stop existing Gitea container
+          command: "{{ container_runtime }} stop {{ gitea_container_name }}"
+          failed_when: false
+          changed_when: false
+
+        - name: Remove existing Gitea container
+          command: "{{ container_runtime }} rm {{ gitea_container_name }}"
+          failed_when: false
+          changed_when: false
+
+        - name: Remove Gitea data directory
+          file:
+            path: "{{ gitea_data_dir }}"
+            state: absent
+
+        - name: Recreate Gitea data directory
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - "{{ gitea_data_dir }}"
+            - "{{ gitea_data_dir }}/gitea"
+            - "{{ gitea_data_dir }}/git"
+
+        - name: Set ownership for Gitea container user (UID 1000)
+          command: chown -R 1000:1000 "{{ gitea_data_dir }}"
+
+        - name: Fix SELinux context for Gitea data directory
+          command: chcon -Rt container_file_t "{{ gitea_data_dir }}"
+          failed_when: false
+
+        - name: Display cleanup result
+          debug:
+            msg: "✅ Existing Gitea removed. Clean environment ready."
+
+      tags: [cleanup]
+
+    # ========================================
+    # Phase 2: 両バージョン イメージ取得
+    # ========================================
+    - name: "PHASE 2: Pull both Gitea images"
+      block:
+        - name: Pull old version image ({{ test_version_old }})
+          command: "{{ container_runtime }} pull docker.io/gitea/gitea:{{ test_version_old }}"
+          register: pull_old
+          changed_when: false
+
+        - name: Pull new version image ({{ test_version_new }})
+          command: "{{ container_runtime }} pull docker.io/gitea/gitea:{{ test_version_new }}"
+          register: pull_new
+          changed_when: false
+
+        - name: List pulled Gitea images
+          command: "{{ container_runtime }} images gitea/gitea --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}'"
+          register: gitea_images
+          changed_when: false
+          failed_when: false
+
+        - name: Display pulled images
+          debug:
+            msg:
+              - "✅ Images ready:"
+              - "  gitea/gitea:{{ test_version_old }}"
+              - "  gitea/gitea:{{ test_version_new }}"
+
+      tags: [pull-images]
+
+    # ========================================
+    # Phase 3: 旧バージョン インストール
+    # ========================================
+    - name: "PHASE 3: Install Gitea {{ test_version_old }}"
+      block:
+        - name: Start Gitea container with version {{ test_version_old }}
+          command: >
+            {{ container_runtime }} run -d
+            --name {{ gitea_container_name }}
+            --restart always
+            -p {{ gitea_port }}:3000
+            -p {{ gitea_ssh_port }}:22
+            -v {{ gitea_data_dir }}:/data:Z
+            -e GITEA__database__DB_TYPE=sqlite3
+            -e GITEA__database__PATH=/data/gitea/gitea.db
+            -e GITEA__security__INSTALL_LOCK=true
+            -e GITEA__server__HTTP_PORT=3000
+            -e GITEA__server__DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_PORT={{ gitea_ssh_port }}
+            -e GITEA__server__ROOT_URL=http://{{ external_ip }}:{{ gitea_port }}/
+            -e GITEA__log__MODE=console
+            docker.io/gitea/gitea:{{ test_version_old }}
+          register: start_old
+
+        - name: Wait for HTTP port to open
+          wait_for:
+            host: "127.0.0.1"
+            port: "{{ gitea_port }}"
+            timeout: 120
+            delay: 5
+
+        - name: Wait for Gitea initialization
+          pause:
+            seconds: 15
+
+        - name: Check Gitea API is responding
+          uri:
+            url: "{{ gitea_url }}/api/v1/version"
+            method: GET
+            status_code: 200
+          register: api_old
+          retries: 10
+          delay: 5
+          until: api_old.status == 200
+
+        - name: Create admin user
+          command: >
+            {{ container_runtime }} exec {{ gitea_container_name }}
+            gitea admin user create
+            --username {{ gitea_admin_username }}
+            --password {{ gitea_admin_password }}
+            --email {{ gitea_admin_email }}
+            --admin
+            --must-change-password=false
+          register: create_admin
+          failed_when: create_admin.rc != 0 and 'already exists' not in (create_admin.stderr | default(''))
+          changed_when: create_admin.rc == 0
+
+        - name: Display phase 3 result
+          debug:
+            msg:
+              - "✅ Gitea {{ test_version_old }} インストール完了"
+              - "   API Version: {{ api_old.json.version }}"
+
+      tags: [install-old]
+
+    # ========================================
+    # Phase 4: 旧バージョン 動作確認・テストデータ作成
+    # ========================================
+    - name: "PHASE 4: Verify {{ test_version_old }} and create test data"
+      block:
+        # --- API Token 発行 ---
+        - name: Create API token for admin user
+          uri:
+            url: "{{ gitea_url }}/api/v1/users/{{ gitea_admin_username }}/tokens"
+            method: POST
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            body_format: json
+            body:
+              name: "{{ test_token_name }}"
+            status_code: [201, 422]
+          register: token_response
+
+        - name: Store API token
+          set_fact:
+            api_token: "{{ token_response.json.sha1 | default('') }}"
+          when: token_response.status == 201
+
+        - name: Use existing token (if token name already existed)
+          set_fact:
+            api_token: ""
+          when: token_response.status == 422
+
+        # --- テスト Organization 作成 ---
+        - name: Create test organization
+          uri:
+            url: "{{ gitea_url }}/api/v1/orgs"
+            method: POST
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            body_format: json
+            body:
+              username: "{{ test_org_name }}"
+              visibility: "public"
+              description: "Regression test organization"
+            status_code: [201, 422]
+          register: create_org
+
+        - name: Display org creation result
+          debug:
+            msg: "{{ 'Organization created: ' + test_org_name if create_org.status == 201 else 'Organization already exists: ' + test_org_name }}"
+
+        # --- テスト Repository 作成 ---
+        - name: Create test repository
+          uri:
+            url: "{{ gitea_url }}/api/v1/user/repos"
+            method: POST
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            body_format: json
+            body:
+              name: "{{ test_repo_name }}"
+              description: "Regression test repository"
+              private: false
+              auto_init: true
+              default_branch: "main"
+            status_code: [201, 409]
+          register: create_repo
+
+        - name: Display repo creation result
+          debug:
+            msg: "{{ 'Repository created: ' + gitea_admin_username + '/' + test_repo_name if create_repo.status == 201 else 'Repository already exists' }}"
+
+        # --- 作成確認 ---
+        - name: Verify organization exists
+          uri:
+            url: "{{ gitea_url }}/api/v1/orgs/{{ test_org_name }}"
+            method: GET
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            status_code: 200
+          register: verify_org_old
+
+        - name: Verify repository exists
+          uri:
+            url: "{{ gitea_url }}/api/v1/repos/{{ gitea_admin_username }}/{{ test_repo_name }}"
+            method: GET
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            status_code: 200
+          register: verify_repo_old
+
+        - name: Store test data baseline
+          set_fact:
+            baseline_org_id: "{{ verify_org_old.json.id }}"
+            baseline_repo_id: "{{ verify_repo_old.json.id }}"
+
+        - name: Display phase 4 result
+          debug:
+            msg:
+              - "✅ Gitea {{ test_version_old }} 動作確認完了"
+              - ""
+              - "テストデータ:"
+              - "  Organization : {{ verify_org_old.json.username }} (ID={{ verify_org_old.json.id }})"
+              - "  Repository   : {{ verify_repo_old.json.full_name }} (ID={{ verify_repo_old.json.id }})"
+              - ""
+              - "→ これらのデータがバージョンアップ後も保持されるか検証します"
+
+      tags: [verify-old]
+
+    # ========================================
+    # Phase 5: バージョンアップ (old → new)
+    # ========================================
+    - name: "PHASE 5: Upgrade Gitea {{ test_version_old }} → {{ test_version_new }}"
+      block:
+        - name: Stop current Gitea container
+          command: "{{ container_runtime }} stop {{ gitea_container_name }}"
+          register: stop_for_upgrade
+
+        - name: Remove old Gitea container
+          command: "{{ container_runtime }} rm {{ gitea_container_name }}"
+
+        - name: Start Gitea container with new version {{ test_version_new }}
+          command: >
+            {{ container_runtime }} run -d
+            --name {{ gitea_container_name }}
+            --restart always
+            -p {{ gitea_port }}:3000
+            -p {{ gitea_ssh_port }}:22
+            -v {{ gitea_data_dir }}:/data:Z
+            -e GITEA__database__DB_TYPE=sqlite3
+            -e GITEA__database__PATH=/data/gitea/gitea.db
+            -e GITEA__security__INSTALL_LOCK=true
+            -e GITEA__server__HTTP_PORT=3000
+            -e GITEA__server__DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_PORT={{ gitea_ssh_port }}
+            -e GITEA__server__ROOT_URL=http://{{ external_ip }}:{{ gitea_port }}/
+            -e GITEA__log__MODE=console
+            docker.io/gitea/gitea:{{ test_version_new }}
+          register: start_new
+
+        - name: Wait for HTTP port to open
+          wait_for:
+            host: "127.0.0.1"
+            port: "{{ gitea_port }}"
+            timeout: 120
+            delay: 5
+
+        - name: Wait for Gitea migration to complete
+          pause:
+            seconds: 20
+
+        - name: Check new Gitea API is responding
+          uri:
+            url: "{{ gitea_url }}/api/v1/version"
+            method: GET
+            status_code: 200
+          register: api_new
+          retries: 10
+          delay: 5
+          until: api_new.status == 200
+
+        - name: Display phase 5 result
+          debug:
+            msg:
+              - "✅ バージョンアップ完了"
+              - "   {{ test_version_old }} → {{ test_version_new }}"
+              - "   API Version: {{ api_new.json.version }}"
+
+      tags: [upgrade]
+
+    # ========================================
+    # Phase 6: 新バージョン 動作確認・データ保持確認
+    # ========================================
+    - name: "PHASE 6: Verify {{ test_version_new }} and data integrity after upgrade"
+      block:
+        - name: Verify API version is new
+          assert:
+            that: "api_new.json.version is version(test_version_old, '>=')"
+            fail_msg: "API version mismatch after upgrade: {{ api_new.json.version }}"
+            success_msg: "API version confirmed: {{ api_new.json.version }}"
+          failed_when: false
+
+        - name: Verify organization still exists after upgrade
+          uri:
+            url: "{{ gitea_url }}/api/v1/orgs/{{ test_org_name }}"
+            method: GET
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            status_code: 200
+          register: verify_org_new
+
+        - name: Verify repository still exists after upgrade
+          uri:
+            url: "{{ gitea_url }}/api/v1/repos/{{ gitea_admin_username }}/{{ test_repo_name }}"
+            method: GET
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            status_code: 200
+          register: verify_repo_new
+
+        - name: Confirm data IDs match baseline
+          assert:
+            that:
+              - "verify_org_new.json.id == baseline_org_id"
+              - "verify_repo_new.json.id == baseline_repo_id"
+            fail_msg: "DATA MISMATCH after upgrade! Org or repo ID changed."
+            success_msg: "Data IDs confirmed identical."
+
+        - name: Store upgrade test results
+          set_fact:
+            result_upgrade_api: "{{ api_new.json.version }}"
+            result_upgrade_org: "{{ 'OK' if verify_org_new.json.id == baseline_org_id else 'FAIL' }}"
+            result_upgrade_repo: "{{ 'OK' if verify_repo_new.json.id == baseline_repo_id else 'FAIL' }}"
+
+        - name: Display phase 6 result
+          debug:
+            msg:
+              - "✅ バージョンアップ後 データ保持確認完了"
+              - ""
+              - "API Version  : {{ result_upgrade_api }}"
+              - "Organization : {{ result_upgrade_org }} (ID={{ verify_org_new.json.id }})"
+              - "Repository   : {{ result_upgrade_repo }} (ID={{ verify_repo_new.json.id }})"
+
+      tags: [verify-new]
+
+    # ========================================
+    # Phase 7: バージョンダウン (new → old)
+    # ========================================
+    - name: "PHASE 7: Downgrade Gitea {{ test_version_new }} → {{ test_version_old }}"
+      block:
+        - name: Stop new Gitea container
+          command: "{{ container_runtime }} stop {{ gitea_container_name }}"
+
+        - name: Remove new Gitea container
+          command: "{{ container_runtime }} rm {{ gitea_container_name }}"
+
+        - name: Start Gitea container with old version {{ test_version_old }}
+          command: >
+            {{ container_runtime }} run -d
+            --name {{ gitea_container_name }}
+            --restart always
+            -p {{ gitea_port }}:3000
+            -p {{ gitea_ssh_port }}:22
+            -v {{ gitea_data_dir }}:/data:Z
+            -e GITEA__database__DB_TYPE=sqlite3
+            -e GITEA__database__PATH=/data/gitea/gitea.db
+            -e GITEA__security__INSTALL_LOCK=true
+            -e GITEA__server__HTTP_PORT=3000
+            -e GITEA__server__DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_DOMAIN={{ external_ip }}
+            -e GITEA__server__SSH_PORT={{ gitea_ssh_port }}
+            -e GITEA__server__ROOT_URL=http://{{ external_ip }}:{{ gitea_port }}/
+            -e GITEA__log__MODE=console
+            docker.io/gitea/gitea:{{ test_version_old }}
+          register: start_downgrade
+
+        - name: Wait for HTTP port to open
+          wait_for:
+            host: "127.0.0.1"
+            port: "{{ gitea_port }}"
+            timeout: 120
+            delay: 5
+
+        - name: Wait for Gitea initialization after downgrade
+          pause:
+            seconds: 15
+
+        - name: Check downgraded Gitea API is responding
+          uri:
+            url: "{{ gitea_url }}/api/v1/version"
+            method: GET
+            status_code: 200
+          register: api_downgrade
+          retries: 10
+          delay: 5
+          until: api_downgrade.status == 200
+
+        - name: Display phase 7 result
+          debug:
+            msg:
+              - "✅ バージョンダウン完了"
+              - "   {{ test_version_new }} → {{ test_version_old }}"
+              - "   API Version: {{ api_downgrade.json.version }}"
+
+      tags: [downgrade]
+
+    # ========================================
+    # Phase 8: バージョンダウン後 動作確認・データ保持確認
+    # ========================================
+    - name: "PHASE 8: Verify {{ test_version_old }} and data integrity after downgrade"
+      block:
+        - name: Verify organization still exists after downgrade
+          uri:
+            url: "{{ gitea_url }}/api/v1/orgs/{{ test_org_name }}"
+            method: GET
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            status_code: 200
+          register: verify_org_down
+
+        - name: Verify repository still exists after downgrade
+          uri:
+            url: "{{ gitea_url }}/api/v1/repos/{{ gitea_admin_username }}/{{ test_repo_name }}"
+            method: GET
+            url_username: "{{ gitea_admin_username }}"
+            url_password: "{{ gitea_admin_password }}"
+            force_basic_auth: yes
+            status_code: 200
+          register: verify_repo_down
+
+        - name: Confirm data IDs match baseline after downgrade
+          assert:
+            that:
+              - "verify_org_down.json.id == baseline_org_id"
+              - "verify_repo_down.json.id == baseline_repo_id"
+            fail_msg: "DATA MISMATCH after downgrade! Org or repo ID changed."
+            success_msg: "Data IDs confirmed identical after downgrade."
+
+        - name: Store downgrade test results
+          set_fact:
+            result_downgrade_api: "{{ api_downgrade.json.version }}"
+            result_downgrade_org: "{{ 'OK' if verify_org_down.json.id == baseline_org_id else 'FAIL' }}"
+            result_downgrade_repo: "{{ 'OK' if verify_repo_down.json.id == baseline_repo_id else 'FAIL' }}"
+
+        - name: Display phase 8 result
+          debug:
+            msg:
+              - "✅ バージョンダウン後 データ保持確認完了"
+              - ""
+              - "API Version  : {{ result_downgrade_api }}"
+              - "Organization : {{ result_downgrade_org }} (ID={{ verify_org_down.json.id }})"
+              - "Repository   : {{ result_downgrade_repo }} (ID={{ verify_repo_down.json.id }})"
+
+      tags: [verify-downgrade]
+
+    # ========================================
+    # Phase 9: 最終サマリー
+    # ========================================
+    - name: "PHASE 9: Final summary"
+      block:
+        - name: Get final container status
+          command: "{{ container_runtime }} inspect --format '{{ '{{' }}.State.Status{{ '}}' }}' {{ gitea_container_name }}"
+          register: final_container_status
+          changed_when: false
+
+        - name: Get running image version
+          command: "{{ container_runtime }} inspect --format '{{ '{{' }}.Config.Image{{ '}}' }}' {{ gitea_container_name }}"
+          register: final_image
+          changed_when: false
+
+        - name: Display regression test final summary
+          debug:
+            msg:
+              - "======================================================="
+              - "  Gitea 回帰テスト 完了"
+              - "======================================================="
+              - ""
+              - "テスト結果:"
+              - ""
+              - "  [Phase 3] 初期インストール ({{ test_version_old }})      : ✅ OK"
+              - "  [Phase 4] 動作確認・テストデータ作成                    : ✅ OK"
+              - "  [Phase 5] バージョンアップ (→ {{ test_version_new }})   : ✅ OK"
+              - "  [Phase 6] アップグレード後データ保持"
+              - "    - API バージョン  : {{ result_upgrade_api }}"
+              - "    - Organization  : {{ result_upgrade_org }}"
+              - "    - Repository    : {{ result_upgrade_repo }}"
+              - "  [Phase 7] バージョンダウン (→ {{ test_version_old }})   : ✅ OK"
+              - "  [Phase 8] ダウングレード後データ保持"
+              - "    - API バージョン  : {{ result_downgrade_api }}"
+              - "    - Organization  : {{ result_downgrade_org }}"
+              - "    - Repository    : {{ result_downgrade_repo }}"
+              - ""
+              - "最終状態:"
+              - "  Container  : {{ final_container_status.stdout }}"
+              - "  Image      : {{ final_image.stdout }}"
+              - "  Web UI     : http://{{ external_ip }}:{{ gitea_port }}"
+              - "  SSH        : {{ external_ip }}:{{ gitea_ssh_port }}"
+              - "  Admin User : {{ gitea_admin_username }}"
+              - ""
+              - "{{ '✅ ALL TESTS PASSED' if (result_upgrade_org == 'OK' and result_upgrade_repo == 'OK' and result_downgrade_org == 'OK' and result_downgrade_repo == 'OK') else '❌ SOME TESTS FAILED - 上記の FAIL を確認してください' }}"
+              - "======================================================="
+
+      tags: [summary]

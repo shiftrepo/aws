@@ -103,6 +103,23 @@ features:
   nexus_enabled: false
   monitoring_enabled: false
   backup_enabled: false
+  # Gitea を有効にする場合は true に変更してください
+  gitea_enabled: true
+
+gitea:
+  version: "1.22"
+  # Gitea Web UI ポート（ホスト側）
+  port: 3001
+  # Gitea SSH ポート（ホスト側）
+  ssh_port: 2222
+  # データ永続化ディレクトリ
+  data_dir: "/var/lib/gitea"
+  # コンテナ名
+  container_name: "gitea"
+  admin:
+    username: "gitea_admin"
+    password: "GiteaAdmin123!"
+    email: "admin@gitea.local"
 
 firewall:
   enabled: true

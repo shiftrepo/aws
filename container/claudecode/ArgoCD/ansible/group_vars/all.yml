@@ -78,6 +78,17 @@ dashboard_enabled: "{{ environment_config.features.dashboard_enabled }}"
 nexus_enabled: "{{ environment_config.features.nexus_enabled }}"
 monitoring_enabled: "{{ environment_config.features.monitoring_enabled }}"
 backup_enabled: "{{ environment_config.features.backup_enabled }}"
+gitea_enabled: "{{ environment_config.features.gitea_enabled }}"
+
+# Gitea Configuration
+gitea_version: "{{ environment_config.gitea.version }}"
+gitea_port: "{{ environment_config.gitea.port }}"
+gitea_ssh_port: "{{ environment_config.gitea.ssh_port }}"
+gitea_data_dir: "{{ environment_config.gitea.data_dir }}"
+gitea_container_name: "{{ environment_config.gitea.container_name }}"
+gitea_admin_username: "{{ environment_config.gitea.admin.username }}"
+gitea_admin_password: "{{ environment_config.gitea.admin.password }}"
+gitea_admin_email: "{{ environment_config.gitea.admin.email }}"
 
 # Firewall Configuration
 firewall_enabled: "{{ environment_config.firewall.enabled }}"

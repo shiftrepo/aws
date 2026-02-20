@@ -1,0 +1,253 @@
+---
+# ========================================
+# Gitea 完全アンインストール - Ansible自動化
+# ========================================
+# Gitea コンテナ、データ、ファイアウォールルールを完全削除します
+#
+# 実行方法:
+#   cd /root/aws.git/container/claudecode/ArgoCD/ansible
+#   ansible-playbook -i inventory/hosts.yml playbooks/uninstall_gitea.yml
+#
+# データも含めて完全削除する場合:
+#   ansible-playbook -i inventory/hosts.yml playbooks/uninstall_gitea.yml -e "purge_data=true"
+#
+# ========================================
+
+- name: Uninstall Gitea Git server
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # デフォルトはデータを保持。完全削除する場合は purge_data=true を指定
+    purge_data: false
+
+  pre_tasks:
+    - name: Load environment configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../config/environment.yml"
+        name: environment_config
+      tags: [always]
+
+    - name: Set Gitea variables
+      set_fact:
+        gitea_port: "{{ environment_config.gitea.port }}"
+        gitea_ssh_port: "{{ environment_config.gitea.ssh_port }}"
+        gitea_data_dir: "{{ environment_config.gitea.data_dir }}"
+        gitea_container_name: "{{ environment_config.gitea.container_name }}"
+        container_runtime: "{{ environment_config.containers.runtime }}"
+      tags: [always]
+
+    - name: Display uninstall info
+      debug:
+        msg:
+          - "=========================================="
+          - "  Gitea アンインストール開始"
+          - "=========================================="
+          - ""
+          - "Container     : {{ gitea_container_name }}"
+          - "Data Dir      : {{ gitea_data_dir }}"
+          - "Purge Data    : {{ purge_data | bool }}"
+          - ""
+          - "{{ 'WARNING: データディレクトリも削除します!' if purge_data | bool else 'NOTE: データディレクトリは保持します (削除する場合は -e purge_data=true)' }}"
+          - ""
+          - "=========================================="
+      tags: [always]
+
+  tasks:
+    # ========================================
+    # Phase 1: systemd サービスの無効化
+    # ========================================
+    - name: Phase 1 - Disable systemd service
+      block:
+        - name: Stop and disable container-gitea systemd service
+          systemd:
+            name: "container-{{ gitea_container_name }}"
+            state: stopped
+            enabled: no
+          failed_when: false
+          register: systemd_container
+
+        - name: Stop and disable gitea-container systemd service
+          systemd:
+            name: gitea-container
+            state: stopped
+            enabled: no
+          failed_when: false
+          register: systemd_manual
+
+        - name: Remove generated systemd service file (container-gitea)
+          file:
+            path: "/etc/systemd/system/container-{{ gitea_container_name }}.service"
+            state: absent
+
+        - name: Remove manual systemd service file
+          file:
+            path: /etc/systemd/system/gitea-container.service
+            state: absent
+
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+
+        - name: Display systemd removal status
+          debug:
+            msg: "systemd service removed"
+
+      tags: [systemd]
+
+    # ========================================
+    # Phase 2: コンテナの停止・削除
+    # ========================================
+    - name: Phase 2 - Stop and remove container
+      block:
+        - name: Stop Gitea container
+          command: "{{ container_runtime }} stop {{ gitea_container_name }}"
+          register: stop_result
+          failed_when: false
+          changed_when: stop_result.rc == 0
+
+        - name: Display stop result
+          debug:
+            msg: "{{ 'Container stopped: ' + gitea_container_name if stop_result.rc == 0 else 'Container was not running' }}"
+
+        - name: Remove Gitea container
+          command: "{{ container_runtime }} rm {{ gitea_container_name }}"
+          register: rm_result
+          failed_when: false
+          changed_when: rm_result.rc == 0
+
+        - name: Display removal result
+          debug:
+            msg: "{{ 'Container removed: ' + gitea_container_name if rm_result.rc == 0 else 'Container did not exist' }}"
+
+      tags: [container]
+
+    # ========================================
+    # Phase 3: コンテナイメージの削除
+    # ========================================
+    - name: Phase 3 - Remove container image
+      block:
+        - name: Check if Gitea image exists
+          command: "{{ container_runtime }} image inspect docker.io/gitea/gitea:{{ environment_config.gitea.version }}"
+          register: image_check
+          failed_when: false
+          changed_when: false
+
+        - name: Remove Gitea container image
+          command: "{{ container_runtime }} rmi docker.io/gitea/gitea:{{ environment_config.gitea.version }}"
+          register: rmi_result
+          when: image_check.rc == 0
+          failed_when: false
+
+        - name: Display image removal result
+          debug:
+            msg: "{{ 'Image removed: gitea/gitea:' + environment_config.gitea.version if (rmi_result is defined and rmi_result.rc == 0) else 'Image not found or already removed' }}"
+
+      tags: [image]
+
+    # ========================================
+    # Phase 4: ファイアウォールルールの削除
+    # ========================================
+    - name: Phase 4 - Remove firewall rules
+      block:
+        - name: Check if firewalld is running
+          command: systemctl is-active firewalld
+          register: firewalld_status
+          failed_when: false
+          changed_when: false
+
+        - name: Remove Gitea HTTP port from firewalld
+          firewalld:
+            port: "{{ gitea_port }}/tcp"
+            permanent: yes
+            state: disabled
+            immediate: yes
+          when: firewalld_status.stdout == 'active'
+          failed_when: false
+
+        - name: Remove Gitea SSH port from firewalld
+          firewalld:
+            port: "{{ gitea_ssh_port }}/tcp"
+            permanent: yes
+            state: disabled
+            immediate: yes
+          when: firewalld_status.stdout == 'active'
+          failed_when: false
+
+        - name: Display firewall removal status
+          debug:
+            msg: >-
+              {{
+                'Firewall rules removed for ports ' + gitea_port|string + '/tcp and ' + gitea_ssh_port|string + '/tcp'
+                if firewalld_status.stdout == 'active'
+                else 'firewalld not running, skipping'
+              }}
+
+      tags: [firewall]
+
+    # ========================================
+    # Phase 5: データディレクトリの削除（purge_data=true の場合のみ）
+    # ========================================
+    - name: Phase 5 - Remove data directory (only when purge_data=true)
+      block:
+        - name: Remove Gitea data directory
+          file:
+            path: "{{ gitea_data_dir }}"
+            state: absent
+          when: purge_data | bool
+
+        - name: Display data directory status
+          debug:
+            msg: >-
+              {{
+                'Data directory removed: ' + gitea_data_dir
+                if purge_data | bool
+                else 'Data directory preserved: ' + gitea_data_dir + ' (再インストール時に再利用されます)'
+              }}
+
+      tags: [data]
+
+    # ========================================
+    # Phase 6: environment.yml のフラグを更新（任意）
+    # ========================================
+    - name: Phase 6 - Suggest disabling feature flag
+      debug:
+        msg:
+          - "NOTE: environment.yml の gitea_enabled フラグは変更されていません。"
+          - "再インストールを防ぐには以下を変更してください:"
+          - ""
+          - "  features:"
+          - "    gitea_enabled: false"
+
+      tags: [always]
+
+    # ========================================
+    # Phase 7: アンインストール確認サマリー
+    # ========================================
+    - name: Phase 7 - Verify uninstall and display summary
+      block:
+        - name: Verify container is removed
+          command: "{{ container_runtime }} inspect {{ gitea_container_name }}"
+          register: container_check
+          failed_when: false
+          changed_when: false
+
+        - name: Check if data directory exists
+          stat:
+            path: "{{ gitea_data_dir }}"
+          register: data_dir_check
+
+        - name: Display uninstall summary
+          debug:
+            msg:
+              - "=========================================="
+              - "  Gitea アンインストール完了"
+              - "=========================================="
+              - ""
+              - "Container : {{ '✅ 削除済み' if container_check.rc != 0 else '⚠️ まだ存在します' }}"
+              - "Data Dir  : {{ '✅ 削除済み' if not data_dir_check.stat.exists else ('⚠️ 保持中 (purge_data=true で削除)' if not purge_data | bool else '✅ 削除済み') }}"
+              - ""
+              - "=========================================="
+
+      tags: [verify]
