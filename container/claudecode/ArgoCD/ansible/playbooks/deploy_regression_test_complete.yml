@@ -32,7 +32,7 @@
         name: environment_config
 
       tags: [always]
-    - name: Detect container runtime (docker first, then {{ container_cmd }})
+    - name: Detect container runtime (docker first, fallback to environment.yml)
       block:
         - name: Check docker availability
           command: docker info
@@ -46,9 +46,9 @@
             container_cmd: "docker"
           when: docker_check.rc == 0
 
-        - name: Set container runtime to {{ container_cmd }} (fallback)
+        - name: Set container runtime from environment.yml (fallback)
           set_fact:
-            container_cmd: "{{ container_cmd }}"
+            container_cmd: "{{ environment_config.containers.runtime }}"
           when: docker_check.rc != 0
 
         - name: Display container runtime
